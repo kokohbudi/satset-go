@@ -2,7 +2,7 @@ name: 📌 Task
 description: Task kecil yang harus diselesaikan
 title: "[TASK] "
 labels: [task]
-assignees: []
+assignees: [kokohbudi]
 
 body:
   - type: input
@@ -18,7 +18,7 @@ body:
     attributes:
       label: Deskripsi Task
       description: Jelaskan tugas ini secara singkat
-      placeholder: Misalnya: Validasi agar email wajib format @ dan tidak kosong.
+      placeholder: "Misalnya: Validasi agar email wajib format @ dan tidak kosong."
     validations:
       required: false
 
