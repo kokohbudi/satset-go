@@ -9,7 +9,7 @@ body:
     id: task-title
     attributes:
       label: Judul Task
-      placeholder: Contoh: Tambahkan validasi email di form login
+      placeholder: "Contoh: Tambahkan validasi email di form login"
     validations:
       required: true
 
