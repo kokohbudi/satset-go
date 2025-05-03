@@ -4,7 +4,6 @@ import com.omnip.constant.OmniConstants;
 import com.omnip.dto.UserDTO;
 import com.omnip.entities.Users;
 import com.omnip.repositories.UsersRepository;
-import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -30,7 +29,7 @@ public class Beans {
     @Bean
     @Scope(value = WebApplicationContext.SCOPE_REQUEST,
             proxyMode = ScopedProxyMode.TARGET_CLASS)
-    public UserDTO userDTO(HttpServletRequest request, HttpServlet httpServlet) {
+    public UserDTO userDTO(HttpServletRequest request) {
         UserDTO dto = new UserDTO();
 
         // 1) Cek header Authorization
@@ -40,14 +39,15 @@ public class Beans {
             Jwt jwt = this.jwtDecoder.decode(token);
             String email = (String) jwt.getClaims().get("email");
             Users user = this.usersRepository.findByEmail(email);
-
+            String providerUserId = jwt.getClaimAsString("sub");
+            dto.setProviderUserId(providerUserId);
             dto.setUsername(user.getUsername());
             dto.setEmail(email);
             dto.setFullname(user.getFullname());
             dto.setReferalId(user.getReferalId());
             dto.setRoles(user.getRoles());
         } else if (this.session != null) {
-            UserDTO userDTO = (UserDTO) this.session.getAttribute(OmniConstants.SESSION_USER_DTO);
+            UserDTO userDTO = (UserDTO) this.session.getSession().getAttribute(OmniConstants.SESSION_USER_DTO);
             if (userDTO != null) {
                 dto = userDTO;
             }

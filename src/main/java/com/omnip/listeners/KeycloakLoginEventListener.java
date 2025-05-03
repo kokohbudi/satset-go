@@ -36,7 +36,7 @@ public class KeycloakLoginEventListener {
     private String keycloakClientId;
 
 
-    public KeycloakLoginEventListener(JwtDecoder jwtDecoder, UsersRepository usersRepository, UserService userService, UserDTO userDTO) {
+    public KeycloakLoginEventListener(JwtDecoder jwtDecoder, UsersRepository usersRepository, UserService userService) {
         this.jwtDecoder = jwtDecoder;
         this.usersRepository = usersRepository;
         this.userService = userService;
@@ -55,7 +55,8 @@ public class KeycloakLoginEventListener {
             String email = this.extractEmail(oauth2User);
             String username = this.extractUsername(oauth2User);
             String fullName = this.extractFullName(oauth2User);
-
+            Jwt jwt = this.jwtDecoder.decode(authentication.getAccessToken().getTokenValue());
+            String providerUserId = this.extractProviderUserId(jwt);
             if (email != null) {
                 logger.info("Processing Keycloak login for user: {}", email);
                 Optional<Users> existingUser = Optional.ofNullable(this.usersRepository.findByEmail(email));
@@ -63,18 +64,18 @@ public class KeycloakLoginEventListener {
                 List roles;
                 if (existingUser.isPresent()) {
                     Users user = existingUser.get();
-                    email=user.getEmail();
-                    username=user.getUsername();
-                    fullName=user.getFullname();
-                    referalId=user.getReferalId();
-                    roles=user.getRoles();
-                }else{
-                    referalId= this.userService.generateReferralId(fullName);
-                    roles = this.extractRolesFromJwt(this.jwtDecoder.decode(authentication.getAccessToken().getTokenValue()));
-                    this.userService.createNewUser(email, username, fullName,referalId, roles);
+                    email = user.getEmail();
+                    username = user.getUsername();
+                    fullName = user.getFullname();
+                    referalId = user.getReferalId();
+                    roles = user.getRoles();
+                } else {
+                    referalId = this.userService.generateReferralId(fullName);
+                    roles = this.extractRolesFromJwt(jwt);
+                    this.userService.createNewUser(email, username, fullName, referalId, roles);
                 }
                 ServletRequestAttributes attrs = (ServletRequestAttributes) org.springframework.web.context.request.RequestContextHolder.getRequestAttributes();
-                if(attrs != null) {
+                if (attrs != null) {
                     HttpServletRequest request = attrs.getRequest();
                     HttpSession session = request.getSession();
                     UserDTO userDTO = new UserDTO();
@@ -83,7 +84,8 @@ public class KeycloakLoginEventListener {
                     userDTO.setFullname(fullName);
                     userDTO.setReferalId(referalId);
                     userDTO.setRoles(roles);
-                    session.setAttribute(OmniConstants.SESSION_USER_DTO,userDTO);
+                    userDTO.setProviderUserId(providerUserId);
+                    session.setAttribute(OmniConstants.SESSION_USER_DTO, userDTO);
                 }
             } else {
                 logger.warn("Couldn't extract email from login event");
@@ -98,11 +100,11 @@ public class KeycloakLoginEventListener {
         try {
             Map<String, Object> resourceAccess = jwt.getClaim("resource_access");
             if (resourceAccess == null) return List.of();
-            
+
             @SuppressWarnings("unchecked")
             Map<String, Object> clientResource = (Map<String, Object>) resourceAccess.get(this.clientId);
             if (clientResource == null) return List.of();
-            
+
             @SuppressWarnings("unchecked")
             List<String> roles = (List<String>) clientResource.get("roles");
             return roles != null ? roles : List.of();
@@ -113,6 +115,9 @@ public class KeycloakLoginEventListener {
         }
     }
 
+    public String extractProviderUserId(Jwt jwt) {
+        return jwt.getClaimAsString("sub");
+    }
 
 
     private String extractEmail(OAuth2User oauth2User) {
