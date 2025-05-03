@@ -1,5 +1,6 @@
 package com.omnip.services;
 
+import com.omnip.constant.OmniConstants;
 import com.omnip.entities.Users;
 import com.omnip.repositories.UsersRepository;
 import org.slf4j.Logger;
@@ -29,7 +30,7 @@ public class UserService {
      */
     public String generateReferralId(String fullName) {
                 // Normalize the full name (remove accents, convert to lowercase)
-        String normalizedName = normalizeString(fullName);
+        String normalizedName = this.normalizeString(fullName);
 
         // Extract name parts
         String[] nameParts = normalizedName.split("\\s+");
@@ -50,23 +51,23 @@ public class UserService {
         }
 
         // Add a random 4-digit number
-        referralId.append(String.format("%04d", random.nextInt(10000)));
+        referralId.append(String.format("%04d", this.random.nextInt(10000)));
 
         // Ensure uniqueness by checking against existing referral IDs
         String candidateId = referralId.toString();
         int attempt = 0;
 
-        while (usersRepository.existsByReferalId(candidateId) && attempt < 10) {
+        while (this.usersRepository.existsByReferalId(candidateId) && attempt < 10) {
             // If the referral ID already exists, generate a new random suffix
             candidateId = referralId.substring(0, referralId.length() - 4) +
-                    String.format("%04d", random.nextInt(10000));
+                    String.format("%04d", this.random.nextInt(10000));
             attempt++;
         }
 
         // If we still have a collision after several attempts, add more random characters
-        if (usersRepository.existsByReferalId(candidateId)) {
+        if (this.usersRepository.existsByReferalId(candidateId)) {
             candidateId = referralId.substring(0, referralId.length() - 4) +
-                    generateRandomString(6);
+                    this.generateRandomString(6);
         }
 
         return candidateId;
@@ -95,7 +96,7 @@ public class UserService {
         StringBuilder result = new StringBuilder();
 
         for (int i = 0; i < length; i++) {
-            result.append(characters.charAt(random.nextInt(characters.length())));
+            result.append(characters.charAt(this.random.nextInt(characters.length())));
         }
 
         return result.toString();
@@ -123,24 +124,23 @@ public class UserService {
 
         if (changed) {
             user.setUpdatedAt(LocalDateTime.now());
-            usersRepository.save(user);
+            this.usersRepository.save(user);
             logger.info("Updated existing user record for: {}", user.getEmail());
         }
     }
 
-    public void createNewUser(String email, String username, String fullName, List<String> roles) {
+    public void createNewUser(String email, String username, String fullName,String referalId, List<String> roles) {
         Users newUser = new Users();
         newUser.setEmail(email);
         newUser.setUsername(username);
         newUser.setFullname(fullName);
-        newUser.setReferalId(generateReferralId(fullName));
-        newUser.setRegistrationChannel("keycloak");
+        newUser.setReferalId(referalId);
+        newUser.setRegistrationChannel(OmniConstants.REGISTRATION_CHANNEL_KEYCLOAK);
         newUser.setActive(true);
-        newUser.setCreatedAt(LocalDateTime.now());
-        newUser.setUpdatedAt(LocalDateTime.now());
+
         newUser.setRoles(roles);
 
-        usersRepository.save(newUser);
+        this.usersRepository.save(newUser);
         logger.info("Created new user record for: {}", email);
     }
 }

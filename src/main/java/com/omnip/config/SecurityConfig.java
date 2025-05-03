@@ -1,4 +1,4 @@
-package com.omnip;
+package com.omnip.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -17,6 +17,8 @@ import static org.springframework.security.config.Customizer.withDefaults;
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
+
+
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http, LogoutSuccessHandler logoutSuccessHandler) throws Exception {
         http
@@ -36,7 +38,7 @@ public class SecurityConfig {
                         .invalidateHttpSession(true)
                         .clearAuthentication(true)
                         .logoutSuccessHandler(logoutSuccessHandler)
-                        .logoutRequestMatcher(new AntPathRequestMatcher("/logout","GET")));
+                        .logoutRequestMatcher(new AntPathRequestMatcher("/logout", "GET")));
         return http.build();
     }
 
@@ -48,4 +50,6 @@ public class SecurityConfig {
         handler.setPostLogoutRedirectUri("{baseUrl}/");
         return handler;
     }
+
+
 }

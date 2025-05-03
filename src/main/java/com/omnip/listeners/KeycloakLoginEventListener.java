@@ -1,23 +1,26 @@
 package com.omnip.listeners;
 
+import com.omnip.constant.OmniConstants;
+import com.omnip.dto.UserDTO;
 import com.omnip.entities.Users;
 import com.omnip.repositories.UsersRepository;
 import com.omnip.services.UserService;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpSession;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.event.EventListener;
 import org.springframework.security.authentication.event.AuthenticationSuccessEvent;
 import org.springframework.security.oauth2.client.authentication.OAuth2LoginAuthenticationToken;
-import org.springframework.security.oauth2.core.oidc.user.DefaultOidcUser;
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -32,7 +35,8 @@ public class KeycloakLoginEventListener {
     @Value("${spring.security.oauth2.client.registration.keycloak.client-id}")
     private String keycloakClientId;
 
-    public KeycloakLoginEventListener(JwtDecoder jwtDecoder, UsersRepository usersRepository, UserService userService) {
+
+    public KeycloakLoginEventListener(JwtDecoder jwtDecoder, UsersRepository usersRepository, UserService userService, UserDTO userDTO) {
         this.jwtDecoder = jwtDecoder;
         this.usersRepository = usersRepository;
         this.userService = userService;
@@ -42,30 +46,44 @@ public class KeycloakLoginEventListener {
     @Transactional
     public void onAuthenticationSuccess(AuthenticationSuccessEvent event) {
         // Check if this is an OAuth2 login event
-        if (event.getAuthentication() instanceof OAuth2LoginAuthenticationToken) {
-            OAuth2LoginAuthenticationToken authentication = (OAuth2LoginAuthenticationToken) event.getAuthentication();
+        if (event.getAuthentication() instanceof OAuth2LoginAuthenticationToken authentication) {
 
             // Get the OAuth2User which contains user details
             OAuth2User oauth2User = authentication.getPrincipal();
 
             // Extract user information from the OAuth2User
-            String email = extractEmail(oauth2User);
-            String username = extractUsername(oauth2User);
-            String fullName = extractFullName(oauth2User);
+            String email = this.extractEmail(oauth2User);
+            String username = this.extractUsername(oauth2User);
+            String fullName = this.extractFullName(oauth2User);
 
             if (email != null) {
                 logger.info("Processing Keycloak login for user: {}", email);
-
-                // Check if user already exists in our database
-                Optional<Users> existingUser = Optional.ofNullable(usersRepository.findByEmail(email));
-
+                Optional<Users> existingUser = Optional.ofNullable(this.usersRepository.findByEmail(email));
+                String referalId;
+                List roles;
                 if (existingUser.isPresent()) {
-                    // Update existing user
-                    userService.updateExistingUser(existingUser.get(), username, fullName);
-                } else {
-                    // Create new user
-                    List<String> roles = extractRolesFromJwt(jwtDecoder.decode(authentication.getAccessToken().getTokenValue()));
-                    userService.createNewUser(email, username, fullName, roles);
+                    Users user = existingUser.get();
+                    email=user.getEmail();
+                    username=user.getUsername();
+                    fullName=user.getFullname();
+                    referalId=user.getReferalId();
+                    roles=user.getRoles();
+                }else{
+                    referalId= this.userService.generateReferralId(fullName);
+                    roles = this.extractRolesFromJwt(this.jwtDecoder.decode(authentication.getAccessToken().getTokenValue()));
+                    this.userService.createNewUser(email, username, fullName,referalId, roles);
+                }
+                ServletRequestAttributes attrs = (ServletRequestAttributes) org.springframework.web.context.request.RequestContextHolder.getRequestAttributes();
+                if(attrs != null) {
+                    HttpServletRequest request = attrs.getRequest();
+                    HttpSession session = request.getSession();
+                    UserDTO userDTO = new UserDTO();
+                    userDTO.setEmail(email);
+                    userDTO.setUsername(username);
+                    userDTO.setFullname(fullName);
+                    userDTO.setReferalId(referalId);
+                    userDTO.setRoles(roles);
+                    session.setAttribute(OmniConstants.SESSION_USER_DTO,userDTO);
                 }
             } else {
                 logger.warn("Couldn't extract email from login event");
@@ -82,7 +100,7 @@ public class KeycloakLoginEventListener {
             if (resourceAccess == null) return List.of();
             
             @SuppressWarnings("unchecked")
-            Map<String, Object> clientResource = (Map<String, Object>) resourceAccess.get(clientId);
+            Map<String, Object> clientResource = (Map<String, Object>) resourceAccess.get(this.clientId);
             if (clientResource == null) return List.of();
             
             @SuppressWarnings("unchecked")
@@ -130,7 +148,7 @@ public class KeycloakLoginEventListener {
         }
 
         // If no username found, use email prefix
-        String email = extractEmail(oauth2User);
+        String email = this.extractEmail(oauth2User);
         if (email != null && email.contains("@")) {
             return email.substring(0, email.indexOf('@'));
         }
@@ -157,7 +175,7 @@ public class KeycloakLoginEventListener {
         }
 
         // Use username as fallback
-        return extractUsername(oauth2User);
+        return this.extractUsername(oauth2User);
     }
 
 

@@ -4,7 +4,6 @@ import io.hypersistence.utils.hibernate.type.array.ListArrayType;
 import jakarta.persistence.*;
 import org.hibernate.annotations.GenericGenerator;
 import org.hibernate.annotations.Type;
-import org.springframework.boot.autoconfigure.web.WebProperties;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
@@ -37,7 +36,7 @@ public class Users {
     private List<String> roles;
 
     public List<String> getRoles() {
-        return roles;
+        return this.roles;
     }
 
     public void setRoles(List<String> roles) {
@@ -45,7 +44,7 @@ public class Users {
     }
 
     public String getReferalId() {
-        return referalId;
+        return this.referalId;
     }
 
     public void setReferalId(String referalId) {
@@ -53,7 +52,7 @@ public class Users {
     }
 
     public UUID getId() {
-        return id;
+        return this.id;
     }
 
     public void setId(UUID id) {
@@ -61,7 +60,7 @@ public class Users {
     }
 
     public String getEmail() {
-        return email;
+        return this.email;
     }
 
     public void setEmail(String email) {
@@ -69,7 +68,7 @@ public class Users {
     }
 
     public String getUsername() {
-        return username;
+        return this.username;
     }
 
     public void setUsername(String username) {
@@ -77,7 +76,7 @@ public class Users {
     }
 
     public String getFullname() {
-        return fullname;
+        return this.fullname;
     }
 
     public void setFullname(String fullname) {
@@ -85,7 +84,7 @@ public class Users {
     }
 
     public String getRegistrationChannel() {
-        return registrationChannel;
+        return this.registrationChannel;
     }
 
     public void setRegistrationChannel(String registrationChannel) {
@@ -93,7 +92,7 @@ public class Users {
     }
 
     public LocalDateTime getCreatedAt() {
-        return createdAt;
+        return this.createdAt;
     }
 
     public void setCreatedAt(LocalDateTime createdAt) {
@@ -101,7 +100,7 @@ public class Users {
     }
 
     public LocalDateTime getUpdatedAt() {
-        return updatedAt;
+        return this.updatedAt;
     }
 
     public void setUpdatedAt(LocalDateTime updatedAt) {
@@ -109,7 +108,7 @@ public class Users {
     }
 
     public boolean isActive() {
-        return active;
+        return this.active;
     }
 
     public void setActive(boolean active) {
