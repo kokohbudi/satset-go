@@ -3,7 +3,8 @@ package com.omnip.listeners;
 import com.omnip.constant.OmniConstants;
 import com.omnip.dto.UserDTO;
 import com.omnip.entities.Users;
-import com.omnip.repositories.UsersRepository;
+import com.omnip.services.RegistrationService;
+import com.omnip.services.StoreService;
 import com.omnip.services.UserService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
@@ -23,29 +24,34 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 @Component
 public class KeycloakLoginEventListener {
     private final JwtDecoder jwtDecoder;
     private static final Logger logger = LoggerFactory.getLogger(KeycloakLoginEventListener.class);
-    private final UsersRepository usersRepository;
+    //    private final UsersRepository usersRepository;
     private final UserService userService;
+    private final StoreService storeService;
+    private final RegistrationService registrationService;
 
     @Value("${spring.security.oauth2.client.registration.keycloak.client-id}")
     private String keycloakClientId;
 
+    @Value("${spring.security.oauth2.client.registration.keycloak.client-id}")
+    private String clientId;
 
-    public KeycloakLoginEventListener(JwtDecoder jwtDecoder, UsersRepository usersRepository, UserService userService) {
+
+    public KeycloakLoginEventListener(JwtDecoder jwtDecoder, UserService userService, StoreService storeService, RegistrationService registrationService) {
         this.jwtDecoder = jwtDecoder;
-        this.usersRepository = usersRepository;
+//        this.usersRepository = usersRepository;
         this.userService = userService;
+        this.storeService = storeService;
+        this.registrationService = registrationService;
     }
 
     @EventListener
     @Transactional
     public void onAuthenticationSuccess(AuthenticationSuccessEvent event) {
-        // Check if this is an OAuth2 login event
         if (event.getAuthentication() instanceof OAuth2LoginAuthenticationToken authentication) {
 
             // Get the OAuth2User which contains user details
@@ -57,33 +63,33 @@ public class KeycloakLoginEventListener {
             String fullName = this.extractFullName(oauth2User);
             Jwt jwt = this.jwtDecoder.decode(authentication.getAccessToken().getTokenValue());
             String providerUserId = this.extractProviderUserId(jwt);
+            Users user;
             if (email != null) {
                 logger.info("Processing Keycloak login for user: {}", email);
-                Optional<Users> existingUser = Optional.ofNullable(this.usersRepository.findByEmail(email));
-                String referalId;
+                boolean isEmailRegistered = this.registrationService.isEmailRegistered(email);
                 List roles;
-                if (existingUser.isPresent()) {
-                    Users user = existingUser.get();
+                if (isEmailRegistered) {
+                    user = this.userService.findByEmail(email);
                     email = user.getEmail();
                     username = user.getUsername();
                     fullName = user.getFullname();
-                    referalId = user.getReferalId();
                     roles = user.getRoles();
                 } else {
-                    referalId = this.userService.generateReferralId(fullName);
                     roles = this.extractRolesFromJwt(jwt);
-                    this.userService.createNewUser(email, username, fullName, referalId, roles);
+                    Map returnMap = this.registrationService.registerNewStore(email, fullName, roles, OmniConstants.REGISTRATION_CHANNEL_KEYCLOAK, providerUserId);
+                    user = (Users) returnMap.get("user");
                 }
                 ServletRequestAttributes attrs = (ServletRequestAttributes) org.springframework.web.context.request.RequestContextHolder.getRequestAttributes();
                 if (attrs != null) {
                     HttpServletRequest request = attrs.getRequest();
                     HttpSession session = request.getSession();
                     UserDTO userDTO = new UserDTO();
+
                     userDTO.setEmail(email);
                     userDTO.setUsername(username);
                     userDTO.setFullname(fullName);
-                    userDTO.setReferalId(referalId);
                     userDTO.setRoles(roles);
+                    userDTO.setStore(user.getStore());
                     userDTO.setProviderUserId(providerUserId);
                     session.setAttribute(OmniConstants.SESSION_USER_DTO, userDTO);
                 }
@@ -92,9 +98,6 @@ public class KeycloakLoginEventListener {
             }
         }
     }
-
-    @Value("${spring.security.oauth2.client.registration.keycloak.client-id}")
-    private String clientId;
 
     public List<String> extractRolesFromJwt(Jwt jwt) {
         try {

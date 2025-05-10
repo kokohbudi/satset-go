@@ -1,5 +1,6 @@
 package com.omnip.config;
 
+import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -16,15 +17,15 @@ import static org.springframework.security.config.Customizer.withDefaults;
 
 @Configuration
 @EnableWebSecurity
+@EnableCaching
 public class SecurityConfig {
-
-
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http, LogoutSuccessHandler logoutSuccessHandler) throws Exception {
         http
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/**").authenticated()
-                        .anyRequest().permitAll()
+                                .requestMatchers("/api/**").authenticated()
+//                        .requestMatchers("/login").authenticated()
+                                .anyRequest().permitAll()
                 )
                 .exceptionHandling(ex -> ex
                         .authenticationEntryPoint(
@@ -47,7 +48,7 @@ public class SecurityConfig {
         OidcClientInitiatedLogoutSuccessHandler handler =
                 new OidcClientInitiatedLogoutSuccessHandler(clients);
         // Setelah logout di Keycloak, redirect kembali ke home (atau halaman login)
-        handler.setPostLogoutRedirectUri("{baseUrl}/");
+        handler.setPostLogoutRedirectUri("http://localhost:8080/logout");
         return handler;
     }
 

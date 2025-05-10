@@ -1,67 +1,27 @@
 package com.omnip.dto;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.omnip.entities.Store;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 import java.util.List;
 
+@EqualsAndHashCode(callSuper = true)
 @JsonIgnoreProperties({
         "targetSource", "advisors", "targetClass", "frozen", "exposeProxy", "preFiltered",
         "targetObject", "proxyTargetClass", "advisorCount", "proxiedInterfaces"
 })
-public class UserDTO {
+@Data
+public class UserDTO extends BaseDTO {
     private String email;
     private String username;
     private String fullname;
     private String referalId;
     private List<String> roles;
     private String providerUserId;
+    private String password;
+    private Store store;
 
-    public String getProviderUserId() {
-        return this.providerUserId;
-    }
-
-    public void setProviderUserId(String providerUserId) {
-        this.providerUserId = providerUserId;
-    }
-
-    public String getEmail() {
-        return this.email;
-    }
-
-    public void setEmail(String email) {
-        this.email = email;
-    }
-
-    public String getUsername() {
-        return this.username;
-    }
-
-    public void setUsername(String username) {
-        this.username = username;
-    }
-
-    public String getFullname() {
-        return this.fullname;
-    }
-
-    public void setFullname(String fullname) {
-        this.fullname = fullname;
-    }
-
-    public String getReferalId() {
-        return this.referalId;
-    }
-
-    public void setReferalId(String referalId) {
-        this.referalId = referalId;
-    }
-
-    public List<String> getRoles() {
-        return this.roles;
-    }
-
-    public void setRoles(List<String> roles) {
-        this.roles = roles;
-    }
 
 }
