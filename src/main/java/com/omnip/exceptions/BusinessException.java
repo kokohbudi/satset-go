@@ -1,4 +1,4 @@
-package com.omnip;
+package com.omnip.exceptions;
 
 public class BusinessException extends Exception {
 
