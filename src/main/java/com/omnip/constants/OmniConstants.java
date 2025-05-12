@@ -1,4 +1,4 @@
-package com.omnip.constant;
+package com.omnip.constants;
 
 public class OmniConstants {
     public static final String REGISTRATION_CHANNEL_KEYCLOAK = "keycloak";

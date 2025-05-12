@@ -39,6 +39,8 @@ public class Users {
     private boolean active;
     private boolean deleted;
     private String providerUserId;
+    @Version
+    private Long version;
 
     @ManyToOne
     @JoinColumn(name = "store_id")

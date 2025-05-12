@@ -37,6 +37,8 @@ public class Store {
     @ManyToOne
     @JoinColumn(name = "upline_id")
     private Store upline;
+    @Version
+    private Long version;
 
 
 }

@@ -1,4 +1,4 @@
-package com.omnip.dto;
+package com.omnip.dtos;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.omnip.entities.Store;
@@ -22,6 +22,7 @@ public class UserDTO extends BaseDTO {
     private String providerUserId;
     private String password;
     private Store store;
+    private boolean active;
 
 
 }

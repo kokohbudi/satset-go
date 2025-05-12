@@ -1,11 +1,10 @@
 package com.omnip.listeners;
 
-import com.omnip.constant.OmniConstants;
-import com.omnip.dto.UserDTO;
+import com.omnip.constants.OmniConstants;
+import com.omnip.dtos.UserDTO;
 import com.omnip.entities.Users;
 import com.omnip.services.RegistrationService;
-import com.omnip.services.StoreService;
-import com.omnip.services.UserService;
+import com.omnip.services.UserManagementService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 import org.slf4j.Logger;
@@ -30,22 +29,18 @@ public class KeycloakLoginEventListener {
     private final JwtDecoder jwtDecoder;
     private static final Logger logger = LoggerFactory.getLogger(KeycloakLoginEventListener.class);
     //    private final UsersRepository usersRepository;
-    private final UserService userService;
-    private final StoreService storeService;
+    private final UserManagementService userManagementService;
     private final RegistrationService registrationService;
 
-    @Value("${spring.security.oauth2.client.registration.keycloak.client-id}")
-    private String keycloakClientId;
 
     @Value("${spring.security.oauth2.client.registration.keycloak.client-id}")
     private String clientId;
 
 
-    public KeycloakLoginEventListener(JwtDecoder jwtDecoder, UserService userService, StoreService storeService, RegistrationService registrationService) {
+    public KeycloakLoginEventListener(JwtDecoder jwtDecoder, UserManagementService userManagementService, RegistrationService registrationService) {
         this.jwtDecoder = jwtDecoder;
 //        this.usersRepository = usersRepository;
-        this.userService = userService;
-        this.storeService = storeService;
+        this.userManagementService = userManagementService;
         this.registrationService = registrationService;
     }
 
@@ -69,7 +64,7 @@ public class KeycloakLoginEventListener {
                 boolean isEmailRegistered = this.registrationService.isEmailRegistered(email);
                 List roles;
                 if (isEmailRegistered) {
-                    user = this.userService.findByEmail(email);
+                    user = this.userManagementService.findByEmail(email);
                     email = user.getEmail();
                     username = user.getUsername();
                     fullName = user.getFullname();

@@ -1,4 +1,4 @@
-package com.omnip.dto;
+package com.omnip.dtos;
 
 import lombok.Data;
 

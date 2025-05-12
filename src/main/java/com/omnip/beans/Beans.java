@@ -1,9 +1,9 @@
 package com.omnip.beans;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
-import com.omnip.config.AuditorAwareImpl;
-import com.omnip.constant.OmniConstants;
-import com.omnip.dto.UserDTO;
+import com.omnip.configs.AuditorAwareImpl;
+import com.omnip.constants.OmniConstants;
+import com.omnip.dtos.UserDTO;
 import com.omnip.entities.Users;
 import com.omnip.repositories.UsersRepository;
 import jakarta.servlet.http.HttpServletRequest;
@@ -88,7 +88,12 @@ public class Beans {
 
     @Bean
     public Keycloak keycloak() {
-        Keycloak keycloak = KeycloakBuilder.builder()
+        // misal http://localhost:8888
+        // misal "master"
+        // "omnip-client" atau "omnip-admin-client"
+        // secret yang kamu lihat di tab Credentials
+
+        return KeycloakBuilder.builder()
                 .serverUrl(this.serverUrl)       // misal http://localhost:8888
                 .realm(this.realm)               // misal "master"
                 .clientId(this.clientId)         // "omnip-client" atau "omnip-admin-client"
@@ -97,8 +102,6 @@ public class Beans {
                 .grantType("password")
                 .password("kozaninja")// secret yang kamu lihat di tab Credentials
                 .build();
-
-        return keycloak;
     }
 
     @Bean
