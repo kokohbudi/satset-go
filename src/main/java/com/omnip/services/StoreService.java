@@ -1,7 +1,7 @@
 package com.omnip.services;
 
 import com.omnip.business.StoreBusiness;
-import com.omnip.entities.Store;
+import com.omnip.entities.Stores;
 import com.omnip.repositories.StoreRepository;
 import org.springframework.stereotype.Service;
 
@@ -15,9 +15,9 @@ public class StoreService {
         this.storeBusiness = storeBusiness;
     }
 
-    public Store createNewStore(Store store) {
-        Store preparedStore = this.storeBusiness.prepareNewStore(store);
-        return this.storeRepository.save(preparedStore);
+    public Stores createNewStore(Stores stores) {
+        Stores preparedStores = this.storeBusiness.prepareNewStore(stores);
+        return this.storeRepository.save(preparedStores);
     }
 
 }

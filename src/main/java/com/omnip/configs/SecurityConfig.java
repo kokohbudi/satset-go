@@ -33,9 +33,9 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(JwtAuthenticationConverter jwtAuthenticationConverter, HttpSecurity http, LogoutSuccessHandler logoutSuccessHandler) throws Exception {
         http
                 .authorizeHttpRequests(auth -> auth
-                                .requestMatchers("/api/**").authenticated()
-//                        .requestMatchers("/login").authenticated()
-                                .anyRequest().permitAll()
+                        .requestMatchers("/api/**").authenticated()
+                        .requestMatchers("/dashboard").authenticated()
+                        .anyRequest().permitAll()
                 )
                 .exceptionHandling(ex -> ex
                         .authenticationEntryPoint(

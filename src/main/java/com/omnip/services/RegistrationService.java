@@ -1,7 +1,7 @@
 package com.omnip.services;
 
 import com.omnip.business.RegistrationBusiness;
-import com.omnip.entities.Store;
+import com.omnip.entities.Stores;
 import com.omnip.entities.Users;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -48,15 +48,15 @@ public class RegistrationService {
                                                 List<String> roles,
                                                 String registrationChannel,
                                                 String providerUserId) {
-        Store store = this.registrationBusiness.prepareNewStore(email, fullName);
+        Stores stores = this.registrationBusiness.prepareNewStore(email, fullName);
 
-        store = this.storeService.createNewStore(store);
+        stores = this.storeService.createNewStore(stores);
 
         Users user = this.registrationBusiness.prepareNewStoreUser(
-                email, fullName, roles, registrationChannel, providerUserId, store);
+                email, fullName, roles, registrationChannel, providerUserId, stores);
 
         user = this.userManagementService.createNewUser(user);
 
-        return this.registrationBusiness.createRegistrationResponse(store, user);
+        return this.registrationBusiness.createRegistrationResponse(stores, user);
     }
 }

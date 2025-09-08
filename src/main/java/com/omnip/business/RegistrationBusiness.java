@@ -1,6 +1,6 @@
 package com.omnip.business;
 
-import com.omnip.entities.Store;
+import com.omnip.entities.Stores;
 import com.omnip.entities.Users;
 import com.omnip.repositories.StoreRepository;
 import com.omnip.repositories.UsersRepository;
@@ -53,14 +53,14 @@ public class RegistrationBusiness {
      * @param fullName Nama pemilik untuk store
      * @return Objek Store yang siap disimpan
      */
-    public Store prepareNewStore(String email, String fullName) {
-        Store store = new Store();
-        store.setName(fullName + "'s Store");
-        store.setActive(true);
-        store.setReferralId(this.generateReferralId(fullName));
-        store.setEmail(email);
+    public Stores prepareNewStore(String email, String fullName) {
+        Stores stores = new Stores();
+        stores.setName(fullName + "'s Store");
+        stores.setActive(true);
+        stores.setReferralId(this.generateReferralId(fullName));
+        stores.setEmail(email);
 
-        return store;
+        return stores;
     }
 
     /**
@@ -72,17 +72,17 @@ public class RegistrationBusiness {
      * @param roles               Daftar peran user
      * @param registrationChannel Channel registrasi
      * @param providerUserId      ID provider (Keycloak)
-     * @param store               Store terkait
+     * @param stores              Store terkait
      * @return Objek Users yang siap disimpan
      */
     public Users prepareNewStoreUser(String email, String fullName, List<String> roles,
-                                     String registrationChannel, String providerUserId, Store store) {
+                                     String registrationChannel, String providerUserId, Stores stores) {
         Users user = new Users();
         user.setEmail(email);
         // Logika bisnis: username = email
         user.setUsername(email);
         user.setFullname(fullName);
-        user.setStore(store);
+        user.setStores(stores);
         // Logika bisnis: user baru selalu aktif
         user.setActive(true);
         user.setRoles(roles);
@@ -96,13 +96,13 @@ public class RegistrationBusiness {
      * Menyiapkan respons untuk registrasi berhasil.
      * Mengemas informasi store dan user dalam satu Map.
      *
-     * @param store Store yang telah dibuat
-     * @param user  User yang telah dibuat
+     * @param stores Store yang telah dibuat
+     * @param user   User yang telah dibuat
      * @return Map berisi informasi store dan user
      */
-    public Map<String, Object> createRegistrationResponse(Store store, Users user) {
+    public Map<String, Object> createRegistrationResponse(Stores stores, Users user) {
         Map<String, Object> resultMap = new HashMap<>();
-        resultMap.put("store", store);
+        resultMap.put("store", stores);
         resultMap.put("user", user);
         return resultMap;
     }

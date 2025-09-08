@@ -1,6 +1,6 @@
 package com.omnip.repositories;
 
-import com.omnip.entities.Store;
+import com.omnip.entities.Stores;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
@@ -11,7 +11,7 @@ import org.springframework.stereotype.Repository;
  * Interface ini secara otomatis diimplementasikan oleh Spring Data JPA.
  */
 @Repository
-public interface StoreRepository extends JpaRepository<Store, Long> {
+public interface StoreRepository extends JpaRepository<Stores, Long> {
 
     /**
      * Memeriksa apakah terdapat toko dengan referral ID tertentu.
@@ -29,5 +29,5 @@ public interface StoreRepository extends JpaRepository<Store, Long> {
      * @return Objek Store jika ditemukan, null jika tidak ditemukan
      */
     @Cacheable(value = "stores", key = "#email", cacheManager = "fastCacheManager")
-    Store findByEmail(String email);
+    Stores findByEmail(String email);
 }

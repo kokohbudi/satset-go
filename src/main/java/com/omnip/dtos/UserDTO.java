@@ -1,7 +1,7 @@
 package com.omnip.dtos;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.omnip.entities.Store;
+import com.omnip.entities.Stores;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
@@ -21,7 +21,7 @@ public class UserDTO extends BaseDTO {
     private List<String> roles;
     private String providerUserId;
     private String password;
-    private Store store;
+    private Stores stores;
     private boolean active;
 
 

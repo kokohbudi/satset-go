@@ -14,7 +14,7 @@ import java.util.UUID;
 @Entity
 @EntityListeners(AuditingEntityListener.class)
 @Data
-public class Operator {
+public class Operators {
     @Id
     @GeneratedValue(generator = "UUID")
     @GenericGenerator(name = "UUID", strategy = "org.hibernate.id.UUIDGenerator")
@@ -31,4 +31,6 @@ public class Operator {
     @CreatedBy
     private String createdBy;
     private boolean active;
+    @Version
+    private Long version;
 }

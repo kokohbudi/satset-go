@@ -59,6 +59,7 @@ public class KeycloakLoginEventListener {
             Jwt jwt = this.jwtDecoder.decode(authentication.getAccessToken().getTokenValue());
             String providerUserId = this.extractProviderUserId(jwt);
             Users user;
+            this.extractRolesFromJwt(jwt);
             if (email != null) {
                 logger.info("Processing Keycloak login for user: {}", email);
                 boolean isEmailRegistered = this.registrationService.isEmailRegistered(email);
@@ -84,7 +85,7 @@ public class KeycloakLoginEventListener {
                     userDTO.setUsername(username);
                     userDTO.setFullname(fullName);
                     userDTO.setRoles(roles);
-                    userDTO.setStore(user.getStore());
+                    userDTO.setStores(user.getStores());
                     userDTO.setProviderUserId(providerUserId);
                     session.setAttribute(OmniConstants.SESSION_USER_DTO, userDTO);
                 }

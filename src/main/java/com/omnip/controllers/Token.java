@@ -10,7 +10,7 @@ import java.util.Map;
 
 @RestController
 public class Token {
-    @GetMapping({"/api/token", "/login", "/"})
+    @GetMapping({"/api/token", "/login"})
     public ResponseEntity<Map> getToken(@RegisteredOAuth2AuthorizedClient("keycloak") OAuth2AuthorizedClient client) {
         String accessToken = client.getAccessToken().getTokenValue();
         return ResponseEntity.ok(Map.of("accessToken", accessToken));

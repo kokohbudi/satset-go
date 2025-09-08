@@ -44,7 +44,7 @@ public class Users {
 
     @ManyToOne
     @JoinColumn(name = "store_id")
-    private Store store;
+    private Stores stores;
 
     @Type(ListArrayType.class)
     @Column(name = "roles", columnDefinition = "text[]")

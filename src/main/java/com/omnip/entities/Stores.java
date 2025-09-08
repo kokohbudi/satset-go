@@ -15,7 +15,7 @@ import java.util.UUID;
 @Entity
 @EntityListeners(AuditingEntityListener.class)
 @Data
-public class Store {
+public class Stores {
     @Id
     @GeneratedValue(generator = "UUID")
     @GenericGenerator(name = "UUID", strategy = "org.hibernate.id.UUIDGenerator")
@@ -36,7 +36,7 @@ public class Store {
     private String createdBy;
     @ManyToOne
     @JoinColumn(name = "upline_id")
-    private Store upline;
+    private Stores upline;
     @Version
     private Long version;
 

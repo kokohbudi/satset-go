@@ -108,7 +108,7 @@ public class UserManagementBusiness {
      */
     private Users getRequestedUserOnStore(UserDTO sessionUserDTO, UserDTO requestUserDTO, UsersRepository usersRepository) throws BusinessException {
         String[] emails = {sessionUserDTO.getEmail(), requestUserDTO.getEmail()};
-        List<Users> users = usersRepository.findByEmailInAndStoreId(List.of(emails), sessionUserDTO.getStore().getId().toString());
+        List<Users> users = usersRepository.findByEmailInAndStoreId(List.of(emails), sessionUserDTO.getStores().getId().toString());
 
         // Validasi bahwa kedua pengguna berada pada toko yang sama
         if (users.size() != 2) {
@@ -135,7 +135,7 @@ public class UserManagementBusiness {
         user.setUsername(reqUserDTO.getUsername());
         user.setFullname(reqUserDTO.getFullname());
         user.setRoles(reqUserDTO.getRoles());
-        user.setStore(this.userDTO.getStore());
+        user.setStores(this.userDTO.getStores());
         user.setProviderUserId(providerUserId);
         user.setRegistrationChannel("omnia");
         return user;
