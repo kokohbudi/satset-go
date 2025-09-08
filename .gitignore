@@ -43,5 +43,7 @@ node_modules/
 /mvnw
 /mvnw.cmd
 
+
 # Help file
 /HELP.md
+/config/application-secret.yml
