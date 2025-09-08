@@ -45,6 +45,3 @@ keycloak:
   base-server-url: http://localhost:9999
   server-url: ${keycloak.base-server-url}
   client-id: omnip-client
-  #  client-secret: Dbhv6xHJyr8jt8rgXfas9HmXZbb7KSmQ
-  #  client-secret: moxSNrEB52dUnXi6o0LdkMCdVtX8nkoF
-#  client-secret: moxSNrEB52dUnXi6o0LdkMCdVtX8nkoF
