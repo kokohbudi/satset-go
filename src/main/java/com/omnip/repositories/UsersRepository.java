@@ -8,6 +8,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.UUID;
 
 /**
  * Repository interface untuk entity Users.
@@ -15,7 +16,7 @@ import java.util.List;
  * Interface ini secara otomatis diimplementasikan oleh Spring Data JPA.
  */
 @Repository
-public interface UsersRepository extends JpaRepository<Users, Long> {
+public interface UsersRepository extends JpaRepository<Users, UUID> {
 
     /**
      * Mencari pengguna berdasarkan alamat email.
@@ -47,4 +48,16 @@ public interface UsersRepository extends JpaRepository<Users, Long> {
      * @return Objek Users jika ditemukan, null jika tidak ditemukan
      */
     Users findByProviderUserId(String providerUserId);
+
+    /**
+     * Mencari pengguna berdasarkan email, username, atau fullname (case insensitive).
+     * Digunakan untuk fitur search user dalam role management.
+     *
+     * @param email Email yang dicari
+     * @param username Username yang dicari  
+     * @param fullname Fullname yang dicari
+     * @return List objek Users yang memenuhi kriteria
+     */
+    List<Users> findByEmailContainingIgnoreCaseOrUsernameContainingIgnoreCaseOrFullnameContainingIgnoreCase(
+        String email, String username, String fullname);
 }

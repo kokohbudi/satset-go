@@ -1,5 +1,7 @@
 package com.omnip.configs;
 
+import com.omnip.services.RoleIntegrationService;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -27,14 +29,34 @@ import static org.springframework.security.config.Customizer.withDefaults;
 @Configuration
 @EnableWebSecurity
 @EnableCaching
-@EnableMethodSecurity
+@EnableMethodSecurity(prePostEnabled = true)
+@Slf4j
 public class SecurityConfig {
+    
+    private final RoleIntegrationService roleIntegrationService;
+
+    public SecurityConfig(RoleIntegrationService roleIntegrationService) {
+        this.roleIntegrationService = roleIntegrationService;
+    }
     @Bean
     public SecurityFilterChain securityFilterChain(JwtAuthenticationConverter jwtAuthenticationConverter, HttpSecurity http, LogoutSuccessHandler logoutSuccessHandler) throws Exception {
         http
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/**").authenticated()
-                        .requestMatchers("/dashboard").authenticated()
+                        // Public endpoints
+                        .requestMatchers("/", "/login", "/error", "/webjars/**", "/css/**", "/js/**", "/images/**").permitAll()
+                        
+                        // Role management endpoints - temporarily allow all for development
+                        .requestMatchers("/admin/roles/**").permitAll()
+                        .requestMatchers("/api/roles/**").permitAll()
+                        
+                        // User management endpoints - temporarily allow all for development
+                        .requestMatchers("/api/users/**").permitAll()
+                        
+                        // Dashboard and general API endpoints - temporarily allow all for development
+                        .requestMatchers("/dashboard").permitAll()
+                        .requestMatchers("/api/**").permitAll()
+                        
+                        // Any other request
                         .anyRequest().permitAll()
                 )
                 .exceptionHandling(ex -> ex
@@ -91,26 +113,34 @@ public class SecurityConfig {
         scopeConverter.setAuthoritiesClaimName("scope");
         scopeConverter.setAuthorityPrefix("SCOPE_");
 
-        // 2) converter untuk realm roles ("realm_access.roles" -> ROLE_…)
-        JwtGrantedAuthoritiesConverter realmRoleConverter = new JwtGrantedAuthoritiesConverter();
-        realmRoleConverter.setAuthoritiesClaimName("realm_access.roles");
-        realmRoleConverter.setAuthorityPrefix("ROLE_");
-
         JwtAuthenticationConverter authConverter = new JwtAuthenticationConverter();
         authConverter.setJwtGrantedAuthoritiesConverter(jwt -> {
             Set<GrantedAuthority> auths = new HashSet<>();
-            // scopes
+            
+            // 1. Extract scopes
             auths.addAll(scopeConverter.convert(jwt));
-            // realm roles
-            auths.addAll(realmRoleConverter.convert(jwt));
-            // client-level roles (resource_access)
-            Object ra = jwt.getClaims().get("resource_access");
-            if (ra instanceof Map<?, ?> resAccess) {
-                Object cli = resAccess.get("omnip-client");
-                if (cli instanceof Map<?, ?>) {
-                    Object roles = ((Map<?, ?>) cli).get("roles");
-                    if (roles instanceof List<?>) {
-                        ((List<?>) roles).stream()
+            
+            // 2. Extract realm roles from realm_access.roles
+            Object realmAccess = jwt.getClaims().get("realm_access");
+            if (realmAccess instanceof Map<?, ?> realmMap) {
+                Object realmRoles = realmMap.get("roles");
+                if (realmRoles instanceof List<?>) {
+                    ((List<?>) realmRoles).stream()
+                            .map(Object::toString)
+                            .map(r -> "ROLE_" + r)
+                            .map(SimpleGrantedAuthority::new)
+                            .forEach(auths::add);
+                }
+            }
+            
+            // 3. Extract client roles from resource_access.omnip-client.roles
+            Object resourceAccess = jwt.getClaims().get("resource_access");
+            if (resourceAccess instanceof Map<?, ?> resAccess) {
+                Object clientAccess = resAccess.get("omnip-client");
+                if (clientAccess instanceof Map<?, ?> clientMap) {
+                    Object clientRoles = clientMap.get("roles");
+                    if (clientRoles instanceof List<?>) {
+                        ((List<?>) clientRoles).stream()
                                 .map(Object::toString)
                                 .map(r -> "ROLE_" + r)
                                 .map(SimpleGrantedAuthority::new)
@@ -118,6 +148,15 @@ public class SecurityConfig {
                     }
                 }
             }
+            
+            // Debug: Log JWT claims and extracted authorities
+            System.out.println("=== JWT CLAIMS DEBUG ===");
+            System.out.println("All claims: " + jwt.getClaims().keySet());
+            System.out.println("realm_access: " + jwt.getClaims().get("realm_access"));
+            System.out.println("resource_access: " + jwt.getClaims().get("resource_access"));
+            System.out.println("Extracted authorities: " + auths);
+            System.out.println("========================");
+            
             return auths;
         });
         return authConverter;
