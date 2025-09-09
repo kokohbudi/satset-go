@@ -29,7 +29,7 @@ import java.util.stream.Collectors;
  * Menyediakan UI untuk admin mengelola role dan mengatur menu yang dapat diakses oleh setiap role.
  */
 @Controller
-@RequestMapping("/admin/roles")
+@RequestMapping("/dashboard/admin/roles")
 @Slf4j
 public class RoleManagementController {
 
@@ -52,7 +52,7 @@ public class RoleManagementController {
      * Halaman utama role management - menampilkan daftar semua role.
      */
     @GetMapping
-    @PreAuthorize("hasRole('omnip-admin')")
+    @PreAuthorize("@userDTO.getRoles().contains('omnip-admin')")
     public String roleManagementPage(Model model, Authentication authentication) {
         log.info("Accessing role management page");
         
@@ -75,13 +75,14 @@ public class RoleManagementController {
     /**
      * Halaman detail role - menampilkan detail role dan menu yang terkait.
      */
+    @PreAuthorize("@userDTO.getRoles().contains('omnip-admin')")
     @GetMapping("/{roleId}")
     public String roleDetailPage(@PathVariable UUID roleId, Model model, Authentication authentication) {
         log.info("Accessing role detail page for role ID: {}", roleId);
         
-        if (!hasRoleManagementPermission(authentication)) {
-            return "redirect:/dashboard?error=access_denied";
-        }
+//        if (!hasRoleManagementPermission(authentication)) {
+//            return "redirect:/dashboard?error=access_denied";
+//        }
         
         Roles role = roleService.findById(roleId)
                 .orElseThrow(() -> new IllegalArgumentException("Role not found"));
@@ -103,12 +104,11 @@ public class RoleManagementController {
      * Halaman untuk assign role ke user.
      */
     @GetMapping("/assign")
+    @PreAuthorize("@userDTO.getRoles().contains('omnip-admin')")
     public String assignRolePage(Model model, Authentication authentication) {
         log.info("Accessing assign role page");
         
-        if (!hasRoleManagementPermission(authentication)) {
-            return "redirect:/dashboard?error=access_denied";
-        }
+
         
         List<Roles> roles = roleService.getAllActiveRoles();
         List<RoleDTO> roleDTOs = roles.stream()
@@ -126,6 +126,7 @@ public class RoleManagementController {
      */
     @GetMapping("/api/list")
     @ResponseBody
+    @PreAuthorize("@userDTO.getRoles().contains('omnip-admin')")
     public List<RoleDTO> getRolesList() {
         List<Roles> roles = roleService.getAllActiveRoles();
         return roles.stream()
@@ -138,6 +139,7 @@ public class RoleManagementController {
      */
     @GetMapping("/api/{roleId}")
     @ResponseBody
+    @PreAuthorize("@userDTO.getRoles().contains('omnip-admin')")
     public RoleDTO getRoleDetail(@PathVariable UUID roleId) {
         Roles role = roleService.findById(roleId)
                 .orElseThrow(() -> new IllegalArgumentException("Role not found"));
@@ -149,14 +151,15 @@ public class RoleManagementController {
      */
     @PostMapping("/api/{roleId}/menus")
     @ResponseBody
+    @PreAuthorize("@userDTO.getRoles().contains('omnip-admin')")
     public RoleDTO updateRoleMenus(@PathVariable UUID roleId, 
                                   @RequestBody List<UUID> menuIds,
                                   Authentication authentication) {
         log.info("Updating menus for role {}: {}", roleId, menuIds);
         
-        if (!hasRoleManagementPermission(authentication)) {
-            throw new SecurityException("Access denied");
-        }
+//        if (!hasRoleManagementPermission(authentication)) {
+//            throw new SecurityException("Access denied");
+//        }
         
         roleService.setMenusForRole(roleId, menuIds);
         
@@ -175,6 +178,7 @@ public class RoleManagementController {
      */
     @PostMapping("/api/assign")
     @ResponseBody
+    @PreAuthorize("@userDTO.getRoles().contains('omnip-admin')")
     public UserRoleAssignmentDTO assignRoleToUser(@RequestBody UserRoleAssignmentDTO assignmentDTO,
                                                  Authentication authentication) {
         log.info("Assigning roles {} to user {}", assignmentDTO.getRoleIds(), assignmentDTO.getUserId());
@@ -211,6 +215,7 @@ public class RoleManagementController {
      */
     @DeleteMapping("/api/assign/{userId}/{roleId}")
     @ResponseBody
+    @PreAuthorize("@userDTO.getRoles().contains('omnip-admin')")
     public UserRoleAssignmentDTO unassignRoleFromUser(@PathVariable UUID userId,
                                                      @PathVariable UUID roleId,
                                                      Authentication authentication) {
@@ -241,6 +246,7 @@ public class RoleManagementController {
      */
     @GetMapping("/api/menus")
     @ResponseBody
+    @PreAuthorize("@userDTO.getRoles().contains('omnip-admin')")
     public List<MenuDTO> getAvailableMenus() {
         List<Menus> menus = menuService.getAllActiveMenus();
         return menus.stream()
@@ -253,6 +259,7 @@ public class RoleManagementController {
      */
     @GetMapping("/api/users/search")
     @ResponseBody
+    @PreAuthorize("@userDTO.getRoles().contains('omnip-admin')")
     public List<UserDTO> searchUsers(@RequestParam String query, Authentication authentication) {
         log.info("Searching users with query: {}", query);
         
@@ -280,6 +287,7 @@ public class RoleManagementController {
      */
     @GetMapping("/api/users/{userId}/roles")
     @ResponseBody
+    @PreAuthorize("@userDTO.getRoles().contains('omnip-admin')")
     public List<RoleDTO> getUserRoles(@PathVariable UUID userId, Authentication authentication) {
         log.info("Getting roles for user: {}", userId);
         

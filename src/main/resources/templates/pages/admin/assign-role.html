@@ -2,6 +2,11 @@
 <html xmlns:th="http://www.thymeleaf.org" lang="id">
 <head th:replace="pages/fragments/htmlHead :: htmlHead">
 <body class="bg-gray-100 flex flex-col md:flex-row min-h-screen">
+<style>
+    input[type="checkbox"] {
+        accent-color: #ea580c !important;
+    }
+</style>
 <!-- Sidebar -->
 <th:block th:replace="pages/fragments/sidebar :: sidebar"></th:block>
 
@@ -86,14 +91,14 @@
                             <input type="checkbox" 
                                    th:id="'role_' + ${role.id}" 
                                    th:value="${role.id}" 
-                                   class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded role-checkbox">
+                                   class="h-4 w-4 accent-orange-600 focus:ring-orange-500 border-gray-300 rounded" role-checkbox>
                             <label th:for="'role_' + ${role.id}" class="ml-3 flex-1 cursor-pointer">
                                 <div class="flex items-center justify-between">
                                     <div>
                                         <span class="font-medium text-gray-900" th:text="${role.roleName}">Role Name</span>
                                         <p class="text-sm text-gray-500" th:text="${role.description}">Role description</p>
                                     </div>
-                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800" 
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800" 
                                           th:text="${role.roleCode}">role-code</span>
                                 </div>
                             </label>
@@ -114,14 +119,14 @@
                         <button id="assignRoleBtn" 
                                 onclick="assignRoles()" 
                                 disabled
-                                class="flex-1 inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:bg-gray-300 disabled:cursor-not-allowed">
+                                class="flex-1 inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-orange-600 hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 disabled:bg-gray-300 disabled:cursor-not-allowed">
                             <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
                             </svg>
                             Assign Role
                         </button>
                         <button onclick="clearSelection()" 
-                                class="px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                                class="px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500">
                             Reset
                         </button>
                     </div>

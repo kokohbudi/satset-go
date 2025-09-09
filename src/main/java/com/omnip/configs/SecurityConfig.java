@@ -53,7 +53,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/users/**").permitAll()
                         
                         // Dashboard and general API endpoints - temporarily allow all for development
-                        .requestMatchers("/dashboard").permitAll()
+                        .requestMatchers("/dashboard/**").authenticated()
                         .requestMatchers("/api/**").permitAll()
                         
                         // Any other request

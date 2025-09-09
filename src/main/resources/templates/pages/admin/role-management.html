@@ -20,7 +20,7 @@
                     <p class="mt-2 text-gray-600">Kelola role dan permission untuk mengatur akses user ke fitur aplikasi</p>
                 </div>
                 <div class="flex space-x-3">
-                    <a href="/admin/roles/assign" 
+                    <a href="/dashboard/admin/roles/assign"
                        class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
                         <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
@@ -68,7 +68,7 @@
 
                     <!-- Action Buttons -->
                     <div class="flex space-x-2">
-                        <a th:href="@{/admin/roles/{id}(id=${role.id})}" 
+                        <a th:href="@{/dashboard/admin/roles/{id}(id=${role.id})}"
                            class="flex-1 inline-flex justify-center items-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
                             <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
@@ -167,7 +167,7 @@
     // Function to load available menus
     async function loadAvailableMenus() {
         try {
-            const response = await fetch('/admin/roles/api/menus');
+            const response = await fetch('/dashboard/admin/roles/api/menus');
             if (response.ok) {
                 availableMenus = await response.json();
             } else {
@@ -188,7 +188,7 @@
         // Load current role menus
         try {
             showLoading();
-            const response = await fetch(`/admin/roles/api/${currentRoleId}`);
+            const response = await fetch(`/dashboard/admin/roles/api/${currentRoleId}`);
             if (response.ok) {
                 const roleData = await response.json();
                 currentRoleMenus = roleData.menuIds || [];
@@ -240,7 +240,7 @@
 
         try {
             showLoading();
-            const response = await fetch(`/admin/roles/api/${currentRoleId}/menus`, {
+            const response = await fetch(`/dashboard/admin/roles/api/${currentRoleId}/menus`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
