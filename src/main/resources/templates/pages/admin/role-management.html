@@ -3,12 +3,12 @@
 <head th:replace="pages/fragments/htmlHead :: htmlHead">
 <body class="bg-gray-100 flex flex-col md:flex-row min-h-screen">
 <!-- Sidebar -->
-<th:block th:replace="pages/fragments/sidebar :: sidebar"></th:block>
+<th:block th:replace="~{pages/fragments/sidebar :: sidebar}"></th:block>
 
 <!-- Konten Utama -->
 <div class="main-content-area">
     <!-- Header -->
-    <th:block th:replace="pages/fragments/header :: header"></th:block>
+    <th:block th:replace="~{pages/fragments/header :: header}"></th:block>
 
     <!-- Area Konten Utama -->
     <main class="main-content">
