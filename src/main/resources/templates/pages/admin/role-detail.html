@@ -1,18 +1,13 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
       layout:decorate="~{layouts/admin}">
-<head>
-    <title th:text="${pageTitle} ?: 'Role Detail'">Role Detail</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        input[type="checkbox"] {
-            accent-color: #ea580c !important;
-        }
-    </style>
-</head>
-<body>
-<div layout:fragment="content">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+<head th:replace="pages/fragments/htmlHead :: htmlHead">
+<body class="body-class">
+<th:block th:replace="~{pages/fragments/sidebar :: sidebar}"></th:block>
+<!-- Konten Utama -->
+<div class="main-content-area">
+    <th:block th:replace="~{pages/fragments/header :: header}"></th:block>
+    <main class="main-content">
         <!-- Header -->
         <div class="mb-8">
             <div class="flex items-center justify-between">
@@ -78,7 +73,7 @@
                 </div>
             </div>
         </div>
-    </div>
+    </main>
 
     <script>
         function updateRoleMenus() {
@@ -97,38 +92,38 @@
                 },
                 body: JSON.stringify(menuIds)
             })
-            .then(response => response.json())
-            .then(data => {
-                const messageDiv = document.getElementById('message');
-                const messageText = document.getElementById('messageText');
-                messageDiv.classList.remove('hidden');
+                .then(response => response.json())
+                .then(data => {
+                    const messageDiv = document.getElementById('message');
+                    const messageText = document.getElementById('messageText');
+                    messageDiv.classList.remove('hidden');
 
-                if (data.status === 'success') {
-                    messageDiv.classList.add('bg-green-50', 'border', 'border-green-200');
-                    messageText.classList.add('text-green-800');
-                    messageText.textContent = data.message || 'Menu berhasil diperbarui';
-                } else {
+                    if (data.status === 'success') {
+                        messageDiv.classList.add('bg-green-50', 'border', 'border-green-200');
+                        messageText.classList.add('text-green-800');
+                        messageText.textContent = data.message || 'Menu berhasil diperbarui';
+                    } else {
+                        messageDiv.classList.add('bg-red-50', 'border', 'border-red-200');
+                        messageText.classList.add('text-red-800');
+                        messageText.textContent = data.message || 'Gagal memperbarui menu';
+                    }
+
+                    // Hide message after 5 seconds
+                    setTimeout(() => {
+                        messageDiv.classList.add('hidden');
+                        messageDiv.classList.remove('bg-green-50', 'border-green-200', 'bg-red-50', 'border-red-200');
+                        messageText.classList.remove('text-green-800', 'text-red-800');
+                    }, 5000);
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    const messageDiv = document.getElementById('message');
+                    const messageText = document.getElementById('messageText');
+                    messageDiv.classList.remove('hidden');
                     messageDiv.classList.add('bg-red-50', 'border', 'border-red-200');
                     messageText.classList.add('text-red-800');
-                    messageText.textContent = data.message || 'Gagal memperbarui menu';
-                }
-
-                // Hide message after 5 seconds
-                setTimeout(() => {
-                    messageDiv.classList.add('hidden');
-                    messageDiv.classList.remove('bg-green-50', 'border-green-200', 'bg-red-50', 'border-red-200');
-                    messageText.classList.remove('text-green-800', 'text-red-800');
-                }, 5000);
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                const messageDiv = document.getElementById('message');
-                const messageText = document.getElementById('messageText');
-                messageDiv.classList.remove('hidden');
-                messageDiv.classList.add('bg-red-50', 'border', 'border-red-200');
-                messageText.classList.add('text-red-800');
-                messageText.textContent = 'Terjadi kesalahan saat memperbarui menu';
-            });
+                    messageText.textContent = 'Terjadi kesalahan saat memperbarui menu';
+                });
         }
     </script>
 </div>

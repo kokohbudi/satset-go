@@ -1,4 +1,5 @@
 @import "tailwindcss";
+
 @layer components {
     .main-content-area {
         @apply flex-1 flex flex-col overflow-x-hidden;
@@ -6,5 +7,35 @@
 
     .main-content {
         @apply flex-1 p-6 md:p-8
+    }
+    .body-class {
+        @apply bg-gray-100 flex flex-col md:flex-row min-h-screen
+    }
+
+    /* Button Components */
+    .btn-primary {
+        @apply inline-flex items-center border border-transparent text-sm font-medium rounded-md text-white focus:outline-none focus:ring-2 focus:ring-offset-2;
+        background-color: var(--btn-primary-bg);
+        transition: background-color 0.2s ease;
+    }
+
+    .btn-primary:hover {
+        background-color: var(--btn-primary-hover);
+    }
+
+    .btn-primary:focus {
+        box-shadow: 0 0 0 2px var(--btn-primary-focus);
+    }
+
+    .btn-primary-lg {
+        @apply px-4 py-2;
+    }
+
+    .btn-primary-sm {
+        @apply px-3 py-2;
+    }
+
+    .btn-primary-full {
+        @apply flex-1 justify-center;
     }
 }
