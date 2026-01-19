@@ -17,7 +17,6 @@ import org.springframework.security.oauth2.server.resource.authentication.JwtGra
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint;
 import org.springframework.security.web.authentication.logout.LogoutSuccessHandler;
-import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 
 import java.util.HashSet;
 import java.util.List;
@@ -73,8 +72,7 @@ public class SecurityConfig {
                         .logoutUrl("/logout")
                         .invalidateHttpSession(true)
                         .clearAuthentication(true)
-                        .logoutSuccessHandler(logoutSuccessHandler)
-                        .logoutRequestMatcher(new AntPathRequestMatcher("/logout", "GET")));
+                        .logoutSuccessHandler(logoutSuccessHandler));
         return http.build();
     }
 

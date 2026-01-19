@@ -1,10 +1,10 @@
 package com.omnip.entities;
 
-import io.hypersistence.utils.hibernate.type.array.ListArrayType;
+import com.omnip.converters.StringListConverter;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.persistence.*;
 import lombok.Data;
 import org.hibernate.annotations.GenericGenerator;
-import org.hibernate.annotations.Type;
 import org.springframework.data.annotation.CreatedBy;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedBy;
@@ -46,8 +46,8 @@ public class Users {
     @JoinColumn(name = "store_id")
     private Stores stores;
 
-    @Type(ListArrayType.class)
-    @Column(name = "roles", columnDefinition = "text[]")
+    @Convert(converter = StringListConverter.class)
+    @Column(name = "roles", columnDefinition = "text")
     private List<String> roles;
 
 
