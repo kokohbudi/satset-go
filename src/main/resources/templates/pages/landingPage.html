@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OmniP Services - Landing Page</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100">
+    <div class="min-h-screen flex items-center justify-center">
+        <div class="max-w-md w-full bg-white rounded-lg shadow-md p-8">
+            <div class="text-center">
+                <h1 class="text-3xl font-bold text-gray-800 mb-4">Welcome to OmniP Services</h1>
+                <p class="text-gray-600 mb-8">Please login to continue</p>
+                
+                <div class="space-y-4">
+                    <a href="/oauth2/authorization/keycloak" 
+                       class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded inline-block text-center">
+                        Login with Keycloak
+                    </a>
+                    
+                    <div class="text-sm text-gray-500">
+                        <p>If you're having trouble with logout, try:</p>
+                        <ul class="list-disc list-inside mt-2">
+                            <li>Clear browser cookies</li>
+                            <li>Use private/incognito window</li>
+                            <li>Direct logout: <a href="/logout" class="text-blue-600 hover:underline">Force Logout</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

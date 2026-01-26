@@ -1,7 +1,6 @@
 package com.omnip.entities;
 
 import com.omnip.converters.StringListConverter;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.persistence.*;
 import lombok.Data;
 import org.hibernate.annotations.GenericGenerator;

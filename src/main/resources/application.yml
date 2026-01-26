@@ -4,6 +4,10 @@ spring:
   threads:
     virtual:
       enabled: true
+  main:
+    lazy-initialization: false
+  jmx:
+    enabled: false
   security:
     oauth2:
       client:
@@ -17,6 +21,11 @@ spring:
         provider:
           keycloak:
             issuer-uri: ${keycloak.base-server-url}/realms/${keycloak.realm}
+            authorization-uri: ${keycloak.base-server-url}/realms/${keycloak.realm}/protocol/openid-connect/auth
+            token-uri: ${keycloak.base-server-url}/realms/${keycloak.realm}/protocol/openid-connect/token
+            user-info-uri: ${keycloak.base-server-url}/realms/${keycloak.realm}/protocol/openid-connect/userinfo
+            jwk-set-uri: ${keycloak.base-server-url}/realms/${keycloak.realm}/protocol/openid-connect/certs
+            logout-uri: ${keycloak.base-server-url}/realms/${keycloak.realm}/protocol/openid-connect/logout
       resourceserver:
         jwt:
           issuer-uri: ${keycloak.base-server-url}/realms/${keycloak.realm}
@@ -24,16 +33,30 @@ spring:
     driver-class-name: org.postgresql.Driver
     hikari:
       maximum-pool-size: 10
-      minimum-idle: 5
+      minimum-idle: 2
       idle-timeout: 30000
+      connection-timeout: 2000
+      initialization-fail-timeout: -1
   jpa:
     hibernate:
       ddl-auto: update
-    show-sql: true
+    show-sql: false
+    open-in-view: false
     properties:
       hibernate:
-        format_sql: true
+        format_sql: false
         dialect: org.hibernate.dialect.PostgreSQLDialect
+        connection:
+          provider_disables_autocommit: false
+        query:
+          plan_cache_max_size: 4096
+        jdbc:
+          batch_size: 25
+          order_inserts: true
+          order_updates: true
+        cache:
+          use_second_level_cache: false
+          use_query_cache: false
 omnip:
   allowed-role:
     change-password: "omnip-store-admin,omnip-app-admin"
@@ -42,3 +65,28 @@ keycloak:
   base-server-url: http://localhost:9999
   server-url: ${keycloak.base-server-url}
   client-id: omnip-client
+
+# Performance optimizations
+server:
+  compression:
+    enabled: true
+    mime-types: text/html,text/xml,text/plain,text/css,text/javascript,application/javascript,application/json
+    min-response-size: 1024
+  tomcat:
+    max-threads: 200
+    min-spare-threads: 10
+    max-connections: 8192
+    accept-count: 100
+    connection-timeout: 20000
+
+logging:
+  level:
+    root: INFO
+    org.springframework.boot: INFO
+    org.springframework.security: DEBUG
+    org.hibernate: INFO
+    com.omnip: DEBUG
+    org.apache.catalina: INFO
+    org.apache.tomcat: INFO
+  pattern:
+    console: "%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"

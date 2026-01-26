@@ -55,7 +55,8 @@ public class UserController {
      * Membuat akun pengguna baru.
      *
      * @param reqUserDTO DTO yang berisi informasi pengguna yang akan dibuat
-     * @return UserDTO berisi informasi pengguna yang telah dibuat dengan status operasi
+     * @return UserDTO berisi informasi pengguna yang telah dibuat dengan status
+     *         operasi
      */
     @PostMapping("/api/users")
     public UserDTO createAccount(@RequestBody UserDTO reqUserDTO) {
@@ -155,7 +156,22 @@ public class UserController {
      * @return Map berisi semua klaim JWT
      */
     @GetMapping("/api/debug-jwt")
-    public Map<String, Object> debugJwt(@AuthenticationPrincipal Jwt jwt) {
-        return jwt.getClaims();
+    public Map<String, Object> debugJwt(org.springframework.security.core.Authentication authentication) {
+        if (authentication == null) {
+            return Map.of("error", "Not authenticated");
+        }
+
+        Object principal = authentication.getPrincipal();
+
+        if (principal instanceof Jwt) {
+            return ((Jwt) principal).getClaims();
+        } else if (principal instanceof org.springframework.security.oauth2.core.oidc.user.OidcUser) {
+            return ((org.springframework.security.oauth2.core.oidc.user.OidcUser) principal).getClaims();
+        } else {
+            Map<String, Object> error = new HashMap<>();
+            error.put("error", "Principal type not supported for debug-jwt");
+            error.put("principalClass", principal.getClass().getName());
+            return error;
+        }
     }
 }

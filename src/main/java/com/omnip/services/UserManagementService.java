@@ -22,12 +22,14 @@ public class UserManagementService {
      * Konstruktor dengan dependency injection.
      *
      * @param usersRepository            Repository untuk operasi data pengguna
-     * @param userManagementBusiness     Komponen bisnis untuk logika manajemen pengguna
+     * @param userManagementBusiness     Komponen bisnis untuk logika manajemen
+     *                                   pengguna
      * @param userDTO                    DTO yang mewakili pengguna saat ini
-     * @param keycloakAdminClientService Service untuk interaksi dengan Keycloak Admin API
+     * @param keycloakAdminClientService Service untuk interaksi dengan Keycloak
+     *                                   Admin API
      */
     public UserManagementService(UsersRepository usersRepository, UserManagementBusiness userManagementBusiness,
-                                 UserDTO userDTO, KeycloakAdminClientService keycloakAdminClientService) {
+            UserDTO userDTO, KeycloakAdminClientService keycloakAdminClientService) {
         this.usersRepository = usersRepository;
         this.userManagementBusiness = userManagementBusiness;
         this.userDTO = userDTO;
@@ -63,17 +65,43 @@ public class UserManagementService {
      * @return Provider user ID dari pengguna yang passwordnya akan diubah
      * @throws BusinessException Jika validasi gagal
      */
-    public String getProviderUseIdChangePassword(UserDTO sessionUserDTO, UserDTO requestUserDTO) throws BusinessException {
+    public String getProviderUseIdChangePassword(UserDTO sessionUserDTO, UserDTO requestUserDTO)
+            throws BusinessException {
         return this.userManagementBusiness.getProviderUseIdChangePassword(sessionUserDTO, requestUserDTO);
     }
 
     /**
+     * Mendapatkan provider user ID dari email.
+     * Digunakan oleh IdentityManagementService untuk orchestration.
+     */
+    public String getProviderUserIdByEmail(String email) throws BusinessException {
+        Users user = this.usersRepository.findByEmail(email);
+        if (user == null) {
+            throw new BusinessException("User tidak ditemukan: " + email);
+        }
+        return user.getProviderUserId();
+    }
+
+    /**
+     * Update status user di database (tanpa Keycloak).
+     * Digunakan oleh IdentityManagementService untuk orchestration.
+     */
+    public void updateUserStatusInDb(String email, boolean status) throws BusinessException {
+        UserDTO requestedUserDTO = new UserDTO();
+        requestedUserDTO.setEmail(email);
+        requestedUserDTO.setActive(status);
+        this.userManagementBusiness.setUserStatus(this.userDTO, requestedUserDTO, this.usersRepository);
+    }
+
+    /**
      * Mengubah status aktif pengguna.
-     * Mengubah status di database lokal dan di Keycloak.
+     * DEPRECATED: Gunakan IdentityManagementService.setUserStatus() untuk flow yang
+     * lebih clean.
      *
      * @param requestedUserDTO UserDTO yang berisi data permintaan
      * @throws BusinessException Jika operasi gagal
      */
+    @Deprecated
     public void setUserStatus(UserDTO requestedUserDTO) throws BusinessException {
         // Update status di database lokal
         this.userManagementBusiness.setUserStatus(this.userDTO, requestedUserDTO, this.usersRepository);
@@ -94,11 +122,33 @@ public class UserManagementService {
     }
 
     /**
+     * Menyimpan pengguna baru ke database (tanpa membuat di Keycloak).
+     * Digunakan oleh IdentityManagementService untuk orchestration.
+     *
+     * @param reqUserDTO     DTO yang berisi data pengguna
+     * @param providerUserId Provider user ID dari Keycloak
+     * @return UserDTO dengan status operasi
+     */
+    public UserDTO saveUserToDb(UserDTO reqUserDTO, String providerUserId) {
+        try {
+            Users user = this.userManagementBusiness.createUserObject(reqUserDTO, providerUserId);
+            this.createNewUser(user);
+            return this.userManagementBusiness.createSuccessResponse(reqUserDTO, providerUserId);
+        } catch (Exception e) {
+            return this.userManagementBusiness
+                    .createErrorResponse("Failed to save user to database: " + e.getMessage());
+        }
+    }
+
+    /**
      * Membuat pengguna baru di Keycloak dan database lokal.
+     * DEPRECATED: Gunakan IdentityManagementService.createUser() untuk flow yang
+     * lebih clean.
      *
      * @param reqUserDTO DTO yang berisi data pengguna baru
      * @return UserDTO dengan status operasi
      */
+    @Deprecated
     public UserDTO createNewUser(UserDTO reqUserDTO) {
         try {
             // Buat pengguna di Keycloak
@@ -107,8 +157,7 @@ public class UserManagementService {
                     reqUserDTO.getFullname(),
                     reqUserDTO.getEmail(),
                     reqUserDTO.getPassword(),
-                    reqUserDTO.getRoles().getFirst()
-            );
+                    reqUserDTO.getRoles().getFirst());
 
             // Buat pengguna di database lokal
             Users user = this.userManagementBusiness.createUserObject(reqUserDTO, createdProviderUserId);

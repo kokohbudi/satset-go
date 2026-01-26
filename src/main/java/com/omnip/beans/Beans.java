@@ -33,7 +33,6 @@ public class Beans {
     private final UsersRepository usersRepository;
     private final HttpServletRequest session;
 
-
     @Value("${keycloak.server-url}")
     private String serverUrl;
 
@@ -56,8 +55,7 @@ public class Beans {
     }
 
     @Bean
-    @Scope(value = WebApplicationContext.SCOPE_REQUEST,
-            proxyMode = ScopedProxyMode.TARGET_CLASS)
+    @Scope(value = WebApplicationContext.SCOPE_REQUEST, proxyMode = ScopedProxyMode.TARGET_CLASS)
     public UserDTO userDTO(HttpServletRequest request) {
         UserDTO dto = new UserDTO();
 
@@ -94,13 +92,11 @@ public class Beans {
         // secret yang kamu lihat di tab Credentials
 
         return KeycloakBuilder.builder()
-                .serverUrl(this.serverUrl)       // misal http://localhost:8888
-                .realm(this.realm)               // misal "master"
-                .clientId(this.clientId)         // "omnip-client" atau "omnip-admin-client"
-                .clientSecret(this.clientSecret)
-                .username("sibebek")
-                .grantType("password")
-                .password("kozaninja")// secret yang kamu lihat di tab Credentials
+                .serverUrl(this.serverUrl) // misal http://localhost:8888
+                .realm(this.realm) // misal "master"
+                .clientId(this.clientId) // harus client dengan service account enabled
+                .clientSecret(this.clientSecret) // secret yang kamu lihat di tab Credentials
+                .grantType("client_credentials") // menggunakan client credentials (tanpa username/password)
                 .build();
     }
 
