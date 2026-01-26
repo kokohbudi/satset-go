@@ -1,0 +1,16 @@
+{
+  "name": "omnip-services-frontend",
+  "version": "1.0.0",
+  "description": "Frontend assets for Omnip Services",
+  "scripts": {
+    "build:css": "npx tailwindcss -i ./src/main/resources/static/css/input.css -o ./src/main/resources/static/css/output.css --minify",
+    "dev:css": "npx tailwindcss -i ./src/main/resources/static/css/input.css -o ./src/main/resources/static/css/output.css --watch",
+    "build": "npm run build:css"
+  },
+  "devDependencies": {
+    "tailwindcss": "^3.4.17",
+    "daisyui": "^4.12.23",
+    "autoprefixer": "^10.4.21",
+    "postcss": "^8.5.1"
+  }
+}

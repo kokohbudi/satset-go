@@ -7,12 +7,22 @@
     <header th:fragment="header"
         class="sticky top-0 z-30 h-16 bg-base-100/80 backdrop-blur-xl border-b border-base-300 flex items-center justify-between px-6">
 
-        <!-- Left Section: Breadcrumb -->
-        <div class="text-sm breadcrumbs">
-            <ul>
-                <li><a th:href="@{/dashboard}" class="hover:text-primary transition-colors">Home</a></li>
-                <li th:if="${breadcrumb != null}" th:text="${breadcrumb}">Page</li>
-            </ul>
+        <!-- Left Section: Toggle + Breadcrumb -->
+        <div class="flex items-center gap-4">
+            <!-- Sidebar Toggle Button -->
+            <button @click="sidebarOpen = !sidebarOpen" class="btn btn-ghost btn-circle" title="Toggle Sidebar">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+            </button>
+
+            <!-- Breadcrumb -->
+            <div class="text-sm breadcrumbs">
+                <ul>
+                    <li><a th:href="@{/dashboard}" class="hover:text-primary transition-colors">Home</a></li>
+                    <li th:if="${breadcrumb != null}" th:text="${breadcrumb}">Page</li>
+                </ul>
+            </div>
         </div>
 
         <!-- Right Section: Actions + Profile -->
@@ -67,9 +77,14 @@
                 </ul>
             </div>
 
-            <!-- Theme Toggle (Light: autumn / Dark: halloween) -->
-            <label class="swap swap-rotate btn btn-ghost btn-circle">
-                <input type="checkbox" class="theme-controller" value="halloween" />
+            <!-- Theme Toggle (Light: omnip-light / Dark: omnip-dark) -->
+            <label class="swap swap-rotate btn btn-ghost btn-circle"
+                x-data="{ isDark: localStorage.getItem('theme') === 'omnip-dark' }" x-init="$watch('isDark', val => { 
+                       const theme = val ? 'omnip-dark' : 'omnip-light';
+                       localStorage.setItem('theme', theme);
+                       document.documentElement.setAttribute('data-theme', theme);
+                   })">
+                <input type="checkbox" x-model="isDark" />
                 <!-- Sun icon (shown when dark) -->
                 <svg class="swap-on fill-current w-5 h-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
                     <path
@@ -87,7 +102,8 @@
                 <button tabindex="0"
                     class="flex items-center gap-3 pl-4 pr-2 py-1.5 rounded-full bg-base-200 hover:bg-base-300 transition-colors">
                     <div class="hidden sm:block text-right">
-                        <p sec:authentication="name" class="text-sm font-medium leading-tight">User</p>
+                        <p th:text="${user != null ? (user.fullname != null and user.fullname != '') ? user.fullname : user.username : 'User'}"
+                            class="text-sm font-medium leading-tight">User</p>
                         <p class="text-xs text-base-content/60">Administrator</p>
                     </div>
                     <div class="avatar placeholder online">
@@ -99,7 +115,9 @@
                 <ul tabindex="0"
                     class="dropdown-content z-[1] menu p-2 shadow-xl bg-base-100 rounded-box w-56 border border-base-300 mt-2">
                     <li class="menu-title">
-                        <span sec:authentication="name">User Account</span>
+                        <span
+                            th:text="${user != null ? (user.fullname != null and user.fullname != '') ? user.fullname : user.username : 'User Account'}">User
+                            Account</span>
                     </li>
                     <li>
                         <a th:href="@{/profile}" class="flex items-center gap-2">

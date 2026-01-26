@@ -1,139 +1,47 @@
 <!DOCTYPE html>
-<html lang="id" data-theme="autumn" xmlns:th="http://www.thymeleaf.org"
-    xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
-    xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<html lang="id" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+    xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+    x-data="{ sidebarOpen: localStorage.getItem('sidebarOpen') !== 'false' }"
+    x-init="$watch('sidebarOpen', val => localStorage.setItem('sidebarOpen', val))">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title layout:title-pattern="$CONTENT_TITLE - Omnip Dashboard">Dashboard</title>
 
-    <!-- 1. Tailwind CSS CDN (FIRST) -->
-    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Local Compiled CSS (Tailwind + DaisyUI) -->
+    <link rel="stylesheet" th:href="@{/css/output.css}" />
 
-    <!-- 2. DaisyUI CSS (AFTER Tailwind) -->
-    <link href="https://cdn.jsdelivr.net/npm/daisyui@4.12.23/dist/full.min.css" rel="stylesheet" type="text/css" />
-
-    <!-- 3. Alpine.js -->
-    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.8/dist/cdn.min.js"></script>
-
-    <!-- 4. Dark Orange Theme Config -->
+    <!-- Theme initialization -->
     <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    colors: {
-                        orange: {
-                            600: '#ea580c',
-                            700: '#c2410c',
-                        }
-                    }
-                }
-            }
-        }
+        (function () {
+            const theme = localStorage.getItem('theme') || 'omnip-light';
+            document.documentElement.setAttribute('data-theme', theme);
+        })();
     </script>
 
-    <!-- 5. Custom Dark Orange CSS -->
-    <style>
-        [data-theme="autumn"],
-        [data-theme="halloween"] {
-            --p: 24 89% 48%;
-            --pf: 24 89% 38%;
-            --pc: 0 0% 100%;
-        }
-
-        .shadow-primary\/30,
-        .shadow-lg.shadow-primary\/30 {
-            box-shadow: 0 10px 15px -3px rgba(234, 88, 12, 0.3), 0 4px 6px -4px rgba(234, 88, 12, 0.3);
-        }
-
-        .from-primary {
-            --tw-gradient-from: #ea580c;
-        }
-
-        .to-primary\/70 {
-            --tw-gradient-to: rgba(234, 88, 12, 0.7);
-        }
-
-        .from-primary\/20 {
-            --tw-gradient-from: rgba(234, 88, 12, 0.2);
-        }
-
-        .to-primary\/5 {
-            --tw-gradient-to: rgba(234, 88, 12, 0.05);
-        }
-
-        .bg-primary {
-            background-color: #ea580c !important;
-        }
-
-        .text-primary {
-            color: #ea580c !important;
-        }
-
-        .border-primary {
-            border-color: #ea580c !important;
-        }
-
-        .btn-primary {
-            background-color: #ea580c !important;
-            border-color: #ea580c !important;
-        }
-
-        .btn-primary:hover {
-            background-color: #c2410c !important;
-            border-color: #c2410c !important;
-        }
-
-        .btn-outline.btn-primary {
-            color: #ea580c !important;
-            border-color: #ea580c !important;
-            background-color: transparent !important;
-        }
-
-        .btn-outline.btn-primary:hover {
-            background-color: #ea580c !important;
-            color: white !important;
-        }
-
-        .hover\:bg-primary\/10:hover {
-            background-color: rgba(234, 88, 12, 0.1) !important;
-        }
-
-        .hover\:text-primary:hover {
-            color: #ea580c !important;
-        }
-
-        .bg-gradient-to-br.from-primary.to-primary\/70 {
-            background-image: linear-gradient(to bottom right, #ea580c, rgba(234, 88, 12, 0.7)) !important;
-        }
-
-        .bg-gradient-to-br.from-primary.to-primary\/80 {
-            background-image: linear-gradient(to bottom right, #ea580c, rgba(234, 88, 12, 0.8)) !important;
-        }
-    </style>
+    <!-- Alpine.js -->
+    <script defer th:src="@{/js/alpine.min.js}"></script>
 
     <!-- Page Specific Head Content -->
     <th:block layout:fragment="head"></th:block>
 </head>
 
-<body class="bg-base-200 min-h-screen font-sans antialiased" x-data="{ sidebarOpen: true }">
+<body class="bg-base-200 min-h-screen font-sans antialiased">
 
     <div class="flex min-h-screen">
-        <!-- Sidebar Component (Reusable) -->
+        <!-- Sidebar Component -->
         <div th:replace="~{components/sidebar :: sidebar}"></div>
 
         <!-- Main Content Area -->
-        <div class="flex-1 ml-72 flex flex-col transition-all duration-300">
+        <div class="flex-1 flex flex-col transition-all duration-300" :class="sidebarOpen ? 'ml-72' : 'ml-0'">
 
-            <!-- Header Component (Reusable) -->
+            <!-- Header Component -->
             <div th:replace="~{components/header :: header}"></div>
 
             <!-- Page Content -->
             <main class="flex-1 p-6 lg:p-8">
                 <div layout:fragment="content" class="max-w-7xl mx-auto">
-                    <!-- Page content goes here -->
                 </div>
             </main>
 

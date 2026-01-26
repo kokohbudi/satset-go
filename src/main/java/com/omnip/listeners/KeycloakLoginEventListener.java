@@ -151,13 +151,21 @@ public class KeycloakLoginEventListener {
             return (String) attributes.get("login");
         }
 
-        // If no username found, use email prefix
+        // If no username found, use email prefix or generate better fallback
         String email = this.extractEmail(oauth2User);
         if (email != null && email.contains("@")) {
             return email.substring(0, email.indexOf('@'));
         }
-
-        return "user" + System.currentTimeMillis(); // Fallback
+        
+        // Use sub claim (provider user ID) as fallback instead of timestamp
+        if (oauth2User instanceof OidcUser oidcUser) {
+            String sub = oidcUser.getSubject();
+            if (sub != null && sub.length() > 8) {
+                return "user_" + sub.substring(sub.length() - 8); // Last 8 chars of sub
+            }
+        }
+        
+        return "user_" + System.currentTimeMillis(); // Final fallback
     }
 
     private String extractFullName(OAuth2User oauth2User) {

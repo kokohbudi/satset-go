@@ -38,6 +38,7 @@ Thumbs.db
 
 # Node.js
 node_modules/
+node/
 
 # Maven wrapper
 /mvnw

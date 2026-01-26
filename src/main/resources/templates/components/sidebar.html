@@ -4,7 +4,7 @@
 <body>
 
     <!-- Sidebar Fragment - Include with: th:replace="~{components/sidebar :: sidebar}" -->
-    <aside th:fragment="sidebar"
+    <aside th:fragment="sidebar" x-show="sidebarOpen"
         class="fixed left-0 top-0 h-screen w-72 bg-base-100 border-r border-base-300 shadow-xl z-40">
 
         <!-- Logo Section -->
@@ -88,6 +88,49 @@
                 </svg>
                 Deposit
             </a>
+
+            <!-- Section: Menu dari Role Attributes -->
+            <div class="pt-4" th:if="${userRoles != null and !userRoles.isEmpty()}">
+
+                <th:block th:each="role : ${userRoles}">
+                    <!-- CASE 1: Parent role dengan children (sebagai section header) -->
+                    <th:block
+                        th:if="${role.attributes != null and role.attributes['sidebar'] == '1' and role.children != null and !role.children.isEmpty()}">
+                        <!-- Section Header dari parent -->
+                        <span
+                            class="px-4 text-xs font-semibold uppercase tracking-wider text-base-content/50 block pt-4"
+                            th:text="${role.attributes['display_name'] != null} ? ${role.attributes['display_name']} : ${role.name}">Section</span>
+
+                        <!-- Children sebagai menu items -->
+                        <th:block th:each="child : ${role.children}">
+                            <a th:if="${child.attributes != null and child.attributes['sidebar'] == '1' and child.attributes['url'] != null and !child.attributes['url'].isEmpty()}"
+                                th:href="${child.attributes['url']}"
+                                class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all hover:bg-primary/10 hover:text-primary">
+                                <svg class="w-5 h-5 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                                </svg>
+                                <span
+                                    th:text="${child.attributes['display_name'] != null and !child.attributes['display_name'].isEmpty()} ? ${child.attributes['display_name']} : ${child.name}">Menu
+                                    Item</span>
+                            </a>
+                        </th:block>
+                    </th:block>
+
+                    <!-- CASE 2: Role tanpa children tapi punya sidebar=1 dan url (sebagai standalone menu item) -->
+                    <a th:if="${role.attributes != null and role.attributes['sidebar'] == '1' and role.attributes['url'] != null and !role.attributes['url'].isEmpty() and (role.children == null or role.children.isEmpty())}"
+                        th:href="${role.attributes['url']}"
+                        class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all hover:bg-primary/10 hover:text-primary">
+                        <svg class="w-5 h-5 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                        </svg>
+                        <span
+                            th:text="${role.attributes['display_name'] != null and !role.attributes['display_name'].isEmpty()} ? ${role.attributes['display_name']} : ${role.name}">Menu
+                            Item</span>
+                    </a>
+                </th:block>
+            </div>
 
             <!-- Section: Settings (Admin Only) -->
             <div sec:authorize="hasRole('ADMIN')" class="pt-4">

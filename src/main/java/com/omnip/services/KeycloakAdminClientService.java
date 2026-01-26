@@ -13,6 +13,7 @@ import org.keycloak.representations.idm.CredentialRepresentation;
 import org.keycloak.representations.idm.RoleRepresentation;
 import org.keycloak.representations.idm.UserRepresentation;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
@@ -51,6 +52,44 @@ public class KeycloakAdminClientService {
                                                 .toList())
                                 .orElse(List.of());
                 return roles;
+        }
+
+        /**
+         * Mendapatkan full role representation dengan attributes (cached).
+         * Cache key adalah roleName, TTL mengikuti fastCacheManager config.
+         *
+         * @param roleName Nama role yang akan di-fetch
+         * @return KeycloakRoleDTO dengan attributes lengkap
+         */
+        @Cacheable(value = "keycloakRoles", key = "#roleName", cacheManager = "fastCacheManager")
+        public KeycloakRoleDTO getCachedRoleWithAttributes(String roleName) {
+                log.debug("Fetching role details from Keycloak for: {}", roleName);
+                ClientResource clientResource = this.keycloak
+                                .realm(this.realm)
+                                .clients()
+                                .findByClientId(this.clientId)
+                                .stream()
+                                .findFirst()
+                                .map(client -> this.keycloak
+                                                .realm(this.realm)
+                                                .clients()
+                                                .get(client.getId()))
+                                .orElse(null);
+
+                if (clientResource == null) {
+                        log.warn("Client not found, returning empty role for: {}", roleName);
+                        return KeycloakRoleDTO.builder().name(roleName).build();
+                }
+
+                try {
+                        RoleRepresentation fullRole = clientResource.roles()
+                                        .get(roleName)
+                                        .toRepresentation();
+                        return KeycloakRoleDTO.fromRoleRepresentation(fullRole);
+                } catch (Exception e) {
+                        log.warn("Failed to fetch role details for: {}", roleName, e);
+                        return KeycloakRoleDTO.builder().name(roleName).build();
+                }
         }
 
         /**
@@ -227,5 +266,83 @@ public class KeycloakAdminClientService {
                 UserRepresentation userRep = this.keycloakAdminClientBusiness
                                 .prepareStatusUpdateRepresentation(isEnabled);
                 this.updateUser(userId, userRep);
+        }
+
+        /**
+         * Mendapatkan client roles yang dimiliki oleh user, dikelompokkan berdasarkan
+         * hierarchy (composite roles).
+         *
+         * @param userId ID dari user di Keycloak
+         * @return List of KeycloakRoleDTO (Root roles only)
+         */
+        public List<KeycloakRoleDTO> getRolesByUser(String userId) throws BusinessException {
+                // Cari client resource untuk mendapatkan client ID
+                ClientResource clientResource = this.keycloak
+                                .realm(this.realm)
+                                .clients()
+                                .findByClientId(this.clientId)
+                                .stream()
+                                .findFirst()
+                                .map(client -> this.keycloak
+                                                .realm(this.realm)
+                                                .clients()
+                                                .get(client.getId()))
+                                .orElseThrow(() -> new BusinessException("Client not found: " + this.clientId));
+
+                String clientUuid = clientResource.toRepresentation().getId();
+
+                // 1. Get ALL client level roles assigned/effective to user
+                List<RoleRepresentation> allUserRoles = this.keycloak
+                                .realm(this.realm)
+                                .users()
+                                .get(userId)
+                                .roles()
+                                .clientLevel(clientUuid)
+                                .listEffective();
+
+                // 2. Fetch FULL role representation (with attributes) using CACHED method
+                // listEffective() does not include attributes, so we use cached method
+                java.util.Map<String, KeycloakRoleDTO> dtoMap = new java.util.HashMap<>();
+                for (RoleRepresentation minimalRole : allUserRoles) {
+                        KeycloakRoleDTO cachedRole = getCachedRoleWithAttributes(minimalRole.getName());
+                        dtoMap.put(cachedRole.getName(), cachedRole);
+                }
+
+                // 3. Build hierarchy using cached DTOs
+                // Iterate over all roles. If a role is composite, find its children and add
+                // them.
+                java.util.Set<String> childRoleNames = new java.util.HashSet<>();
+
+                for (KeycloakRoleDTO parentDto : dtoMap.values()) {
+                        if (Boolean.TRUE.equals(parentDto.getComposite())) {
+                                try {
+                                        // Fetch children of this composite role
+                                        java.util.Set<RoleRepresentation> children = clientResource.roles()
+                                                        .get(parentDto.getName())
+                                                        .getRoleComposites();
+
+                                        for (RoleRepresentation child : children) {
+                                                // Get cached child with attributes
+                                                KeycloakRoleDTO childDto = getCachedRoleWithAttributes(child.getName());
+
+                                                // Only add if child is in user's role list
+                                                if (dtoMap.containsKey(child.getName())) {
+                                                        parentDto.getChildren().add(childDto);
+                                                        childRoleNames.add(child.getName());
+                                                }
+                                        }
+                                } catch (Exception e) {
+                                        log.warn("Failed to fetch composites for role: {}", parentDto.getName());
+                                }
+                        }
+                }
+
+                // 3. Return only roles that are NOT children of any other role in this list
+                // (Roots)
+                // Also sort them if needed? For now, we rely on map iteration order or list
+                // order from Keycloak
+                return dtoMap.values().stream()
+                                .filter(dto -> !childRoleNames.contains(dto.getName()))
+                                .toList();
         }
 }
