@@ -89,10 +89,13 @@ logging:
   level:
     root: INFO
     org.springframework.boot: INFO
-    org.springframework.security: DEBUG
+    # SECURITY: Changed from DEBUG to INFO to prevent sensitive data leakage
+    org.springframework.security: INFO
     org.hibernate: INFO
-    com.omnip: DEBUG
+    # Keep application logging for troubleshooting, but consider INFO in production
+    com.omnip: INFO
     org.apache.catalina: INFO
     org.apache.tomcat: INFO
   pattern:
     console: "%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+

@@ -10,7 +10,8 @@
         <!-- Left Section: Toggle + Breadcrumb -->
         <div class="flex items-center gap-4">
             <!-- Sidebar Toggle Button -->
-            <button @click="sidebarOpen = !sidebarOpen" class="btn btn-ghost btn-circle" title="Toggle Sidebar">
+            <button @click="sidebarOpen = !sidebarOpen; console.log('Toggle clicked:', sidebarOpen)"
+                class="btn btn-ghost btn-circle hidden lg:flex" title="Toggle Sidebar">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
                 </svg>

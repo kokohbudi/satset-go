@@ -1,6 +1,7 @@
 package com.omnip.controllers;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -12,11 +13,26 @@ public class DashboardController {
 
     @GetMapping("/")
     public String landingPage(Authentication authentication) {
-        // If user is authenticated, redirect to dashboard
-        if (authentication != null && authentication.isAuthenticated()) {
+        // Check if user is truly authenticated (not anonymous)
+        if (isAuthenticated(authentication)) {
+            log.debug("User {} is authenticated, redirecting to dashboard", authentication.getName());
             return "redirect:/dashboard";
         }
-        return "pages/landingPage";
+        return "landing";
+    }
+
+    /**
+     * Helper method to check if user is properly authenticated
+     * (not anonymous and actually authenticated)
+     */
+    private boolean isAuthenticated(Authentication authentication) {
+        if (authentication == null) {
+            return false;
+        }
+        if (authentication instanceof AnonymousAuthenticationToken) {
+            return false;
+        }
+        return authentication.isAuthenticated();
     }
 
     @GetMapping("/dashboard")

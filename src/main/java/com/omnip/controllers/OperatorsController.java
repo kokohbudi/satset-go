@@ -45,6 +45,7 @@ public class OperatorsController {
      * @return ResponseEntity dengan operator yang ditemukan
      */
     @GetMapping("/{id}")
+    @PreAuthorize("hasRole('ROLE_omnip-store-admin') or hasRole('ROLE_omnip-store-user')")
     public ResponseEntity<Operators> getOperatorById(@PathVariable UUID id) {
         log.info("Getting operator by id: {}", id);
         Optional<Operators> operator = this.operatorsService.findById(id);
@@ -59,6 +60,7 @@ public class OperatorsController {
      * @return ResponseEntity dengan operator yang ditemukan
      */
     @GetMapping("/code/{code}")
+    @PreAuthorize("hasRole('ROLE_omnip-store-admin') or hasRole('ROLE_omnip-store-user')")
     public ResponseEntity<Operators> getOperatorByCode(@PathVariable String code) {
         log.info("Getting operator by code: {}", code);
         Optional<Operators> operator = this.operatorsService.findByCode(code);
@@ -73,6 +75,7 @@ public class OperatorsController {
      * @return ResponseEntity dengan operator yang ditemukan
      */
     @GetMapping("/name/{name}")
+    @PreAuthorize("hasRole('ROLE_omnip-store-admin') or hasRole('ROLE_omnip-store-user')")
     public ResponseEntity<Operators> getOperatorByName(@PathVariable String name) {
         log.info("Getting operator by name: {}", name);
         Optional<Operators> operator = this.operatorsService.findByName(name);
@@ -87,6 +90,7 @@ public class OperatorsController {
      * @return ResponseEntity dengan list operator
      */
     @GetMapping("/search/name")
+    @PreAuthorize("hasRole('ROLE_omnip-store-admin') or hasRole('ROLE_omnip-store-user')")
     public ResponseEntity<List<Operators>> searchOperatorsByName(@RequestParam String keyword) {
         log.info("Searching operators by name containing: {}", keyword);
         List<Operators> operators = this.operatorsService.findByNameContaining(keyword);
@@ -100,6 +104,7 @@ public class OperatorsController {
      * @return ResponseEntity dengan list operator
      */
     @GetMapping("/search/code")
+    @PreAuthorize("hasRole('ROLE_omnip-store-admin') or hasRole('ROLE_omnip-store-user')")
     public ResponseEntity<List<Operators>> searchOperatorsByCode(@RequestParam String keyword) {
         log.info("Searching operators by code containing: {}", keyword);
         List<Operators> operators = this.operatorsService.findByCodeContaining(keyword);
@@ -112,6 +117,7 @@ public class OperatorsController {
      * @return ResponseEntity dengan list operator aktif
      */
     @GetMapping("/active")
+    @PreAuthorize("hasRole('ROLE_omnip-store-admin') or hasRole('ROLE_omnip-store-user')")
     public ResponseEntity<List<Operators>> getActiveOperators() {
         log.info("Getting active operators");
         List<Operators> operators = this.operatorsService.findActiveOperators();
@@ -211,6 +217,7 @@ public class OperatorsController {
      * @return ResponseEntity dengan status keberadaan
      */
     @GetMapping("/exists/code/{code}")
+    @PreAuthorize("hasRole('ROLE_omnip-store-admin') or hasRole('ROLE_omnip-store-user')")
     public ResponseEntity<Boolean> checkOperatorExistsByCode(@PathVariable String code) {
         log.info("Checking if operator exists by code: {}", code);
         boolean exists = this.operatorsService.existsByCode(code);
@@ -224,6 +231,7 @@ public class OperatorsController {
      * @return ResponseEntity dengan status keberadaan
      */
     @GetMapping("/exists/name/{name}")
+    @PreAuthorize("hasRole('ROLE_omnip-store-admin') or hasRole('ROLE_omnip-store-user')")
     public ResponseEntity<Boolean> checkOperatorExistsByName(@PathVariable String name) {
         log.info("Checking if operator exists by name: {}", name);
         boolean exists = this.operatorsService.existsByName(name);
@@ -236,6 +244,7 @@ public class OperatorsController {
      * @return ResponseEntity dengan jumlah operator aktif
      */
     @GetMapping("/count/active")
+    @PreAuthorize("hasRole('ROLE_omnip-store-admin') or hasRole('ROLE_omnip-store-user')")
     public ResponseEntity<Long> countActiveOperators() {
         log.info("Counting active operators");
         long count = this.operatorsService.countActiveOperators();

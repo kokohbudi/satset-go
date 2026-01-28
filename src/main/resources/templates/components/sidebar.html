@@ -3,12 +3,20 @@
 
 <body>
 
+    <!-- Backdrop Overlay -->
+    <div x-cloak x-show="sidebarOpen" x-transition:enter="transition ease-in-out duration-300"
+        x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
+        x-transition:leave="transition ease-in-out duration-300" x-transition:leave-start="opacity-100"
+        x-transition:leave-end="opacity-0" @click="sidebarOpen = false"
+        class="fixed inset-0 bg-black/50 z-40 lg:hidden"></div>
+
     <!-- Sidebar Fragment - Include with: th:replace="~{components/sidebar :: sidebar}" -->
-    <aside th:fragment="sidebar" x-show="sidebarOpen"
-        class="fixed left-0 top-0 h-screen w-72 bg-base-100 border-r border-base-300 shadow-xl z-40">
+    <!-- Sidebar Fragment - Include with: th:replace="~{components/sidebar :: sidebar}" -->
+    <aside th:fragment="sidebar" :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full'"
+        class="fixed left-0 top-0 h-screen w-72 bg-base-100 border-r border-base-300 shadow-xl z-50 transform transition-transform duration-300 ease-in-out hidden lg:block">
 
         <!-- Logo Section -->
-        <div class="h-16 flex items-center px-4 border-b border-base-300">
+        <div class="h-16 flex items-center justify-between px-4 border-b border-base-300">
             <div class="flex items-center gap-3">
                 <div
                     class="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center shadow-lg shadow-primary/30">
@@ -19,6 +27,13 @@
                 </div>
                 <span class="font-bold text-xl">Omnip Pulsa</span>
             </div>
+
+            <!-- Close Button (Mobile Only) -->
+            <button @click="sidebarOpen = false" class="btn btn-ghost btn-circle btn-sm lg:hidden">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
         </div>
 
         <!-- Navigation -->

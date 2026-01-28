@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="id" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
-    xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
-    x-data="{ sidebarOpen: localStorage.getItem('sidebarOpen') !== 'false' }"
-    x-init="$watch('sidebarOpen', val => localStorage.setItem('sidebarOpen', val))">
+    xmlns:sec="http://www.thymeleaf.org/extras/spring-security" x-data="{ 
+        sidebarOpen: window.innerWidth >= 1024 ? (localStorage.getItem('sidebarOpen') === 'true' ?? true) : false 
+    }" x-init="$watch('sidebarOpen', val => localStorage.setItem('sidebarOpen', val))">
 
 <head>
     <meta charset="UTF-8">
@@ -23,6 +23,25 @@
     <!-- Alpine.js -->
     <script defer th:src="@{/js/alpine.min.js}"></script>
 
+    <!-- Debug Alpine.js -->
+    <script>
+        document.addEventListener('alpine:initialized', () => {
+            console.log('Alpine.js initialized');
+        });
+    </script>
+
+    <!-- CSS Fallback for sidebar -->
+    <style>
+        [x-cloak] {
+            display: none !important;
+        }
+
+        /* Smooth transitions for sidebar */
+        .sidebar-transition {
+            transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out;
+        }
+    </style>
+
     <!-- Page Specific Head Content -->
     <th:block layout:fragment="head"></th:block>
 </head>
@@ -34,13 +53,14 @@
         <div th:replace="~{components/sidebar :: sidebar}"></div>
 
         <!-- Main Content Area -->
-        <div class="flex-1 flex flex-col transition-all duration-300" :class="sidebarOpen ? 'ml-72' : 'ml-0'">
+        <div class="flex-1 flex flex-col min-w-0 transition-all duration-300 ease-in-out"
+            :class="sidebarOpen ? 'lg:ml-72' : 'ml-0'">
 
             <!-- Header Component -->
             <div th:replace="~{components/header :: header}"></div>
 
             <!-- Page Content -->
-            <main class="flex-1 p-6 lg:p-8">
+            <main class="flex-1 p-6 lg:p-8 pb-24 lg:pb-8">
                 <div layout:fragment="content" class="max-w-7xl mx-auto">
                 </div>
             </main>
@@ -51,6 +71,9 @@
             </footer>
         </div>
     </div>
+
+    <!-- Bottom Navigation (Mobile Only) -->
+    <div th:replace="~{components/bottom-nav :: bottom-nav}"></div>
 
     <!-- Toast Container -->
     <div id="toast-container" class="toast toast-top toast-end z-50"></div>

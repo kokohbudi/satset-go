@@ -48,3 +48,4 @@ node/
 # Help file
 /HELP.md
 /config/application-secret.yml
+/src/main/resources/static/css/output.css

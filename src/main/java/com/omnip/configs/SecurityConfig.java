@@ -39,24 +39,26 @@ public class SecurityConfig {
             HttpSecurity http, LogoutSuccessHandler logoutSuccessHandler) throws Exception {
         http
                 .authorizeHttpRequests(auth -> auth
-                        // Public endpoints
-                        .requestMatchers("/","/test/**", "/login", "/logout", "/error", "/webjars/**", "/css/**", "/js/**",
+                        // Public endpoints - only truly public resources
+                        .requestMatchers("/", "/login", "/logout", "/error", "/webjars/**", "/css/**", "/js/**",
                                 "/images/**")
                         .permitAll()
 
-                        // Role management endpoints - temporarily allow all for development
-                        .requestMatchers("/admin/roles/**").permitAll()
-                        .requestMatchers("/api/roles/**").permitAll()
+                        // Role management endpoints - require admin role
+                        .requestMatchers("/admin/roles/**").hasRole("omnip-admin")
+                        .requestMatchers("/api/roles/**").hasRole("omnip-admin")
 
-                        // User management endpoints - temporarily allow all for development
-                        .requestMatchers("/api/users/**").permitAll()
+                        // User management endpoints - require authenticated with specific roles
+                        .requestMatchers("/api/users/**").authenticated()
 
-                        // Dashboard and general API endpoints - temporarily allow all for development
+                        // Dashboard requires authentication
                         .requestMatchers("/dashboard/**").authenticated()
-                        .requestMatchers("/api/**").permitAll()
 
-                        // Any other request
-                        .anyRequest().permitAll())
+                        // All API endpoints require authentication
+                        .requestMatchers("/api/**").authenticated()
+
+                        // Any other request requires authentication
+                        .anyRequest().authenticated())
                 .exceptionHandling(ex -> ex
                         .authenticationEntryPoint(
                                 new LoginUrlAuthenticationEntryPoint("/oauth2/authorization/keycloak")))
@@ -148,13 +150,8 @@ public class SecurityConfig {
                 }
             }
 
-            // Debug: Log JWT claims and extracted authorities
-            System.out.println("=== JWT CLAIMS DEBUG ===");
-            System.out.println("All claims: " + jwt.getClaims().keySet());
-            System.out.println("realm_access: " + jwt.getClaims().get("realm_access"));
-            System.out.println("resource_access: " + jwt.getClaims().get("resource_access"));
-            System.out.println("Extracted authorities: " + auths);
-            System.out.println("========================");
+            // Log extracted authorities at debug level only
+            log.debug("Extracted authorities for JWT: {}", auths.size());
 
             return auths;
         });
