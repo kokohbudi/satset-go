@@ -23,6 +23,6 @@ public class UserDTO extends BaseDTO {
     private String password;
     private Stores stores;
     private boolean active;
-
+    private List<KeycloakGroupDTO> groups;
 
 }

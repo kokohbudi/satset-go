@@ -6,9 +6,12 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.keycloak.representations.idm.GroupRepresentation;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * DTO untuk representasi Group dari Keycloak.
- * Hanya berisi id dan nama group.
+ * Mendukung hierarchical groups dengan parent/child relationship.
  */
 @Data
 @Builder
@@ -22,13 +25,29 @@ public class KeycloakGroupDTO {
     private String id;
 
     /**
-     * Nama group (misal: bo-admin, bo-operator)
+     * Nama group (misal: admin, operator)
      */
     private String name;
 
     /**
+     * Full path dari group (misal: /backoffice/admin)
+     */
+    private String path;
+
+    /**
+     * ID dari parent group (null jika top-level)
+     */
+    private String parentId;
+
+    /**
+     * Child groups (subgroups)
+     */
+    @Builder.Default
+    private List<KeycloakGroupDTO> subGroups = new ArrayList<>();
+
+    /**
      * Factory method untuk membuat KeycloakGroupDTO dari GroupRepresentation
-     * Keycloak
+     * Keycloak (tanpa subgroups - flat mode)
      *
      * @param groupRep GroupRepresentation dari Keycloak
      * @return KeycloakGroupDTO
@@ -37,6 +56,33 @@ public class KeycloakGroupDTO {
         return KeycloakGroupDTO.builder()
                 .id(groupRep.getId())
                 .name(groupRep.getName())
+                .path(groupRep.getPath())
                 .build();
+    }
+
+    /**
+     * Factory method untuk membuat KeycloakGroupDTO dengan hierarchy (recursive)
+     *
+     * @param groupRep GroupRepresentation dari Keycloak
+     * @param parentId ID dari parent group (null untuk top-level)
+     * @return KeycloakGroupDTO dengan subGroups populated
+     */
+    public static KeycloakGroupDTO fromGroupRepresentationWithHierarchy(GroupRepresentation groupRep, String parentId) {
+        KeycloakGroupDTO dto = KeycloakGroupDTO.builder()
+                .id(groupRep.getId())
+                .name(groupRep.getName())
+                .path(groupRep.getPath())
+                .parentId(parentId)
+                .subGroups(new ArrayList<>())
+                .build();
+
+        // Recursively process subgroups
+        if (groupRep.getSubGroups() != null && !groupRep.getSubGroups().isEmpty()) {
+            for (GroupRepresentation subGroup : groupRep.getSubGroups()) {
+                dto.getSubGroups().add(fromGroupRepresentationWithHierarchy(subGroup, groupRep.getId()));
+            }
+        }
+
+        return dto;
     }
 }

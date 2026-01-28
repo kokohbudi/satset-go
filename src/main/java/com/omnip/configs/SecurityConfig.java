@@ -69,7 +69,7 @@ public class SecurityConfig {
                         .jwt(jwt -> jwt
                                 .jwtAuthenticationConverter(jwtAuthenticationConverter)))
                 .csrf(csrf -> csrf
-                        .ignoringRequestMatchers("/logout", "/api/logout"))
+                        .ignoringRequestMatchers("/logout", "/api/logout", "/api/**"))
                 .logout(logout -> logout
                         .logoutUrl("/api/logout")
                         .invalidateHttpSession(true)
@@ -148,6 +148,16 @@ public class SecurityConfig {
                                 .forEach(auths::add);
                     }
                 }
+            }
+
+            // 4. Extract groups from 'groups' claim
+            Object groups = jwt.getClaims().get("groups");
+            if (groups instanceof List<?>) {
+                ((List<?>) groups).stream()
+                        .map(Object::toString)
+                        .map(g -> "GROUP_" + g)
+                        .map(SimpleGrantedAuthority::new)
+                        .forEach(auths::add);
             }
 
             // Log extracted authorities at debug level only

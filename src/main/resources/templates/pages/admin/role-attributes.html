@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html layout:decorate="~{layouts/base}" xmlns:th="http://www.thymeleaf.org"
+    xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+    xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+
+<head>
+    <title>Role Attributes</title>
+</head>
+
+<body>
+    <div layout:fragment="content" x-data="roleAttributesEditor()">
+
+        <!-- Page Header -->
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+            <div>
+                <h1 class="text-2xl font-bold text-base-content mb-2">Role Attributes</h1>
+                <p class="text-base-content/60">Kelola attributes untuk setiap role (sidebar, URL, icon)</p>
+            </div>
+            <div class="flex gap-2">
+                <select x-model="scopeFilter" @change="filterRoles()" class="select select-bordered">
+                    <option value="">Semua Scope</option>
+                    <option value="backoffice">Backoffice</option>
+                    <option value="customer">Customer</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Roles Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <template x-for="role in filteredRoles" :key="role.name">
+                <div class="card bg-base-100 shadow-lg border border-base-300/50 hover:shadow-xl transition-shadow">
+                    <div class="card-body">
+                        <!-- Role Header -->
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="flex items-center gap-3">
+                                <div class="avatar placeholder">
+                                    <div
+                                        class="bg-primary/10 text-primary rounded-lg w-12 h-12 flex items-center justify-center">
+                                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                                        </svg>
+                                    </div>
+                                </div>
+                                <div>
+                                    <h3 class="font-bold text-lg" x-text="role.name"></h3>
+                                    <span class="badge badge-outline badge-sm"
+                                        x-text="role.attributes?.scope || 'no scope'"
+                                        :class="role.attributes?.scope === 'backoffice' ? 'badge-primary' : 'badge-secondary'"></span>
+                                </div>
+                            </div>
+                            <button @click="toggleExpand(role.name)" class="btn btn-ghost btn-sm btn-circle">
+                                <svg class="w-5 h-5 transition-transform"
+                                    :class="expandedRoles.includes(role.name) ? 'rotate-180' : ''" fill="none"
+                                    stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M19 9l-7 7-7-7" />
+                                </svg>
+                            </button>
+                        </div>
+
+                        <!-- Expandable Form -->
+                        <div x-show="expandedRoles.includes(role.name)" x-collapse>
+                            <div class="border-t border-base-300 pt-4 space-y-4">
+
+                                <!-- Sidebar Toggle -->
+                                <div class="form-control">
+                                    <label class="label cursor-pointer justify-start gap-4">
+                                        <input type="checkbox" class="toggle toggle-primary"
+                                            :checked="role.attributes?.sidebar === '1'"
+                                            @change="updateAttribute(role.name, 'sidebar', $event.target.checked ? '1' : '0')" />
+                                        <div>
+                                            <span class="label-text font-medium">Tampil di Sidebar</span>
+                                            <p class="text-xs text-base-content/60">Role ini akan muncul di menu sidebar
+                                            </p>
+                                        </div>
+                                    </label>
+                                </div>
+
+                                <!-- URL Input -->
+                                <div class="form-control">
+                                    <label class="label">
+                                        <span class="label-text font-medium">URL Path</span>
+                                    </label>
+                                    <input type="text" class="input input-bordered input-sm"
+                                        :value="role.attributes?.url || ''"
+                                        @change="updateAttribute(role.name, 'url', $event.target.value)"
+                                        placeholder="/admin/users" />
+                                </div>
+
+                                <!-- Icon Selector -->
+                                <div class="form-control">
+                                    <label class="label">
+                                        <span class="label-text font-medium">Icon</span>
+                                    </label>
+                                    <select class="select select-bordered select-sm"
+                                        :value="role.attributes?.icon || ''"
+                                        @change="updateAttribute(role.name, 'icon', $event.target.value)">
+                                        <option value="">Pilih icon...</option>
+                                        <option value="users">Users</option>
+                                        <option value="shield">Shield</option>
+                                        <option value="home">Home</option>
+                                        <option value="cog">Settings</option>
+                                        <option value="chart">Chart</option>
+                                        <option value="folder">Folder</option>
+                                        <option value="document">Document</option>
+                                    </select>
+                                </div>
+
+                                <!-- Order Input -->
+                                <div class="form-control">
+                                    <label class="label">
+                                        <span class="label-text font-medium">Order (Urutan)</span>
+                                    </label>
+                                    <input type="number" class="input input-bordered input-sm w-24"
+                                        :value="role.attributes?.order || '0'"
+                                        @change="updateAttribute(role.name, 'order', $event.target.value)" min="0"
+                                        max="100" />
+                                </div>
+
+                                <!-- Custom Attributes (Collapsible) -->
+                                <div class="collapse collapse-arrow bg-base-200/50 rounded-lg">
+                                    <input type="checkbox" />
+                                    <div class="collapse-title text-sm font-medium">
+                                        Custom Attributes
+                                    </div>
+                                    <div class="collapse-content">
+                                        <div class="space-y-2">
+                                            <template x-for="(value, key) in getCustomAttributes(role)" :key="key">
+                                                <div class="flex items-center gap-2">
+                                                    <input type="text" class="input input-bordered input-xs flex-1"
+                                                        :value="key" disabled />
+                                                    <input type="text" class="input input-bordered input-xs flex-1"
+                                                        :value="value"
+                                                        @change="updateAttribute(role.name, key, $event.target.value)" />
+                                                    <button @click="removeAttribute(role.name, key)"
+                                                        class="btn btn-ghost btn-xs btn-circle text-error">
+                                                        <svg class="w-4 h-4" fill="none" stroke="currentColor"
+                                                            viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round"
+                                                                stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                                        </svg>
+                                                    </button>
+                                                </div>
+                                            </template>
+                                            <!-- Add New Attribute -->
+                                            <div class="flex items-center gap-2 mt-2">
+                                                <input type="text" x-model="newAttrKey"
+                                                    class="input input-bordered input-xs flex-1" placeholder="Key" />
+                                                <input type="text" x-model="newAttrValue"
+                                                    class="input input-bordered input-xs flex-1" placeholder="Value" />
+                                                <button @click="addCustomAttribute(role.name)"
+                                                    class="btn btn-primary btn-xs btn-circle">
+                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor"
+                                                        viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                                            stroke-width="2" d="M12 4v16m8-8H4" />
+                                                    </svg>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </template>
+        </div>
+
+        <!-- Loading State -->
+        <template x-if="loading">
+            <div class="fixed inset-0 bg-base-300/50 flex items-center justify-center z-50">
+                <span class="loading loading-spinner loading-lg text-primary"></span>
+            </div>
+        </template>
+
+        <!-- Toast -->
+        <div x-show="toast.show" x-transition class="toast toast-top toast-end z-50">
+            <div class="alert" :class="toast.type === 'success' ? 'alert-success' : 'alert-error'">
+                <span x-text="toast.message"></span>
+            </div>
+        </div>
+
+    </div>
+
+    <div layout:fragment="scripts">
+        <script th:inline="javascript">
+            function roleAttributesEditor() {
+                return {
+                    roles: [],
+                    filteredRoles: [],
+                    expandedRoles: [],
+                    scopeFilter: '',
+                    loading: true,
+                    toast: { show: false, message: '', type: 'success' },
+                    newAttrKey: '',
+                    newAttrValue: '',
+
+                    async init() {
+                        await this.loadRoles();
+                    },
+
+                    async loadRoles() {
+                        this.loading = true;
+                        try {
+                            const res = await fetch('/api/idm/roles');
+                            if (res.ok) {
+                                this.roles = await res.json();
+                                this.filteredRoles = this.roles;
+                            }
+                        } catch (e) {
+                            console.error('Failed to load roles:', e);
+                        }
+                        this.loading = false;
+                    },
+
+                    filterRoles() {
+                        if (!this.scopeFilter) {
+                            this.filteredRoles = this.roles;
+                        } else {
+                            this.filteredRoles = this.roles.filter(r =>
+                                r.attributes?.scope === this.scopeFilter
+                            );
+                        }
+                    },
+
+                    toggleExpand(roleName) {
+                        const idx = this.expandedRoles.indexOf(roleName);
+                        if (idx > -1) {
+                            this.expandedRoles.splice(idx, 1);
+                        } else {
+                            this.expandedRoles.push(roleName);
+                        }
+                    },
+
+                    async updateAttribute(roleName, key, value) {
+                        const role = this.roles.find(r => r.name === roleName);
+                        if (!role) return;
+
+                        // Build full attributes map
+                        const attrs = { ...role.attributes };
+                        attrs[key] = value;
+
+                        // Convert to List<String> format for API
+                        const apiAttrs = {};
+                        for (const [k, v] of Object.entries(attrs)) {
+                            apiAttrs[k] = [v];
+                        }
+
+                        try {
+                            const res = await fetch(`/api/idm/roles/${roleName}/attributes`, {
+                                method: 'PUT',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify(apiAttrs)
+                            });
+                            if (res.ok) {
+                                role.attributes = attrs;
+                                this.showToast('Attribute berhasil disimpan', 'success');
+                            } else {
+                                this.showToast('Gagal menyimpan attribute', 'error');
+                            }
+                        } catch (e) {
+                            this.showToast('Error: ' + e.message, 'error');
+                        }
+                    },
+
+                    getCustomAttributes(role) {
+                        const predefined = ['sidebar', 'url', 'icon', 'order', 'scope'];
+                        const custom = {};
+                        if (role.attributes) {
+                            for (const [k, v] of Object.entries(role.attributes)) {
+                                if (!predefined.includes(k)) {
+                                    custom[k] = v;
+                                }
+                            }
+                        }
+                        return custom;
+                    },
+
+                    async addCustomAttribute(roleName) {
+                        if (!this.newAttrKey || !this.newAttrValue) return;
+                        await this.updateAttribute(roleName, this.newAttrKey, this.newAttrValue);
+                        this.newAttrKey = '';
+                        this.newAttrValue = '';
+                    },
+
+                    async removeAttribute(roleName, key) {
+                        const role = this.roles.find(r => r.name === roleName);
+                        if (!role || !role.attributes) return;
+
+                        delete role.attributes[key];
+
+                        // Rebuild and save
+                        const apiAttrs = {};
+                        for (const [k, v] of Object.entries(role.attributes)) {
+                            apiAttrs[k] = [v];
+                        }
+
+                        try {
+                            const res = await fetch(`/api/idm/roles/${roleName}/attributes`, {
+                                method: 'PUT',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify(apiAttrs)
+                            });
+                            if (res.ok) {
+                                this.showToast('Attribute berhasil dihapus', 'success');
+                            }
+                        } catch (e) {
+                            this.showToast('Error: ' + e.message, 'error');
+                        }
+                    },
+
+                    showToast(message, type) {
+                        this.toast = { show: true, message, type };
+                        setTimeout(() => { this.toast.show = false; }, 3000);
+                    }
+                }
+            }
+        </script>
+    </div>
+</body>
+
+</html>

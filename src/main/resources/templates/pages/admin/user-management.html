@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html layout:decorate="~{layouts/base}" xmlns:th="http://www.thymeleaf.org"
+    xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+    xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+
+<head>
+    <title>User Management</title>
+</head>
+
+<body>
+    <div layout:fragment="content" x-data="userGroupManager()"
+        th:data-can-assign-groups="${@authz.hasGroupPrefix('/backoffice/') and #authorization.expression('hasRole(''assign_user_to_groups'')')}">
+
+        <!-- Page Header -->
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+            <div>
+                <h1 class="text-2xl font-bold text-base-content mb-2">User Management</h1>
+                <p class="text-base-content/60">Kelola user dan assign ke groups</p>
+            </div>
+            <button sec:authorize="${@authz.hasGroupPrefix('/backoffice/') and hasRole('create_users')}"
+                onclick="createUserModal.showModal()" class="btn btn-primary gap-2 shadow-lg shadow-primary/30">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                </svg>
+                Tambah User
+            </button>
+        </div>
+
+        <!-- Filters -->
+        <div class="card bg-base-100 shadow-sm border border-base-300/50 mb-6">
+            <div class="card-body py-4">
+                <div class="flex flex-col lg:flex-row gap-4">
+                    <div class="flex-1">
+                        <label class="input input-bordered flex items-center gap-2 focus-within:input-primary">
+                            <svg class="w-4 h-4 text-base-content/50" fill="none" stroke="currentColor"
+                                viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                            </svg>
+                            <input type="search" x-model="searchQuery" @input="searchUsers()" placeholder="Cari user..."
+                                class="grow bg-transparent outline-none" />
+                        </label>
+                    </div>
+                    <select x-model="filterGroup" @change="searchUsers()" class="select select-bordered w-full lg:w-48">
+                        <option value="">Semua Group</option>
+                        <template x-for="group in allGroups" :key="group.id">
+                            <option :value="group.id" x-text="group.name"></option>
+                        </template>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- Users Table -->
+        <div class="card bg-base-100 shadow-lg border border-base-300/50 overflow-visible">
+            <div class="overflow-x-auto overflow-y-visible">
+                <table class="table">
+                    <thead class="bg-base-200/50 relative z-0">
+                        <tr>
+                            <th>User</th>
+                            <th>Email</th>
+                            <th class="min-w-[300px]">Groups</th>
+                            <th>Status</th>
+                            <th>Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Loading State -->
+                        <template x-if="loading">
+                            <tr>
+                                <td colspan="5" class="text-center py-8">
+                                    <span class="loading loading-spinner loading-lg text-primary"></span>
+                                </td>
+                            </tr>
+                        </template>
+
+                        <!-- User Rows -->
+                        <template x-for="user in filteredUsers" :key="user.providerUserId">
+                            <tr class="hover:bg-base-200/50">
+                                <td>
+                                    <div class="flex items-center gap-3">
+                                        <div class="avatar placeholder online">
+                                            <div
+                                                class="bg-gradient-to-br from-primary to-primary/70 text-primary-content rounded-full w-10">
+                                                <span class="text-sm font-bold"
+                                                    x-text="user.fullname?.substring(0, 2).toUpperCase() || 'U'"></span>
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <div class="font-bold" x-text="user.fullname"></div>
+                                            <div class="text-sm text-base-content/60" x-text="'@' + user.username">
+                                            </div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td x-text="user.email"></td>
+                                <td>
+                                    <!-- Inline Chip Editor -->
+                                    <div class="flex flex-wrap gap-2 items-center">
+                                        <!-- Group Chips -->
+                                        <template x-for="group in user.groups" :key="group.id">
+                                            <span
+                                                class="badge badge-primary gap-1 pl-3 py-3 cursor-default transition-colors group"
+                                                :class="canAssignGroups ? 'pr-1 hover:badge-error' : 'pr-3'">
+                                                <span x-text="group.name"></span>
+                                                <button x-show="canAssignGroups"
+                                                    @click="removeUserFromGroup(user.providerUserId, group.id)"
+                                                    class="btn btn-ghost btn-xs btn-circle opacity-60 group-hover:opacity-100">
+                                                    <svg class="w-3 h-3" fill="none" stroke="currentColor"
+                                                        viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                                            stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                                    </svg>
+                                                </button>
+                                            </span>
+                                        </template>
+
+                                        <!-- Add Group Dropdown -->
+                                        <div x-show="canAssignGroups" class="dropdown dropdown-end">
+                                            <button tabindex="0"
+                                                class="btn btn-ghost btn-xs btn-circle border border-dashed border-base-content/30 hover:border-primary hover:text-primary">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor"
+                                                    viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                        stroke-width="2" d="M12 4v16m8-8H4" />
+                                                </svg>
+                                            </button>
+                                            <ul tabindex="0"
+                                                class="dropdown-content z-50 menu p-2 shadow-xl bg-base-100 rounded-box w-52 border border-base-300 max-h-60 overflow-y-auto">
+                                                <li class="menu-title px-2 py-1">
+                                                    <span class="text-xs text-base-content/60">Tambah ke Group</span>
+                                                </li>
+                                                <template x-for="group in getAvailableGroups(user)" :key="group.id">
+                                                    <li>
+                                                        <a @click="assignUserToGroup(user.providerUserId, group.id)"
+                                                            class="flex items-center gap-2">
+                                                            <svg class="w-4 h-4 text-success" fill="none"
+                                                                stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path stroke-linecap="round" stroke-linejoin="round"
+                                                                    stroke-width="2" d="M12 4v16m8-8H4" />
+                                                            </svg>
+                                                            <span x-text="group.name"></span>
+                                                        </a>
+                                                    </li>
+                                                </template>
+                                                <template x-if="getAvailableGroups(user).length === 0">
+                                                    <li class="text-base-content/50 px-4 py-2 text-sm">Sudah di semua
+                                                        group</li>
+                                                </template>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="badge gap-1" :class="user.active ? 'badge-success' : 'badge-ghost'">
+                                        <span class="w-2 h-2 rounded-full"
+                                            :class="user.active ? 'bg-success animate-pulse' : 'bg-base-content/30'"></span>
+                                        <span x-text="user.active ? 'Aktif' : 'Nonaktif'"></span>
+                                    </span>
+                                </td>
+                                <td>
+                                    <div class="dropdown dropdown-end">
+                                        <button tabindex="0" class="btn btn-ghost btn-xs btn-circle">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M12 5v.01M12 12v.01M12 19v.01" />
+                                            </svg>
+                                        </button>
+                                        <ul tabindex="0"
+                                            class="dropdown-content !fixed z-[9999] menu p-2 shadow-xl bg-base-100 rounded-box w-48 border border-base-300">
+                                            <li><a>Edit</a></li>
+                                            <li><a>Reset Password</a></li>
+                                            <li class="text-error"><a>Nonaktifkan</a></li>
+                                        </ul>
+                                    </div>
+                                </td>
+                            </tr>
+                        </template>
+
+                        <!-- Empty State -->
+                        <template x-if="!loading && filteredUsers.length === 0">
+                            <tr>
+                                <td colspan="5" class="text-center py-16">
+                                    <div class="flex flex-col items-center">
+                                        <div
+                                            class="w-16 h-16 rounded-full bg-base-200 flex items-center justify-center mb-4">
+                                            <svg class="w-8 h-8 text-base-content/30" fill="none" stroke="currentColor"
+                                                viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197" />
+                                            </svg>
+                                        </div>
+                                        <p class="text-base-content/60">Tidak ada user ditemukan</p>
+                                    </div>
+                                </td>
+                            </tr>
+                        </template>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+
+    <div layout:fragment="scripts">
+        <script th:inline="javascript">
+            function userGroupManager() {
+                // SSR: Initial data from Thymeleaf
+                const initialUsers = /*[[${initialUsers}]]*/[];
+                const initialGroups = /*[[${initialGroups}]]*/[];
+
+                return {
+                    users: initialUsers,
+                    filteredUsers: initialUsers,
+                    allGroups: initialGroups,
+                    loading: false,  // No loading needed - data is pre-loaded
+                    searchQuery: '',
+                    filterGroup: '',
+                    searchTimeout: null,
+                    canAssignGroups: false,
+
+                    init() {
+                        // Read permission from server-rendered data attribute
+                        this.canAssignGroups = this.$el.dataset.canAssignGroups === 'true';
+                        // Data already loaded from SSR, just flatten groups for display
+                        this.allGroups = this.flattenGroups(initialGroups);
+                    },
+
+                    flattenGroups(groups, prefix = '') {
+                        let result = [];
+                        for (const g of groups) {
+                            result.push({ ...g, displayName: prefix + g.name });
+                            if (g.subGroups?.length > 0) {
+                                result = result.concat(this.flattenGroups(g.subGroups, prefix + '└ '));
+                            }
+                        }
+                        return result;
+                    },
+
+                    async searchUsers() {
+                        // Debounce search
+                        if (this.searchTimeout) clearTimeout(this.searchTimeout);
+
+                        this.searchTimeout = setTimeout(async () => {
+                            if (!this.searchQuery && !this.filterGroup) {
+                                // Empty search - use initial SSR data
+                                this.filteredUsers = this.users;
+                                return;
+                            }
+
+                            this.loading = true;
+                            try {
+                                // Build search URL with query params
+                                let url = '/api/idm/backoffice/users';
+                                const params = new URLSearchParams();
+                                if (this.searchQuery) params.append('q', this.searchQuery);
+                                if (this.filterGroup) params.append('groupId', this.filterGroup);
+                                if (params.toString()) url += '?' + params.toString();
+
+                                const res = await fetch(url);
+                                if (res.ok) {
+                                    this.filteredUsers = await res.json();
+                                }
+                            } catch (e) {
+                                console.error('Search failed:', e);
+                            }
+                            this.loading = false;
+                        }, 300);
+                    },
+
+                    filterUsers() {
+                        let result = this.users;
+                        if (this.searchQuery) {
+                            const q = this.searchQuery.toLowerCase();
+                            result = result.filter(u =>
+                                u.fullname?.toLowerCase().includes(q) ||
+                                u.email?.toLowerCase().includes(q) ||
+                                u.username?.toLowerCase().includes(q)
+                            );
+                        }
+                        if (this.filterGroup) {
+                            result = result.filter(u =>
+                                u.groups?.some(g => g.id === this.filterGroup)
+                            );
+                        }
+                        this.filteredUsers = result;
+                    },
+
+                    getAvailableGroups(user) {
+                        const userGroupIds = (user.groups || []).map(g => g.id);
+                        return this.allGroups.filter(g => !userGroupIds.includes(g.id));
+                    },
+
+                    async loadUsers() {
+                        try {
+                            const res = await fetch('/api/idm/backoffice/users');
+                            if (res.ok) {
+                                this.users = await res.json();
+                                this.filteredUsers = this.users;
+                            }
+                        } catch (e) {
+                            console.error('Failed to load users:', e);
+                        }
+                    },
+
+                    async assignUserToGroup(userId, groupId) {
+                        try {
+                            const res = await fetch(`/api/idm/users/${userId}/groups/${groupId}`, {
+                                method: 'POST'
+                            });
+                            if (res.ok) {
+                                this.showToast('User berhasil ditambahkan ke group', 'success');
+                                await this.loadUsers();
+                            } else {
+                                this.showToast('Gagal menambahkan user ke group', 'error');
+                            }
+                        } catch (e) {
+                            this.showToast('Error: ' + e.message, 'error');
+                        }
+                    },
+
+                    async removeUserFromGroup(userId, groupId) {
+                        try {
+                            const res = await fetch(`/api/idm/users/${userId}/groups/${groupId}`, {
+                                method: 'DELETE'
+                            });
+                            if (res.ok) {
+                                this.showToast('User berhasil dihapus dari group', 'success');
+                                await this.loadUsers();
+                            } else {
+                                this.showToast('Gagal menghapus user dari group', 'error');
+                            }
+                        } catch (e) {
+                            this.showToast('Error: ' + e.message, 'error');
+                        }
+                    },
+
+                    showToast(message, type) {
+                        // Use global toast store
+                        if (type === 'success') {
+                            Alpine.store('toast').success(message);
+                        } else {
+                            Alpine.store('toast').error(message);
+                        }
+                    }
+                }
+            }
+        </script>
+    </div>
+</body>
+
+</html>

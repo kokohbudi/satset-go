@@ -39,10 +39,28 @@ public class IdentityManagementService {
     }
 
     /**
+     * Mendapatkan semua users dari Keycloak.
+     */
+    public List<UserDTO> getAllUsers(int maxResults) {
+        return keycloakAdminClientService.getAllKeycloakUsers(maxResults);
+    }
+
+    /**
      * Mendapatkan semua client roles dari Keycloak.
      */
     public List<KeycloakRoleDTO> getRoles() {
         return keycloakAdminClientService.getRoles();
+    }
+
+    /**
+     * Mendapatkan roles yang difilter berdasarkan scope.
+     * Scope adalah attribute di role: scope=backoffice, scope=customer,
+     * scope=shared
+     *
+     * @param scope Nilai scope untuk filter
+     */
+    public List<KeycloakRoleDTO> getRolesByScope(String scope) {
+        return keycloakAdminClientService.getRolesByScope(scope);
     }
 
     /**
@@ -166,5 +184,168 @@ public class IdentityManagementService {
             result.setMessage(e.getErrorMessage());
         }
         return result;
+    }
+
+    // ==================== User-Group Management ====================
+
+    /**
+     * Assign user ke group.
+     *
+     * @param userId  Provider user ID dari Keycloak
+     * @param groupId Group ID
+     */
+    public Map<String, String> assignUserToGroup(String userId, String groupId) {
+        keycloakAdminClientService.assignUserToGroup(userId, groupId);
+        log.info("User '{}' assigned to group '{}'", userId, groupId);
+        return Map.of(
+                "status", "success",
+                "message", "User assigned to group successfully");
+    }
+
+    /**
+     * Remove user dari group.
+     *
+     * @param userId  Provider user ID dari Keycloak
+     * @param groupId Group ID
+     */
+    public Map<String, String> removeUserFromGroup(String userId, String groupId) {
+        keycloakAdminClientService.removeUserFromGroup(userId, groupId);
+        log.info("User '{}' removed from group '{}'", userId, groupId);
+        return Map.of(
+                "status", "success",
+                "message", "User removed from group successfully");
+    }
+
+    /**
+     * Mendapatkan groups yang dimiliki user.
+     *
+     * @param userId Provider user ID dari Keycloak
+     */
+    public List<KeycloakGroupDTO> getUserGroups(String userId) {
+        return keycloakAdminClientService.getUserGroups(userId);
+    }
+
+    /**
+     * Mendapatkan members dari suatu group.
+     *
+     * @param groupId Group ID
+     */
+    public List<UserDTO> getGroupMembers(String groupId) {
+        return getGroupMembers(groupId, false);
+    }
+
+    /**
+     * Mendapatkan members dari suatu group.
+     * 
+     * @param recursive jika true, ambil users dari subgroup juga
+     */
+    public List<UserDTO> getGroupMembers(String groupId, boolean recursive) {
+        return keycloakAdminClientService.getGroupMembers(groupId, recursive).stream()
+                .map(userRep -> {
+                    UserDTO dto = new UserDTO();
+                    dto.setProviderUserId(userRep.getId());
+                    dto.setUsername(userRep.getUsername());
+                    dto.setFullname(userRep.getFirstName() + " " +
+                            (userRep.getLastName() != null ? userRep.getLastName() : ""));
+                    dto.setEmail(userRep.getEmail());
+                    dto.setActive(userRep.isEnabled());
+                    return dto;
+                })
+                .toList();
+    }
+
+    /**
+     * Mendapatkan groups dengan hierarchy (parent-child).
+     */
+    public List<KeycloakGroupDTO> getGroupsHierarchy() {
+        return keycloakAdminClientService.getGroupsHierarchy();
+    }
+
+    /**
+     * Mendapatkan subgroups dari parent group path.
+     *
+     * @param parentPath Path dari parent group (e.g., "/backoffice")
+     */
+    public List<KeycloakGroupDTO> getSubGroups(String parentPath) {
+        return keycloakAdminClientService.getSubGroups(parentPath);
+    }
+
+    // ==================== Role Attributes ====================
+
+    /**
+     * Update attributes dari role.
+     *
+     * @param roleName   Nama role
+     * @param attributes Map of attribute key to list of values
+     */
+    public Map<String, String> updateRoleAttributes(String roleName, Map<String, List<String>> attributes)
+            throws BusinessException {
+        keycloakAdminClientService.updateRoleAttributes(roleName, attributes);
+        log.info("Role '{}' attributes updated", roleName);
+        return Map.of(
+                "status", "success",
+                "message", "Role attributes updated successfully");
+    }
+
+    /**
+     * Mendapatkan role dengan attributes (full detail).
+     *
+     * @param roleName Nama role
+     */
+    public KeycloakRoleDTO getRoleWithAttributes(String roleName) {
+        return keycloakAdminClientService.getCachedRoleWithAttributes(roleName);
+    }
+
+    // ==================== Backoffice Users ====================
+
+    /**
+     * Get all users under /backoffice hierarchy with their groups populated.
+     * This is a convenience method for the frontend - single API call.
+     *
+     * @return List of UserDTO with groups field populated
+     */
+    public List<UserDTO> getBackofficeUsers() {
+        // 1. Find backoffice group
+        List<KeycloakGroupDTO> allGroups = getGroupsHierarchy();
+        KeycloakGroupDTO backofficeGroup = allGroups.stream()
+                .filter(g -> "/backoffice".equals(g.getPath()))
+                .findFirst()
+                .orElse(null);
+
+        if (backofficeGroup == null) {
+            return List.of();
+        }
+
+        // 2. Get all members recursively
+        List<UserDTO> users = getGroupMembers(backofficeGroup.getId(), true);
+
+        // 3. Deduplicate by providerUserId (user can be in multiple groups)
+        java.util.Map<String, UserDTO> uniqueUsers = new java.util.LinkedHashMap<>();
+        for (UserDTO user : users) {
+            uniqueUsers.putIfAbsent(user.getProviderUserId(), user);
+        }
+
+        // 4. Populate groups for each unique user
+        List<UserDTO> result = new java.util.ArrayList<>(uniqueUsers.values());
+        for (UserDTO user : result) {
+            user.setGroups(getUserGroups(user.getProviderUserId()));
+        }
+
+        return result;
+    }
+
+    /**
+     * Get subgroups under /backoffice for dropdown filtering.
+     * Used for SSR initial data population.
+     *
+     * @return List of KeycloakGroupDTO (flat list of backoffice subgroups)
+     */
+    public List<KeycloakGroupDTO> getBackofficeSubGroups() {
+        List<KeycloakGroupDTO> allGroups = getGroupsHierarchy();
+        return allGroups.stream()
+                .filter(g -> "/backoffice".equals(g.getPath()))
+                .findFirst()
+                .map(KeycloakGroupDTO::getSubGroups)
+                .orElse(List.of());
     }
 }
