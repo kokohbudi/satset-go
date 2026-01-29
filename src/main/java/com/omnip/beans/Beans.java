@@ -1,6 +1,5 @@
 package com.omnip.beans;
 
-import com.github.benmanes.caffeine.cache.Caffeine;
 import com.omnip.configs.AuditorAwareImpl;
 import com.omnip.constants.OmniConstants;
 import com.omnip.dtos.UserDTO;
@@ -10,8 +9,6 @@ import jakarta.servlet.http.HttpServletRequest;
 import org.keycloak.admin.client.Keycloak;
 import org.keycloak.admin.client.KeycloakBuilder;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.cache.CacheManager;
-import org.springframework.cache.caffeine.CaffeineCacheManager;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Scope;
@@ -21,8 +18,6 @@ import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.web.context.WebApplicationContext;
-
-import java.util.concurrent.TimeUnit;
 
 @Configuration
 @EnableJpaAuditing(auditorAwareRef = "auditorProvider")
@@ -100,14 +95,8 @@ public class Beans {
                 .build();
     }
 
-    @Bean
-    public CacheManager fastCacheManager() {
-        CaffeineCacheManager cacheManager = new CaffeineCacheManager();
-        cacheManager.setCaffeine(Caffeine.newBuilder()
-                .expireAfterWrite(10, TimeUnit.SECONDS)
-                .maximumSize(100));
-        return cacheManager;
-    }
+    // NOTE: fastCacheManager moved to PerformanceConfig.java for centralized cache
+    // management
 
     @Bean
     public AuditorAware<String> auditorProvider() {

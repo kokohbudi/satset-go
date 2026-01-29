@@ -4,7 +4,6 @@ import com.omnip.dtos.UserDTO;
 import com.omnip.entities.Users;
 import com.omnip.exceptions.BusinessException;
 import com.omnip.repositories.UsersRepository;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -13,19 +12,12 @@ import java.util.Objects;
 /**
  * Komponen bisnis yang menangani logika terkait manajemen pengguna.
  * Menyediakan metode untuk validasi, manipulasi data pengguna, dan
- * kontrol akses berdasarkan peran pengguna.
+ * kontrol akses berdasarkan store pengguna.
  */
 @Component
 public class UserManagementBusiness {
     private final UserDTO userDTO;
     private final UsersRepository usersRepository;
-
-    /**
-     * Daftar peran yang diizinkan untuk mengubah password pengguna lain.
-     * Nilai diambil dari properti konfigurasi aplikasi.
-     */
-    @Value("#{'${omnip.allowed-role.change-password}'.split(',')}")
-    private List<String> allowedChangePasswordRoles;
 
     /**
      * Konstruktor dengan dependency injection.
@@ -39,54 +31,44 @@ public class UserManagementBusiness {
     }
 
     /**
-     * Memeriksa apakah pengguna memiliki setidaknya satu peran yang diizinkan.
-     * Metode ini memeriksa irisan antara peran pengguna dan peran yang diizinkan.
-     *
-     * @param userRoles    Daftar peran pengguna
-     * @param allowedRoles Daftar peran yang diizinkan
-     * @return true jika pengguna memiliki setidaknya satu peran yang diizinkan
-     */
-    private boolean hasAnyAllowedRole(List<String> userRoles, List<String> allowedRoles) {
-        // Periksa apakah ada intersection (irisan) antara role user dan allowed roles
-        return userRoles.stream().anyMatch(allowedRoles::contains);
-    }
-
-    /**
      * Mendapatkan provider user ID untuk operasi perubahan password.
-     * Metode ini melakukan validasi apakah pengguna berhak mengubah password
-     * berdasarkan peran pengguna dan konteks permintaan.
+     * Validasi:
+     * 1. Self change password → always allowed
+     * 2. Change other user → must be in same store
+     * 
+     * Note: Role check (hasRole('change_password')) should be done at controller
+     * level via @PreAuthorize
      *
      * @param sessionUserDTO UserDTO pengguna yang sedang login
      * @param requestUserDTO UserDTO yang berisi data permintaan
      * @return Provider user ID dari pengguna yang passwordnya akan diubah
-     * @throws BusinessException Jika pengguna tidak memiliki hak untuk mengubah password
+     * @throws BusinessException Jika pengguna tidak berada di store yang sama
      */
-    public String getProviderUseIdChangePassword(UserDTO sessionUserDTO, UserDTO requestUserDTO) throws BusinessException {
-        // Jika tidak ada email yang ditentukan dan pengguna sedang mengubah passwordnya sendiri
-        if (Objects.isNull(requestUserDTO.getEmail()) && String.valueOf(sessionUserDTO.getEmail()).equals(this.userDTO.getEmail())) {
+    public String getProviderUseIdChangePassword(UserDTO sessionUserDTO, UserDTO requestUserDTO)
+            throws BusinessException {
+        // Self change password - always allowed
+        if (Objects.isNull(requestUserDTO.getEmail()) ||
+                sessionUserDTO.getEmail().equals(requestUserDTO.getEmail())) {
             return sessionUserDTO.getProviderUserId();
         }
 
-        // Validasi peran untuk mengubah password pengguna lain
-        if (!this.hasAnyAllowedRole(sessionUserDTO.getRoles(), this.allowedChangePasswordRoles)) {
-            throw new BusinessException("Anda tidak diijinkan");
-        }
-
-        // Dapatkan pengguna berdasarkan email permintaan
+        // Change other user's password - must be in same store
         Users user = this.getRequestedUserOnStore(sessionUserDTO, requestUserDTO, this.usersRepository);
         return user.getProviderUserId();
     }
 
     /**
      * Mengubah status aktif pengguna.
-     * Metode ini mengubah status pengguna yang diminta dan menyimpannya ke database.
+     * Metode ini mengubah status pengguna yang diminta dan menyimpannya ke
+     * database.
      *
      * @param sessionUserDTO   UserDTO pengguna yang sedang login
      * @param requestedUserDTO UserDTO yang berisi data permintaan
      * @param usersRepository  Repository untuk operasi data pengguna
      * @throws BusinessException Jika pengguna yang diminta tidak ditemukan
      */
-    public void setUserStatus(UserDTO sessionUserDTO, UserDTO requestedUserDTO, UsersRepository usersRepository) throws BusinessException {
+    public void setUserStatus(UserDTO sessionUserDTO, UserDTO requestedUserDTO, UsersRepository usersRepository)
+            throws BusinessException {
         Users user = this.getRequestedUserOnStore(sessionUserDTO, requestedUserDTO, usersRepository);
 
         // Hanya ubah status jika perubahan diperlukan
@@ -98,7 +80,8 @@ public class UserManagementBusiness {
 
     /**
      * Mendapatkan pengguna yang diminta pada toko yang sama dengan pengguna sesi.
-     * Metode ini melakukan validasi bahwa kedua pengguna berada pada toko yang sama.
+     * Metode ini melakukan validasi bahwa kedua pengguna berada pada toko yang
+     * sama.
      *
      * @param sessionUserDTO  UserDTO pengguna yang sedang login
      * @param requestUserDTO  UserDTO yang berisi data permintaan
@@ -106,9 +89,11 @@ public class UserManagementBusiness {
      * @return Objek Users dari pengguna yang diminta
      * @throws BusinessException Jika pengguna tidak berada pada toko yang sama
      */
-    private Users getRequestedUserOnStore(UserDTO sessionUserDTO, UserDTO requestUserDTO, UsersRepository usersRepository) throws BusinessException {
-        String[] emails = {sessionUserDTO.getEmail(), requestUserDTO.getEmail()};
-        List<Users> users = usersRepository.findByEmailInAndStoreId(List.of(emails), sessionUserDTO.getStores().getId().toString());
+    private Users getRequestedUserOnStore(UserDTO sessionUserDTO, UserDTO requestUserDTO,
+            UsersRepository usersRepository) throws BusinessException {
+        String[] emails = { sessionUserDTO.getEmail(), requestUserDTO.getEmail() };
+        List<Users> users = usersRepository.findByEmailInAndStoreId(List.of(emails),
+                sessionUserDTO.getStores().getId().toString());
 
         // Validasi bahwa kedua pengguna berada pada toko yang sama
         if (users.size() != 2) {
@@ -150,7 +135,7 @@ public class UserManagementBusiness {
      */
     public UserDTO createSuccessResponse(UserDTO reqUserDTO, String createdUserId) {
         reqUserDTO.setProviderUserId(createdUserId);
-        reqUserDTO.setPassword(null);  // Jangan kembalikan password dalam respons
+        reqUserDTO.setPassword(null); // Jangan kembalikan password dalam respons
         reqUserDTO.setStatus("success");
         return reqUserDTO;
     }

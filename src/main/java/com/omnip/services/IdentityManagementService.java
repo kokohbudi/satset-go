@@ -301,11 +301,13 @@ public class IdentityManagementService {
     /**
      * Get all users under /backoffice hierarchy with their groups populated.
      * This is a convenience method for the frontend - single API call.
+     * 
+     * OPTIMIZED: Uses batch parallel fetch to avoid N+1 API calls.
      *
      * @return List of UserDTO with groups field populated
      */
     public List<UserDTO> getBackofficeUsers() {
-        // 1. Find backoffice group
+        // 1. Find backoffice group (CACHED via getGroupsHierarchy)
         List<KeycloakGroupDTO> allGroups = getGroupsHierarchy();
         KeycloakGroupDTO backofficeGroup = allGroups.stream()
                 .filter(g -> "/backoffice".equals(g.getPath()))
@@ -325,10 +327,17 @@ public class IdentityManagementService {
             uniqueUsers.putIfAbsent(user.getProviderUserId(), user);
         }
 
-        // 4. Populate groups for each unique user
+        // 4. OPTIMIZED: Batch fetch groups for all users in parallel
         List<UserDTO> result = new java.util.ArrayList<>(uniqueUsers.values());
+        List<String> userIds = result.stream()
+                .map(UserDTO::getProviderUserId)
+                .toList();
+
+        java.util.Map<String, List<KeycloakGroupDTO>> userGroupsMap = keycloakAdminClientService
+                .getUserGroupsBatch(userIds);
+
         for (UserDTO user : result) {
-            user.setGroups(getUserGroups(user.getProviderUserId()));
+            user.setGroups(userGroupsMap.getOrDefault(user.getProviderUserId(), List.of()));
         }
 
         return result;

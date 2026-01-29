@@ -28,18 +28,17 @@ import java.util.Map;
 public class KeycloakLoginEventListener {
     private final JwtDecoder jwtDecoder;
     private static final Logger logger = LoggerFactory.getLogger(KeycloakLoginEventListener.class);
-    //    private final UsersRepository usersRepository;
+    // private final UsersRepository usersRepository;
     private final UserManagementService userManagementService;
     private final RegistrationService registrationService;
-
 
     @Value("${spring.security.oauth2.client.registration.keycloak.client-id}")
     private String clientId;
 
-
-    public KeycloakLoginEventListener(JwtDecoder jwtDecoder, UserManagementService userManagementService, RegistrationService registrationService) {
+    public KeycloakLoginEventListener(JwtDecoder jwtDecoder, UserManagementService userManagementService,
+            RegistrationService registrationService) {
         this.jwtDecoder = jwtDecoder;
-//        this.usersRepository = usersRepository;
+        // this.usersRepository = usersRepository;
         this.userManagementService = userManagementService;
         this.registrationService = registrationService;
     }
@@ -69,13 +68,16 @@ public class KeycloakLoginEventListener {
                     email = user.getEmail();
                     username = user.getUsername();
                     fullName = user.getFullname();
-                    roles = user.getRoles();
+                    // Roles from JWT token (fresh from Keycloak) instead of DB
+                    roles = this.extractRolesFromJwt(jwt);
                 } else {
                     roles = this.extractRolesFromJwt(jwt);
-                    Map returnMap = this.registrationService.registerNewStore(email, fullName, roles, OmniConstants.REGISTRATION_CHANNEL_KEYCLOAK, providerUserId);
+                    Map returnMap = this.registrationService.registerNewStore(email, fullName, roles,
+                            OmniConstants.REGISTRATION_CHANNEL_KEYCLOAK, providerUserId);
                     user = (Users) returnMap.get("user");
                 }
-                ServletRequestAttributes attrs = (ServletRequestAttributes) org.springframework.web.context.request.RequestContextHolder.getRequestAttributes();
+                ServletRequestAttributes attrs = (ServletRequestAttributes) org.springframework.web.context.request.RequestContextHolder
+                        .getRequestAttributes();
                 if (attrs != null) {
                     HttpServletRequest request = attrs.getRequest();
                     HttpSession session = request.getSession();
@@ -98,11 +100,13 @@ public class KeycloakLoginEventListener {
     public List<String> extractRolesFromJwt(Jwt jwt) {
         try {
             Map<String, Object> resourceAccess = jwt.getClaim("resource_access");
-            if (resourceAccess == null) return List.of();
+            if (resourceAccess == null)
+                return List.of();
 
             @SuppressWarnings("unchecked")
             Map<String, Object> clientResource = (Map<String, Object>) resourceAccess.get(this.clientId);
-            if (clientResource == null) return List.of();
+            if (clientResource == null)
+                return List.of();
 
             @SuppressWarnings("unchecked")
             List<String> roles = (List<String>) clientResource.get("roles");
@@ -117,7 +121,6 @@ public class KeycloakLoginEventListener {
     public String extractProviderUserId(Jwt jwt) {
         return jwt.getClaimAsString("sub");
     }
-
 
     private String extractEmail(OAuth2User oauth2User) {
         // Try to get email from different possible attributes
@@ -156,7 +159,7 @@ public class KeycloakLoginEventListener {
         if (email != null && email.contains("@")) {
             return email.substring(0, email.indexOf('@'));
         }
-        
+
         // Use sub claim (provider user ID) as fallback instead of timestamp
         if (oauth2User instanceof OidcUser oidcUser) {
             String sub = oidcUser.getSubject();
@@ -164,7 +167,7 @@ public class KeycloakLoginEventListener {
                 return "user_" + sub.substring(sub.length() - 8); // Last 8 chars of sub
             }
         }
-        
+
         return "user_" + System.currentTimeMillis(); // Final fallback
     }
 
@@ -189,6 +192,5 @@ public class KeycloakLoginEventListener {
         // Use username as fallback
         return this.extractUsername(oauth2User);
     }
-
 
 }

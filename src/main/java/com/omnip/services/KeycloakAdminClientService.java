@@ -79,15 +79,8 @@ public class KeycloakAdminClientService {
                                                 .list()
                                                 .stream()
                                                 .map(role -> {
-                                                        // Fetch full role with attributes
-                                                        RoleRepresentation fullRole = this.keycloak
-                                                                        .realm(this.realm)
-                                                                        .clients()
-                                                                        .get(client.getId())
-                                                                        .roles()
-                                                                        .get(role.getName())
-                                                                        .toRepresentation();
-                                                        return KeycloakRoleDTO.fromRoleRepresentation(fullRole);
+                                                        // OPTIMIZED: Use cached method instead of N API calls
+                                                        return getCachedRoleWithAttributes(role.getName());
                                                 })
                                                 .filter(roleDto -> {
                                                         var attrs = roleDto.getAttributes();
@@ -139,11 +132,14 @@ public class KeycloakAdminClientService {
         }
 
         /**
-         * Mendapatkan semua groups dari Keycloak
+         * Mendapatkan semua groups dari Keycloak (cached).
+         * Cache TTL: 5 menit (fastCacheManager).
          *
          * @return List of KeycloakGroupDTO
          */
+        @Cacheable(value = "keycloakGroups", cacheManager = "fastCacheManager")
         public List<KeycloakGroupDTO> getGroups() {
+                log.debug("Fetching groups from Keycloak (cache miss)");
                 return this.keycloak
                                 .realm(this.realm)
                                 .groups()
@@ -390,6 +386,22 @@ public class KeycloakAdminClientService {
         }
 
         /**
+         * Batch fetch user groups untuk menghindari N+1 problem.
+         * Menggunakan parallel stream untuk concurrent API calls.
+         * 
+         * @param userIds List of user IDs
+         * @return Map of userId to their groups
+         */
+        public java.util.Map<String, List<KeycloakGroupDTO>> getUserGroupsBatch(List<String> userIds) {
+                log.debug("Batch fetching groups for {} users", userIds.size());
+                return userIds.parallelStream()
+                                .collect(java.util.stream.Collectors.toMap(
+                                                userId -> userId,
+                                                userId -> getUserGroups(userId),
+                                                (existing, replacement) -> existing));
+        }
+
+        /**
          * Mendapatkan members dari suatu group
          *
          * @param groupId ID dari group
@@ -443,12 +455,15 @@ public class KeycloakAdminClientService {
         }
 
         /**
-         * Mendapatkan semua groups dengan hierarchy (parent-child)
+         * Mendapatkan semua groups dengan hierarchy (parent-child) - CACHED.
          * Uses GroupResource.getSubGroups() for Keycloak 23+ compatibility.
+         * Cache TTL: 5 menit (fastCacheManager).
          *
          * @return List of KeycloakGroupDTO dengan subGroups populated
          */
+        @Cacheable(value = "groupsHierarchy", cacheManager = "fastCacheManager")
         public List<KeycloakGroupDTO> getGroupsHierarchy() {
+                log.debug("Fetching groups hierarchy from Keycloak (cache miss)");
                 // Get top-level groups first
                 List<GroupRepresentation> topLevelGroups = this.keycloak
                                 .realm(this.realm)
