@@ -75,7 +75,7 @@ public class KeycloakAdminClientService {
                 // Collect all child role names from composite roles
                 java.util.Set<String> childRoleNames = new java.util.HashSet<>();
                 for (RoleRepresentation role : allRoles) {
-                        if (Boolean.TRUE.equals(role.isComposite())) {
+                        if (role.isComposite()) {
                                 try {
                                         java.util.Set<RoleRepresentation> children = this.keycloak
                                                         .realm(this.realm)
@@ -130,7 +130,7 @@ public class KeycloakAdminClientService {
                         KeycloakRoleDTO dto = getCachedRoleWithAttributes(role.getName());
                         dto.setChildren(new java.util.ArrayList<>());
 
-                        if (Boolean.TRUE.equals(role.isComposite())) {
+                        if (role.isComposite()) {
                                 try {
                                         java.util.Set<RoleRepresentation> children = this.keycloak
                                                         .realm(this.realm)
