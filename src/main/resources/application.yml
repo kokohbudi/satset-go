@@ -58,11 +58,7 @@ spring:
           use_second_level_cache: false
           use_query_cache: false
   thymeleaf:
-    cache: false
-    prefix: classpath:/templates/
-    suffix: .html
-    mode: HTML
-    encoding: UTF-8
+    cache: true
 omnip:
   allowed-role:
     change-password: "omnip-store-admin,omnip-app-admin"

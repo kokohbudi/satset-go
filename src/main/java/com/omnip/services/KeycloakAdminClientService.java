@@ -40,8 +40,11 @@ public class KeycloakAdminClientService {
         /**
          * Mendapatkan semua REALM roles (excluding system roles).
          * Updated for new structure: roles are now realm-level.
+         * CACHED: 5 minutes TTL untuk menghindari repeated API calls.
          */
+        @Cacheable(value = "allRoles", cacheManager = "fastCacheManager")
         public List<KeycloakRoleDTO> getRoles() {
+                log.debug("Fetching all realm roles from Keycloak (cache miss)");
                 java.util.Set<String> systemRoles = java.util.Set.of(
                                 "offline_access", "uma_authorization", "default-roles-satset-go",
                                 "default-roles-omnip");
@@ -104,10 +107,13 @@ public class KeycloakAdminClientService {
          * Composite roles will have their children array populated.
          * Non-composite roles will have empty children array.
          * Used for dropdown display with visual hierarchy.
+         * CACHED: 5 minutes TTL untuk menghindari repeated API calls.
          *
          * @return List of KeycloakRoleDTO with hierarchy info
          */
+        @Cacheable(value = "rolesHierarchy", cacheManager = "fastCacheManager")
         public List<KeycloakRoleDTO> getRolesWithHierarchy() {
+                log.debug("Fetching roles with hierarchy from Keycloak (cache miss)");
                 java.util.Set<String> systemRoles = java.util.Set.of(
                                 "offline_access", "uma_authorization", "default-roles-satset-go",
                                 "default-roles-omnip");
@@ -313,6 +319,43 @@ public class KeycloakAdminClientService {
                                         return dto;
                                 })
                                 .toList();
+        }
+
+        /**
+         * Get all users with their roles enriched using VIRTUAL THREADS.
+         * OPTIMIZED: Uses Virtual Threads for high-concurrency fetching.
+         * ideal for I/O bound operations like Keycloak API calls.
+         *
+         * @param maxResults Maximum number of users to return
+         * @return List of UserDTO with roleDetails populated
+         */
+        public List<UserDTO> getUsersWithRolesBatch(int maxResults) {
+                log.debug("Batch fetching users with roles using VIRTUAL THREADS");
+                long startTime = System.currentTimeMillis();
+
+                // Step 1: Fetch all users (single API call)
+                List<UserDTO> users = getAllKeycloakUsers(maxResults);
+
+                // Step 2: Enrich with roles using Virtual Threads
+                // Virtual threads are lightweight and perfect for I/O waiting (Keycloak calls)
+                // This try-with-resources block waits for all threads to complete
+                try (var executor = java.util.concurrent.Executors.newVirtualThreadPerTaskExecutor()) {
+                        users.forEach(user -> executor.submit(() -> {
+                                try {
+                                        List<KeycloakRoleDTO> roles = getAllEffectiveRolesFlat(
+                                                        user.getProviderUserId());
+                                        user.setRoleDetails(roles);
+                                } catch (Exception e) {
+                                        log.warn("Failed to fetch roles for user: {}", user.getEmail());
+                                        user.setRoleDetails(List.of());
+                                }
+                        }));
+                }
+
+                long elapsed = System.currentTimeMillis() - startTime;
+                log.info("Batch fetched {} users with roles in {}ms (Virtual Threads)", users.size(), elapsed);
+
+                return users;
         }
 
         /**

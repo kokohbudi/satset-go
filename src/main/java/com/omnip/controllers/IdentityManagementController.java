@@ -79,7 +79,7 @@ public class IdentityManagementController {
     // ==================== User Management ====================
 
     @PostMapping("/users/{userId}/roles/{roleName}")
-    @PreAuthorize("hasRole('assign_user_to_groups')")
+    @PreAuthorize("hasRole('assign_user_to_groups') and @authz.targetIsNotCurrentUser(#userId)")
     public ResponseEntity<Map<String, String>> assignRoleToUser(
             @PathVariable String userId,
             @PathVariable String roleName) throws BusinessException {
@@ -88,7 +88,7 @@ public class IdentityManagementController {
     }
 
     @DeleteMapping("/users/{userId}/roles/{roleName}")
-    @PreAuthorize("hasRole('assign_user_to_groups')")
+    @PreAuthorize("hasRole('assign_user_to_groups') and @authz.targetIsNotCurrentUser(#userId)")
     public ResponseEntity<Map<String, String>> unassignRoleFromUser(
             @PathVariable String userId,
             @PathVariable String roleName) throws BusinessException {

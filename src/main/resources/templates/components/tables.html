@@ -66,13 +66,18 @@
 
     <!-- User Table Row -->
     <!-- Usage: <tr th:replace="~{components/tables :: user-row(user=${user})}"></tr> -->
+    <!-- User Table Row -->
+    <!-- Usage: <tr th:replace="~{components/tables :: user-row(user=${user})}"></tr> -->
+    <!-- Note: user object should be UserViewModel or compatible -->
     <tr th:fragment="user-row(user)" class="hover:bg-base-200/50 transition-colors">
         <td>
             <div class="flex items-center gap-3">
                 <!-- Avatar -->
                 <div class="avatar placeholder">
                     <div class="avatar-gradient rounded-full w-10">
-                        <span th:text="${#strings.substring(user.name, 0, 2).toUpperCase()}"
+                        <!-- Use pre-computed initials or fallback -->
+                        <span
+                            th:text="${user.initials != null ? user.initials : #strings.substring(user.name, 0, 2).toUpperCase()}"
                             class="text-sm font-bold">UN</span>
                     </div>
                 </div>
@@ -88,10 +93,12 @@
         </td>
         <td>
             <!-- Status Badge -->
-            <span class="badge gap-1" th:classappend="${user.active} ? 'badge-success' : 'badge-ghost'">
+            <span class="badge gap-1"
+                th:classappend="${user.statusBadgeClass != null ? user.statusBadgeClass : (user.active ? 'badge-success' : 'badge-ghost')}">
                 <span class="w-2 h-2 rounded-full"
-                    th:classappend="${user.active} ? 'bg-success animate-pulse' : 'bg-base-content/30'"></span>
-                <span th:text="${user.active} ? 'Aktif' : 'Nonaktif'">Status</span>
+                    th:classappend="${user.statusDotClass != null ? user.statusDotClass : (user.active ? 'bg-success animate-pulse' : 'bg-base-content/30')}"></span>
+                <span
+                    th:text="${user.statusText != null ? user.statusText : (user.active ? 'Aktif' : 'Nonaktif')}">Status</span>
             </span>
         </td>
         <td>
@@ -99,7 +106,9 @@
             <span class="badge badge-outline" th:text="${user.role}">Role</span>
         </td>
         <td>
-            <span th:text="${#temporals.format(user.createdAt, 'dd MMM yyyy')}"
+            <!-- Use pre-formatted date -->
+            <span
+                th:text="${user.formattedDate != null ? user.formattedDate : #temporals.format(user.createdAt, 'dd MMM yyyy')}"
                 class="text-sm text-base-content/70">Date</span>
         </td>
         <td>

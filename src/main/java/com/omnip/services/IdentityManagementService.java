@@ -5,6 +5,8 @@ import com.omnip.dtos.KeycloakRoleDTO;
 import com.omnip.dtos.UserDTO;
 import com.omnip.exceptions.BusinessException;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -95,6 +97,7 @@ public class IdentityManagementService {
     /**
      * Assign realm role to user.
      */
+    @CacheEvict(value = "backofficeUsers", cacheManager = "shortTtlCacheManager", allEntries = true)
     public void assignRoleToUser(String userId, String roleName) throws BusinessException {
         keycloakAdminClientService.assignRoleToUser(userId, roleName);
         log.info("Role '{}' assigned to user '{}'", roleName, userId);
@@ -103,6 +106,7 @@ public class IdentityManagementService {
     /**
      * Unassign realm role from user.
      */
+    @CacheEvict(value = "backofficeUsers", cacheManager = "shortTtlCacheManager", allEntries = true)
     public void unassignRoleFromUser(String userId, String roleName) throws BusinessException {
         keycloakAdminClientService.unassignRoleFromUser(userId, roleName);
         log.info("Role '{}' removed from user '{}'", roleName, userId);
@@ -119,6 +123,7 @@ public class IdentityManagementService {
      * 
      * NOTE: Method ini KHUSUS untuk backoffice user.
      */
+    @CacheEvict(value = "backofficeUsers", cacheManager = "shortTtlCacheManager", allEntries = true)
     public UserDTO createBackofficeUser(UserDTO reqUserDTO) {
         try {
             // Step 1: Buat user di Keycloak
@@ -211,6 +216,7 @@ public class IdentityManagementService {
      * Langsung update di Keycloak menggunakan providerUserId.
      * Mendukung Sync-on-Login (user mungkin belum ada di DB local).
      */
+    @CacheEvict(value = "backofficeUsers", cacheManager = "shortTtlCacheManager", allEntries = true)
     public UserDTO setBackofficeUserStatus(String providerUserId, boolean status) {
         UserDTO result = new UserDTO();
         result.setProviderUserId(providerUserId);
@@ -359,26 +365,19 @@ public class IdentityManagementService {
      * Get backoffice users with optional filtering by composite role.
      * When roleFilter is provided, expands composite role to children
      * and returns users having ANY of those child roles.
+     * 
+     * OPTIMIZED: Uses batch fetching with parallel execution instead of N+1 loop.
+     * CACHED: 30 seconds TTL via shortTtlCacheManager.
      *
      * @param roleFilter Optional composite role name to filter by
      * @return List of UserDTO with roles populated
      */
+    @Cacheable(value = "backofficeUsers", cacheManager = "shortTtlCacheManager", unless = "#result.isEmpty()")
     public List<UserDTO> getBackofficeUsers(String roleFilter) {
-        // Get all realm users
-        List<UserDTO> users = keycloakAdminClientService.getAllKeycloakUsers(100);
+        log.info("Fetching backoffice users (cache miss) with roleFilter: {}", roleFilter);
 
-        // Enrich users with their roles (flat list, all effective roles)
-        for (UserDTO user : users) {
-            try {
-                // Use flat list for display - not hierarchical
-                List<KeycloakRoleDTO> userRoles = keycloakAdminClientService
-                        .getAllEffectiveRolesFlat(user.getProviderUserId());
-                user.setRoleDetails(userRoles);
-            } catch (Exception e) {
-                log.warn("Failed to fetch roles for user: {}", user.getEmail());
-                user.setRoleDetails(List.of());
-            }
-        }
+        // OPTIMIZED: Use batch method with parallel execution instead of N+1 loop
+        List<UserDTO> users = keycloakAdminClientService.getUsersWithRolesBatch(100);
 
         // Apply filter if provided
         if (roleFilter != null && !roleFilter.isEmpty() && !"all".equalsIgnoreCase(roleFilter)) {

@@ -27,7 +27,10 @@ public class UserPageController {
         model.addAttribute("breadcrumb", "User Management");
 
         // SSR: Inject initial data for faster first paint
-        model.addAttribute("initialUsers", identityManagementService.getBackofficeUsers());
+        // Use ViewModel for pre-formatted display logic (Fat Controller pattern)
+        model.addAttribute("initialUsers", identityManagementService.getBackofficeUsers().stream()
+                .map(com.omnip.viewmodels.UserViewModel::new)
+                .toList());
         model.addAttribute("initialGroups", identityManagementService.getBackofficeSubGroups());
         // Roles with hierarchy for dropdown display
         model.addAttribute("rolesHierarchy", identityManagementService.getRolesForDropdown());

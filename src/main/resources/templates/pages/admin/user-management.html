@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html layout:decorate="~{layouts/base}" xmlns:th="http://www.thymeleaf.org"
-      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
-      xmlns:sec="http://www.thymeleaf.org/extras/spring-security" xmlns:x-transition="http://www.w3.org/1999/xhtml">
+    xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+    xmlns:x-transition="http://www.w3.org/1999/xhtml">
 
 <head>
     <title>User Management</title>
@@ -74,7 +74,7 @@
                                             <div
                                                 class="bg-gradient-to-br from-primary to-primary/70 text-primary-content rounded-full w-10">
                                                 <span class="text-sm font-bold"
-                                                    x-text="user.fullname?.substring(0, 2).toUpperCase() || 'U'"></span>
+                                                    x-text="user.initials || user.fullname?.substring(0, 2).toUpperCase() || 'U'"></span>
                                             </div>
                                         </div>
                                         <div>
@@ -96,10 +96,10 @@
                                         <template x-for="role in user.roleDetails" :key="role.id">
                                             <span
                                                 class="badge badge-primary gap-1 pl-3 py-3 cursor-default transition-colors group"
-                                                :class="canAssignGroups ? 'pr-1 hover:badge-error' : 'pr-3'"
+                                                :class="canAssignGroups && !isSelf(user) ? 'pr-1 hover:badge-error' : 'pr-3'"
                                                 :title="role.name">
                                                 <span x-text="role.attributes?.display_name || role.name"></span>
-                                                <button x-show="canAssignGroups"
+                                                <button x-show="canAssignGroups && !isSelf(user)"
                                                     @click="removeRoleFromUser(user.providerUserId, role.name)"
                                                     class="btn btn-ghost btn-xs btn-circle opacity-60 group-hover:opacity-100">
                                                     <svg class="w-3 h-3" fill="none" stroke="currentColor"
@@ -112,8 +112,8 @@
                                         </template>
 
                                         <!-- Add Role Dropdown - Two Section Picker -->
-                                        <div x-show="canAssignGroups" class="relative" x-data="{ open: false }"
-                                            @click.outside="open = false">
+                                        <div x-show="canAssignGroups && !isSelf(user)" class="relative"
+                                            x-data="{ open: false }" @click.outside="open = false">
                                             <button
                                                 @click="open = !open; if(open) $nextTick(() => positionDropdown($el, $el.nextElementSibling))"
                                                 class="btn btn-ghost btn-xs btn-circle border border-dashed border-base-content/30 hover:border-primary hover:text-primary">
@@ -211,10 +211,11 @@
                                     </div>
                                 </td>
                                 <td>
-                                    <span class="badge gap-1" :class="user.active ? 'badge-success' : 'badge-ghost'">
+                                    <span class="badge gap-1"
+                                        :class="user.statusBadgeClass || (user.active ? 'badge-success' : 'badge-ghost')">
                                         <span class="w-2 h-2 rounded-full"
-                                            :class="user.active ? 'bg-success animate-pulse' : 'bg-base-content/30'"></span>
-                                        <span x-text="user.active ? 'Aktif' : 'Nonaktif'"></span>
+                                            :class="user.statusDotClass || (user.active ? 'bg-success animate-pulse' : 'bg-base-content/30')"></span>
+                                        <span x-text="user.statusText || (user.active ? 'Aktif' : 'Nonaktif')"></span>
                                     </span>
                                 </td>
                                 <td>
@@ -717,8 +718,8 @@
                             const data = await res.json();
 
                             if (res.ok && data.status === 'success') {
-                                // Update user status locally
-                                user.active = newStatus;
+                                // Reload users from API to get fresh data
+                                await this.loadUsers();
                                 this.showToast(`User berhasil di${newStatus ? 'aktifkan' : 'nonaktifkan'}`, 'success');
                             } else {
                                 this.showToast(data.message || 'Gagal mengubah status user', 'error');
