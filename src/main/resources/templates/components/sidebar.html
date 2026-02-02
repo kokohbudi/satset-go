@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
-      xmlns:x-transition="http://www.w3.org/1999/xhtml">
+    xmlns:x-transition="http://www.w3.org/1999/xhtml">
 
 <body>
 
@@ -20,20 +20,15 @@
         <div class="h-16 flex items-center justify-between px-4 border-b border-base-300">
             <div class="flex items-center gap-3">
                 <div
-                    class="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center shadow-lg shadow-primary/30">
-                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M13 10V3L4 14h7v7l9-11h-7z" />
-                    </svg>
+                    class="w-10 h-10 rounded-xl bg-primary-gradient flex items-center justify-center shadow-lg shadow-primary/30">
+                    <svg th:replace="~{components/icons :: icon-bolt(class='w-6 h-6 text-white')}"></svg>
                 </div>
                 <span class="font-bold text-xl">Omnip Pulsa</span>
             </div>
 
             <!-- Close Button (Mobile Only) -->
             <button @click="sidebarOpen = false" class="btn btn-ghost btn-circle btn-sm lg:hidden">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                </svg>
+                <svg th:replace="~{components/icons :: icon-close(class='w-6 h-6')}"></svg>
             </button>
         </div>
 
@@ -42,10 +37,7 @@
             <!-- Dashboard -->
             <a th:href="@{/dashboard}" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all"
                 th:classappend="${currentPage == 'dashboard'} ? 'bg-primary text-primary-content shadow-lg' : 'hover:bg-primary/10 hover:text-primary'">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-                </svg>
+                <svg th:replace="~{components/icons :: icon-home(class='w-5 h-5')}"></svg>
                 Dashboard
             </a>
 
@@ -57,28 +49,19 @@
 
             <a th:href="@{/users}" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all"
                 th:classappend="${currentPage == 'users'} ? 'bg-primary text-primary-content shadow-lg' : 'hover:bg-primary/10 hover:text-primary'">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197" />
-                </svg>
+                <svg th:replace="~{components/icons :: icon-users(class='w-5 h-5')}"></svg>
                 Daftar User
             </a>
 
             <a th:href="@{/groups}" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all"
                 th:classappend="${currentPage == 'groups'} ? 'bg-primary text-primary-content shadow-lg' : 'hover:bg-primary/10 hover:text-primary'">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
+                <svg th:replace="~{components/icons :: icon-group(class='w-5 h-5')}"></svg>
                 Group Management
             </a>
 
             <a th:href="@{/user-groups}" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all"
                 th:classappend="${currentPage == 'user-groups'} ? 'bg-primary text-primary-content shadow-lg' : 'hover:bg-primary/10 hover:text-primary'">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
-                </svg>
+                <svg th:replace="~{components/icons :: icon-user-add(class='w-5 h-5')}"></svg>
                 Assign User ke Group
             </a>
 

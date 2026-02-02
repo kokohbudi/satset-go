@@ -259,103 +259,67 @@
 
             <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
                 <!-- Feature 1 -->
-                <div
-                    class="group bg-base-200 rounded-2xl p-8 hover:bg-primary hover:text-primary-content transition-all duration-300">
-                    <div
-                        class="w-14 h-14 rounded-2xl bg-primary/10 group-hover:bg-primary-content/20 flex items-center justify-center mb-6 transition-colors">
-                        <svg class="w-7 h-7 text-primary group-hover:text-primary-content" fill="none"
-                            stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                        </svg>
+                <div class="group feature-card">
+                    <div class="feature-card-icon">
+                        <svg th:replace="~{components/icons :: icon-document(class='w-12 h-12 text-primary')}"></svg>
                     </div>
-                    <h3 class="text-xl font-bold mb-3">Manajemen Transaksi</h3>
-                    <p class="text-base-content/60 group-hover:text-primary-content/80">
+                    <h3 class="feature-card-title">Manajemen Transaksi</h3>
+                    <p class="feature-card-desc">
                         Monitor dan kelola semua transaksi real-time dengan dashboard yang intuitif.
                     </p>
                 </div>
 
                 <!-- Feature 2 -->
-                <div
-                    class="group bg-base-200 rounded-2xl p-8 hover:bg-primary hover:text-primary-content transition-all duration-300">
-                    <div
-                        class="w-14 h-14 rounded-2xl bg-primary/10 group-hover:bg-primary-content/20 flex items-center justify-center mb-6 transition-colors">
-                        <svg class="w-7 h-7 text-primary group-hover:text-primary-content" fill="none"
-                            stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197" />
-                        </svg>
+                <div class="group feature-card">
+                    <div class="feature-card-icon">
+                        <svg th:replace="~{components/icons :: icon-users(class='w-12 h-12 text-primary')}"></svg>
                     </div>
-                    <h3 class="text-xl font-bold mb-3">Multi-User & Role</h3>
-                    <p class="text-base-content/60 group-hover:text-primary-content/80">
+                    <h3 class="feature-card-title">Multi-User & Role</h3>
+                    <p class="feature-card-desc">
                         Kelola tim dengan berbagai level akses dan permission yang fleksibel.
                     </p>
                 </div>
 
                 <!-- Feature 3 -->
-                <div
-                    class="group bg-base-200 rounded-2xl p-8 hover:bg-primary hover:text-primary-content transition-all duration-300">
-                    <div
-                        class="w-14 h-14 rounded-2xl bg-primary/10 group-hover:bg-primary-content/20 flex items-center justify-center mb-6 transition-colors">
-                        <svg class="w-7 h-7 text-primary group-hover:text-primary-content" fill="none"
-                            stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                        </svg>
+                <div class="group feature-card">
+                    <div class="feature-card-icon">
+                        <svg th:replace="~{components/icons :: icon-chart(class='w-12 h-12 text-primary')}"></svg>
                     </div>
-                    <h3 class="text-xl font-bold mb-3">Laporan & Analitik</h3>
-                    <p class="text-base-content/60 group-hover:text-primary-content/80">
+                    <h3 class="feature-card-title">Laporan & Analitik</h3>
+                    <p class="feature-card-desc">
                         Dapatkan insight bisnis dengan laporan detail dan visualisasi data.
                     </p>
                 </div>
 
                 <!-- Feature 4 -->
-                <div
-                    class="group bg-base-200 rounded-2xl p-8 hover:bg-primary hover:text-primary-content transition-all duration-300">
-                    <div
-                        class="w-14 h-14 rounded-2xl bg-primary/10 group-hover:bg-primary-content/20 flex items-center justify-center mb-6 transition-colors">
-                        <svg class="w-7 h-7 text-primary group-hover:text-primary-content" fill="none"
-                            stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                        </svg>
+                <div class="group feature-card">
+                    <div class="feature-card-icon">
+                        <svg th:replace="~{components/icons :: icon-lock(class='w-12 h-12 text-primary')}"></svg>
                     </div>
-                    <h3 class="text-xl font-bold mb-3">Keamanan Terjamin</h3>
-                    <p class="text-base-content/60 group-hover:text-primary-content/80">
+                    <h3 class="feature-card-title">Keamanan Terjamin</h3>
+                    <p class="feature-card-desc">
                         Enkripsi end-to-end dan autentikasi multi-faktor untuk keamanan maksimal.
                     </p>
                 </div>
 
                 <!-- Feature 5 -->
-                <div
-                    class="group bg-base-200 rounded-2xl p-8 hover:bg-primary hover:text-primary-content transition-all duration-300">
-                    <div
-                        class="w-14 h-14 rounded-2xl bg-primary/10 group-hover:bg-primary-content/20 flex items-center justify-center mb-6 transition-colors">
-                        <svg class="w-7 h-7 text-primary group-hover:text-primary-content" fill="none"
-                            stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M13 10V3L4 14h7v7l9-11h-7z" />
-                        </svg>
+                <div class="group feature-card">
+                    <div class="feature-card-icon">
+                        <svg th:replace="~{components/icons :: icon-bolt(class='w-12 h-12 text-primary')}"></svg>
                     </div>
-                    <h3 class="text-xl font-bold mb-3">Performa Tinggi</h3>
-                    <p class="text-base-content/60 group-hover:text-primary-content/80">
+                    <h3 class="feature-card-title">Performa Tinggi</h3>
+                    <p class="feature-card-desc">
                         Response time cepat dengan infrastruktur cloud yang handal.
                     </p>
                 </div>
 
                 <!-- Feature 6 -->
-                <div
-                    class="group bg-base-200 rounded-2xl p-8 hover:bg-primary hover:text-primary-content transition-all duration-300">
-                    <div
-                        class="w-14 h-14 rounded-2xl bg-primary/10 group-hover:bg-primary-content/20 flex items-center justify-center mb-6 transition-colors">
-                        <svg class="w-7 h-7 text-primary group-hover:text-primary-content" fill="none"
-                            stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
+                <div class="group feature-card">
+                    <div class="feature-card-icon">
+                        <svg th:replace="~{components/icons :: icon-support(class='w-12 h-12 text-primary')}"></svg>
                     </div>
-                    <h3 class="text-xl font-bold mb-3">Support 24/7</h3>
-                    <p class="text-base-content/60 group-hover:text-primary-content/80">
+                    <h3 class="feature-card-title">Support 24/7</h3>
+                    <p class="feature-card-desc">
                         Tim support kami siap membantu kapanpun Anda membutuhkan.
                     </p>
                 </div>

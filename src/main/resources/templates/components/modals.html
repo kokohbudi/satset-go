@@ -17,10 +17,7 @@
                 <h3 th:text="${title}" class="text-lg font-bold">Modal Title</h3>
                 <form method="dialog">
                     <button class="btn btn-sm btn-circle btn-ghost hover:bg-base-200">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M6 18L18 6M6 6l12 12" />
-                        </svg>
+                        <svg th:replace="~{components/icons :: icon-close}"></svg>
                     </button>
                 </form>
             </div>
@@ -44,11 +41,8 @@
                 <!-- Warning Icon -->
                 <div class="w-16 h-16 rounded-full flex items-center justify-center mb-4"
                     th:classappend="${confirmType == 'danger'} ? 'bg-error/20' : 'bg-warning/20'">
-                    <svg class="w-8 h-8" th:classappend="${confirmType == 'danger'} ? 'text-error' : 'text-warning'"
-                        fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                    </svg>
+                    <svg th:replace="~{components/icons :: icon-warning(class='w-8 h-8')}"
+                        th:classappend="${confirmType == 'danger'} ? 'text-error' : 'text-warning'"></svg>
                 </div>
                 <h3 th:text="${title}" class="text-lg font-bold mb-2">Konfirmasi</h3>
                 <p th:text="${message}" class="text-base-content/70 mb-6">Apakah Anda yakin ingin melanjutkan?</p>
@@ -77,18 +71,12 @@
             <!-- Modal Header -->
             <div class="flex items-center justify-between border-b border-base-300 pb-4 mb-6">
                 <h3 th:text="${title}" class="text-lg font-bold flex items-center gap-2">
-                    <svg class="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                    </svg>
+                    <svg th:replace="~{components/icons :: icon-edit(class='w-5 h-5 text-primary')}"></svg>
                     Form Title
                 </h3>
                 <form method="dialog">
                     <button class="btn btn-sm btn-circle btn-ghost hover:bg-base-200">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M6 18L18 6M6 6l12 12" />
-                        </svg>
+                        <svg th:replace="~{components/icons :: icon-close}"></svg>
                     </button>
                 </form>
             </div>
@@ -120,9 +108,7 @@
             <div class="flex flex-col items-center text-center py-6">
                 <!-- Success Animation -->
                 <div class="w-20 h-20 rounded-full bg-success/20 flex items-center justify-center mb-4 animate-bounce">
-                    <svg class="w-10 h-10 text-success" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                    </svg>
+                    <svg th:replace="~{components/icons :: icon-check(class='w-10 h-10 text-success')}"></svg>
                 </div>
                 <h3 th:text="${title}" class="text-xl font-bold text-success mb-2">Berhasil!</h3>
                 <p th:text="${message}" class="text-base-content/70 mb-6">Operasi berhasil dilakukan.</p>
@@ -152,10 +138,7 @@
         <div class="modal-box max-w-4xl p-2">
             <form method="dialog">
                 <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2 z-10 bg-base-100/80">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M6 18L18 6M6 6l12 12" />
-                    </svg>
+                    <svg th:replace="~{components/icons :: icon-close}"></svg>
                 </button>
             </form>
             <img id="modal-image" src="" alt="Preview" class="w-full h-auto rounded-lg" />
