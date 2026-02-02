@@ -27,15 +27,16 @@ public class UserSessionControllerAdvice {
     }
 
     @ModelAttribute
-    public void addAttributes(Model model, jakarta.servlet.http.HttpSession session) {
+    public void addAttributes(Model model, jakarta.servlet.http.HttpSession session,
+            jakarta.servlet.http.HttpServletRequest request) {
         model.addAttribute("user", this.userDTO);
+        model.addAttribute("currentPath", request.getRequestURI());
 
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth != null && auth.isAuthenticated() && !"anonymousUser".equals(auth.getPrincipal())) {
-            // Cek apakah roles sudah ada di session
+            // Check if roles are already cached in session
             @SuppressWarnings("unchecked")
             List<KeycloakRoleDTO> cachedRoles = (List<KeycloakRoleDTO>) session.getAttribute("userRoles");
-
             if (cachedRoles != null) {
                 model.addAttribute("userRoles", cachedRoles);
                 return;
@@ -50,7 +51,7 @@ public class UserSessionControllerAdvice {
 
             if (userId != null) {
                 try {
-                    List<KeycloakRoleDTO> roles = keycloakAdminClientService.getRolesByUser(userId);
+                    List<KeycloakRoleDTO> roles = keycloakAdminClientService.getMenuRoles(userId);
                     session.setAttribute("userRoles", roles);
                     model.addAttribute("userRoles", roles);
                 } catch (Exception e) {

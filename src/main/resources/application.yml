@@ -67,10 +67,9 @@ omnip:
   allowed-role:
     change-password: "omnip-store-admin,omnip-app-admin"
 keycloak:
-  realm: omnip
+  realm: satset-go
   base-server-url: http://localhost:9999
   server-url: ${keycloak.base-server-url}
-  client-id: omnip-client
 
 # Performance optimizations
 server:

@@ -20,7 +20,7 @@ public class UserPageController {
     private final IdentityManagementService identityManagementService;
 
     @GetMapping("/admin/user-management")
-    @PreAuthorize("@authz.hasGroupPrefix('/backoffice/') and hasRole('view_users')")
+    @PreAuthorize("hasRole('view_users')")
     public String userManagementPage(Model model) {
         log.info("Accessing admin user management page");
         model.addAttribute("currentPage", "user-management");
@@ -29,6 +29,8 @@ public class UserPageController {
         // SSR: Inject initial data for faster first paint
         model.addAttribute("initialUsers", identityManagementService.getBackofficeUsers());
         model.addAttribute("initialGroups", identityManagementService.getBackofficeSubGroups());
+        // Roles with hierarchy for dropdown display
+        model.addAttribute("rolesHierarchy", identityManagementService.getRolesForDropdown());
 
         return "pages/admin/user-management";
     }

@@ -92,18 +92,37 @@ public class IdentityManagementService {
                 "message", "Role '" + roleName + "' removed from group '" + groupId + "'");
     }
 
+    /**
+     * Assign realm role to user.
+     */
+    public void assignRoleToUser(String userId, String roleName) throws BusinessException {
+        keycloakAdminClientService.assignRoleToUser(userId, roleName);
+        log.info("Role '{}' assigned to user '{}'", roleName, userId);
+    }
+
+    /**
+     * Unassign realm role from user.
+     */
+    public void unassignRoleFromUser(String userId, String roleName) throws BusinessException {
+        keycloakAdminClientService.unassignRoleFromUser(userId, roleName);
+        log.info("Role '{}' removed from user '{}'", roleName, userId);
+    }
+
     // ==================== User Management ====================
 
     /**
-     * Membuat akun pengguna baru.
+     * Membuat akun Backoffice User baru.
      * Orchestration:
      * 1. Buat user di Keycloak (via KeycloakAdminClientService)
-     * 2. Simpan user ke database (via UserManagementService)
+     * 2. Sync ke DB local akan dilakukan saat user login pertama kali (Sync on
+     * Login)
+     * 
+     * NOTE: Method ini KHUSUS untuk backoffice user.
      */
-    public UserDTO createUser(UserDTO reqUserDTO) {
+    public UserDTO createBackofficeUser(UserDTO reqUserDTO) {
         try {
             // Step 1: Buat user di Keycloak
-            String providerUserId = keycloakAdminClientService.createUser(
+            String providerUserId = keycloakAdminClientService.createBackofficeUser(
                     reqUserDTO.getUsername(),
                     reqUserDTO.getFullname(),
                     reqUserDTO.getEmail(),
@@ -111,11 +130,12 @@ public class IdentityManagementService {
                     reqUserDTO.getRoles().getFirst());
             log.info("User created in Keycloak with providerUserId: {}", providerUserId);
 
-            // Step 2: Simpan user ke database
-            UserDTO result = userManagementService.saveUserToDb(reqUserDTO, providerUserId);
-            log.info("User saved to database: {}", reqUserDTO.getEmail());
+            // Return user data (constructed from request + providerId)
+            // Note: Data is NOT saved to local DB yet (Sync on Login)
+            reqUserDTO.setProviderUserId(providerUserId);
+            reqUserDTO.setStatus("success");
 
-            return result;
+            return reqUserDTO;
         } catch (BusinessException e) {
             log.error("Failed to create user: {}", e.getErrorMessage());
             UserDTO errorResult = new UserDTO();
@@ -182,6 +202,30 @@ public class IdentityManagementService {
             log.error("Failed to set user status: {}", e.getErrorMessage());
             result.setStatus("failed");
             result.setMessage(e.getErrorMessage());
+        }
+        return result;
+    }
+
+    /**
+     * Mengubah status aktif backoffice user.
+     * Langsung update di Keycloak menggunakan providerUserId.
+     * Mendukung Sync-on-Login (user mungkin belum ada di DB local).
+     */
+    public UserDTO setBackofficeUserStatus(String providerUserId, boolean status) {
+        UserDTO result = new UserDTO();
+        result.setProviderUserId(providerUserId);
+        result.setActive(status);
+        try {
+            // Update status di Keycloak langsung
+            keycloakAdminClientService.updateUserStatus(providerUserId, status);
+            log.info("Backoffice user status updated in Keycloak: {} = {}", providerUserId, status);
+
+            result.setStatus("success");
+            result.setMessage("Status pengguna berhasil diubah");
+        } catch (Exception e) {
+            log.error("Failed to set backoffice user status: {}", e.getMessage());
+            result.setStatus("failed");
+            result.setMessage("Gagal mengubah status: " + e.getMessage());
         }
         return result;
     }
@@ -302,59 +346,85 @@ public class IdentityManagementService {
      * Get all users under /backoffice hierarchy with their groups populated.
      * This is a convenience method for the frontend - single API call.
      * 
-     * OPTIMIZED: Uses batch parallel fetch to avoid N+1 API calls.
+     * ENHANCED: Fetches all realm users with their roles.
+     * Supports filtering by composite role (matches users having any child role).
      *
-     * @return List of UserDTO with groups field populated
+     * @return List of UserDTO with roles populated
      */
     public List<UserDTO> getBackofficeUsers() {
-        // 1. Find backoffice group (CACHED via getGroupsHierarchy)
-        List<KeycloakGroupDTO> allGroups = getGroupsHierarchy();
-        KeycloakGroupDTO backofficeGroup = allGroups.stream()
-                .filter(g -> "/backoffice".equals(g.getPath()))
-                .findFirst()
-                .orElse(null);
-
-        if (backofficeGroup == null) {
-            return List.of();
-        }
-
-        // 2. Get all members recursively
-        List<UserDTO> users = getGroupMembers(backofficeGroup.getId(), true);
-
-        // 3. Deduplicate by providerUserId (user can be in multiple groups)
-        java.util.Map<String, UserDTO> uniqueUsers = new java.util.LinkedHashMap<>();
-        for (UserDTO user : users) {
-            uniqueUsers.putIfAbsent(user.getProviderUserId(), user);
-        }
-
-        // 4. OPTIMIZED: Batch fetch groups for all users in parallel
-        List<UserDTO> result = new java.util.ArrayList<>(uniqueUsers.values());
-        List<String> userIds = result.stream()
-                .map(UserDTO::getProviderUserId)
-                .toList();
-
-        java.util.Map<String, List<KeycloakGroupDTO>> userGroupsMap = keycloakAdminClientService
-                .getUserGroupsBatch(userIds);
-
-        for (UserDTO user : result) {
-            user.setGroups(userGroupsMap.getOrDefault(user.getProviderUserId(), List.of()));
-        }
-
-        return result;
+        return getBackofficeUsers(null);
     }
 
     /**
-     * Get subgroups under /backoffice for dropdown filtering.
+     * Get backoffice users with optional filtering by composite role.
+     * When roleFilter is provided, expands composite role to children
+     * and returns users having ANY of those child roles.
+     *
+     * @param roleFilter Optional composite role name to filter by
+     * @return List of UserDTO with roles populated
+     */
+    public List<UserDTO> getBackofficeUsers(String roleFilter) {
+        // Get all realm users
+        List<UserDTO> users = keycloakAdminClientService.getAllKeycloakUsers(100);
+
+        // Enrich users with their roles (flat list, all effective roles)
+        for (UserDTO user : users) {
+            try {
+                // Use flat list for display - not hierarchical
+                List<KeycloakRoleDTO> userRoles = keycloakAdminClientService
+                        .getAllEffectiveRolesFlat(user.getProviderUserId());
+                user.setRoleDetails(userRoles);
+            } catch (Exception e) {
+                log.warn("Failed to fetch roles for user: {}", user.getEmail());
+                user.setRoleDetails(List.of());
+            }
+        }
+
+        // Apply filter if provided
+        if (roleFilter != null && !roleFilter.isEmpty() && !"all".equalsIgnoreCase(roleFilter)) {
+            // Get child role names from composite role
+            java.util.Set<String> childRoleNames = keycloakAdminClientService.getCompositeRoleChildNames(roleFilter);
+            // Also include the parent role itself
+            childRoleNames.add(roleFilter);
+
+            // Filter users who have ANY of the child roles
+            users = users.stream()
+                    .filter(user -> user.getRoleDetails() != null && user.getRoleDetails().stream()
+                            .anyMatch(role -> childRoleNames.contains(role.getName())))
+                    .toList();
+        }
+
+        return users;
+    }
+
+    /**
+     * Get all roles for dropdown filtering.
+     * Returns ALL realm roles (for granular filtering by any role).
      * Used for SSR initial data population.
      *
-     * @return List of KeycloakGroupDTO (flat list of backoffice subgroups)
+     * @return List of KeycloakGroupDTO (using same DTO for compatibility, populated
+     *         from roles)
      */
     public List<KeycloakGroupDTO> getBackofficeSubGroups() {
-        List<KeycloakGroupDTO> allGroups = getGroupsHierarchy();
-        return allGroups.stream()
-                .filter(g -> "/backoffice".equals(g.getPath()))
-                .findFirst()
-                .map(KeycloakGroupDTO::getSubGroups)
-                .orElse(List.of());
+        // Get ALL roles for dropdown (not just root roles)
+        List<KeycloakRoleDTO> allRoles = keycloakAdminClientService.getRoles();
+
+        return allRoles.stream()
+                .map(role -> KeycloakGroupDTO.builder()
+                        .id(role.getId())
+                        .name(role.getName())
+                        .path("/" + role.getName())
+                        .build())
+                .toList();
+    }
+
+    /**
+     * Get roles with hierarchy for dropdown display.
+     * Composite roles will have their children populated.
+     *
+     * @return List of KeycloakRoleDTO with hierarchy
+     */
+    public List<KeycloakRoleDTO> getRolesForDropdown() {
+        return keycloakAdminClientService.getRolesWithHierarchy();
     }
 }

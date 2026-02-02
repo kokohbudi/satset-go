@@ -134,34 +134,12 @@ public class SecurityConfig {
                 }
             }
 
-            // 3. Extract client roles from resource_access.omnip-client.roles
-            Object resourceAccess = jwt.getClaims().get("resource_access");
-            if (resourceAccess instanceof Map<?, ?> resAccess) {
-                Object clientAccess = resAccess.get("omnip-client");
-                if (clientAccess instanceof Map<?, ?> clientMap) {
-                    Object clientRoles = clientMap.get("roles");
-                    if (clientRoles instanceof List<?>) {
-                        ((List<?>) clientRoles).stream()
-                                .map(Object::toString)
-                                .map(r -> "ROLE_" + r)
-                                .map(SimpleGrantedAuthority::new)
-                                .forEach(auths::add);
-                    }
-                }
-            }
+            // Note: Client role extraction removed - now using realm roles only
+            // Note: Groups extraction removed - new Keycloak structure uses direct role
+            // assignment
 
-            // 4. Extract groups from 'groups' claim
-            Object groups = jwt.getClaims().get("groups");
-            if (groups instanceof List<?>) {
-                ((List<?>) groups).stream()
-                        .map(Object::toString)
-                        .map(g -> "GROUP_" + g)
-                        .map(SimpleGrantedAuthority::new)
-                        .forEach(auths::add);
-            }
-
-            // Log extracted authorities at debug level only
-            log.debug("Extracted authorities for JWT: {}", auths.size());
+            // Log extracted authorities
+            log.info("Extracted authorities from JWT: {}", auths);
 
             return auths;
         });
@@ -175,19 +153,25 @@ public class SecurityConfig {
 
             authorities.forEach(authority -> {
                 if (authority instanceof org.springframework.security.oauth2.core.oidc.user.OidcUserAuthority oidcAuth) {
-                    // Cek claim 'roles' dari ID Token
-                    Object rolesObj = oidcAuth.getIdToken().getClaims().get("roles");
-                    if (rolesObj instanceof List) {
-                        List<String> roles = (List<String>) rolesObj;
-                        roles.forEach(role -> mappedAuthorities.add(new SimpleGrantedAuthority(role)));
+                    // Debug: Log all claims in ID token
+                    log.info("ID Token claims: {}", oidcAuth.getIdToken().getClaims().keySet());
+
+                    // Extract realm roles from realm_access.roles in ID token
+                    Object realmAccess = oidcAuth.getIdToken().getClaims().get("realm_access");
+                    if (realmAccess instanceof Map<?, ?> realmMap) {
+                        Object realmRoles = realmMap.get("roles");
+                        if (realmRoles instanceof List<?> rolesList) {
+                            rolesList.forEach(role -> {
+                                String roleName = role.toString();
+                                mappedAuthorities.add(new SimpleGrantedAuthority("ROLE_" + roleName));
+                            });
+                        }
                     }
 
-                    // Cek claim 'groups' dari ID Token
-                    Object groupsObj = oidcAuth.getIdToken().getClaims().get("groups");
-                    if (groupsObj instanceof List) {
-                        List<String> groups = (List<String>) groupsObj;
-                        groups.forEach(group -> mappedAuthorities.add(new SimpleGrantedAuthority("GROUP_" + group)));
-                    }
+                    // Log for debugging
+                    log.info("OIDC Login - Mapped authorities: {}", mappedAuthorities);
+                    // TODO: When implementing organization feature, extend here to extract
+                    // organization-scoped roles from Keycloak Organizations or custom claims
                 }
                 mappedAuthorities.add(authority);
             });

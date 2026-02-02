@@ -49,4 +49,38 @@ public class AuthorizationHelper {
                 .map(GrantedAuthority::getAuthority)
                 .anyMatch(a -> a.equals(expectedAuthority));
     }
+
+    /**
+     * Mendapatkan current user providerUserId (subject claim).
+     *
+     * @return providerUserId atau null jika tidak authenticated
+     */
+    public String getCurrentUserId() {
+        Authentication auth = getAuthentication();
+        if (auth == null || !auth.isAuthenticated()) {
+            return null;
+        }
+        Object principal = auth.getPrincipal();
+        if (principal instanceof org.springframework.security.oauth2.core.oidc.user.OidcUser oidcUser) {
+            return oidcUser.getSubject();
+        } else if (principal instanceof org.springframework.security.oauth2.jwt.Jwt jwt) {
+            return jwt.getClaim("sub");
+        }
+        return null;
+    }
+
+    /**
+     * Cek apakah target user ID BUKAN user yang sedang login.
+     * Digunakan untuk mencegah user melakukan aksi pada dirinya sendiri.
+     *
+     * @param targetUserId ID user yang menjadi target aksi
+     * @return true jika target BUKAN current user
+     */
+    public boolean targetIsNotCurrentUser(String targetUserId) {
+        String currentUserId = getCurrentUserId();
+        if (currentUserId == null || targetUserId == null) {
+            return true; // Default allow jika tidak bisa determine
+        }
+        return !currentUserId.equals(targetUserId);
+    }
 }

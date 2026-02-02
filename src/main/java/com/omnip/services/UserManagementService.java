@@ -152,7 +152,7 @@ public class UserManagementService {
     public UserDTO createNewUser(UserDTO reqUserDTO) {
         try {
             // Buat pengguna di Keycloak
-            String createdProviderUserId = this.keycloakAdminClientService.createUser(
+            String createdProviderUserId = this.keycloakAdminClientService.createBackofficeUser(
                     reqUserDTO.getUsername(),
                     reqUserDTO.getFullname(),
                     reqUserDTO.getEmail(),

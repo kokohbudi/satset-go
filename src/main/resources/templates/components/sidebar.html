@@ -1,5 +1,6 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      xmlns:x-transition="http://www.w3.org/1999/xhtml">
 
 <body>
 
@@ -120,8 +121,9 @@
                         <th:block th:each="child : ${role.children}">
                             <a th:if="${child.attributes != null and child.attributes['sidebar'] == '1' and child.attributes['url'] != null and !child.attributes['url'].isEmpty()}"
                                 th:href="${child.attributes['url']}"
-                                class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all hover:bg-primary/10 hover:text-primary">
-                                <svg class="w-5 h-5 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all"
+                                th:classappend="${currentPath != null and currentPath.startsWith(child.attributes['url'])} ? 'bg-primary text-primary-content shadow-lg' : 'hover:bg-primary/10 hover:text-primary'">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                         d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                                 </svg>
@@ -135,8 +137,9 @@
                     <!-- CASE 2: Role tanpa children tapi punya sidebar=1 dan url (sebagai standalone menu item) -->
                     <a th:if="${role.attributes != null and role.attributes['sidebar'] == '1' and role.attributes['url'] != null and !role.attributes['url'].isEmpty() and (role.children == null or role.children.isEmpty())}"
                         th:href="${role.attributes['url']}"
-                        class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all hover:bg-primary/10 hover:text-primary">
-                        <svg class="w-5 h-5 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all"
+                        th:classappend="${currentPath != null and currentPath.startsWith(role.attributes['url'])} ? 'bg-primary text-primary-content shadow-lg' : 'hover:bg-primary/10 hover:text-primary'">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                 d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                         </svg>

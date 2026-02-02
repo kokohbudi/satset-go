@@ -9,7 +9,7 @@
 
 <body>
     <div layout:fragment="content" x-data="userGroupManager()"
-        th:data-can-assign-groups="${@authz.hasGroupPrefix('/backoffice/') and #authorization.expression('hasRole(''assign_user_to_groups'')')}">
+        th:data-can-assign-groups="${#authorization.expression('hasRole(''assign_user_to_groups'')')}">
 
         <!-- Page Header -->
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
@@ -17,8 +17,8 @@
                 <h1 class="text-2xl font-bold text-base-content mb-2">User Management</h1>
                 <p class="text-base-content/60">Kelola user dan assign ke groups</p>
             </div>
-            <button sec:authorize="${@authz.hasGroupPrefix('/backoffice/') and hasRole('create_users')}"
-                onclick="createUserModal.showModal()" class="btn btn-primary gap-2 shadow-lg shadow-primary/30">
+            <button sec:authorize="hasRole('create_users')" onclick="createUserModal.showModal()"
+                class="btn btn-primary gap-2 shadow-lg shadow-primary/30">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
                 </svg>
@@ -29,24 +29,15 @@
         <!-- Filters -->
         <div class="card bg-base-100 shadow-sm border border-base-300/50 mb-6">
             <div class="card-body py-4">
-                <div class="flex flex-col lg:flex-row gap-4">
-                    <div class="flex-1">
-                        <label class="input input-bordered flex items-center gap-2 focus-within:input-primary">
-                            <svg class="w-4 h-4 text-base-content/50" fill="none" stroke="currentColor"
-                                viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                            </svg>
-                            <input type="search" x-model="searchQuery" @input="searchUsers()" placeholder="Cari user..."
-                                class="grow bg-transparent outline-none" />
-                        </label>
-                    </div>
-                    <select x-model="filterGroup" @change="searchUsers()" class="select select-bordered w-full lg:w-48">
-                        <option value="">Semua Group</option>
-                        <template x-for="group in allGroups" :key="group.id">
-                            <option :value="group.id" x-text="group.name"></option>
-                        </template>
-                    </select>
+                <div class="flex-1">
+                    <label class="input input-bordered flex items-center gap-2 focus-within:input-primary">
+                        <svg class="w-4 h-4 text-base-content/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                        <input type="search" x-model="searchQuery" @input="searchUsers()" placeholder="Cari user..."
+                            class="grow bg-transparent outline-none" />
+                    </label>
                 </div>
             </div>
         </div>
@@ -59,7 +50,7 @@
                         <tr>
                             <th>User</th>
                             <th>Email</th>
-                            <th class="min-w-[300px]">Groups</th>
+                            <th class="min-w-[300px]">Roles</th>
                             <th>Status</th>
                             <th>Aksi</th>
                         </tr>
@@ -87,24 +78,29 @@
                                             </div>
                                         </div>
                                         <div>
-                                            <div class="font-bold" x-text="user.fullname"></div>
-                                            <div class="text-sm text-base-content/60" x-text="'@' + user.username">
+                                            <div class="font-bold flex items-center gap-2">
+                                                <span x-text="user.fullname"></span>
+                                                <span x-show="isSelf(user)"
+                                                    class="badge badge-sm badge-accent">You</span>
+                                            </div>
+                                            <div class="text-sm text-base-content/60" x-text="user.username">
                                             </div>
                                         </div>
                                     </div>
                                 </td>
                                 <td x-text="user.email"></td>
                                 <td>
-                                    <!-- Inline Chip Editor -->
+                                    <!-- Role Badges with Add/Remove -->
                                     <div class="flex flex-wrap gap-2 items-center">
-                                        <!-- Group Chips -->
-                                        <template x-for="group in user.groups" :key="group.id">
+                                        <!-- Role Chips with remove button -->
+                                        <template x-for="role in user.roleDetails" :key="role.id">
                                             <span
                                                 class="badge badge-primary gap-1 pl-3 py-3 cursor-default transition-colors group"
-                                                :class="canAssignGroups ? 'pr-1 hover:badge-error' : 'pr-3'">
-                                                <span x-text="group.name"></span>
+                                                :class="canAssignGroups ? 'pr-1 hover:badge-error' : 'pr-3'"
+                                                :title="role.name">
+                                                <span x-text="role.attributes?.display_name || role.name"></span>
                                                 <button x-show="canAssignGroups"
-                                                    @click="removeUserFromGroup(user.providerUserId, group.id)"
+                                                    @click="removeRoleFromUser(user.providerUserId, role.name)"
                                                     class="btn btn-ghost btn-xs btn-circle opacity-60 group-hover:opacity-100">
                                                     <svg class="w-3 h-3" fill="none" stroke="currentColor"
                                                         viewBox="0 0 24 24">
@@ -115,9 +111,11 @@
                                             </span>
                                         </template>
 
-                                        <!-- Add Group Dropdown -->
-                                        <div x-show="canAssignGroups" class="dropdown dropdown-end">
-                                            <button tabindex="0"
+                                        <!-- Add Role Dropdown - Two Section Picker -->
+                                        <div x-show="canAssignGroups" class="relative" x-data="{ open: false }"
+                                            @click.outside="open = false">
+                                            <button
+                                                @click="open = !open; if(open) $nextTick(() => positionDropdown($el, $el.nextElementSibling))"
                                                 class="btn btn-ghost btn-xs btn-circle border border-dashed border-base-content/30 hover:border-primary hover:text-primary">
                                                 <svg class="w-4 h-4" fill="none" stroke="currentColor"
                                                     viewBox="0 0 24 24">
@@ -125,30 +123,91 @@
                                                         stroke-width="2" d="M12 4v16m8-8H4" />
                                                 </svg>
                                             </button>
-                                            <ul tabindex="0"
-                                                class="dropdown-content z-50 menu p-2 shadow-xl bg-base-100 rounded-box w-52 border border-base-300 max-h-60 overflow-y-auto">
-                                                <li class="menu-title px-2 py-1">
-                                                    <span class="text-xs text-base-content/60">Tambah ke Group</span>
-                                                </li>
-                                                <template x-for="group in getAvailableGroups(user)" :key="group.id">
-                                                    <li>
-                                                        <a @click="assignUserToGroup(user.providerUserId, group.id)"
-                                                            class="flex items-center gap-2">
-                                                            <svg class="w-4 h-4 text-success" fill="none"
-                                                                stroke="currentColor" viewBox="0 0 24 24">
-                                                                <path stroke-linecap="round" stroke-linejoin="round"
-                                                                    stroke-width="2" d="M12 4v16m8-8H4" />
-                                                            </svg>
-                                                            <span x-text="group.name"></span>
+                                            <div x-show="open" x-transition:enter="transition ease-out duration-100"
+                                                x-transition:enter-start="opacity-0 scale-95"
+                                                x-transition:enter-end="opacity-100 scale-100"
+                                                x-transition:leave="transition ease-in duration-75"
+                                                x-transition:leave-start="opacity-100 scale-100"
+                                                x-transition:leave-end="opacity-0 scale-95"
+                                                class="fixed z-[9999] menu p-2 shadow-xl bg-base-100 rounded-box w-72 border border-base-300 max-h-80 overflow-y-auto">
+
+                                                <!-- Section: Composite Roles -->
+                                                <div class="menu-title px-2 py-1">
+                                                    <span class="text-xs text-base-content/60">📁 Composite Roles</span>
+                                                </div>
+                                                <template x-for="role in getCompositeRolesForPicker(user)"
+                                                    :key="'composite-' + role.id">
+                                                    <div class="px-1">
+                                                        <a @click="addRoleToUser(user.providerUserId, role.name); open = false"
+                                                            class="flex flex-col items-start gap-0.5 py-2 px-3 rounded-lg hover:bg-base-200 cursor-pointer">
+                                                            <span class="font-medium flex items-center gap-2">
+                                                                <svg class="w-4 h-4 text-success flex-shrink-0"
+                                                                    fill="none" stroke="currentColor"
+                                                                    viewBox="0 0 24 24">
+                                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                                        stroke-width="2" d="M12 4v16m8-8H4" />
+                                                                </svg>
+                                                                <span
+                                                                    x-text="role.attributes?.display_name || role.name"></span>
+                                                            </span>
+                                                            <span class="text-xs text-base-content/50 ml-6"
+                                                                x-text="'→ ' + (role.children || []).map(c => c.attributes?.display_name || c.name).join(', ')"></span>
                                                         </a>
-                                                    </li>
+                                                    </div>
                                                 </template>
-                                                <template x-if="getAvailableGroups(user).length === 0">
-                                                    <li class="text-base-content/50 px-4 py-2 text-sm">Sudah di semua
-                                                        group</li>
+                                                <template x-if="getCompositeRolesForPicker(user).length === 0">
+                                                    <div class="text-base-content/40 px-4 py-1 text-xs italic">Semua
+                                                        sudah dimiliki</div>
                                                 </template>
-                                            </ul>
+
+                                                <div class="divider my-1 text-xs text-base-content/40">atau individual
+                                                </div>
+
+                                                <!-- Section: Granular Roles -->
+                                                <div class="menu-title px-2 py-1">
+                                                    <span class="text-xs text-base-content/60">🎯 Granular Roles</span>
+                                                </div>
+                                                <template x-for="role in getGranularRolesForPicker(user)"
+                                                    :key="'granular-' + role.id">
+                                                    <div class="px-1">
+                                                        <a @click="!role.disabled && (addRoleToUser(user.providerUserId, role.name), open = false)"
+                                                            :class="{'opacity-40 cursor-not-allowed bg-base-200': role.disabled, 'hover:bg-base-200 cursor-pointer': !role.disabled}"
+                                                            class="flex items-center justify-between py-1.5 px-3 rounded-lg">
+                                                            <span class="flex items-center gap-2">
+                                                                <svg x-show="!role.disabled"
+                                                                    class="w-4 h-4 text-success flex-shrink-0"
+                                                                    fill="none" stroke="currentColor"
+                                                                    viewBox="0 0 24 24">
+                                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                                        stroke-width="2" d="M12 4v16m8-8H4" />
+                                                                </svg>
+                                                                <svg x-show="role.disabled"
+                                                                    class="w-4 h-4 text-base-content/30 flex-shrink-0"
+                                                                    fill="none" stroke="currentColor"
+                                                                    viewBox="0 0 24 24">
+                                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                                        stroke-width="2" d="M5 13l4 4L19 7" />
+                                                                </svg>
+                                                                <span
+                                                                    x-text="role.attributes?.display_name || role.name"></span>
+                                                            </span>
+                                                            <span x-show="role.inheritedFrom"
+                                                                class="text-xs text-base-content/40 ml-2"
+                                                                x-text="'via ' + role.inheritedFrom"></span>
+                                                            <span x-show="role.directlyAssigned && !role.inheritedFrom"
+                                                                class="badge badge-xs badge-ghost">assigned</span>
+                                                        </a>
+                                                    </div>
+                                                </template>
+                                                <template x-if="getGranularRolesForPicker(user).length === 0">
+                                                    <div class="text-base-content/40 px-4 py-1 text-xs italic">Tidak ada
+                                                        role tersedia</div>
+                                                </template>
+                                            </div>
                                         </div>
+
+                                        <span x-show="!user.roleDetails || user.roleDetails.length === 0"
+                                            class="text-base-content/40 text-sm italic">No roles assigned</span>
                                     </div>
                                 </td>
                                 <td>
@@ -168,9 +227,20 @@
                                         </button>
                                         <ul tabindex="0"
                                             class="dropdown-content !fixed z-[9999] menu p-2 shadow-xl bg-base-100 rounded-box w-48 border border-base-300">
-                                            <li><a>Edit</a></li>
+                                            <li :class="{ 'disabled opacity-50 pointer-events-none': isSelf(user) }">
+                                                <a>Edit</a>
+                                            </li>
                                             <li><a>Reset Password</a></li>
-                                            <li class="text-error"><a>Nonaktifkan</a></li>
+                                            <li
+                                                :class="[user.active ? 'text-error' : 'text-success', { 'disabled opacity-50 pointer-events-none': isSelf(user) }]">
+                                                <a @click="!isSelf(user) && toggleUserStatus(user)"
+                                                    x-text="user.active ? 'Nonaktifkan' : 'Aktifkan'"></a>
+                                            </li>
+                                            <template x-if="isSelf(user)">
+                                                <li class="text-base-content/50 text-xs px-3 py-1">
+                                                    <span class="italic">Ini adalah akun Anda</span>
+                                                </li>
+                                            </template>
                                         </ul>
                                     </div>
                                 </td>
@@ -200,6 +270,269 @@
             </div>
         </div>
 
+        <!-- Create User Modal -->
+        <dialog id="createUserModal" class="modal" x-data="createUserWizard()" @close="resetForm()">
+            <div class="modal-box w-11/12 max-w-lg">
+                <!-- Header with Progress -->
+                <form method="dialog">
+                    <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
+                </form>
+                <h3 class="font-bold text-lg mb-2">Tambah User Baru</h3>
+
+                <!-- Step Indicator -->
+                <div class="flex items-center gap-2 mb-6">
+                    <div class="flex items-center gap-2">
+                        <span
+                            class="w-7 h-7 rounded-full flex items-center justify-center text-sm font-bold transition-colors"
+                            :class="step === 1 ? 'bg-primary text-primary-content' : 'bg-success text-success-content'">
+                            <span x-show="step === 1">1</span>
+                            <svg x-show="step === 2" class="w-4 h-4" fill="none" stroke="currentColor"
+                                viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M5 13l4 4L19 7" />
+                            </svg>
+                        </span>
+                        <span class="text-sm"
+                            :class="step === 1 ? 'font-semibold' : 'text-base-content/60'">Informasi</span>
+                    </div>
+                    <div class="flex-1 h-0.5 bg-base-300 mx-2">
+                        <div class="h-full bg-primary transition-all" :style="step === 2 ? 'width: 100%' : 'width: 0%'">
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span
+                            class="w-7 h-7 rounded-full flex items-center justify-center text-sm font-bold transition-colors"
+                            :class="step === 2 ? 'bg-primary text-primary-content' : 'bg-base-300 text-base-content/50'">2</span>
+                        <span class="text-sm"
+                            :class="step === 2 ? 'font-semibold' : 'text-base-content/60'">Roles</span>
+                    </div>
+                </div>
+
+                <!-- Step 1: User Information -->
+                <div x-show="step === 1" x-transition:enter="transition ease-out duration-200"
+                    x-transition:enter-start="opacity-0 translate-x-4"
+                    x-transition:enter-end="opacity-100 translate-x-0">
+                    <div class="space-y-5">
+                        <!-- Username -->
+                        <div class="form-control">
+                            <label class="input input-bordered flex items-center gap-2 focus-within:input-primary"
+                                :class="errors.username ? 'input-error' : ''">
+                                <input type="text" id="create-username" x-model="form.username"
+                                    @input="validateField('username')" class="grow bg-transparent outline-none"
+                                    placeholder="Username *" />
+                            </label>
+                            <div class="label" x-show="errors.username">
+                                <span class="label-text-alt text-error" x-text="errors.username"></span>
+                            </div>
+                        </div>
+
+                        <!-- Email -->
+                        <div class="form-control">
+                            <label class="input input-bordered flex items-center gap-2 focus-within:input-primary"
+                                :class="errors.email ? 'input-error' : ''">
+                                <input type="email" id="create-email" x-model="form.email"
+                                    @input="validateField('email')" class="grow bg-transparent outline-none"
+                                    placeholder="Email *" />
+                            </label>
+                            <div class="label" x-show="errors.email">
+                                <span class="label-text-alt text-error" x-text="errors.email"></span>
+                            </div>
+                        </div>
+
+                        <!-- Fullname -->
+                        <div class="form-control">
+                            <label class="input input-bordered flex items-center gap-2 focus-within:input-primary"
+                                :class="errors.fullname ? 'input-error' : ''">
+                                <input type="text" id="create-fullname" x-model="form.fullname"
+                                    @input="validateField('fullname')" class="grow bg-transparent outline-none"
+                                    placeholder="Nama Lengkap *" />
+                            </label>
+                            <div class="label" x-show="errors.fullname">
+                                <span class="label-text-alt text-error" x-text="errors.fullname"></span>
+                            </div>
+                        </div>
+
+                        <!-- Password -->
+                        <div class="form-control">
+                            <label class="input input-bordered flex items-center gap-2 focus-within:input-primary"
+                                :class="errors.password ? 'input-error' : ''">
+                                <input :type="showPassword ? 'text' : 'password'" id="create-password"
+                                    x-model="form.password" @input="validateField('password')"
+                                    class="grow bg-transparent outline-none" placeholder="Password *" />
+                                <button type="button" @click="showPassword = !showPassword"
+                                    class="text-base-content/50 hover:text-base-content">
+                                    <svg x-show="!showPassword" class="w-5 h-5" fill="none" stroke="currentColor"
+                                        viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                    </svg>
+                                    <svg x-show="showPassword" class="w-5 h-5" fill="none" stroke="currentColor"
+                                        viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.542-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.542 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                                    </svg>
+                                </button>
+                            </label>
+                            <div class="label" x-show="errors.password">
+                                <span class="label-text-alt text-error" x-text="errors.password"></span>
+                            </div>
+                        </div>
+
+                        <!-- Confirm Password -->
+                        <div class="form-control">
+                            <label class="input input-bordered flex items-center gap-2 focus-within:input-primary"
+                                :class="errors.confirmPassword ? 'input-error' : ''">
+                                <input :type="showPassword ? 'text' : 'password'" id="create-confirm-password"
+                                    x-model="form.confirmPassword" @input="validateField('confirmPassword')"
+                                    class="grow bg-transparent outline-none" placeholder="Konfirmasi Password *" />
+                            </label>
+                            <div class="label" x-show="errors.confirmPassword">
+                                <span class="label-text-alt text-error" x-text="errors.confirmPassword"></span>
+                            </div>
+                        </div>
+
+                        <!-- Require Password Change -->
+                        <div class="form-control">
+                            <label class="label cursor-pointer justify-start gap-3">
+                                <input type="checkbox" x-model="form.requirePasswordChange"
+                                    class="checkbox checkbox-primary checkbox-sm" />
+                                <span class="label-text">Wajib ganti password saat login pertama</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Step 1 Actions -->
+                    <div class="modal-action">
+                        <button type="button" class="btn btn-ghost" onclick="createUserModal.close()">Batal</button>
+                        <button type="button" @click="goToStep2()" class="btn btn-primary gap-2">
+                            Lanjut
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M9 5l7 7-7 7" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Step 2: Assign Roles -->
+                <div x-show="step === 2" x-transition:enter="transition ease-out duration-200"
+                    x-transition:enter-start="opacity-0 translate-x-4"
+                    x-transition:enter-end="opacity-100 translate-x-0">
+
+                    <div class="mb-4">
+                        <p class="text-base-content/70 text-sm">Pilih roles untuk <strong
+                                x-text="form.username"></strong></p>
+                    </div>
+
+                    <!-- Selected Roles Chips -->
+                    <div class="mb-4 min-h-[44px] p-3 bg-base-200/50 rounded-lg border border-dashed border-base-300">
+                        <template x-if="selectedRoles.length === 0">
+                            <p class="text-base-content/40 text-sm italic">Belum ada role dipilih. Klik role di bawah
+                                untuk menambahkan.</p>
+                        </template>
+                        <div class="flex flex-wrap gap-2">
+                            <template x-for="roleName in selectedRoles" :key="roleName">
+                                <span class="badge badge-primary gap-1 pl-3 pr-1 py-3">
+                                    <span x-text="getRoleDisplayName(roleName)"></span>
+                                    <button type="button" @click="toggleRole(roleName)"
+                                        class="btn btn-ghost btn-xs btn-circle hover:bg-primary-focus">
+                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M6 18L18 6M6 6l12 12" />
+                                        </svg>
+                                    </button>
+                                </span>
+                            </template>
+                        </div>
+                    </div>
+
+                    <!-- Available Roles (Mixed Composite + Granular) -->
+                    <div class="max-h-48 overflow-y-auto space-y-1 pr-1">
+                        <!-- Composite Roles Section -->
+                        <div class="text-xs text-base-content/50 font-medium px-2 py-1">📁 Composite Roles</div>
+                        <template x-for="role in getAvailableCompositeRoles()" :key="'c-' + role.id">
+                            <button type="button" @click="toggleRole(role.name)"
+                                class="w-full flex items-center justify-between px-3 py-2 rounded-lg transition-colors text-left"
+                                :class="selectedRoles.includes(role.name) ? 'bg-primary/10 border border-primary/30' : 'hover:bg-base-200'">
+                                <div class="flex flex-col gap-0.5">
+                                    <span class="font-medium"
+                                        x-text="role.attributes?.display_name || role.name"></span>
+                                    <span class="text-xs text-base-content/50"
+                                        x-text="'→ ' + (role.children || []).slice(0,3).map(c => c.attributes?.display_name || c.name).join(', ') + (role.children?.length > 3 ? '...' : '')">
+                                    </span>
+                                </div>
+                                <svg x-show="selectedRoles.includes(role.name)" class="w-5 h-5 text-primary"
+                                    fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd"
+                                        d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                        clip-rule="evenodd" />
+                                </svg>
+                            </button>
+                        </template>
+                        <template x-if="getAvailableCompositeRoles().length === 0">
+                            <div class="text-base-content/40 px-3 py-1 text-sm italic">Tidak ada composite role</div>
+                        </template>
+
+                        <div class="divider my-2 text-xs text-base-content/40">atau individual</div>
+
+                        <!-- Granular Roles Section -->
+                        <div class="text-xs text-base-content/50 font-medium px-2 py-1">🎯 Granular Roles</div>
+                        <template x-for="role in getAvailableGranularRoles()" :key="'g-' + role.id">
+                            <button type="button" @click="toggleRole(role.name)"
+                                class="w-full flex items-center justify-between px-3 py-2 rounded-lg transition-colors text-left"
+                                :class="selectedRoles.includes(role.name) ? 'bg-primary/10 border border-primary/30' : 'hover:bg-base-200'">
+                                <span x-text="role.attributes?.display_name || role.name"></span>
+                                <svg x-show="selectedRoles.includes(role.name)" class="w-5 h-5 text-primary"
+                                    fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd"
+                                        d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                        clip-rule="evenodd" />
+                                </svg>
+                            </button>
+                        </template>
+                        <template x-if="getAvailableGranularRoles().length === 0">
+                            <div class="text-base-content/40 px-3 py-1 text-sm italic">Tidak ada granular role</div>
+                        </template>
+                    </div>
+
+                    <!-- Error message for roles -->
+                    <label class="label" x-show="errors.roles">
+                        <span class="label-text-alt text-error" x-text="errors.roles"></span>
+                    </label>
+
+                    <!-- Create Another Checkbox -->
+                    <div class="form-control mt-4 pt-4 border-t border-base-300">
+                        <label class="label cursor-pointer justify-start gap-3">
+                            <input type="checkbox" x-model="createAnother" class="checkbox checkbox-sm" />
+                            <span class="label-text">Buat user lagi setelah ini</span>
+                        </label>
+                    </div>
+
+                    <!-- Step 2 Actions -->
+                    <div class="modal-action">
+                        <button type="button" @click="step = 1" class="btn btn-ghost gap-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M15 19l-7-7 7-7" />
+                            </svg>
+                            Kembali
+                        </button>
+                        <button type="button" @click="skipRoles()" class="btn btn-ghost">Skip</button>
+                        <button type="button" @click="submitForm()" class="btn btn-primary gap-2"
+                            :disabled="submitting">
+                            <span x-show="submitting" class="loading loading-spinner loading-sm"></span>
+                            <span x-text="submitting ? 'Membuat...' : 'Buat User'"></span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <form method="dialog" class="modal-backdrop">
+                <button>close</button>
+            </form>
+        </dialog>
+
     </div>
 
     <div layout:fragment="scripts">
@@ -208,22 +541,52 @@
                 // SSR: Initial data from Thymeleaf
                 const initialUsers = /*[[${initialUsers}]]*/[];
                 const initialGroups = /*[[${initialGroups}]]*/[];
+                const rolesHierarchy = /*[[${rolesHierarchy}]]*/[];
+                const currentUserId = /*[[${user.providerUserId}]]*/'';
 
                 return {
                     users: initialUsers,
                     filteredUsers: initialUsers,
                     allGroups: initialGroups,
-                    loading: false,  // No loading needed - data is pre-loaded
+                    rolesHierarchy: rolesHierarchy,
+                    flatRolesForDropdown: [],
+                    loading: false,
                     searchQuery: '',
-                    filterGroup: '',
                     searchTimeout: null,
                     canAssignGroups: false,
+                    currentUserId: currentUserId,
+
+                    // Check if user is current logged-in user
+                    isSelf(user) {
+                        return user.providerUserId === this.currentUserId;
+                    },
 
                     init() {
-                        // Read permission from server-rendered data attribute
                         this.canAssignGroups = this.$el.dataset.canAssignGroups === 'true';
-                        // Data already loaded from SSR, just flatten groups for display
                         this.allGroups = this.flattenGroups(initialGroups);
+                        // Build flat list with hierarchy visual for dropdown
+                        this.flatRolesForDropdown = this.buildFlatRolesWithHierarchy(rolesHierarchy);
+                    },
+
+                    buildFlatRolesWithHierarchy(roles) {
+                        let result = [];
+                        for (const role of roles) {
+                            const isComposite = role.children && role.children.length > 0;
+                            result.push({
+                                ...role,
+                                displayName: isComposite ? '📁 ' + role.name : role.name
+                            });
+                            // Add children with indentation
+                            if (isComposite) {
+                                for (const child of role.children) {
+                                    result.push({
+                                        ...child,
+                                        displayName: '    └ ' + child.name
+                                    });
+                                }
+                            }
+                        }
+                        return result;
                     },
 
                     flattenGroups(groups, prefix = '') {
@@ -242,7 +605,7 @@
                         if (this.searchTimeout) clearTimeout(this.searchTimeout);
 
                         this.searchTimeout = setTimeout(async () => {
-                            if (!this.searchQuery && !this.filterGroup) {
+                            if (!this.searchQuery) {
                                 // Empty search - use initial SSR data
                                 this.filteredUsers = this.users;
                                 return;
@@ -254,7 +617,6 @@
                                 let url = '/api/idm/backoffice/users';
                                 const params = new URLSearchParams();
                                 if (this.searchQuery) params.append('q', this.searchQuery);
-                                if (this.filterGroup) params.append('groupId', this.filterGroup);
                                 if (params.toString()) url += '?' + params.toString();
 
                                 const res = await fetch(url);
@@ -335,6 +697,241 @@
                         }
                     },
 
+                    async toggleUserStatus(user) {
+                        const newStatus = !user.active;
+                        const actionText = newStatus ? 'mengaktifkan' : 'menonaktifkan';
+
+                        const confirmed = await Alpine.store('confirm').open({
+                            title: newStatus ? 'Aktifkan User' : 'Nonaktifkan User',
+                            message: `Apakah Anda yakin ingin ${actionText} user ${user.fullname || user.username}?`,
+                            confirmText: newStatus ? 'Aktifkan' : 'Nonaktifkan',
+                            confirmClass: newStatus ? 'btn-success' : 'btn-error'
+                        });
+
+                        if (!confirmed) return;
+
+                        try {
+                            const res = await fetch(`/api/idm/backoffice/users/${user.providerUserId}/status/${newStatus}`, {
+                                method: 'PUT'
+                            });
+                            const data = await res.json();
+
+                            if (res.ok && data.status === 'success') {
+                                // Update user status locally
+                                user.active = newStatus;
+                                this.showToast(`User berhasil di${newStatus ? 'aktifkan' : 'nonaktifkan'}`, 'success');
+                            } else {
+                                this.showToast(data.message || 'Gagal mengubah status user', 'error');
+                            }
+                        } catch (e) {
+                            this.showToast('Error: ' + e.message, 'error');
+                        }
+                    },
+
+                    // Get composite roles that user doesn't have yet
+                    // Skip root roles (composite roles that are NOT children of any other role)
+                    getCompositeRolesForPicker(user) {
+                        const userRoleNames = new Set((user.roleDetails || []).map(r => r.name));
+
+                        // First, build a set of all roles that are children of some composite role
+                        const childRoleNames = new Set();
+                        for (const role of this.rolesHierarchy) {
+                            if (role.composite && role.children) {
+                                for (const child of role.children) {
+                                    childRoleNames.add(child.name);
+                                }
+                            }
+                        }
+
+                        // Root roles are composite roles that are NOT children of any other role
+                        const compositeRoles = [];
+
+                        for (const role of this.rolesHierarchy) {
+                            if (role.composite && role.children?.length > 0) {
+                                const isRootRole = !childRoleNames.has(role.name);
+
+                                if (isRootRole) {
+                                    // This is a root role - add its composite children instead
+                                    for (const child of role.children) {
+                                        // Check if child is composite by looking it up in rolesHierarchy
+                                        const childFull = this.rolesHierarchy.find(r => r.name === child.name);
+                                        if (childFull?.composite && childFull?.children?.length > 0 && !userRoleNames.has(child.name)) {
+                                            compositeRoles.push(childFull);
+                                        }
+                                    }
+                                } else if (!userRoleNames.has(role.name)) {
+                                    // Not a root role - add it directly
+                                    compositeRoles.push(role);
+                                }
+                            }
+                        }
+
+                        // Remove duplicates
+                        const seen = new Set();
+                        return compositeRoles.filter(r => {
+                            if (seen.has(r.name)) return false;
+                            seen.add(r.name);
+                            return true;
+                        });
+                    },
+
+                    // Get granular roles with disabled state for picker
+                    // Handles root role hierarchy - shows children of first-level composite roles
+                    getGranularRolesForPicker(user) {
+                        const userRoleNames = new Set((user.roleDetails || []).map(r => r.name));
+                        const inheritedRoles = this.getInheritedRoleNames(user);
+
+                        // Build a set of all roles that are children of some composite role
+                        const childRoleNames = new Set();
+                        for (const role of this.rolesHierarchy) {
+                            if (role.composite && role.children) {
+                                for (const child of role.children) {
+                                    childRoleNames.add(child.name);
+                                }
+                            }
+                        }
+
+                        // Collect all individual (non-composite) roles from the hierarchy
+                        const granularRoles = [];
+                        const seen = new Set();
+
+                        // Helper to add a granular role
+                        const addGranularRole = (role, parentDisplayName) => {
+                            // Check if role is composite by looking it up in rolesHierarchy
+                            const roleFull = this.rolesHierarchy.find(r => r.name === role.name);
+                            if (seen.has(role.name) || (roleFull?.composite && roleFull?.children?.length > 0)) return;
+                            seen.add(role.name);
+
+                            const inheritFrom = inheritedRoles.get(role.name);
+                            granularRoles.push({
+                                ...role,
+                                disabled: userRoleNames.has(role.name) || inheritFrom !== undefined,
+                                directlyAssigned: userRoleNames.has(role.name),
+                                inheritedFrom: inheritFrom
+                            });
+                        };
+
+                        for (const role of this.rolesHierarchy) {
+                            if (role.composite && role.children) {
+                                const isRootRole = !childRoleNames.has(role.name);
+
+                                if (isRootRole) {
+                                    // Root role - traverse its first-level composite children
+                                    for (const child of role.children) {
+                                        const childFull = this.rolesHierarchy.find(r => r.name === child.name);
+                                        if (childFull?.composite && childFull?.children?.length > 0) {
+                                            // Add grandchildren as granular roles
+                                            for (const grandchild of childFull.children) {
+                                                addGranularRole(grandchild, childFull.attributes?.display_name || childFull.name);
+                                            }
+                                        } else {
+                                            addGranularRole(child, role.attributes?.display_name || role.name);
+                                        }
+                                    }
+                                } else {
+                                    // Not a root role - add children directly
+                                    for (const child of role.children) {
+                                        addGranularRole(child, role.attributes?.display_name || role.name);
+                                    }
+                                }
+                            } else if (!role.composite) {
+                                addGranularRole(role, null);
+                            }
+                        }
+
+                        return granularRoles;
+                    },
+
+                    // Get role names inherited from composite roles (returns Map: childName -> parentName)
+                    // Handles root role hierarchy
+                    getInheritedRoleNames(user) {
+                        const inherited = new Map();
+                        const userRoleNames = (user.roleDetails || []).map(r => r.name);
+
+                        // Helper to mark children as inherited
+                        const markInherited = (role, parentDisplayName) => {
+                            if (role.children) {
+                                for (const child of role.children) {
+                                    if (child.composite && child.children?.length > 0) {
+                                        // Composite child - recurse but use its name as parent
+                                        if (userRoleNames.includes(child.name)) {
+                                            markInherited(child, child.attributes?.display_name || child.name);
+                                        }
+                                    } else {
+                                        inherited.set(child.name, parentDisplayName);
+                                    }
+                                }
+                            }
+                        };
+
+                        for (const role of this.rolesHierarchy) {
+                            if (role.composite && userRoleNames.includes(role.name)) {
+                                markInherited(role, role.attributes?.display_name || role.name);
+                            }
+                        }
+                        return inherited;
+                    },
+
+                    // Check if user has a specific role
+                    userHasRole(user, roleName) {
+                        return (user.roleDetails || []).some(r => r.name === roleName);
+                    },
+
+                    // Position dropdown relative to trigger button
+                    positionDropdown(button, dropdown) {
+                        if (!dropdown) return;
+                        const rect = button.getBoundingClientRect();
+                        const dropdownWidth = 288; // w-72 = 18rem = 288px
+
+                        // Position below button, aligned to right edge
+                        let left = rect.right - dropdownWidth;
+                        let top = rect.bottom + 8;
+
+                        // Ensure it doesn't go off-screen left
+                        if (left < 8) left = 8;
+
+                        // Ensure it doesn't go off-screen bottom
+                        const maxHeight = window.innerHeight - top - 16;
+                        dropdown.style.maxHeight = Math.min(320, maxHeight) + 'px';
+
+                        dropdown.style.left = left + 'px';
+                        dropdown.style.top = top + 'px';
+                    },
+
+                    async addRoleToUser(userId, roleName) {
+                        try {
+                            const res = await fetch(`/api/idm/users/${userId}/roles/${roleName}`, {
+                                method: 'POST'
+                            });
+                            if (res.ok) {
+                                this.showToast('Role berhasil ditambahkan', 'success');
+                                await this.loadUsers();
+                            } else {
+                                const data = await res.json();
+                                this.showToast(data.message || 'Gagal menambahkan role', 'error');
+                            }
+                        } catch (e) {
+                            this.showToast('Error: ' + e.message, 'error');
+                        }
+                    },
+
+                    async removeRoleFromUser(userId, roleName) {
+                        try {
+                            const res = await fetch(`/api/idm/users/${userId}/roles/${roleName}`, {
+                                method: 'DELETE'
+                            });
+                            if (res.ok) {
+                                this.showToast('Role berhasil dihapus', 'success');
+                                await this.loadUsers();
+                            } else {
+                                const data = await res.json();
+                                this.showToast(data.message || 'Gagal menghapus role', 'error');
+                            }
+                        } catch (e) {
+                            this.showToast('Error: ' + e.message, 'error');
+                        }
+                    },
+
                     showToast(message, type) {
                         // Use global toast store
                         if (type === 'success') {
@@ -344,6 +941,315 @@
                         }
                     }
                 }
+            }
+
+            // Create User Wizard Component
+            function createUserWizard() {
+                // Access parent component's rolesHierarchy
+                const rolesHierarchy = /*[[${rolesHierarchy}]]*/[];
+
+                return {
+                    step: 1,
+                    showPassword: false,
+                    submitting: false,
+                    createAnother: false,
+                    selectedRoles: [],
+                    rolesHierarchy: rolesHierarchy,
+
+                    form: {
+                        username: '',
+                        email: '',
+                        fullname: '',
+                        password: '',
+                        confirmPassword: '',
+                        requirePasswordChange: true
+                    },
+
+                    errors: {
+                        username: '',
+                        email: '',
+                        fullname: '',
+                        password: '',
+                        confirmPassword: '',
+                        roles: ''
+                    },
+
+                    resetForm() {
+                        this.step = 1;
+                        this.selectedRoles = [];
+                        this.submitting = false;
+                        this.form = {
+                            username: '',
+                            email: '',
+                            fullname: '',
+                            password: '',
+                            confirmPassword: '',
+                            requirePasswordChange: true
+                        };
+                        this.errors = {
+                            username: '',
+                            email: '',
+                            fullname: '',
+                            password: '',
+                            confirmPassword: '',
+                            roles: ''
+                        };
+                    },
+
+                    validateField(field) {
+                        switch (field) {
+                            case 'username':
+                                if (!this.form.username.trim()) {
+                                    this.errors.username = 'Username wajib diisi';
+                                } else if (this.form.username.length < 3) {
+                                    this.errors.username = 'Username minimal 3 karakter';
+                                } else if (!/^[a-zA-Z0-9_]+$/.test(this.form.username)) {
+                                    this.errors.username = 'Username hanya boleh huruf, angka, dan underscore';
+                                } else {
+                                    this.errors.username = '';
+                                }
+                                break;
+                            case 'email':
+                                if (!this.form.email.trim()) {
+                                    this.errors.email = 'Email wajib diisi';
+                                } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(this.form.email)) {
+                                    this.errors.email = 'Format email tidak valid';
+                                } else {
+                                    this.errors.email = '';
+                                }
+                                break;
+                            case 'fullname':
+                                if (!this.form.fullname.trim()) {
+                                    this.errors.fullname = 'Nama lengkap wajib diisi';
+                                } else {
+                                    this.errors.fullname = '';
+                                }
+                                break;
+                            case 'password':
+                                if (!this.form.password) {
+                                    this.errors.password = 'Password wajib diisi';
+                                } else if (this.form.password.length < 6) {
+                                    this.errors.password = 'Password minimal 6 karakter';
+                                } else {
+                                    this.errors.password = '';
+                                }
+                                // Also validate confirm if it has value
+                                if (this.form.confirmPassword) {
+                                    this.validateField('confirmPassword');
+                                }
+                                break;
+                            case 'confirmPassword':
+                                if (!this.form.confirmPassword) {
+                                    this.errors.confirmPassword = 'Konfirmasi password wajib diisi';
+                                } else if (this.form.confirmPassword !== this.form.password) {
+                                    this.errors.confirmPassword = 'Password tidak cocok';
+                                } else {
+                                    this.errors.confirmPassword = '';
+                                }
+                                break;
+                        }
+                    },
+
+                    validateStep1() {
+                        this.validateField('username');
+                        this.validateField('email');
+                        this.validateField('fullname');
+                        this.validateField('password');
+                        this.validateField('confirmPassword');
+
+                        return !this.errors.username && !this.errors.email && !this.errors.fullname
+                            && !this.errors.password && !this.errors.confirmPassword;
+                    },
+
+                    goToStep2() {
+                        if (this.validateStep1()) {
+                            this.step = 2;
+                        }
+                    },
+
+                    // Get composite roles for picker (simplified version for new user)
+                    getAvailableCompositeRoles() {
+                        const childRoleNames = new Set();
+                        for (const role of this.rolesHierarchy) {
+                            if (role.composite && role.children) {
+                                for (const child of role.children) {
+                                    childRoleNames.add(child.name);
+                                }
+                            }
+                        }
+
+                        const compositeRoles = [];
+                        for (const role of this.rolesHierarchy) {
+                            if (role.composite && role.children?.length > 0) {
+                                const isRootRole = !childRoleNames.has(role.name);
+                                if (isRootRole) {
+                                    // Root role - add first-level composite children
+                                    for (const child of role.children) {
+                                        const childFull = this.rolesHierarchy.find(r => r.name === child.name);
+                                        if (childFull?.composite && childFull?.children?.length > 0) {
+                                            compositeRoles.push(childFull);
+                                        }
+                                    }
+                                } else {
+                                    compositeRoles.push(role);
+                                }
+                            }
+                        }
+
+                        // Remove duplicates
+                        const seen = new Set();
+                        return compositeRoles.filter(r => {
+                            if (seen.has(r.name)) return false;
+                            seen.add(r.name);
+                            return true;
+                        });
+                    },
+
+                    // Get granular roles for picker (simplified version for new user)
+                    getAvailableGranularRoles() {
+                        const childRoleNames = new Set();
+                        for (const role of this.rolesHierarchy) {
+                            if (role.composite && role.children) {
+                                for (const child of role.children) {
+                                    childRoleNames.add(child.name);
+                                }
+                            }
+                        }
+
+                        const granularRoles = [];
+                        const seen = new Set();
+
+                        const addGranularRole = (role) => {
+                            const roleFull = this.rolesHierarchy.find(r => r.name === role.name);
+                            if (seen.has(role.name) || (roleFull?.composite && roleFull?.children?.length > 0)) return;
+                            seen.add(role.name);
+                            granularRoles.push(role);
+                        };
+
+                        for (const role of this.rolesHierarchy) {
+                            if (role.composite && role.children) {
+                                const isRootRole = !childRoleNames.has(role.name);
+                                if (isRootRole) {
+                                    for (const child of role.children) {
+                                        const childFull = this.rolesHierarchy.find(r => r.name === child.name);
+                                        if (childFull?.composite && childFull?.children?.length > 0) {
+                                            for (const grandchild of childFull.children) {
+                                                addGranularRole(grandchild);
+                                            }
+                                        } else {
+                                            addGranularRole(child);
+                                        }
+                                    }
+                                } else {
+                                    for (const child of role.children) {
+                                        addGranularRole(child);
+                                    }
+                                }
+                            } else if (!role.composite) {
+                                addGranularRole(role);
+                            }
+                        }
+
+                        return granularRoles;
+                    },
+
+                    toggleRole(roleName) {
+                        const idx = this.selectedRoles.indexOf(roleName);
+                        if (idx > -1) {
+                            this.selectedRoles.splice(idx, 1);
+                        } else {
+                            this.selectedRoles.push(roleName);
+                        }
+                        this.errors.roles = '';
+                    },
+
+                    getRoleDisplayName(roleName) {
+                        for (const role of this.rolesHierarchy) {
+                            if (role.name === roleName) {
+                                return role.attributes?.display_name || role.name;
+                            }
+                            if (role.children) {
+                                for (const child of role.children) {
+                                    if (child.name === roleName) {
+                                        return child.attributes?.display_name || child.name;
+                                    }
+                                }
+                            }
+                        }
+                        return roleName;
+                    },
+
+                    skipRoles() {
+                        this.selectedRoles = [];
+                        this.submitForm();
+                    },
+
+                    async submitForm() {
+                        if (this.selectedRoles.length === 0 && this.step === 2) {
+                            // Allow skip - don't validate roles
+                        }
+
+                        this.submitting = true;
+                        try {
+                            // Step 1: Create user with first role (or empty array)
+                            const firstRole = this.selectedRoles.length > 0 ? this.selectedRoles[0] : null;
+                            const payload = {
+                                username: this.form.username.trim(),
+                                email: this.form.email.trim(),
+                                fullname: this.form.fullname.trim(),
+                                password: this.form.password,
+                                roles: firstRole ? [firstRole] : []
+                            };
+
+                            const res = await fetch('/api/idm/backoffice/users', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify(payload)
+                            });
+
+                            const data = await res.json();
+
+                            if (!res.ok || data.status === 'failed') {
+                                throw new Error(data.message || 'Gagal membuat user');
+                            }
+
+                            // Step 2: Assign additional roles if any
+                            const additionalRoles = this.selectedRoles.slice(1);
+                            const userId = data.providerUserId;
+
+                            for (const roleName of additionalRoles) {
+                                await fetch(`/api/idm/users/${userId}/roles/${roleName}`, {
+                                    method: 'POST'
+                                });
+                            }
+
+                            // Success!
+                            Alpine.store('toast').success(`User ${this.form.username} berhasil dibuat.`);
+
+                            // Refresh table to show new user (data from Keycloak)
+                            const parentComponent = document.querySelector('[x-data*="userGroupManager"]');
+                            if (parentComponent && parentComponent.__x) {
+                                parentComponent.__x.$data.loadUsers();
+                            }
+
+                            if (this.createAnother) {
+                                // Reset form but keep requirePasswordChange setting
+                                const keepRequirePasswordChange = this.form.requirePasswordChange;
+                                this.resetForm();
+                                this.form.requirePasswordChange = keepRequirePasswordChange;
+                            } else {
+                                // Close modal
+                                document.getElementById('createUserModal').close();
+                                this.resetForm();
+                            }
+
+                        } catch (e) {
+                            Alpine.store('toast').error(e.message);
+                        } finally {
+                            this.submitting = false;
+                        }
+                    }
+                };
             }
         </script>
     </div>

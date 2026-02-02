@@ -90,6 +90,11 @@
             <artifactId>alpinejs</artifactId>
             <version>3.14.8</version>
         </dependency>
+        <!-- Spring Validation for Bean Validation API -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-validation</artifactId>
+        </dependency>
     </dependencies>
 
     <build>
