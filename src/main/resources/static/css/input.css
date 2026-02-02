@@ -12,20 +12,20 @@
     html {
         @apply scroll-smooth;
     }
-    
+
     body {
         @apply font-sans antialiased;
     }
-    
+
     /* Scrollbar styling */
     ::-webkit-scrollbar {
         @apply w-2 h-2;
     }
-    
+
     ::-webkit-scrollbar-track {
         @apply bg-base-200 rounded-lg;
     }
-    
+
     ::-webkit-scrollbar-thumb {
         @apply bg-base-300 rounded-lg hover:bg-base-content/30;
     }
@@ -35,46 +35,101 @@
    CUSTOM COMPONENT STYLES
    ============================================ */
 @layer components {
-    /* Sidebar link styles */
+
+    /* ========== SIDEBAR ========== */
     .sidebar-link {
         @apply flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200;
         @apply hover:bg-primary/10 hover:text-primary;
     }
-    
+
     .sidebar-link.active {
         @apply bg-primary text-primary-content shadow-lg;
     }
-    
+
+    /* ========== AVATAR ========== */
+    /* Reusable avatar with primary gradient */
+    .avatar-gradient {
+        @apply bg-gradient-to-br from-primary to-primary/70 text-primary-content;
+    }
+
+    /* ========== ACTION BUTTONS ========== */
+    /* Base action button */
+    .action-btn {
+        @apply btn btn-ghost btn-xs btn-circle transition-all duration-200;
+    }
+
+    /* Action button variants */
+    .action-btn-view {
+        @apply action-btn hover:bg-info/20 hover:text-info;
+    }
+
+    .action-btn-edit {
+        @apply action-btn hover:bg-primary/20 hover:text-primary;
+    }
+
+    .action-btn-delete {
+        @apply action-btn hover:bg-error/20 hover:text-error;
+    }
+
+    /* ========== CARDS ========== */
+    /* Standard card with border and shadow */
+    .card-standard {
+        @apply card bg-base-100 shadow-lg border border-base-300/50;
+    }
+
     /* Stat card */
     .stat-card {
         @apply bg-base-100 rounded-2xl p-6 shadow-sm hover:shadow-xl transition-all duration-300;
         @apply border border-base-300/50 backdrop-blur-sm;
     }
-    
+
     /* Card hover effect */
     .card-hover {
         @apply transition-all duration-300 hover:shadow-xl hover:-translate-y-1;
     }
-    
+
+    /* ========== BUTTONS ========== */
+    /* Primary button with shadow */
+    .btn-primary-shadow {
+        @apply btn btn-primary shadow-lg shadow-primary/30 hover:shadow-xl hover:shadow-primary/40 transition-all duration-200;
+    }
+
     /* Primary gradient background */
     .bg-primary-gradient {
         @apply bg-gradient-to-br from-primary to-primary/70;
     }
-    
-    /* Primary shadow */
-    .shadow-primary-lg {
-        box-shadow: 0 10px 15px -3px rgba(234, 88, 12, 0.3), 0 4px 6px -4px rgba(234, 88, 12, 0.3);
+
+    /* ========== FEATURE CARDS (Landing Page) ========== */
+    /* Note: Add 'group' class directly to the element alongside feature-card */
+    .feature-card {
+        @apply bg-base-200 rounded-2xl p-8 hover:bg-primary hover:text-primary-content transition-all duration-300;
     }
-    
-    /* Icon container */
+
+    .feature-card-icon {
+        @apply w-14 h-14 rounded-2xl bg-primary/10 group-hover:bg-primary-content/20 flex items-center justify-center mb-6 transition-colors;
+    }
+
+    .feature-card-icon svg {
+        @apply w-7 h-7 text-primary group-hover:text-primary-content;
+    }
+
+    .feature-card-title {
+        @apply text-xl font-bold mb-3;
+    }
+
+    .feature-card-desc {
+        @apply text-base-content/60 group-hover:text-primary-content/80;
+    }
+
+    /* ========== ICON CONTAINERS ========== */
     .icon-container {
         @apply w-12 h-12 rounded-xl flex items-center justify-center;
     }
-    
+
     .icon-container-sm {
         @apply w-10 h-10 rounded-lg flex items-center justify-center;
     }
-    
+
     .icon-container-lg {
         @apply w-14 h-14 rounded-2xl flex items-center justify-center;
     }
@@ -84,57 +139,37 @@
    CUSTOM UTILITIES
    ============================================ */
 @layer utilities {
+
     /* Text balance for headings */
     .text-balance {
         text-wrap: balance;
     }
-    
+
     /* Backdrop blur for glass effect */
     .glass-effect {
         @apply backdrop-blur-xl bg-base-100/80;
     }
-    
+
     /* Animation delay utilities */
     .animation-delay-100 {
         animation-delay: 100ms;
     }
-    
+
     .animation-delay-200 {
         animation-delay: 200ms;
     }
-    
+
     .animation-delay-300 {
         animation-delay: 300ms;
     }
-    
+
     /* Hide scrollbar but allow scroll */
     .scrollbar-hide {
         -ms-overflow-style: none;
         scrollbar-width: none;
     }
-    
+
     .scrollbar-hide::-webkit-scrollbar {
         display: none;
     }
-}
-
-/* ============================================
-   CUSTOM OVERRIDES FOR ORANGE THEME
-   ============================================ */
-
-/* Orange primary gradient helpers */
-.from-primary {
-    --tw-gradient-from: oklch(var(--p)) !important;
-}
-
-.to-primary\/70 {
-    --tw-gradient-to: oklch(var(--p) / 0.7) !important;
-}
-
-.from-primary\/20 {
-    --tw-gradient-from: oklch(var(--p) / 0.2) !important;
-}
-
-.to-primary\/5 {
-    --tw-gradient-to: oklch(var(--p) / 0.05) !important;
 }

@@ -40,13 +40,10 @@ public class Beans {
     @Value("${keycloak.client-secret}")
     private String clientSecret;
 
-    private final UserDTO userDTO;
-
-    public Beans(JwtDecoder jwtDecoder, UsersRepository usersRepository, HttpServletRequest session, UserDTO userDTO) {
+    public Beans(JwtDecoder jwtDecoder, UsersRepository usersRepository, HttpServletRequest session) {
         this.jwtDecoder = jwtDecoder;
         this.usersRepository = usersRepository;
         this.session = session;
-        this.userDTO = userDTO;
     }
 
     @Bean
@@ -99,8 +96,8 @@ public class Beans {
     // management
 
     @Bean
-    public AuditorAware<String> auditorProvider() {
-        return new AuditorAwareImpl(this.userDTO);
+    public AuditorAware<String> auditorProvider(UserDTO userDTO) {
+        return new AuditorAwareImpl(userDTO);
     }
 
 }

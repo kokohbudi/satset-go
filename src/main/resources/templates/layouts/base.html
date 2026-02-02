@@ -1,8 +1,9 @@
 <!DOCTYPE html>
 <html lang="id" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
-    xmlns:sec="http://www.thymeleaf.org/extras/spring-security" x-data="{ 
-        sidebarOpen: window.innerWidth >= 1024 ? (localStorage.getItem('sidebarOpen') === 'true' ?? true) : false 
-    }" x-init="$watch('sidebarOpen', val => localStorage.setItem('sidebarOpen', val))">
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security" x-data="{
+        sidebarOpen: window.innerWidth >= 1024 ? (localStorage.getItem('sidebarOpen') === 'true' || localStorage.getItem('sidebarOpen') === null) : false 
+    }" x-init="$watch('sidebarOpen', val => localStorage.setItem('sidebarOpen', val))"
+      xmlns:x-transition="http://www.w3.org/1999/xhtml">
 
 <head>
     <meta charset="UTF-8">

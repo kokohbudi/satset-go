@@ -18,7 +18,7 @@ import java.util.stream.Collectors;
  * Handles validation errors and business exceptions.
  */
 @Slf4j
-@RestControllerAdvice
+@RestControllerAdvice(annotations = org.springframework.web.bind.annotation.RestController.class)
 public class GlobalExceptionHandler {
 
     /**
