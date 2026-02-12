@@ -49,3 +49,7 @@ node/
 /HELP.md
 /config/application-secret.yml
 /src/main/resources/static/css/output.css
+/config/keycloak/realm-export.json
+/logs/omnip-services-2026-02-02-1.log.gz
+/.env
+/*.jfr

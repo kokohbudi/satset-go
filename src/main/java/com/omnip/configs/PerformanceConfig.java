@@ -64,7 +64,7 @@ public class PerformanceConfig {
         /**
          * Standard cache manager untuk data yang jarang berubah.
          * TTL: 30 menit, Max size: 2000 entries.
-         * Used for: operators, vouchers, prices
+         * Used for: operators, vouchers, prices, categories, products, denoms
          */
         @Bean
         public CacheManager standardCacheManager() {
@@ -72,7 +72,10 @@ public class PerformanceConfig {
                                 "operators",
                                 "vouchers",
                                 "purchasePrices",
-                                "sellPrices");
+                                "sellPrices",
+                                "categories",
+                                "products",
+                                "denoms");
                 cacheManager.setCaffeine(Caffeine.newBuilder()
                                 .expireAfterWrite(30, TimeUnit.MINUTES)
                                 .maximumSize(2000)
