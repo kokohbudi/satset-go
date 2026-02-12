@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html layout:decorate="~{layouts/base}" xmlns:th="http://www.thymeleaf.org"
+    xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+    xmlns:x-transition="http://www.w3.org/1999/xhtml">
+
+<head>
+    <title>Katalog Produk</title>
+</head>
+
+<body>
+    <div layout:fragment="content" x-data="productCatalog()">
+
+        <!-- Page Header -->
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+            <div>
+                <h1 class="text-2xl font-bold text-base-content mb-2">Katalog Produk</h1>
+                <p class="text-base-content/60">Jelajahi kategori, produk, dan denominasi</p>
+            </div>
+        </div>
+
+        <!-- Breadcrumb Navigation -->
+        <div class="text-sm breadcrumbs mb-6" x-show="currentView !== 'categories'">
+            <ul>
+                <li><a @click="showCategories()" class="cursor-pointer text-primary">Kategori</a></li>
+                <li x-show="currentView === 'products' || currentView === 'denoms'">
+                    <a @click="currentView === 'denoms' ? showProducts(selectedCategory) : null"
+                        class="cursor-pointer"
+                        :class="currentView === 'denoms' ? 'text-primary' : ''"
+                        x-text="selectedCategory?.name"></a>
+                </li>
+                <li x-show="currentView === 'denoms'">
+                    <span x-text="selectedProduct?.name"></span>
+                </li>
+            </ul>
+        </div>
+
+        <!-- Search Filter -->
+        <div class="card bg-base-100 shadow-sm border border-base-300/50 mb-6">
+            <div class="card-body py-4">
+                <div class="flex-1">
+                    <label class="input input-bordered flex items-center gap-2 focus-within:input-primary">
+                        <svg class="w-4 h-4 text-base-content/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                        <input type="search" x-model="searchQuery" placeholder="Cari..."
+                            class="grow bg-transparent outline-none" />
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== CATEGORIES VIEW ==================== -->
+        <div x-show="currentView === 'categories'" x-transition:enter="transition ease-out duration-200"
+            x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100">
+
+            <div class="card bg-base-100 shadow-lg border border-base-300/50 overflow-visible">
+                <div class="overflow-x-auto overflow-y-visible">
+                    <table class="table">
+                        <thead class="bg-base-200/50">
+                            <tr>
+                                <th>Kategori</th>
+                                <th>Tipe</th>
+                                <th>Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Loading State -->
+                            <template x-if="loading">
+                                <tr>
+                                    <td colspan="3" class="text-center py-8">
+                                        <span class="loading loading-spinner loading-lg text-primary"></span>
+                                    </td>
+                                </tr>
+                            </template>
+
+                            <!-- Category Rows -->
+                            <template x-for="cat in filteredItems" :key="cat.id">
+                                <tr class="hover:bg-base-200/50 cursor-pointer" @click="showProducts(cat)">
+                                    <td>
+                                        <div class="flex items-center gap-3">
+                                            <div class="avatar placeholder">
+                                                <div class="bg-gradient-to-br from-primary to-primary/70 text-primary-content rounded-full w-10">
+                                                    <span class="text-sm font-bold"
+                                                        x-text="cat.name.substring(0, 2).toUpperCase()"></span>
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <div class="font-bold" x-text="cat.name"></div>
+                                                <div class="text-sm text-base-content/60" x-text="cat.code"></div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="badge"
+                                            :class="cat.categoryType === 'PREPAID' ? 'badge-success' : 'badge-warning'"
+                                            x-text="cat.categoryType === 'PREPAID' ? 'Prabayar' : 'Pascabayar'"></span>
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-ghost btn-sm gap-1 text-primary">
+                                            Lihat Produk
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                                            </svg>
+                                        </button>
+                                    </td>
+                                </tr>
+                            </template>
+
+                            <!-- Empty State -->
+                            <template x-if="!loading && filteredItems.length === 0">
+                                <tr>
+                                    <td colspan="3" class="text-center py-16">
+                                        <div class="flex flex-col items-center">
+                                            <div class="w-16 h-16 rounded-full bg-base-200 flex items-center justify-center mb-4">
+                                                <svg class="w-8 h-8 text-base-content/30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                        d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                                                </svg>
+                                            </div>
+                                            <p class="text-base-content/60">Tidak ada kategori ditemukan</p>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </template>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== PRODUCTS VIEW ==================== -->
+        <div x-show="currentView === 'products'" x-transition:enter="transition ease-out duration-200"
+            x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100">
+
+            <div class="card bg-base-100 shadow-lg border border-base-300/50 overflow-visible">
+                <div class="overflow-x-auto overflow-y-visible">
+                    <table class="table">
+                        <thead class="bg-base-200/50">
+                            <tr>
+                                <th>Produk</th>
+                                <th>Provider</th>
+                                <th>Deskripsi</th>
+                                <th>Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Loading State -->
+                            <template x-if="loading">
+                                <tr>
+                                    <td colspan="4" class="text-center py-8">
+                                        <span class="loading loading-spinner loading-lg text-primary"></span>
+                                    </td>
+                                </tr>
+                            </template>
+
+                            <!-- Product Rows -->
+                            <template x-for="prod in filteredItems" :key="prod.id">
+                                <tr class="hover:bg-base-200/50 cursor-pointer" @click="showDenoms(prod)">
+                                    <td>
+                                        <div class="flex items-center gap-3">
+                                            <div class="avatar placeholder">
+                                                <div class="bg-gradient-to-br from-secondary to-secondary/70 text-secondary-content rounded-full w-10">
+                                                    <span class="text-sm font-bold"
+                                                        x-text="prod.name.substring(0, 2).toUpperCase()"></span>
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <div class="font-bold" x-text="prod.name"></div>
+                                                <div class="text-sm text-base-content/60" x-text="prod.code"></div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="badge badge-outline" x-text="prod.providerName"></span>
+                                    </td>
+                                    <td>
+                                        <span class="text-sm text-base-content/70" x-text="prod.description || '-'"></span>
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-ghost btn-sm gap-1 text-primary">
+                                            Lihat Denom
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                                            </svg>
+                                        </button>
+                                    </td>
+                                </tr>
+                            </template>
+
+                            <!-- Empty State -->
+                            <template x-if="!loading && filteredItems.length === 0">
+                                <tr>
+                                    <td colspan="4" class="text-center py-16">
+                                        <div class="flex flex-col items-center">
+                                            <div class="w-16 h-16 rounded-full bg-base-200 flex items-center justify-center mb-4">
+                                                <svg class="w-8 h-8 text-base-content/30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                        d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                                                </svg>
+                                            </div>
+                                            <p class="text-base-content/60">Tidak ada produk dalam kategori ini</p>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </template>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== DENOMS VIEW ==================== -->
+        <div x-show="currentView === 'denoms'" x-transition:enter="transition ease-out duration-200"
+            x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100">
+
+            <div class="card bg-base-100 shadow-lg border border-base-300/50 overflow-visible">
+                <div class="overflow-x-auto overflow-y-visible">
+                    <table class="table">
+                        <thead class="bg-base-200/50">
+                            <tr>
+                                <th>Denominasi</th>
+                                <th>Tipe</th>
+                                <th>Nominal</th>
+                                <th>Harga Jual</th>
+                                <th>Admin Fee</th>
+                                <th>Detail</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Loading State -->
+                            <template x-if="loading">
+                                <tr>
+                                    <td colspan="6" class="text-center py-8">
+                                        <span class="loading loading-spinner loading-lg text-primary"></span>
+                                    </td>
+                                </tr>
+                            </template>
+
+                            <!-- Denom Rows -->
+                            <template x-for="denom in filteredItems" :key="denom.id">
+                                <tr class="hover:bg-base-200/50">
+                                    <td>
+                                        <div>
+                                            <div class="font-bold" x-text="denom.name"></div>
+                                            <div class="text-sm text-base-content/60" x-text="denom.code"></div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="badge badge-sm"
+                                            :class="denom.denomType === 'FIXED_DENOM' ? 'badge-info' : 'badge-accent'"
+                                            x-text="denom.denomType === 'FIXED_DENOM' ? 'Fixed' : 'Open Amount'"></span>
+                                    </td>
+                                    <td>
+                                        <span class="font-medium" x-text="formatCurrency(denom.nominal)"></span>
+                                    </td>
+                                    <td>
+                                        <span class="font-bold text-primary" x-text="formatCurrency(denom.price)"></span>
+                                    </td>
+                                    <td>
+                                        <span x-text="formatCurrency(denom.adminFee)"></span>
+                                    </td>
+                                    <td>
+                                        <div class="flex flex-col gap-1 text-xs text-base-content/60">
+                                            <span x-show="denom.validityDays" x-text="denom.validityDays + ' hari'"></span>
+                                            <span x-show="denom.quotaMb" x-text="formatQuota(denom.quotaMb)"></span>
+                                            <span x-show="denom.requiresInquiry" class="badge badge-warning badge-xs">Perlu Inquiry</span>
+                                            <span x-show="denom.minAmount && denom.maxAmount"
+                                                x-text="formatCurrency(denom.minAmount) + ' - ' + formatCurrency(denom.maxAmount)"></span>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </template>
+
+                            <!-- Empty State -->
+                            <template x-if="!loading && filteredItems.length === 0">
+                                <tr>
+                                    <td colspan="6" class="text-center py-16">
+                                        <div class="flex flex-col items-center">
+                                            <div class="w-16 h-16 rounded-full bg-base-200 flex items-center justify-center mb-4">
+                                                <svg class="w-8 h-8 text-base-content/30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                        d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                                                </svg>
+                                            </div>
+                                            <p class="text-base-content/60">Tidak ada denominasi untuk produk ini</p>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </template>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <div layout:fragment="scripts">
+        <script>
+            function productCatalog() {
+                return {
+                    currentView: 'categories',
+                    loading: false,
+                    searchQuery: '',
+
+                    categories: [],
+                    products: [],
+                    denoms: [],
+
+                    selectedCategory: null,
+                    selectedProduct: null,
+
+                    get filteredItems() {
+                        let items = [];
+                        if (this.currentView === 'categories') items = this.categories;
+                        else if (this.currentView === 'products') items = this.products;
+                        else if (this.currentView === 'denoms') items = this.denoms;
+
+                        if (!this.searchQuery) return items;
+
+                        const q = this.searchQuery.toLowerCase();
+                        return items.filter(item => {
+                            const name = (item.name || '').toLowerCase();
+                            const code = (item.code || '').toLowerCase();
+                            const provider = (item.providerName || '').toLowerCase();
+                            return name.includes(q) || code.includes(q) || provider.includes(q);
+                        });
+                    },
+
+                    init() {
+                        this.loadCategories();
+                    },
+
+                    async loadCategories() {
+                        this.loading = true;
+                        try {
+                            const res = await fetch('/api/categories');
+                            if (res.ok) {
+                                this.categories = await res.json();
+                            }
+                        } catch (e) {
+                            console.error('Failed to load categories:', e);
+                        }
+                        this.loading = false;
+                    },
+
+                    async showProducts(category) {
+                        this.selectedCategory = category;
+                        this.currentView = 'products';
+                        this.searchQuery = '';
+                        this.loading = true;
+                        try {
+                            const res = await fetch(`/api/categories/${category.code}/products`);
+                            if (res.ok) {
+                                this.products = await res.json();
+                            }
+                        } catch (e) {
+                            console.error('Failed to load products:', e);
+                        }
+                        this.loading = false;
+                    },
+
+                    async showDenoms(product) {
+                        this.selectedProduct = product;
+                        this.currentView = 'denoms';
+                        this.searchQuery = '';
+                        this.loading = true;
+                        try {
+                            const res = await fetch(`/api/products/${product.code}/denoms`);
+                            if (res.ok) {
+                                this.denoms = await res.json();
+                            }
+                        } catch (e) {
+                            console.error('Failed to load denoms:', e);
+                        }
+                        this.loading = false;
+                    },
+
+                    showCategories() {
+                        this.currentView = 'categories';
+                        this.selectedCategory = null;
+                        this.selectedProduct = null;
+                        this.searchQuery = '';
+                    },
+
+                    formatCurrency(amount) {
+                        if (amount == null) return '-';
+                        return new Intl.NumberFormat('id-ID', {
+                            style: 'currency',
+                            currency: 'IDR',
+                            minimumFractionDigits: 0,
+                            maximumFractionDigits: 0
+                        }).format(amount);
+                    },
+
+                    formatQuota(mb) {
+                        if (!mb) return '';
+                        if (mb >= 1024) return (mb / 1024).toFixed(1).replace('.0', '') + ' GB';
+                        return mb + ' MB';
+                    }
+                }
+            }
+        </script>
+    </div>
+</body>
+
+</html>

@@ -129,7 +129,7 @@
                                                 x-transition:leave="transition ease-in duration-75"
                                                 x-transition:leave-start="opacity-100 scale-100"
                                                 x-transition:leave-end="opacity-0 scale-95"
-                                                class="fixed z-[9999] menu p-2 shadow-xl bg-base-100 rounded-box w-72 border border-base-300 max-h-80 overflow-y-auto">
+                                                class="fixed z-[9999] p-2 shadow-xl bg-base-100 rounded-box w-80 border border-base-300 max-h-[400px] overflow-y-scroll overflow-x-hidden">
 
                                                 <!-- Section: Composite Roles -->
                                                 <div class="menu-title px-2 py-1">
@@ -150,7 +150,7 @@
                                                                 <span
                                                                     x-text="role.attributes?.display_name || role.name"></span>
                                                             </span>
-                                                            <span class="text-xs text-base-content/50 ml-6"
+                                                            <span class="text-xs text-base-content/50 ml-6 break-words"
                                                                 x-text="'→ ' + (role.children || []).map(c => c.attributes?.display_name || c.name).join(', ')"></span>
                                                         </a>
                                                     </div>
@@ -460,7 +460,7 @@
                                 <div class="flex flex-col gap-0.5">
                                     <span class="font-medium"
                                         x-text="role.attributes?.display_name || role.name"></span>
-                                    <span class="text-xs text-base-content/50"
+                                    <span class="text-xs text-base-content/50 break-words"
                                         x-text="'→ ' + (role.children || []).slice(0,3).map(c => c.attributes?.display_name || c.name).join(', ') + (role.children?.length > 3 ? '...' : '')">
                                     </span>
                                 </div>
