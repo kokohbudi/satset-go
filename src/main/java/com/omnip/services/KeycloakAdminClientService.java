@@ -14,6 +14,8 @@ import org.keycloak.representations.idm.CredentialRepresentation;
 import org.keycloak.representations.idm.GroupRepresentation;
 import org.keycloak.representations.idm.RoleRepresentation;
 import org.keycloak.representations.idm.UserRepresentation;
+import org.keycloak.representations.idm.OrganizationRepresentation;
+import org.keycloak.representations.idm.OrganizationDomainRepresentation;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
@@ -461,6 +463,47 @@ public class KeycloakAdminClientService {
         }
 
         /**
+         * Assign client role to user.
+         *
+         * @param userId   ID of the user
+         * @param roleName Name of the client role to assign
+         */
+        public void assignClientRoleToUser(String userId, String roleName) throws BusinessException {
+                log.info("assignClientRoleToUser: looking for clientId='{}' in realm='{}'", this.clientId, this.realm);
+                var foundClients = this.keycloak
+                                .realm(this.realm)
+                                .clients()
+                                .findByClientId(this.clientId);
+                log.info("assignClientRoleToUser: findByClientId returned {} clients: {}",
+                                foundClients.size(),
+                                foundClients.stream().map(c -> c.getClientId() + " (id=" + c.getId() + ")").toList());
+
+                ClientResource clientResource = foundClients
+                                .stream()
+                                .findFirst()
+                                .map(client -> this.keycloak
+                                                .realm(this.realm)
+                                                .clients()
+                                                .get(client.getId()))
+                                .orElseThrow(() -> new BusinessException("Client not found: " + this.clientId));
+
+                RoleRepresentation role = clientResource
+                                .roles()
+                                .get(roleName)
+                                .toRepresentation();
+
+                this.keycloak
+                                .realm(this.realm)
+                                .users()
+                                .get(userId)
+                                .roles()
+                                .clientLevel(clientResource.toRepresentation().getId())
+                                .add(List.of(role));
+
+                log.info("Client role '{}' assigned to user '{}'", roleName, userId);
+        }
+
+        /**
          * Remove realm role from user.
          *
          * @param userId   ID of the user
@@ -881,5 +924,130 @@ public class KeycloakAdminClientService {
                 return dtoMap.values().stream()
                                 .filter(dto -> !childRoleNames.contains(dto.getName()))
                                 .toList();
+        }
+
+        // ==================== Organization API ====================
+
+        /**
+         * Membuat Keycloak Organization baru untuk sebuah toko.
+         *
+         * @param orgName Nama organisation (biasanya nama toko)
+         * @return Organization ID dari Keycloak
+         * @throws BusinessException Jika gagal membuat organization
+         */
+        public String createOrganization(String orgName) throws BusinessException {
+                OrganizationRepresentation orgRep = new OrganizationRepresentation();
+                orgRep.setName(orgName);
+                orgRep.setEnabled(true);
+
+                // Slug for alias and domain (no spaces allowed in alias)
+                String slug = orgName.toLowerCase().replaceAll("[^a-z0-9]", "-").replaceAll("-+", "-");
+                orgRep.setAlias(slug);
+
+                // Keycloak requires at least one domain for Organizations
+                OrganizationDomainRepresentation domain = new OrganizationDomainRepresentation();
+                domain.setName(slug + ".omnip.local");
+                domain.setVerified(false);
+                orgRep.addDomain(domain);
+
+                Response resp = this.keycloak
+                                .realm(this.realm)
+                                .organizations()
+                                .create(orgRep);
+
+                if (resp.getStatus() != 201) {
+                        String body = resp.readEntity(String.class);
+                        log.error("Failed to create organization '{}': status={} body={}", orgName, resp.getStatus(),
+                                        body);
+                        throw new BusinessException("Failed to create Keycloak organization '" + orgName
+                                        + "': HTTP " + resp.getStatus() + " - " + body);
+                }
+
+                String orgId = resp.getLocation()
+                                .getPath()
+                                .replaceAll(".*/([^/]+)$", "$1");
+                log.info("Organization '{}' created with id='{}'", orgName, orgId);
+                return orgId;
+        }
+
+        /**
+         * Menambahkan user sebagai member dari suatu Keycloak Organization.
+         *
+         * @param orgId  Keycloak Organization ID
+         * @param userId Keycloak User ID
+         * @throws BusinessException Jika gagal menambahkan member
+         */
+        public void addMemberToOrganization(String orgId, String userId) throws BusinessException {
+                try {
+                        log.info("Attempting to add user '{}' as member to organization '{}'", userId, orgId);
+                        Response resp = this.keycloak
+                                        .realm(this.realm)
+                                        .organizations()
+                                        .get(orgId)
+                                        .members()
+                                        .addMember(userId);
+                        if (resp != null) {
+                                log.info("addMember response: status={}", resp.getStatus());
+                                if (resp.getStatus() >= 400) {
+                                        String body = resp.readEntity(String.class);
+                                        log.error("Failed to add member: status={} body={}", resp.getStatus(), body);
+                                        throw new BusinessException("Failed to add member to organization: " + body);
+                                }
+                        }
+                        log.info("User '{}' added as member to organization '{}'", userId, orgId);
+                } catch (BusinessException e) {
+                        throw e;
+                } catch (Exception e) {
+                        log.error("Failed to add user '{}' to organization '{}'", userId, orgId, e);
+                        throw new BusinessException("Failed to add member to Keycloak organization: " + e.getMessage());
+                }
+        }
+
+        /**
+         * Membuat Reseller User di Keycloak.
+         * User TIDAK diberikan password — Keycloak mengirim email set-password via
+         * requiredActions = [UPDATE_PASSWORD].
+         *
+         * @param username      Username (biasanya nama pendek / toko)
+         * @param fullname      Nama lengkap reseller
+         * @param email         Email reseller (akan digunakan sebagai login)
+         * @param requestedRole Realm role yang akan di-assign (nullable)
+         * @return Keycloak User ID dari reseller yang baru dibuat
+         * @throws BusinessException Jika gagal membuat user
+         */
+        public String createResellerUser(String username, String fullname, String email,
+                        String requestedRole) throws BusinessException {
+                UserRepresentation userRep = this.keycloakAdminClientBusiness
+                                .prepareResellerUserRepresentation(username, fullname, email);
+
+                Response resp = this.keycloak.realm(this.realm).users().create(userRep);
+                String createdUserId = this.keycloakAdminClientBusiness.extractCreatedUserId(resp);
+
+                // Send email action so user can set their own password
+                // Wrapped in try-catch: if Keycloak SMTP is not configured, user is still
+                // created
+                try {
+                        this.keycloak.realm(this.realm)
+                                        .users()
+                                        .get(createdUserId)
+                                        .executeActionsEmail(List.of("UPDATE_PASSWORD"));
+                } catch (Exception e) {
+                        log.warn("Failed to send UPDATE_PASSWORD email for user '{}'. " +
+                                        "SMTP might not be configured in Keycloak. User was still created.", email, e);
+                }
+
+                if (requestedRole != null && !requestedRole.isEmpty()) {
+                        assignRoleToUser(createdUserId, requestedRole);
+                }
+
+                log.info("Reseller user '{}' created: id='{}', role='{}'", email, createdUserId, requestedRole);
+                return createdUserId;
+        }
+
+        public boolean userExistsByEmail(String email) {
+                List<UserRepresentation> users = this.keycloak.realm(this.realm)
+                                .users()
+                                .searchByEmail(email, true); // exact match
+                return users != null && !users.isEmpty();
         }
 }

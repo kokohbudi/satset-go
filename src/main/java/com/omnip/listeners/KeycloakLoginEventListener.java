@@ -72,9 +72,16 @@ public class KeycloakLoginEventListener {
                     roles = this.extractRolesFromJwt(jwt);
                 } else {
                     roles = this.extractRolesFromJwt(jwt);
-                    Map returnMap = this.registrationService.registerNewStore(email, fullName, roles,
-                            OmniConstants.REGISTRATION_CHANNEL_KEYCLOAK, providerUserId);
-                    user = (Users) returnMap.get("user");
+                    Users newUser = new Users();
+                    newUser.setEmail(email);
+                    newUser.setUsername(username);
+                    newUser.setFullname(fullName);
+                    newUser.setRoles(roles);
+                    newUser.setRegistrationChannel(OmniConstants.REGISTRATION_CHANNEL_KEYCLOAK);
+                    newUser.setProviderUserId(providerUserId);
+                    newUser.setActive(true);
+                    newUser.setDeleted(false);
+                    user = this.userManagementService.createNewUser(newUser);
                 }
                 ServletRequestAttributes attrs = (ServletRequestAttributes) org.springframework.web.context.request.RequestContextHolder
                         .getRequestAttributes();

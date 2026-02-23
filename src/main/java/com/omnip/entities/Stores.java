@@ -9,7 +9,7 @@ import org.springframework.data.annotation.LastModifiedBy;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
-import java.util.Date;
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
@@ -20,24 +20,38 @@ public class Stores {
     @UuidGenerator
     @Column(name = "id", updatable = false, nullable = false, columnDefinition = "uuid")
     private UUID id;
+
     private String name;
     private String referralId;
-    @CreatedDate
-    private Date createdDate;
-    @LastModifiedDate
-    private Date updatedDate;
-    private boolean active;
-    @LastModifiedBy
-    private String updatedBy;
     private String email;
+    private String phone;
+
+    /**
+     * FK to Keycloak Organization ID — used for multi-tenancy organization
+     * isolation.
+     */
+    @Column(name = "keycloak_organization_id")
+    private String keycloakOrganizationId;
+
+    private boolean active;
     private boolean deleted;
+
+    @CreatedDate
+    private LocalDateTime createdDate;
+
+    @LastModifiedDate
+    private LocalDateTime updatedDate;
+
     @CreatedBy
     private String createdBy;
+
+    @LastModifiedBy
+    private String updatedBy;
+
     @ManyToOne
     @JoinColumn(name = "upline_id")
     private Stores upline;
+
     @Version
     private Long version;
-
-
 }

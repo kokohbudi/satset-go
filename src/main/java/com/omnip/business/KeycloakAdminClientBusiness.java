@@ -25,11 +25,11 @@ public class KeycloakAdminClientBusiness {
      */
     public UserRepresentation prepareUserRepresentation(String username, String fullname, String email) {
         UserRepresentation userRep = new UserRepresentation();
-        userRep.setUsername(email);  // Business rule: username = email
+        userRep.setUsername(email); // Business rule: username = email
         userRep.setEmail(email);
-        userRep.setEnabled(true);    // Business rule: user baru selalu aktif
+        userRep.setEnabled(true); // Business rule: user baru selalu aktif
         userRep.setFirstName(username);
-        userRep.setLastName(username);  // Business rule: first/last name sama
+        userRep.setLastName(username); // Business rule: first/last name sama
 
         return userRep;
     }
@@ -46,8 +46,8 @@ public class KeycloakAdminClientBusiness {
             Map<String, Object> error = response.readEntity(new GenericType<>() {
             });
             log.error(error.toString());
-            String errorMessage = error.get("errorMessage") != null ?
-                    error.get("errorMessage").toString() : "Error create user";
+            String errorMessage = error.get("errorMessage") != null ? error.get("errorMessage").toString()
+                    : "Error create user";
             throw new BusinessException(errorMessage);
         }
 
@@ -68,7 +68,7 @@ public class KeycloakAdminClientBusiness {
         CredentialRepresentation cred = new CredentialRepresentation();
         cred.setType(CredentialRepresentation.PASSWORD);
         cred.setValue(password);
-        cred.setTemporary(isTemporary);  // Business rule: default temporary = true
+        cred.setTemporary(isTemporary); // Business rule: default temporary = true
 
         return cred;
     }
@@ -97,7 +97,28 @@ public class KeycloakAdminClientBusiness {
         UserRepresentation userRep = new UserRepresentation();
         userRep.setEnabled(isEnabled);
 
+        return userRep;
+    }
 
+    /**
+     * Mempersiapkan representasi reseller user dengan UPDATE_PASSWORD required
+     * action.
+     * Keycloak akan mengirim email untuk user agar set password sendiri.
+     *
+     * @param username Username (biasanya email)
+     * @param fullname Nama lengkap reseller
+     * @param email    Email reseller
+     * @return UserRepresentation dengan requiredActions = [UPDATE_PASSWORD]
+     */
+    public UserRepresentation prepareResellerUserRepresentation(String username, String fullname, String email) {
+        UserRepresentation userRep = new UserRepresentation();
+        userRep.setUsername(email);
+        userRep.setEmail(email);
+        userRep.setEnabled(true);
+        userRep.setEmailVerified(true);
+        userRep.setFirstName(username);
+        userRep.setLastName(fullname);
+        userRep.setRequiredActions(List.of("UPDATE_PASSWORD"));
         return userRep;
     }
 }

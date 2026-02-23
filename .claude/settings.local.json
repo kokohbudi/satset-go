@@ -2,7 +2,39 @@
   "permissions": {
     "allow": [
       "Bash(done)",
-      "Bash(mvn compile:*)"
+      "Bash(mvn compile:*)",
+      "Bash(ls:*)",
+      "Bash(PGPASSWORD=password psql:*)",
+      "Bash(PGPASSWORD=password /opt/homebrew/opt/postgresql@17/bin/psql:*)",
+      "Bash(docker ps:*)",
+      "Bash(docker exec:*)",
+      "Bash(npm view:*)",
+      "Bash(source:*)",
+      "Skill(brainstorm)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "if echo \"$CLAUDE_TOOL_INPUT\" | grep -qE '\\.env'; then echo 'BLOCKED: Tidak boleh edit file .env - berisi secrets!' >&2; exit 1; fi"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "if echo \"$CLAUDE_FILE_PATH\" | grep -qE '\\.java$'; then cd /Users/kokohbudi/myProjects/omnip-services-3 && mvn compile -q 2>&1 | tail -20; fi"
+          }
+        ]
+      }
     ]
   }
 }

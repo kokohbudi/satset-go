@@ -1,6 +1,7 @@
 package com.omnip.configs;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -30,6 +31,9 @@ import static org.springframework.security.config.Customizer.withDefaults;
 @EnableMethodSecurity(prePostEnabled = true)
 @Slf4j
 public class SecurityConfig {
+
+    @Value("${keycloak.client-id}")
+    private String clientId;
 
     public SecurityConfig() {
     }
@@ -134,9 +138,21 @@ public class SecurityConfig {
                 }
             }
 
-            // Note: Client role extraction removed - now using realm roles only
-            // Note: Groups extraction removed - new Keycloak structure uses direct role
-            // assignment
+            // 3. Extract client roles from resource_access.<clientId>.roles
+            Object resourceAccess = jwt.getClaims().get("resource_access");
+            if (resourceAccess instanceof Map<?, ?> raMap) {
+                Object clientAccess = raMap.get(clientId);
+                if (clientAccess instanceof Map<?, ?> clientMap) {
+                    Object clientRoles = clientMap.get("roles");
+                    if (clientRoles instanceof List<?>) {
+                        ((List<?>) clientRoles).stream()
+                                .map(Object::toString)
+                                .map(r -> "ROLE_" + r)
+                                .map(SimpleGrantedAuthority::new)
+                                .forEach(auths::add);
+                    }
+                }
+            }
 
             // Log extracted authorities
             log.info("Extracted authorities from JWT: {}", auths);
@@ -168,10 +184,23 @@ public class SecurityConfig {
                         }
                     }
 
+                    // Extract client roles from resource_access.<clientId>.roles in ID token
+                    Object resourceAccess = oidcAuth.getIdToken().getClaims().get("resource_access");
+                    if (resourceAccess instanceof Map<?, ?> raMap) {
+                        Object clientAccess = raMap.get(clientId);
+                        if (clientAccess instanceof Map<?, ?> clientMap) {
+                            Object clientRoles = clientMap.get("roles");
+                            if (clientRoles instanceof List<?> clientRolesList) {
+                                clientRolesList.forEach(role -> {
+                                    String roleName = role.toString();
+                                    mappedAuthorities.add(new SimpleGrantedAuthority("ROLE_" + roleName));
+                                });
+                            }
+                        }
+                    }
+
                     // Log for debugging
                     log.info("OIDC Login - Mapped authorities: {}", mappedAuthorities);
-                    // TODO: When implementing organization feature, extend here to extract
-                    // organization-scoped roles from Keycloak Organizations or custom claims
                 }
                 mappedAuthorities.add(authority);
             });

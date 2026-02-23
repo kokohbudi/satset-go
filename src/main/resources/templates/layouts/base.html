@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <html lang="id" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
-      xmlns:sec="http://www.thymeleaf.org/extras/spring-security" x-data="{
+    xmlns:sec="http://www.thymeleaf.org/extras/spring-security" x-data="{
         sidebarOpen: window.innerWidth >= 1024 ? (localStorage.getItem('sidebarOpen') === 'true' || localStorage.getItem('sidebarOpen') === null) : false 
     }" x-init="$watch('sidebarOpen', val => localStorage.setItem('sidebarOpen', val))"
-      xmlns:x-transition="http://www.w3.org/1999/xhtml">
+    xmlns:x-transition="http://www.w3.org/1999/xhtml">
 
 <head>
     <meta charset="UTF-8">
@@ -225,6 +225,12 @@
         </div>
     </div>
 
+    <!-- Flash Message → Toast Bridge (Server-side flash attributes trigger Alpine toast) -->
+    <div th:if="${toastMessage != null}" x-data
+        x-init="$nextTick(() => $store.toast[$el.dataset.type || 'success']($el.dataset.msg))"
+        th:data-msg="${toastMessage}" th:data-type="${toastType}" class="hidden">
+    </div>
+
     <!-- Confirm Dialog Store -->
     <div x-data x-init="
         Alpine.store('confirm', {
@@ -234,7 +240,7 @@
             confirmText: 'Ya',
             cancelText: 'Batal',
             confirmClass: 'btn-error',
-            resolve: null,
+            resolve: null,p
             
             async open(options = {}) {
                 this.title = options.title || 'Konfirmasi';

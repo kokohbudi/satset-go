@@ -1,8 +1,8 @@
 # Julia.md - SatSetGo Product Intelligence
 
 > **Owner**: Julia (Senior BA & Product Strategist)
-> **Last Updated**: 2026-02-12
-> **Sprint**: Week 2 - Purchase Prepaid
+> **Last Updated**: 2026-02-20
+> **Sprint**: Store Onboarding (Prerequisite Week 2)
 
 ---
 
@@ -32,7 +32,129 @@ Supplier (H2H) → SatSetGo (base price + margin) → Store/Reseller (markup) �
 
 ## Current Sprint/Focus
 
-### Week 2: Purchase Prepaid Flow
+### Prerequisite: Store Onboarding + Keycloak Organization
+
+**Objective**: Setiap user harus punya Store (toko) yang terdaftar sebagai Organization di Keycloak sebelum bisa bertransaksi. Dua jalur pendaftaran: self-service dan admin-created.
+
+**Why This First (Before Week 2)**:
+- Transaksi dilakukan atas nama Store, bukan User
+- Balance nanti di level Store (keputusan Julia sebelumnya)
+- Multi-user per Store perlu Organization untuk role isolation
+- Admin toko A tidak boleh lihat data toko B (multi-tenancy)
+
+**Business Requirements**:
+
+#### Path A — Self-service (Google Login / Register)
+- [ ] User login pertama kali → belum punya Store → redirect ke halaman "Daftarkan Toko"
+- [ ] Form minimal: **Nama Toko**, **No. HP** (opsional: alamat)
+- [ ] Bisa selesai dalam 30 detik — minimal friction
+- [ ] Tidak ada approval process — toko langsung aktif
+- [ ] Backend: Create Store (DB) + Create Organization (Keycloak) + Assign user ke Organization
+- [ ] Setelah onboarding selesai → redirect ke Dashboard
+
+#### Path B — Admin-created
+- [ ] Admin → User Management → "Tambah Reseller Baru"
+- [ ] Form: Username, Email, Nama Toko, Role, Upline (opsional)
+- [ ] Backend: Create User (Keycloak) + Create Store (DB) + Create Organization (Keycloak) + Assign
+- [ ] User terima email / bisa langsung login → sudah punya toko
+
+#### Keycloak Organization Sync (Bi-directional)
+- [ ] Store dibuat di app → Organization otomatis dibuat di Keycloak
+- [ ] Organization dibuat di Keycloak → bisa di-link ke Store di app
+- [ ] User di-assign ke Organization → muncul sebagai member Store
+- [ ] Store entity perlu field baru: `keycloakOrganizationId` (UUID)
+
+**Key Decisions**:
+
+| Pertanyaan | Keputusan | Rationale |
+|---|---|---|
+| Store = Organization? | **1 Store = 1 Organization** | Simplest mapping, satu toko = satu tenant |
+| Onboarding model | **Guided + Admin** | 2 jalur: reseller mandiri (form) + admin-created |
+| Approval process | **Tidak ada** | Toko langsung aktif, kurangi friction |
+| Form fields | **Minimal (2-3 field)** | Nama Toko + No. HP. Bisa dilengkapi nanti |
+| **Onboarding trigger** | **Spring Interceptor** | Lebih robust dari EventListener — handle kasus user tutup tab, cek di setiap request, flag `hasStore` di-cache di session |
+| **Password (Path B admin-created)** | **Keycloak `UPDATE_PASSWORD` required action** | User terima email set-password dari Keycloak, lebih aman, tidak perlu admin share password manual |
+
+**Technical Dependencies**:
+- [x] ~~Stores entity: tambah `keycloakOrganizationId`, `phone`, migrate `Date` → `LocalDateTime`~~ → ✅ **DONE Task 1**
+- [ ] `KeycloakAdminClientService`: tambah methods Organization API (`createOrganization`, `addMemberToOrganization`) — **API tersedia, library 26.0.8 ✅**
+- [ ] Onboarding UI: form Thymeleaf "Daftarkan Toko"
+- [ ] **Buat `StoreOnboardingInterceptor`** (Spring `HandlerInterceptor`): intersep setiap request, cek apakah user punya Store. Jika tidak → redirect ke `/onboarding`. Cache flag `hasStore` di `HttpSession` untuk efisiensi
+- [ ] Modify `KeycloakLoginEventListener`: **hapus** logika auto-create Store (serahkan ke Interceptor)
+- [ ] Path B (Admin): saat create user via admin, set Keycloak required action `UPDATE_PASSWORD` agar user terima email set-password
+
+**Risks**:
+
+| Risk | Impact | Mitigation |
+|---|---|---|
+| ~~Keycloak Organization API belum ada di admin-client lib~~ | ~~Blocking~~ | ✅ **CLOSED** — `OrganizationsResource` tersedia di 26.0.8 |
+| Existing users tanpa Organization | Data inconsistency | Migration script: assign existing Stores ke Organizations |
+| User login tapi close tab sebelum isi form toko | Orphan user | ✅ **MITIGATED** — Interceptor akan redirect ulang saat request berikutnya |
+| Interceptor overhead | Minor performance | Cache `hasStore` flag di session — hit DB hanya sekali per session |
+
+---
+
+### Admin: Organization Management Screen
+
+**Objective**: Admin bisa melihat, mengelola, dan memonitor semua organisasi/toko dalam satu tabel. CRUD org dari sisi admin backoffice.
+
+**Business Requirements**:
+
+#### Tabel List Organisasi
+- [ ] Tampilkan semua organisasi dari **Keycloak Organizations API** (primary source)
+- [ ] Enrichment data bisnis (phone, email, upline) dari DB `Stores` via `keycloakOrganizationId` join
+- [ ] Kolom: Nama Org, Email, Phone, Upline, Status (enabled/disabled), Aksi
+- [ ] Search by nama organisasi
+
+#### Enable/Disable Organisasi
+- [ ] Toggle `enabled` attribute di Keycloak Organization
+- [ ] Konfirmasi dialog sebelum disable
+- [ ] Reflect status change langsung di tabel
+
+#### Lihat Members
+- [ ] Modal menampilkan semua member dari KC Organization
+- [ ] Tampilkan: username/email member
+- [ ] Data dari Keycloak Organization Members API
+
+#### Tambah Reseller (Modal)
+- [ ] Form modal (bukan redirect ke page terpisah)
+- [ ] Fields: Username, Email, Nama Toko, Phone, Role (dropdown), Upline (opsional)
+- [ ] Reuse logic dari `AdminOnboardingService.onboardReseller()`
+- [ ] Toast notification sukses/gagal
+
+#### Edit Data Bisnis
+- [ ] Edit phone, email → simpan ke DB `Stores`
+- [ ] Modal form atau inline edit
+- [ ] Tidak mengubah data di Keycloak (nama org tetap dari KC)
+
+**Data Source Strategy: Hybrid**
+
+| Data | Source | Operasi |
+|------|--------|--------|
+| Nama org, enabled, members | Keycloak Organizations API | Read, Toggle |
+| Phone, email, referral, upline | DB `Stores` | Read, Edit |
+| Tambah reseller | Both | KC: create org+user, DB: create store+user |
+
+**Key Decisions**:
+
+| Pertanyaan | Keputusan | Rationale |
+|---|---|---|
+| Data source utama | **Keycloak Organizations API** | Source of truth untuk org identity + member |
+| Business data storage | **DB Stores** | Phone, email, upline tetap di DB — KC hanya identity |
+| Enable/disable mechanism | **KC org `enabled` attribute** | Bukan dari DB `stores.active` |
+| Tambah reseller UI | **Modal form** (bukan page terpisah) | UX lebih baik — tidak keluar dari context |
+| Scope | **List, toggle, members, add, edit bisnis** | Delete masuk V2 (cascade complex) |
+
+**Technical Dependencies**:
+- [ ] `KeycloakAdminClientService`: tambah methods `getOrganizations()`, `getOrganization(id)`, `updateOrganization()`, `getOrganizationMembers()`
+- [ ] `AdminOrgPageController`: render halaman + SSR data
+- [ ] `AdminOrgController`: REST endpoints (list, toggle status, edit)
+- [ ] `StoreRepository`: extend query methods (findByKeycloakOrganizationId)
+- [ ] Template: `pages/admin/org-management.html` (DaisyUI + Alpine.js)
+
+---
+
+### Week 2: Purchase Prepaid Flow (After Onboarding)
 
 **Objective**: User bisa beli produk prepaid (pulsa, data) dengan mock provider.
 
@@ -65,8 +187,10 @@ Supplier (H2H) → SatSetGo (base price + margin) → Store/Reseller (markup) �
 > **Note**: Payment/Balance system akan jadi microservice terpisah. Backlog ini khusus SatSetGo core platform.
 > **PIC Timeline**: August (PM) — Julia hanya draft, August yang saring & jadwalkan.
 
-### Current Sprint (Week 2-4)
-- [ ] **Purchase Flow** - transaksi prepaid end-to-end (Week 2)
+### Current Sprint
+- [ ] **Store Onboarding + Keycloak Organization** - prerequisite sebelum Week 2 (CURRENT)
+- [ ] **Admin Organization Management** - tabel CRUD org (enable/disable, members, tambah reseller modal, edit data bisnis)
+- [ ] **Purchase Flow** - transaksi prepaid end-to-end (Week 2, after onboarding)
 - [ ] **Admin Product CRUD** - kelola catalog tanpa akses DB (Week 4)
 
 ### Revenue & Pricing
@@ -106,10 +230,11 @@ Supplier (H2H) → SatSetGo (base price + margin) → Store/Reseller (markup) �
 
 | Risk | Impact | Likelihood | Mitigation |
 |---|---|---|---|
+| **Store belum link ke Keycloak Org** | Multi-tenancy tidak jalan, data bocor antar toko | HIGH | **Store Onboarding harus selesai sebelum Week 2** |
 | **Balance race condition** | Saldo minus, kerugian finansial | HIGH (concurrent users) | Pessimistic locking pada deduct balance |
 | **Provider downtime** | Transaksi gagal, user kecewa | MEDIUM | Auto-switching logic (multi-supplier) |
 | **No unit tests** | Regression bugs saat refactor | MEDIUM | Week 4 dedicated untuk testing |
-| **Stores.createdDate pakai java.util.Date** | Inkonsistensi dengan entity lain (LocalDateTime) | LOW | Migrasi ke LocalDateTime saat refactor |
+| ~~**Stores.createdDate pakai java.util.Date**~~  | Inkonsistensi dengan entity lain (LocalDateTime) | LOW | ✅ **DONE Task 1** |
 | **Users belum punya balance** | Blocking untuk Week 2 | HIGH | Harus ditambahkan sebelum mulai purchase flow |
 | **No pagination** | Performance issue saat data besar | LOW (early stage) | Tambahkan saat product catalog > 100 items |
 
@@ -127,7 +252,7 @@ Supplier (H2H) → SatSetGo (base price + margin) → Store/Reseller (markup) �
 | ProductDenoms | 20 fields | Production ready | Pricing: nominal, price, basePrice, adminFee |
 | ProductDenomMeta | - | Production ready | Key-value flexibility |
 | Users | 12 fields | **Needs balance field** | Roles via StringListConverter |
-| Stores | 10 fields | Production ready | **Has upline hierarchy** (referral model) |
+| Stores | 10 fields | **Needs keycloakOrganizationId, phone** | Has upline hierarchy, needs Date→LocalDateTime migration |
 
 **Architecture Observations**:
 1. **Reseller hierarchy sudah ada**: `Stores.upline` → ManyToOne self-reference. Ini pondasi untuk multi-level reseller system.
@@ -136,7 +261,12 @@ Supplier (H2H) → SatSetGo (base price + margin) → Store/Reseller (markup) �
 4. **Soft delete pattern konsisten**: semua entity punya `active` + `deleted` flags
 5. **Audit trail lengkap**: createdAt, updatedAt, createdBy, updatedBy di semua entity
 
-**Gap Analysis untuk Week 2**:
+**Gap Analysis untuk Store Onboarding (Prerequisite)**:
+- ~~Missing: `keycloakOrganizationId` field di Stores entity~~ → ✅ **DONE Task 1**
+- ~~Missing: `phone` field di Stores entity~~ → ✅ **DONE Task 1**
+- ~~Needs fix: `Stores.createdDate/updatedDate` masih `java.util.Date`~~ → ✅ **DONE Task 1**
+
+**Gap Analysis untuk Week 2 (After Onboarding)**:
 - Missing: `Transactions` entity
 - Missing: `TransactionItems` entity
 - Missing: `balance` field di Users (atau di Stores?)
@@ -146,6 +276,28 @@ Supplier (H2H) → SatSetGo (base price + margin) → Store/Reseller (markup) �
 ---
 
 ## Session Log
+
+### 2026-02-20 - Admin Organization Management Screen
+- **Decision**: Data source = **Keycloak Organizations API** (primary) + **DB Stores** (business data: phone, email, upline)
+- **Decision**: Enable/Disable org via KC org `enabled` attribute (bukan DB `stores.active`)
+- **Decision**: Lihat members via KC Organization Members API (modal)
+- **Decision**: Tambah reseller via **modal form** (reuse `AdminOnboardingService`), bukan redirect ke page terpisah
+- **Decision**: Edit data bisnis (phone, email) → simpan ke DB `Stores`
+- **Decision**: Delete = V2 (cascade ke KC org + DB terlalu complex untuk MVP)
+- **NEXT**: Implementation plan → breakdown tasks
+
+### 2026-02-20 - Store Onboarding Requirements (FINAL)
+- **Decision**: Store Onboarding jadi prerequisite sebelum Week 2 (Purchase Flow)
+- **Decision**: Dua jalur onboarding — self-service (Google login → form toko) + admin-created
+- **Decision**: 1 Store = 1 Keycloak Organization (simplest multi-tenancy mapping)
+- **Decision**: No approval process — toko langsung aktif setelah submit form
+- **Decision**: Form minimal 2-3 field (Nama Toko, No. HP)
+- **Decision**: Bi-directional sync antara Store (DB) dan Organization (Keycloak)
+- **Decision**: Onboarding trigger → **Spring Interceptor** (bukan EventListener). Cache `hasStore` flag di session
+- **Decision**: Path B password setup → **Keycloak `UPDATE_PASSWORD` required action** (email otomatis ke user)
+- ✅ **CONFIRMED**: Keycloak `OrganizationsResource` API tersedia di admin-client **26.0.8**
+- Identified gaps: Stores entity butuh `keycloakOrganizationId`, `phone`, dan migrasi Date→LocalDateTime
+- **NEXT**: August breakdown task dari requirement ini → `Tasks.md`
 
 ### 2026-02-12 - Initial Assessment
 - Julia.md created based on codebase analysis

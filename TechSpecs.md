@@ -1,8 +1,8 @@
 # SatSetGo - Technical Specifications
 
 > **Owner**: Neo (Chief Technical Architect)
-> **Last Updated**: 2026-02-12
-> **Current Sprint**: Week 2 - Purchase Prepaid Flow
+> **Last Updated**: 2026-02-20
+> **Current Sprint**: Prerequisite — Store Onboarding + Keycloak Organization
 
 ---
 
@@ -237,8 +237,11 @@ KEYCLOAK_ISSUER_URI=https://auth.satsetgo.com/realms/satsetgo
 
 **Current Debt**:
 - No unit tests (planned Week 4)
-- `Stores.createdDate` uses `java.util.Date` (inconsistent with other entities)
+- ~~`Stores.createdDate` uses `java.util.Date`~~ → ✅ **DONE — Task 1** (migrated to `LocalDateTime`)
+- ~~`Stores` missing `keycloakOrganizationId`, `phone`~~ → ✅ **DONE — Task 1**
+- ~~`StoreRepository` generic `Long` instead of `UUID`~~ → ✅ **DONE — Task 1** (latent bug fixed)
 - No pagination on product listing (acceptable until 100+ products)
+- `KeycloakLoginEventListener` still auto-creates Store → **Remove in Task 5**
 
 **Monitoring**:
 - Review debt every sprint
@@ -246,13 +249,237 @@ KEYCLOAK_ISSUER_URI=https://auth.satsetgo.com/realms/satsetgo
 
 ---
 
-## 🎯 Week 2 Technical Specifications
+---
 
-*(This section will be populated when Neo is activated for Week 2 design)*
+## 🏛️ Store Onboarding — Technical Blueprint
 
-**Status**: Pending Neo activation
+### 1. Schema Changes: `Stores` Entity ✅ DONE (Task 1)
+
+```java
+// IMPLEMENTED in Stores.java
+@Column(name = "keycloak_organization_id")
+private String keycloakOrganizationId;  // UUID string dari Keycloak
+
+private String phone;                   // Nomor HP owner toko
+
+@CreatedDate
+private LocalDateTime createdDate;      // ✅ LocalDateTime (was java.util.Date)
+
+@LastModifiedDate
+private LocalDateTime updatedDate;      // ✅ LocalDateTime (was java.util.Date)
+```
+
+> ✅ **DB Migration**: `ddl-auto: update` aktif — Hibernate auto-ALTER TABLE saat app restart. Kolom `phone` dan `keycloak_organization_id` otomatis ditambahkan. `StoreRepository` generic juga difix: `Long` → `UUID`.
 
 ---
 
-**Last Updated**: 2026-02-12
-**Next Review**: When Neo is called for architecture design
+### 2. Keycloak Organization API — New Methods
+
+```java
+// KeycloakAdminClientService.java — 3 method baru
+
+/** Create Keycloak Organization. Returns orgId. */
+public String createOrganization(String orgName) {
+    OrganizationRepresentation org = new OrganizationRepresentation();
+    org.setName(orgName);
+    org.setEnabled(true);
+
+    try (Response response = keycloak.realm(realm).organizations().create(org)) {
+        if (response.getStatus() != 201) {
+            throw new BusinessException("Failed to create Keycloak organization: " + response.getStatus());
+        }
+        // Extract ID from Location header: .../organizations/{id}
+        String location = response.getHeaderString("Location");
+        return location.substring(location.lastIndexOf('/') + 1);
+    }
+}
+
+/** Add user as member of an Organization. */
+public void addMemberToOrganization(String orgId, String userId) {
+    try (Response response = keycloak.realm(realm)
+            .organizations().get(orgId)
+            .members().addMember(userId)) {
+        if (response.getStatus() != 201 && response.getStatus() != 204) {
+            throw new BusinessException("Failed to add member to org: " + response.getStatus());
+        }
+    }
+}
+
+/** Create reseller user with UPDATE_PASSWORD required action. */
+public String createResellerUser(String username, String fullname, String email) throws BusinessException {
+    UserRepresentation userRep = keycloakAdminClientBusiness
+            .prepareUserRepresentation(username, fullname, email);
+    userRep.setRequiredActions(List.of("UPDATE_PASSWORD")); // ← email set-password
+    userRep.setEmailVerified(false);
+
+    Response resp = keycloak.realm(realm).users().create(userRep);
+    return keycloakAdminClientBusiness.extractCreatedUserId(resp);
+}
+```
+
+---
+
+### 3. StoreOnboardingInterceptor — Design
+
+```java
+@Component
+public class StoreOnboardingInterceptor implements HandlerInterceptor {
+
+    private static final String SESSION_HAS_STORE = "hasStore";
+    private final StoreRepository storeRepository; // atau UserRepository
+
+    @Override
+    public boolean preHandle(HttpServletRequest req, HttpServletResponse res,
+                             Object handler) throws Exception {
+
+        // Skip non-MVC handlers (static resources, actuator, etc.)
+        if (!(handler instanceof HandlerMethod)) return true;
+
+        // Cek apakah user sudah authenticated
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !auth.isAuthenticated() || auth instanceof AnonymousAuthenticationToken) {
+            return true; // belum login, biarkan Spring Security handle
+        }
+
+        // Ambil dari session cache dulu
+        HttpSession session = req.getSession(false);
+        if (session != null) {
+            Boolean hasStore = (Boolean) session.getAttribute(SESSION_HAS_STORE);
+            if (Boolean.TRUE.equals(hasStore)) return true;
+            if (Boolean.FALSE.equals(hasStore)) {
+                res.sendRedirect("/onboarding");
+                return false;
+            }
+        }
+
+        // Cache miss — query DB
+        UserDTO userDTO = (session != null)
+            ? (UserDTO) session.getAttribute(OmniConstants.SESSION_USER_DTO)
+            : null;
+
+        if (userDTO == null) return true; // session kosong, skip
+
+        boolean hasStore = storeRepository.existsByUserIdAndDeletedFalse(userDTO.getId());
+        req.getSession(true).setAttribute(SESSION_HAS_STORE, hasStore);
+
+        if (!hasStore) {
+            res.sendRedirect("/onboarding");
+            return false;
+        }
+
+        return true;
+    }
+}
+```
+
+**Path Exclusions (wajib di WebMvcConfigurer)**:
+```java
+@Override
+public void addInterceptors(InterceptorRegistry registry) {
+    registry.addInterceptor(storeOnboardingInterceptor)
+            .excludePathPatterns(
+                "/onboarding", "/onboarding/**",
+                "/login", "/logout", "/error",
+                "/api/**",
+                "/css/**", "/js/**", "/images/**", "/webjars/**",
+                "/actuator/**"
+            );
+}
+```
+
+---
+
+### 4. Rollback Strategy — Distributed Operation
+
+> ⚠️ **Critical edge case** yang August flagging: Keycloak org berhasil tapi DB gagal.
+
+Kita punya 2 operasi di sistem berbeda — **tidak ada 2-phase commit**. Strategi yang pragmatis:
+
+```
+Flow: createOrganization() → addMember() → saveStore()
+```
+
+| Step | Gagal? | Rollback Action |
+|---|---|---|
+| `createOrganization()` | Ya | Tidak ada efek — DB belum disentuh |
+| `addMemberToOrganization()` | Ya | Panggil `deleteOrganization(orgId)` di catch block |
+| `saveStore()` (DB) | Ya | `@Transactional` rollback DB; panggil `deleteOrganization(orgId)` di catch |
+
+```java
+@Transactional
+public void onboardStore(String userId, String orgName, String phone) throws BusinessException {
+    String orgId = null;
+    try {
+        // Step 1: Keycloak (luar @Transactional — tidak bisa rollback otomatis)
+        orgId = keycloakService.createOrganization(orgName);
+        keycloakService.addMemberToOrganization(orgId, userId);
+
+        // Step 2: DB (dalam @Transactional — auto rollback jika exception)
+        Stores store = new Stores();
+        store.setName(orgName);
+        store.setPhone(phone);
+        store.setKeycloakOrganizationId(orgId);
+        store.setActive(true);
+        storeRepository.save(store);
+
+        // Step 3: Link User → Store
+        Users user = userRepository.findByProviderUserId(userId).orElseThrow();
+        user.setStores(store);
+        userRepository.save(user);
+
+        // Step 4: Update session cache
+        updateSessionHasStore(true);
+
+    } catch (Exception e) {
+        // Compensating transaction: hapus org di Keycloak jika sudah terbuat
+        if (orgId != null) {
+            try { keycloakService.deleteOrganization(orgId); }
+            catch (Exception ex) { log.error("Keycloak org cleanup failed: {}", orgId, ex); }
+            // → Log untuk manual cleanup jika deleteOrganization gagal
+        }
+        throw new BusinessException("Store onboarding failed: " + e.getMessage(), e);
+    }
+}
+```
+
+> **Neo's Note**: Ini adalah **Saga Pattern (Compensating Transactions)** — solusi standar untuk microservice tanpa distributed transaction manager. Tidak perlu Kafka/XA untuk skala ini.
+
+---
+
+### 5. API Contract
+
+#### Path A — Self-service
+```
+GET  /onboarding          → Tampilkan form
+POST /onboarding          → Submit onboarding
+  Body (form): storeName (required, 3-50 char), phone (optional, pattern: 08xx)
+  Success: redirect /dashboard
+  Error:   redirect /onboarding?error=true
+```
+
+#### Path B — Admin-created
+```
+POST /admin/resellers     → Buat reseller baru (admin only)
+  Body (JSON): username, email, fullname, storeName, phone, role, uplineId (optional)
+  Response 201: { "userId": "...", "storeId": "...", "orgId": "..." }
+  Response 400: validation error
+  Response 500: onboarding failed (dengan rollback)
+```
+
+---
+
+### 6. Edge Cases & Threat Model
+
+| Case | Problem | Mitigasi |
+|---|---|---|
+| User submit form 2x (double-click) | 2 Stores + 2 Orgs dibuat | Cek `store != null` sebelum create. Unique constraint di DB pada `user_id`. |
+| Org name collision di Keycloak | Keycloak tolak jika nama duplikat | Nama org pakai `storeName + "_" + userId.substring(0,8)` sebagai suffix |
+| Interceptor hit tapi `UserDTO` null di session | NPE / infinite redirect | Guard: jika `userDTO == null`, skip interceptor (Spring Security handle) |
+| Admin create user tapi email tidak valid | Keycloak create user tapi email bounce | Validasi format email di layer DTO sebelum kirim ke Keycloak |
+| `deleteOrganization` gagal saat rollback | Orphan org di Keycloak | Log `ERROR` dengan `orgId` untuk manual cleanup. Alert admin. |
+
+---
+
+**Last Updated**: 2026-02-20
+**Task 1 Status**: ✅ DONE — `Stores.java` updated, `StoreRepository.java` fixed
+**Next Review**: Setelah Task 3 (Interceptor) selesai — Neo review implementasi sebelum test
