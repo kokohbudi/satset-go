@@ -1,6 +1,8 @@
 package com.omnip.identity.adapter.in.web;
 
-import com.omnip.identity.domain.service.IdentityDomainService;
+import com.omnip.identity.domain.port.in.ManageBackofficeUsersUseCase;
+import com.omnip.identity.domain.port.in.ManageGroupsUseCase;
+import com.omnip.identity.domain.port.in.ManageRolesUseCase;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -17,23 +19,23 @@ import org.springframework.web.bind.annotation.GetMapping;
 @RequiredArgsConstructor
 public class UserPageController {
 
-    private final IdentityDomainService identityManagementService;
+    private final ManageBackofficeUsersUseCase manageBackofficeUsersUseCase;
+    private final ManageGroupsUseCase manageGroupsUseCase;
+    private final ManageRolesUseCase manageRolesUseCase;
 
     @GetMapping("/admin/user-management")
-    @PreAuthorize("hasRole('view_users')")
+    @PreAuthorize("hasRole('REALM_view_users')")
     public String userManagementPage(Model model) {
         log.info("Accessing admin user management page");
         model.addAttribute("currentPage", "user-management");
         model.addAttribute("breadcrumb", "User Management");
 
         // SSR: Inject initial data for faster first paint
-        // Use ViewModel for pre-formatted display logic (Fat Controller pattern)
-        model.addAttribute("initialUsers", identityManagementService.getBackofficeUsers().stream()
+        model.addAttribute("initialUsers", manageBackofficeUsersUseCase.getBackofficeUsers().stream()
                 .map(com.omnip.shared.viewmodel.UserViewModel::new)
                 .toList());
-        model.addAttribute("initialGroups", identityManagementService.getBackofficeSubGroups());
-        // Roles with hierarchy for dropdown display
-        model.addAttribute("rolesHierarchy", identityManagementService.getRolesForDropdown());
+        model.addAttribute("initialGroups", manageGroupsUseCase.getBackofficeSubGroups());
+        model.addAttribute("rolesHierarchy", manageRolesUseCase.getRolesForDropdown());
 
         return "pages/admin/user-management";
     }

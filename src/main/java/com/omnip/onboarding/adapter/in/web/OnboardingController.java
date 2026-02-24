@@ -2,7 +2,7 @@ package com.omnip.onboarding.adapter.in.web;
 
 import com.omnip.shared.constant.OmniConstants;
 import com.omnip.shared.dto.UserDTO;
-import com.omnip.onboarding.domain.service.StoreOnboardingDomainService;
+import com.omnip.onboarding.domain.port.in.SelfOnboardingUseCase;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import lombok.extern.slf4j.Slf4j;
@@ -15,10 +15,10 @@ import org.springframework.web.bind.annotation.RequestParam;
 @Slf4j
 public class OnboardingController {
 
-    private final StoreOnboardingDomainService storeOnboardingService;
+    private final SelfOnboardingUseCase selfOnboardingUseCase;
 
-    public OnboardingController(StoreOnboardingDomainService storeOnboardingService) {
-        this.storeOnboardingService = storeOnboardingService;
+    public OnboardingController(SelfOnboardingUseCase selfOnboardingUseCase) {
+        this.selfOnboardingUseCase = selfOnboardingUseCase;
     }
 
     @GetMapping("/onboarding")
@@ -44,7 +44,7 @@ public class OnboardingController {
         }
 
         try {
-            storeOnboardingService.onboardStore(userDTO.getProviderUserId(), orgName, phone);
+            selfOnboardingUseCase.onboardStore(userDTO.getProviderUserId(), orgName, phone);
             redirectAttributes.addFlashAttribute("toastMessage", "Toko \"" + orgName + "\" berhasil didaftarkan! 🎉");
             redirectAttributes.addFlashAttribute("toastType", "success");
             return "redirect:/dashboard";

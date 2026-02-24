@@ -1,6 +1,8 @@
 package com.omnip.onboarding.adapter.out.persistence;
 
 import com.omnip.onboarding.domain.model.Stores;
+import com.omnip.onboarding.domain.port.out.StoreRepositoryPort;
+import com.omnip.transaction.domain.port.out.StoreBalancePort;
 import jakarta.persistence.LockModeType;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -13,7 +15,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 @Repository
-public interface StoreJpaRepository extends JpaRepository<Stores, UUID> {
+public interface StoreJpaRepository extends JpaRepository<Stores, UUID>, StoreBalancePort, StoreRepositoryPort {
 
     boolean existsByReferralId(String referalId);
 

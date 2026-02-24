@@ -3,10 +3,15 @@ package com.omnip.catalog.adapter.in.web;
 import com.omnip.catalog.adapter.in.web.dto.CategoryDTO;
 import com.omnip.catalog.adapter.in.web.dto.ProductDTO;
 import com.omnip.catalog.adapter.in.web.dto.ProductDenomDTO;
+import com.omnip.catalog.adapter.in.web.dto.ProductDenomMetaDTO;
+import com.omnip.catalog.domain.model.Categories;
 import com.omnip.catalog.domain.model.CategoryType;
-import com.omnip.catalog.domain.service.CategoryDomainService;
-import com.omnip.catalog.domain.service.DenomDomainService;
-import com.omnip.catalog.domain.service.ProductDomainService;
+import com.omnip.catalog.domain.model.ProductDenomMeta;
+import com.omnip.catalog.domain.model.ProductDenoms;
+import com.omnip.catalog.domain.model.Products;
+import com.omnip.catalog.domain.port.in.BrowseCategoriesUseCase;
+import com.omnip.catalog.domain.port.in.BrowseDenomsUseCase;
+import com.omnip.catalog.domain.port.in.BrowseProductsUseCase;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -16,33 +21,38 @@ import java.util.List;
 @RequestMapping("/api")
 public class ProductCatalogController {
 
-    private final CategoryDomainService categoryService;
-    private final ProductDomainService productService;
-    private final DenomDomainService denomService;
+    private final BrowseCategoriesUseCase browseCategoriesUseCase;
+    private final BrowseProductsUseCase browseProductsUseCase;
+    private final BrowseDenomsUseCase browseDenomsUseCase;
 
-    public ProductCatalogController(CategoryDomainService categoryService,
-                                    ProductDomainService productService,
-                                    DenomDomainService denomService) {
-        this.categoryService = categoryService;
-        this.productService = productService;
-        this.denomService = denomService;
+    public ProductCatalogController(BrowseCategoriesUseCase browseCategoriesUseCase,
+            BrowseProductsUseCase browseProductsUseCase,
+            BrowseDenomsUseCase browseDenomsUseCase) {
+        this.browseCategoriesUseCase = browseCategoriesUseCase;
+        this.browseProductsUseCase = browseProductsUseCase;
+        this.browseDenomsUseCase = browseDenomsUseCase;
     }
 
     // ==================== Categories ====================
 
     @GetMapping("/categories")
     public ResponseEntity<List<CategoryDTO>> getAllCategories() {
-        return ResponseEntity.ok(categoryService.findAll());
+        List<CategoryDTO> dtos = browseCategoriesUseCase.findAll().stream()
+                .map(this::toCategoryDTO).toList();
+        return ResponseEntity.ok(dtos);
     }
 
     @GetMapping("/categories/type/{type}")
     public ResponseEntity<List<CategoryDTO>> getCategoriesByType(@PathVariable CategoryType type) {
-        return ResponseEntity.ok(categoryService.findByType(type));
+        List<CategoryDTO> dtos = browseCategoriesUseCase.findByType(type).stream()
+                .map(this::toCategoryDTO).toList();
+        return ResponseEntity.ok(dtos);
     }
 
     @GetMapping("/categories/{code}")
     public ResponseEntity<CategoryDTO> getCategoryByCode(@PathVariable String code) {
-        return categoryService.findByCode(code)
+        return browseCategoriesUseCase.findByCode(code)
+                .map(this::toCategoryDTO)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
@@ -51,12 +61,15 @@ public class ProductCatalogController {
 
     @GetMapping("/categories/{code}/products")
     public ResponseEntity<List<ProductDTO>> getProductsByCategory(@PathVariable String code) {
-        return ResponseEntity.ok(productService.findByCategory(code));
+        List<ProductDTO> dtos = browseProductsUseCase.findByCategory(code).stream()
+                .map(this::toProductDTO).toList();
+        return ResponseEntity.ok(dtos);
     }
 
     @GetMapping("/products/{code}")
     public ResponseEntity<ProductDTO> getProductByCode(@PathVariable String code) {
-        return productService.findByCode(code)
+        return browseProductsUseCase.findByCode(code)
+                .map(this::toProductDTO)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
@@ -65,13 +78,75 @@ public class ProductCatalogController {
 
     @GetMapping("/products/{code}/denoms")
     public ResponseEntity<List<ProductDenomDTO>> getDenomsByProduct(@PathVariable String code) {
-        return ResponseEntity.ok(denomService.findByProduct(code));
+        List<ProductDenomDTO> dtos = browseDenomsUseCase.findByProduct(code).stream()
+                .map(this::toDenomDTO).toList();
+        return ResponseEntity.ok(dtos);
     }
 
     @GetMapping("/denoms/{code}")
     public ResponseEntity<ProductDenomDTO> getDenomByCode(@PathVariable String code) {
-        return denomService.getDenomWithMeta(code)
+        return browseDenomsUseCase.getDenomWithMeta(code)
+                .map(this::toDenomDTO)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
+    }
+
+    // ==================== Mappers ====================
+
+    private CategoryDTO toCategoryDTO(Categories entity) {
+        CategoryDTO dto = new CategoryDTO();
+        dto.setId(entity.getId());
+        dto.setCode(entity.getCode());
+        dto.setName(entity.getName());
+        dto.setCategoryType(entity.getCategoryType());
+        dto.setIconUrl(entity.getIconUrl());
+        dto.setSortOrder(entity.getSortOrder());
+        return dto;
+    }
+
+    private ProductDTO toProductDTO(Products entity) {
+        ProductDTO dto = new ProductDTO();
+        dto.setId(entity.getId());
+        dto.setCode(entity.getCode());
+        dto.setName(entity.getName());
+        dto.setProviderName(entity.getProviderName());
+        dto.setDescription(entity.getDescription());
+        dto.setIconUrl(entity.getIconUrl());
+        if (entity.getCategory() != null) {
+            dto.setCategoryCode(entity.getCategory().getCode());
+            dto.setCategoryName(entity.getCategory().getName());
+        }
+        return dto;
+    }
+
+    private ProductDenomDTO toDenomDTO(ProductDenoms entity) {
+        ProductDenomDTO dto = new ProductDenomDTO();
+        dto.setId(entity.getId());
+        dto.setCode(entity.getCode());
+        dto.setName(entity.getName());
+        dto.setDenomType(entity.getDenomType());
+        dto.setNominal(entity.getNominal());
+        dto.setPrice(entity.getPrice());
+        dto.setAdminFee(entity.getAdminFee());
+        dto.setValidityDays(entity.getValidityDays());
+        dto.setQuotaMb(entity.getQuotaMb());
+        dto.setMinAmount(entity.getMinAmount());
+        dto.setMaxAmount(entity.getMaxAmount());
+        dto.setRequiresInquiry(entity.isRequiresInquiry());
+        if (entity.getProduct() != null) {
+            dto.setProductCode(entity.getProduct().getCode());
+            dto.setProductName(entity.getProduct().getName());
+        }
+        if (entity.getMetadata() != null) {
+            dto.setMetadata(entity.getMetadata().stream().map(this::toMetaDTO).toList());
+        }
+        return dto;
+    }
+
+    private ProductDenomMetaDTO toMetaDTO(ProductDenomMeta entity) {
+        ProductDenomMetaDTO dto = new ProductDenomMetaDTO();
+        dto.setMetaKey(entity.getMetaKey());
+        dto.setMetaValue(entity.getMetaValue());
+        return dto;
     }
 }

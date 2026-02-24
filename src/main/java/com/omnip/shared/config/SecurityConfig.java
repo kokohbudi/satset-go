@@ -49,8 +49,8 @@ public class SecurityConfig {
                         .permitAll()
 
                         // Role management endpoints - require admin role
-                        .requestMatchers("/admin/roles/**").hasRole("omnip-admin")
-                        .requestMatchers("/api/roles/**").hasRole("omnip-admin")
+                        .requestMatchers("/admin/roles/**").hasRole("REALM_omnip-admin")
+                        .requestMatchers("/api/roles/**").hasRole("REALM_omnip-admin")
 
                         // User management endpoints - require authenticated with specific roles
                         .requestMatchers("/api/users/**").authenticated()
@@ -132,7 +132,7 @@ public class SecurityConfig {
                 if (realmRoles instanceof List<?>) {
                     ((List<?>) realmRoles).stream()
                             .map(Object::toString)
-                            .map(r -> "ROLE_" + r)
+                            .map(r -> "ROLE_REALM_" + r)
                             .map(SimpleGrantedAuthority::new)
                             .forEach(auths::add);
                 }
@@ -147,7 +147,7 @@ public class SecurityConfig {
                     if (clientRoles instanceof List<?>) {
                         ((List<?>) clientRoles).stream()
                                 .map(Object::toString)
-                                .map(r -> "ROLE_" + r)
+                                .map(r -> "ROLE_CLIENT_" + r)
                                 .map(SimpleGrantedAuthority::new)
                                 .forEach(auths::add);
                     }
@@ -179,7 +179,7 @@ public class SecurityConfig {
                         if (realmRoles instanceof List<?> rolesList) {
                             rolesList.forEach(role -> {
                                 String roleName = role.toString();
-                                mappedAuthorities.add(new SimpleGrantedAuthority("ROLE_" + roleName));
+                                mappedAuthorities.add(new SimpleGrantedAuthority("ROLE_REALM_" + roleName));
                             });
                         }
                     }
@@ -193,7 +193,7 @@ public class SecurityConfig {
                             if (clientRoles instanceof List<?> clientRolesList) {
                                 clientRolesList.forEach(role -> {
                                     String roleName = role.toString();
-                                    mappedAuthorities.add(new SimpleGrantedAuthority("ROLE_" + roleName));
+                                    mappedAuthorities.add(new SimpleGrantedAuthority("ROLE_CLIENT_" + roleName));
                                 });
                             }
                         }

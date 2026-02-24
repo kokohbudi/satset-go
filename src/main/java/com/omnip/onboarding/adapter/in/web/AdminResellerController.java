@@ -1,7 +1,7 @@
 package com.omnip.onboarding.adapter.in.web;
 
 import com.omnip.shared.exception.BusinessException;
-import com.omnip.onboarding.domain.service.AdminOnboardingDomainService;
+import com.omnip.onboarding.domain.port.in.AdminOnboardingUseCase;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -16,10 +16,10 @@ import java.util.Map;
 @Slf4j
 public class AdminResellerController {
 
-    private final AdminOnboardingDomainService adminOnboardingService;
+    private final AdminOnboardingUseCase adminOnboardingUseCase;
 
-    public AdminResellerController(AdminOnboardingDomainService adminOnboardingService) {
-        this.adminOnboardingService = adminOnboardingService;
+    public AdminResellerController(AdminOnboardingUseCase adminOnboardingUseCase) {
+        this.adminOnboardingUseCase = adminOnboardingUseCase;
     }
 
     @PostMapping
@@ -31,7 +31,7 @@ public class AdminResellerController {
             @RequestParam(value = "upline", required = false) String upline) {
 
         try {
-            adminOnboardingService.onboardReseller(username, email, orgName, phone, upline);
+            adminOnboardingUseCase.onboardReseller(username, email, orgName, phone, upline);
             return ResponseEntity
                     .ok(Map.of("status", "success", "message", "Reseller " + username + " berhasil dibuat."));
         } catch (BusinessException e) {

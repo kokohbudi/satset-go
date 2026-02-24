@@ -106,18 +106,33 @@ public class KeycloakLoginEventListener {
 
     public List<String> extractRolesFromJwt(Jwt jwt) {
         try {
+            java.util.List<String> allRoles = new java.util.ArrayList<>();
+
+            // 1. Extract realm roles
+            Map<String, Object> realmAccess = jwt.getClaim("realm_access");
+            if (realmAccess != null && realmAccess.get("roles") instanceof List) {
+                @SuppressWarnings("unchecked")
+                List<String> realmRoles = (List<String>) realmAccess.get("roles");
+                if (realmRoles != null) {
+                    allRoles.addAll(realmRoles);
+                }
+            }
+
+            // 2. Extract client roles
             Map<String, Object> resourceAccess = jwt.getClaim("resource_access");
-            if (resourceAccess == null)
-                return List.of();
+            if (resourceAccess != null) {
+                @SuppressWarnings("unchecked")
+                Map<String, Object> clientResource = (Map<String, Object>) resourceAccess.get(this.clientId);
+                if (clientResource != null && clientResource.get("roles") instanceof List) {
+                    @SuppressWarnings("unchecked")
+                    List<String> clientRoles = (List<String>) clientResource.get("roles");
+                    if (clientRoles != null) {
+                        allRoles.addAll(clientRoles);
+                    }
+                }
+            }
 
-            @SuppressWarnings("unchecked")
-            Map<String, Object> clientResource = (Map<String, Object>) resourceAccess.get(this.clientId);
-            if (clientResource == null)
-                return List.of();
-
-            @SuppressWarnings("unchecked")
-            List<String> roles = (List<String>) clientResource.get("roles");
-            return roles != null ? roles : List.of();
+            return allRoles.isEmpty() ? List.of() : allRoles;
         } catch (Exception e) {
             // Log the exception
             logger.warn("Failed to extract roles from JWT: {}", e.getMessage());

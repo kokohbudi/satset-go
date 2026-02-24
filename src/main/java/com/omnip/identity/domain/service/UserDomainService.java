@@ -3,6 +3,7 @@ package com.omnip.identity.domain.service;
 import com.omnip.identity.domain.service.UserManagementHelper;
 import com.omnip.shared.dto.UserDTO;
 import com.omnip.identity.domain.model.Users;
+import com.omnip.identity.domain.port.in.UserQueryUseCase;
 import com.omnip.shared.exception.BusinessException;
 import com.omnip.identity.adapter.out.persistence.UserJpaRepository;
 import com.omnip.identity.adapter.out.keycloak.KeycloakAdminClientService;
@@ -13,7 +14,7 @@ import org.springframework.stereotype.Service;
  * Menyediakan metode untuk operasi CRUD pengguna dan manajemen akun.
  */
 @Service
-public class UserDomainService {
+public class UserDomainService implements UserQueryUseCase {
     private final UserJpaRepository usersRepository;
     private final UserManagementHelper userManagementBusiness;
     private final UserDTO userDTO;

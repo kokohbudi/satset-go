@@ -4,6 +4,7 @@ import com.omnip.identity.adapter.out.keycloak.KeycloakAdminClientService;
 
 import com.omnip.onboarding.domain.model.Stores;
 import com.omnip.identity.domain.model.Users;
+import com.omnip.onboarding.domain.port.in.SelfOnboardingUseCase;
 import com.omnip.shared.exception.BusinessException;
 import com.omnip.onboarding.adapter.out.persistence.StoreJpaRepository;
 import com.omnip.identity.adapter.out.persistence.UserJpaRepository;
@@ -17,7 +18,7 @@ import java.util.UUID;
 
 @Service
 @Slf4j
-public class StoreOnboardingDomainService {
+public class StoreOnboardingDomainService implements SelfOnboardingUseCase {
 
     private final KeycloakAdminClientService keycloakAdminClientService;
     private final StoreJpaRepository storeRepository;

@@ -1,9 +1,11 @@
 package com.omnip.transaction.domain.service;
 
 import com.omnip.transaction.domain.model.ProviderResponse;
-import com.omnip.transaction.adapter.in.web.dto.TransactionDTO;
 import com.omnip.catalog.domain.model.ProductDenoms;
 import com.omnip.onboarding.domain.model.Stores;
+import com.omnip.transaction.domain.port.in.PurchaseUseCase;
+import com.omnip.transaction.domain.port.in.TopUpUseCase;
+import com.omnip.transaction.domain.port.in.TransactionQueryUseCase;
 import com.omnip.transaction.domain.port.out.ProviderPort;
 import com.omnip.transaction.domain.model.Transactions;
 import com.omnip.transaction.domain.model.MutationReferenceType;
@@ -24,7 +26,7 @@ import java.util.UUID;
 
 @Slf4j
 @Service
-public class TransactionDomainService {
+public class TransactionDomainService implements PurchaseUseCase, TopUpUseCase, TransactionQueryUseCase {
 
         private final TransactionJpaRepository transactionRepository;
         private final StoreJpaRepository storeRepository;
@@ -44,6 +46,7 @@ public class TransactionDomainService {
                 this.providerService = providerService;
         }
 
+        @Override
         public Transactions createPurchase(UUID storeId, UUID denomId, String targetNumber)
                         throws InsufficientBalanceException {
 
@@ -112,6 +115,7 @@ public class TransactionDomainService {
                 return transaction;
         }
 
+        @Override
         @Transactional
         public void topUp(UUID storeId, BigDecimal amount, String description) {
                 storeRepository.findById(storeId)
@@ -126,35 +130,18 @@ public class TransactionDomainService {
                 log.info("Top-up completed: store={} amount={} topUpId={}", storeId, amount, topUpId);
         }
 
+        @Override
         @Transactional(readOnly = true)
-        public TransactionDTO getTransaction(UUID id, UUID storeId) {
-                Transactions transaction = transactionRepository.findByIdAndStoreIdWithDetails(id, storeId)
+        public Transactions getTransaction(UUID id, UUID storeId) {
+                return transactionRepository.findByIdAndStoreIdWithDetails(id, storeId)
                                 .orElseThrow(() -> new ResourceNotFoundException("Transaction", id));
-                return toDTO(transaction);
         }
 
+        @Override
         @Transactional(readOnly = true)
-        public Page<TransactionDTO> getTransactionHistory(UUID storeId, Pageable pageable) {
+        public Page<Transactions> getTransactionHistory(UUID storeId, Pageable pageable) {
                 storeRepository.findById(storeId)
                                 .orElseThrow(() -> new ResourceNotFoundException("Store", storeId));
-                return transactionRepository.findByStoreIdWithDetails(storeId, pageable)
-                                .map(this::toDTO);
-        }
-
-        private TransactionDTO toDTO(Transactions tx) {
-                ProductDenoms denom = tx.getProductDenom();
-                return new TransactionDTO(
-                                tx.getId(),
-                                tx.getStore().getId(),
-                                tx.getTargetNumber(),
-                                denom.getName(),
-                                denom.getProduct() != null ? denom.getProduct().getName() : null,
-                                tx.getPrice(),
-                                tx.getAdminFee(),
-                                tx.getTotal(),
-                                tx.getStatus(),
-                                tx.getProviderRef(),
-                                tx.getSerialNumber(),
-                                tx.getCreatedAt());
+                return transactionRepository.findByStoreIdWithDetails(storeId, pageable);
         }
 }

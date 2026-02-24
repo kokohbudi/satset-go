@@ -57,6 +57,25 @@ public class StoreOnboardingInterceptor implements HandlerInterceptor {
         }
 
         if (Boolean.FALSE.equals(hasStore)) {
+            // Check if user is a backoffice user by looking at their authorities
+            // Backoffice users have specific realm roles and don't need a store
+            boolean isBackofficeUser = authentication.getAuthorities().stream()
+                    .anyMatch(a -> {
+                        String role = a.getAuthority();
+                        // Consider as backoffice user if they have ANY realm role
+                        // excluding the default Keycloak realm roles
+                        return role.startsWith("ROLE_REALM_") &&
+                                !role.equals("ROLE_REALM_offline_access") &&
+                                !role.equals("ROLE_REALM_uma_authorization") &&
+                                !role.startsWith("ROLE_REALM_default-roles-");
+                    });
+
+            if (isBackofficeUser) {
+                log.debug("User {} is a backoffice user based on realm role. Skipping onboarding redirect.",
+                        providerUserId);
+                return true;
+            }
+
             log.info("User {} does not have a store. Redirecting to /onboarding from {}", providerUserId,
                     request.getRequestURI());
             response.sendRedirect("/onboarding");

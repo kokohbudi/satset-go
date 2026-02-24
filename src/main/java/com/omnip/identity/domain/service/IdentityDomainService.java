@@ -3,6 +3,10 @@ package com.omnip.identity.domain.service;
 import com.omnip.identity.adapter.in.web.dto.KeycloakGroupDTO;
 import com.omnip.identity.adapter.out.keycloak.KeycloakAdminClientService;
 import com.omnip.identity.adapter.in.web.dto.KeycloakRoleDTO;
+import com.omnip.identity.domain.port.in.ChangePasswordUseCase;
+import com.omnip.identity.domain.port.in.ManageBackofficeUsersUseCase;
+import com.omnip.identity.domain.port.in.ManageGroupsUseCase;
+import com.omnip.identity.domain.port.in.ManageRolesUseCase;
 import com.omnip.shared.dto.UserDTO;
 import com.omnip.shared.exception.BusinessException;
 import lombok.extern.slf4j.Slf4j;
@@ -20,7 +24,8 @@ import java.util.Map;
  */
 @Service
 @Slf4j
-public class IdentityDomainService {
+public class IdentityDomainService implements ManageGroupsUseCase, ManageRolesUseCase,
+        ManageBackofficeUsersUseCase, ChangePasswordUseCase {
 
     private final KeycloakAdminClientService keycloakAdminClientService;
     private final UserDomainService userManagementService;

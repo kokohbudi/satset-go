@@ -2,11 +2,12 @@ package com.omnip.onboarding.domain.service;
 
 import com.omnip.onboarding.domain.service.StoreHelper;
 import com.omnip.onboarding.domain.model.Stores;
+import com.omnip.onboarding.domain.port.in.CreateStoreUseCase;
 import com.omnip.onboarding.adapter.out.persistence.StoreJpaRepository;
 import org.springframework.stereotype.Service;
 
 @Service
-public class StoreDomainService {
+public class StoreDomainService implements CreateStoreUseCase {
     private final StoreJpaRepository storeRepository;
     private final StoreHelper storeBusiness;
 

@@ -3,6 +3,8 @@ package com.omnip.identity.adapter.out.keycloak;
 import com.omnip.identity.adapter.out.keycloak.KeycloakHelper;
 import com.omnip.identity.adapter.in.web.dto.KeycloakGroupDTO;
 import com.omnip.identity.adapter.in.web.dto.KeycloakRoleDTO;
+import com.omnip.identity.domain.port.out.KeycloakIdentityPort;
+import com.omnip.onboarding.domain.port.out.KeycloakOrganizationPort;
 import com.omnip.shared.dto.UserDTO;
 import com.omnip.shared.exception.BusinessException;
 import jakarta.ws.rs.core.Response;
@@ -24,7 +26,7 @@ import java.util.List;
 
 @Service
 @Slf4j
-public class KeycloakAdminClientService {
+public class KeycloakAdminClientService implements KeycloakIdentityPort, KeycloakOrganizationPort {
         private final Keycloak keycloak;
         private final KeycloakHelper keycloakAdminClientBusiness;
 
@@ -1008,9 +1010,9 @@ public class KeycloakAdminClientService {
          * User TIDAK diberikan password — Keycloak mengirim email set-password via
          * requiredActions = [UPDATE_PASSWORD].
          *
-         * @param username      Username (biasanya nama pendek / toko)
-         * @param fullname      Nama lengkap reseller
-         * @param email         Email reseller (akan digunakan sebagai login)
+         * @param username Username (biasanya nama pendek / toko)
+         * @param fullname Nama lengkap reseller
+         * @param email    Email reseller (akan digunakan sebagai login)
          * @return Keycloak User ID dari reseller yang baru dibuat
          * @throws BusinessException Jika gagal membuat user
          */

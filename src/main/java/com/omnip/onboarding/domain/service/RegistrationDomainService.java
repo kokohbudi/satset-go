@@ -5,6 +5,7 @@ import com.omnip.identity.domain.service.UserDomainService;
 import com.omnip.onboarding.domain.service.RegistrationHelper;
 import com.omnip.onboarding.domain.model.Stores;
 import com.omnip.identity.domain.model.Users;
+import com.omnip.onboarding.domain.port.in.RegistrationUseCase;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -12,14 +13,14 @@ import java.util.List;
 import java.util.Map;
 
 @Service
-public class RegistrationDomainService {
+public class RegistrationDomainService implements RegistrationUseCase {
     private final UserDomainService userManagementService;
     private final StoreDomainService storeService;
     private final RegistrationHelper registrationBusiness;
 
     public RegistrationDomainService(UserDomainService userManagementService,
-                               StoreDomainService storeService,
-                               RegistrationHelper registrationBusiness) {
+            StoreDomainService storeService,
+            RegistrationHelper registrationBusiness) {
         this.userManagementService = userManagementService;
         this.storeService = storeService;
         this.registrationBusiness = registrationBusiness;
@@ -47,9 +48,9 @@ public class RegistrationDomainService {
      */
     @Transactional
     public Map<String, Object> registerNewStore(String email, String fullName,
-                                                List<String> roles,
-                                                String registrationChannel,
-                                                String providerUserId) {
+            List<String> roles,
+            String registrationChannel,
+            String providerUserId) {
         Stores stores = this.registrationBusiness.prepareNewStore(email, fullName);
 
         stores = this.storeService.createNewStore(stores);

@@ -4,6 +4,7 @@ import com.omnip.transaction.domain.model.StoreMutations;
 import com.omnip.onboarding.domain.model.Stores;
 import com.omnip.transaction.domain.model.MutationReferenceType;
 import com.omnip.transaction.domain.model.MutationType;
+import com.omnip.transaction.domain.port.in.BalanceManagementUseCase;
 import com.omnip.shared.exception.InsufficientBalanceException;
 import com.omnip.transaction.adapter.out.persistence.StoreMutationJpaRepository;
 import com.omnip.onboarding.adapter.out.persistence.StoreJpaRepository;
@@ -16,86 +17,90 @@ import java.util.UUID;
 
 @Slf4j
 @Service
-public class BalanceDomainService {
+public class BalanceDomainService implements BalanceManagementUseCase {
 
-    private final StoreJpaRepository storeRepository;
-    private final StoreMutationJpaRepository storeMutationRepository;
+        private final StoreJpaRepository storeRepository;
+        private final StoreMutationJpaRepository storeMutationRepository;
 
-    public BalanceDomainService(StoreJpaRepository storeRepository, StoreMutationJpaRepository storeMutationRepository) {
-        this.storeRepository = storeRepository;
-        this.storeMutationRepository = storeMutationRepository;
-    }
-
-    @Transactional
-    public StoreMutations deductBalance(UUID storeId, BigDecimal amount,
-            MutationReferenceType referenceType,
-            UUID referenceId, String description)
-            throws InsufficientBalanceException {
-
-        Stores store = storeRepository.findByIdWithPessimisticLock(storeId)
-                .orElseThrow(() -> new RuntimeException("Store not found: " + storeId));
-
-        BigDecimal currentBalance = store.getBalance();
-
-        if (currentBalance.compareTo(amount) < 0) {
-            throw new InsufficientBalanceException(
-                    "Saldo tidak mencukupi. Saldo: " + currentBalance + ", dibutuhkan: " + amount);
+        public BalanceDomainService(StoreJpaRepository storeRepository,
+                        StoreMutationJpaRepository storeMutationRepository) {
+                this.storeRepository = storeRepository;
+                this.storeMutationRepository = storeMutationRepository;
         }
 
-        BigDecimal newBalance = currentBalance.subtract(amount);
+        @Override
+        @Transactional
+        public StoreMutations deductBalance(UUID storeId, BigDecimal amount,
+                        MutationReferenceType referenceType,
+                        UUID referenceId, String description)
+                        throws InsufficientBalanceException {
 
-        StoreMutations mutation = new StoreMutations();
-        mutation.setStore(store);
-        mutation.setAmount(amount);
-        mutation.setType(MutationType.DEBIT);
-        mutation.setBalanceAfter(newBalance);
-        mutation.setReferenceType(referenceType);
-        mutation.setReferenceId(referenceId);
-        mutation.setDescription(description);
-        storeMutationRepository.save(mutation);
+                Stores store = storeRepository.findByIdWithPessimisticLock(storeId)
+                                .orElseThrow(() -> new RuntimeException("Store not found: " + storeId));
 
-        store.setBalance(newBalance);
-        storeRepository.save(store);
+                BigDecimal currentBalance = store.getBalance();
 
-        log.info("DEBIT store={} amount={} balanceAfter={} ref={}:{}",
-                storeId, amount, newBalance, referenceType, referenceId);
+                if (currentBalance.compareTo(amount) < 0) {
+                        throw new InsufficientBalanceException(
+                                        "Saldo tidak mencukupi. Saldo: " + currentBalance + ", dibutuhkan: " + amount);
+                }
 
-        return mutation;
-    }
+                BigDecimal newBalance = currentBalance.subtract(amount);
 
-    @Transactional
-    public StoreMutations addBalance(UUID storeId, BigDecimal amount,
-            MutationReferenceType referenceType,
-            UUID referenceId, String description) {
+                StoreMutations mutation = new StoreMutations();
+                mutation.setStore(store);
+                mutation.setAmount(amount);
+                mutation.setType(MutationType.DEBIT);
+                mutation.setBalanceAfter(newBalance);
+                mutation.setReferenceType(referenceType);
+                mutation.setReferenceId(referenceId);
+                mutation.setDescription(description);
+                storeMutationRepository.save(mutation);
 
-        Stores store = storeRepository.findByIdWithPessimisticLock(storeId)
-                .orElseThrow(() -> new RuntimeException("Store not found: " + storeId));
+                store.setBalance(newBalance);
+                storeRepository.save(store);
 
-        BigDecimal newBalance = store.getBalance().add(amount);
+                log.info("DEBIT store={} amount={} balanceAfter={} ref={}:{}",
+                                storeId, amount, newBalance, referenceType, referenceId);
 
-        StoreMutations mutation = new StoreMutations();
-        mutation.setStore(store);
-        mutation.setAmount(amount);
-        mutation.setType(MutationType.CREDIT);
-        mutation.setBalanceAfter(newBalance);
-        mutation.setReferenceType(referenceType);
-        mutation.setReferenceId(referenceId);
-        mutation.setDescription(description);
-        storeMutationRepository.save(mutation);
+                return mutation;
+        }
 
-        store.setBalance(newBalance);
-        storeRepository.save(store);
+        @Override
+        @Transactional
+        public StoreMutations addBalance(UUID storeId, BigDecimal amount,
+                        MutationReferenceType referenceType,
+                        UUID referenceId, String description) {
 
-        log.info("CREDIT store={} amount={} balanceAfter={} ref={}:{}",
-                storeId, amount, newBalance, referenceType, referenceId);
+                Stores store = storeRepository.findByIdWithPessimisticLock(storeId)
+                                .orElseThrow(() -> new RuntimeException("Store not found: " + storeId));
 
-        return mutation;
-    }
+                BigDecimal newBalance = store.getBalance().add(amount);
 
-    @Transactional(readOnly = true)
-    public BigDecimal getBalance(UUID storeId) {
-        return storeRepository.findById(storeId)
-                .map(Stores::getBalance)
-                .orElseThrow(() -> new RuntimeException("Store not found: " + storeId));
-    }
+                StoreMutations mutation = new StoreMutations();
+                mutation.setStore(store);
+                mutation.setAmount(amount);
+                mutation.setType(MutationType.CREDIT);
+                mutation.setBalanceAfter(newBalance);
+                mutation.setReferenceType(referenceType);
+                mutation.setReferenceId(referenceId);
+                mutation.setDescription(description);
+                storeMutationRepository.save(mutation);
+
+                store.setBalance(newBalance);
+                storeRepository.save(store);
+
+                log.info("CREDIT store={} amount={} balanceAfter={} ref={}:{}",
+                                storeId, amount, newBalance, referenceType, referenceId);
+
+                return mutation;
+        }
+
+        @Override
+        @Transactional(readOnly = true)
+        public BigDecimal getBalance(UUID storeId) {
+                return storeRepository.findById(storeId)
+                                .map(Stores::getBalance)
+                                .orElseThrow(() -> new RuntimeException("Store not found: " + storeId));
+        }
 }

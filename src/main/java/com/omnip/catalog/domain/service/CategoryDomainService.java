@@ -1,8 +1,8 @@
 package com.omnip.catalog.domain.service;
 
-import com.omnip.catalog.adapter.in.web.dto.CategoryDTO;
 import com.omnip.catalog.domain.model.Categories;
 import com.omnip.catalog.domain.model.CategoryType;
+import com.omnip.catalog.domain.port.in.BrowseCategoriesUseCase;
 import com.omnip.catalog.adapter.out.persistence.CategoryJpaRepository;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
@@ -13,7 +13,7 @@ import java.util.Optional;
 
 @Service
 @Transactional(readOnly = true)
-public class CategoryDomainService {
+public class CategoryDomainService implements BrowseCategoriesUseCase {
 
     private final CategoryJpaRepository categoryRepository;
 
@@ -21,36 +21,21 @@ public class CategoryDomainService {
         this.categoryRepository = categoryRepository;
     }
 
+    @Override
     @Cacheable(value = "categories", cacheManager = "standardCacheManager")
-    public List<CategoryDTO> findAll() {
-        return categoryRepository.findByActiveTrueAndDeletedFalseOrderBySortOrder()
-                .stream()
-                .map(this::toDTO)
-                .toList();
+    public List<Categories> findAll() {
+        return categoryRepository.findByActiveTrueAndDeletedFalseOrderBySortOrder();
     }
 
-    public Optional<CategoryDTO> findByCode(String code) {
+    @Override
+    public Optional<Categories> findByCode(String code) {
         return categoryRepository.findByCode(code)
-                .filter(c -> c.isActive() && !c.isDeleted())
-                .map(this::toDTO);
+                .filter(c -> c.isActive() && !c.isDeleted());
     }
 
+    @Override
     @Cacheable(value = "categories", key = "#type", cacheManager = "standardCacheManager")
-    public List<CategoryDTO> findByType(CategoryType type) {
-        return categoryRepository.findByCategoryTypeAndActiveTrueAndDeletedFalseOrderBySortOrder(type)
-                .stream()
-                .map(this::toDTO)
-                .toList();
-    }
-
-    private CategoryDTO toDTO(Categories entity) {
-        CategoryDTO dto = new CategoryDTO();
-        dto.setId(entity.getId());
-        dto.setCode(entity.getCode());
-        dto.setName(entity.getName());
-        dto.setCategoryType(entity.getCategoryType());
-        dto.setIconUrl(entity.getIconUrl());
-        dto.setSortOrder(entity.getSortOrder());
-        return dto;
+    public List<Categories> findByType(CategoryType type) {
+        return categoryRepository.findByCategoryTypeAndActiveTrueAndDeletedFalseOrderBySortOrder(type);
     }
 }

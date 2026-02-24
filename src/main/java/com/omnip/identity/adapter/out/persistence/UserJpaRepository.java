@@ -1,6 +1,8 @@
 package com.omnip.identity.adapter.out.persistence;
 
 import com.omnip.identity.domain.model.Users;
+import com.omnip.identity.domain.port.out.UserRepositoryPort;
+import com.omnip.onboarding.domain.port.out.OnboardingUserPort;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -12,11 +14,12 @@ import java.util.UUID;
 
 /**
  * Repository interface untuk entity Users.
- * Menyediakan operasi CRUD dasar dan method custom untuk mengakses data pengguna.
+ * Menyediakan operasi CRUD dasar dan method custom untuk mengakses data
+ * pengguna.
  * Interface ini secara otomatis diimplementasikan oleh Spring Data JPA.
  */
 @Repository
-public interface UserJpaRepository extends JpaRepository<Users, UUID> {
+public interface UserJpaRepository extends JpaRepository<Users, UUID>, UserRepositoryPort, OnboardingUserPort {
 
     /**
      * Mencari pengguna berdasarkan alamat email.
@@ -30,7 +33,8 @@ public interface UserJpaRepository extends JpaRepository<Users, UUID> {
 
     /**
      * Mencari daftar pengguna berdasarkan email dan store ID.
-     * Query ini menggunakan JPQL untuk mendapatkan pengguna yang emailnya terdapat dalam list emails
+     * Query ini menggunakan JPQL untuk mendapatkan pengguna yang emailnya terdapat
+     * dalam list emails
      * dan memiliki store ID yang cocok.
      *
      * @param emails  List alamat email pengguna yang akan dicari
@@ -42,7 +46,8 @@ public interface UserJpaRepository extends JpaRepository<Users, UUID> {
 
     /**
      * Mencari pengguna berdasarkan provider user ID.
-     * Provider user ID biasanya adalah ID dari sistem autentikasi eksternal seperti Keycloak.
+     * Provider user ID biasanya adalah ID dari sistem autentikasi eksternal seperti
+     * Keycloak.
      *
      * @param providerUserId ID pengguna dari provider autentikasi
      * @return Objek Users jika ditemukan, null jika tidak ditemukan
@@ -50,14 +55,15 @@ public interface UserJpaRepository extends JpaRepository<Users, UUID> {
     Users findByProviderUserId(String providerUserId);
 
     /**
-     * Mencari pengguna berdasarkan email, username, atau fullname (case insensitive).
+     * Mencari pengguna berdasarkan email, username, atau fullname (case
+     * insensitive).
      * Digunakan untuk fitur search user dalam role management.
      *
-     * @param email Email yang dicari
-     * @param username Username yang dicari  
+     * @param email    Email yang dicari
+     * @param username Username yang dicari
      * @param fullname Fullname yang dicari
      * @return List objek Users yang memenuhi kriteria
      */
     List<Users> findByEmailContainingIgnoreCaseOrUsernameContainingIgnoreCaseOrFullnameContainingIgnoreCase(
-        String email, String username, String fullname);
+            String email, String username, String fullname);
 }
