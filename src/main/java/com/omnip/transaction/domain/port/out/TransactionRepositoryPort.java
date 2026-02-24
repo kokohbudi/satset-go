@@ -7,9 +7,10 @@ import org.springframework.data.domain.Pageable;
 import java.util.Optional;
 import java.util.UUID;
 
+/**
+ * Note: save() is inherited from JpaRepository/CrudRepository.
+ */
 public interface TransactionRepositoryPort {
-
-    Transactions save(Transactions transaction);
 
     Optional<Transactions> findByIdAndStoreIdWithDetails(UUID id, UUID storeId);
 

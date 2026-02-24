@@ -1,8 +1,7 @@
 package com.omnip.transaction.domain.port.out;
 
-import com.omnip.transaction.domain.model.StoreMutations;
-
+/**
+ * Note: save() is inherited from JpaRepository/CrudRepository.
+ */
 public interface StoreMutationRepositoryPort {
-
-    StoreMutations save(StoreMutations mutation);
 }

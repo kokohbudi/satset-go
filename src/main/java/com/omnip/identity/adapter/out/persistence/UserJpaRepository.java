@@ -3,7 +3,6 @@ package com.omnip.identity.adapter.out.persistence;
 import com.omnip.identity.domain.model.Users;
 import com.omnip.identity.domain.port.out.UserRepositoryPort;
 import com.omnip.onboarding.domain.port.out.OnboardingUserPort;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -28,7 +27,6 @@ public interface UserJpaRepository extends JpaRepository<Users, UUID>, UserRepos
      * @param email Alamat email pengguna yang dicari
      * @return Objek Users jika ditemukan, null jika tidak ditemukan
      */
-    @Cacheable(value = "stores", key = "#email", cacheManager = "fastCacheManager")
     Users findByEmail(String email);
 
     /**

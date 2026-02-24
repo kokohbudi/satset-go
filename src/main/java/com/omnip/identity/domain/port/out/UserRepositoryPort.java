@@ -6,14 +6,13 @@ import java.util.List;
 
 /**
  * Output port for user persistence in identity context.
+ * Note: save() is inherited from JpaRepository/CrudRepository.
  */
 public interface UserRepositoryPort {
 
     Users findByEmail(String email);
 
     Users findByProviderUserId(String providerUserId);
-
-    Users save(Users user);
 
     List<Users> findByEmailInAndStoreId(List<String> emails, String storeId);
 }

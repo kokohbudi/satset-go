@@ -6,11 +6,12 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+/**
+ * Note: findById() is inherited from JpaRepository/CrudRepository.
+ */
 public interface DenomRepositoryPort {
 
     List<ProductDenoms> findByProductIdAndActiveTrueAndDeletedFalseOrderBySortOrder(UUID productId);
 
     Optional<ProductDenoms> findByCode(String code);
-
-    Optional<ProductDenoms> findById(UUID id);
 }
