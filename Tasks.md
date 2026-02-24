@@ -1,8 +1,8 @@
 # SatSetGo - Task Board
 
 > **Owner**: August (Senior PM)
-> **Last Updated**: 2026-02-22
-> **Sprint**: MVP Sprint — Finish Onboarding Test → Purchase Flow
+> **Last Updated**: 2026-02-24 15:46
+> **Sprint**: MVP Sprint — Purchase Flow UI & Testing
 
 ---
 
@@ -10,31 +10,15 @@
 
 > **Prinsip**: Fitur yang membuat user bisa **beli pulsa** = MVP. Sisanya backlog.
 
-### Task 6 — Onboarding: Integration & Manual Test ⏳
-- [ ] **Test Path A**: Login Google → belum punya Store → muncul form → isi → submit → redirect Dashboard
-- [ ] **Test Path B**: Admin tambah reseller → user terima email set-password → login → langsung ke Dashboard (sudah punya store)
-- [ ] **Test edge case**: User login, tutup tab sebelum submit form → login lagi → masih redirect ke `/onboarding`
-- [ ] **Commit** semua changes dengan message `feat: store-onboarding + keycloak-organization`
+### Task 6 — Onboarding: Integration & Manual Test ✅
+- [x] **Test Path A**: Login Google → belum punya Store → muncul form → isi → submit → redirect Dashboard
+- [x] **Test Path B**: Admin tambah reseller → user terima email set-password → login → langsung ke Dashboard (sudah punya store)
+- [x] **Test edge case**: User login, tutup tab sebelum submit form → login lagi → masih redirect ke `/onboarding`
+- [x] **Commit** semua changes dengan message `feat: store-onboarding + keycloak-organization`
 
-### Task 12 — Domain Model: Transactions
-- [ ] **Entity `Transactions`**: id, store_id, product_denom_id, target_number, amount, admin_fee, total, status (enum), provider_ref, created/updated audit fields
-- [ ] **Enum `TransactionStatus`**: PENDING, PROCESSING, SUCCESS, FAILED, REFUNDED
-- [ ] **Repository `TransactionRepository`**: findByStoreId, findByStatus, dll
-
-### Task 13 — Balance di Stores
-- [ ] **Tambah field `balance DECIMAL(15,2)` di entity `Stores`** (default 0)
-- [ ] **`BalanceService`**: `checkBalance(storeId)`, `deductBalance(storeId, amount)` dengan pessimistic lock, `addBalance(storeId, amount)`
-- [ ] **Seed balance** untuk testing (admin set manual via DB atau endpoint sederhana)
-
-### Task 14 — Purchase Service + Mock Provider
-- [ ] **Interface `ProviderService`**: `sendTransaction(productCode, targetNumber, amount)` → ProviderResponse
-- [ ] **`MockProviderService`**: 90% sukses, delay 500ms-2s, random serial number
-- [ ] **`TransactionService`**: `createPurchase(storeId, denomId, targetNumber)` — validasi produk aktif, cek saldo, deduct, panggil provider, update status
-
-### Task 15 — Purchase REST API
-- [ ] **`POST /api/transactions/purchase`** — beli produk (storeId, denomId, targetNumber)
-- [ ] **`GET /api/transactions/{id}`** — detail transaksi
-- [ ] **`GET /api/transactions/history`** — riwayat transaksi per store
+### Task 15b — Purchase API (Missing Endpoints) ✅
+- [x] **`GET /api/transactions/{id}`** — detail transaksi
+- [x] **`GET /api/transactions/history`** — riwayat transaksi per store
 
 ### Task 16 — Purchase UI
 - [ ] **Purchase form**: pilih produk → input nomor → konfirmasi → submit
@@ -63,6 +47,7 @@
 - [-] Payment service entities (Deposits, PaymentTransactions)
 - [-] MockPaymentGateway implementation
 - [-] Top-up UI with payment flow
+- [-] **Store Mutations UI**: Tab riwayat mutasi saldo di menu /transactions untuk melihat top-up, potongan pembelian, dan refund
 
 ### Admin Product Management (Week 4)
 - [-] AdminProductService (CRUD for categories, products, denoms)
@@ -72,6 +57,23 @@
 - [-] **Reseller Tier & Dynamic Pricing** — Bronze/Silver/Gold/Platinum, naik otomatis dari volume
 - [-] **Markup per Store** — setiap Store set markup sendiri di atas harga platform
 - [-] **Komisi Upline (Rebate System)** — upline dapat komisi per transaksi downline
+
+### 🏗️ Hexagonal Architecture + Unit Tests (Post-Purchase UI) ⭐ HIGH PRIORITY
+> *Refactor arsitektur flat → Hexagonal (Ports & Adapters) + comprehensive unit tests*
+- [-] Domain layer: pure business logic, zero framework dependency
+- [-] Port in (use cases): `PurchasePrepaidUseCase`, `TopUpUseCase`, `ViewHistoryUseCase`
+- [-] Port out (adapters): `TransactionPort`, `BalancePort`, `ProviderPort`
+- [-] Adapter in/web: Controllers
+- [-] Adapter out/persistence: JPA repositories
+- [-] Adapter out/provider: MockProvider, RealProvider
+- [-] Unit tests edge cases:
+  - Saldo pas-pasan → SUCCESS, balance = 0
+  - Saldo kurang Rp 1 → REJECTED, balance unchanged
+  - Provider timeout → FAILED → auto refund
+  - Double submit (idempotency) → second rejected
+  - Concurrent purchase (2 thread, 1 saldo) → hanya 1 berhasil
+  - Purchase denom inactive/deleted → REJECTED
+  - Refund gagal setelah provider fail → alert
 
 ### Reseller Experience (Post-MVP)
 - [-] **White-label Storefront** — setiap Store punya URL sendiri
@@ -118,6 +120,15 @@
 - [x] OnboardingController + reseller-form.html
 - [x] Sidebar cleanup: hapus menu tanpa controller (/users, /groups, /user-groups, /transactions, /deposit, /settings)
 
+### Purchase Prepaid — Task 12-15b (2026-02-24)
+- [x] **Task 12**: Entity `Transactions` + `StoreMutations` (Double-Entry Ledger) + 3 enums
+- [x] **Task 13**: `Stores.balance` (cache) + `BalanceService` (pessimistic lock + ledger)
+- [x] **Task 14**: `ProviderService` interface + `MockProviderService` (90% success, 500ms delay)
+- [x] **Task 15**: `TransactionService` (saga: deduct → provider → refund) + `TransactionController` (purchase, topup, balance)
+- [x] **Task 15b**: `TransactionDTO` + `GET /{id}` + `GET /history` endpoints
+- [x] Arsitektur: **Double-Entry Ledger** (buku tabungan) — `StoreMutations` = source of truth, `Stores.balance` = read cache
+- [x] Polymorphic reference (`referenceType` + `referenceId`) untuk fleksibilitas mutasi
+
 ---
 
 ## 🚨 RISKS & MITIGATION
@@ -127,19 +138,36 @@
 | Balance race condition | Saldo minus, kerugian finansial | HIGH | Pessimistic locking pada deduct balance |
 | Provider downtime (mock) | Transaksi stuck | LOW | MockProvider always responds (90% success) |
 | No unit tests | Regression bugs saat refactor | MEDIUM | Manual test per task, automated tests post-MVP |
-| Onboarding belum di-test end-to-end | Bug saat user pertama kali pakai | MEDIUM | **Task 6 — test sekarang** |
+| Onboarding belum di-test end-to-end | Bug saat user pertama kali pakai | ~~MEDIUM~~ | ✅ **Task 6 — DONE** |
 
 ---
 
 ## 💬 PM NOTES
 
+**2026-02-24 15:46** (August — Task 6 & 15b Done!):
+- **Task 6 SELESAI** — Onboarding integration test sudah dilakukan (Path A, Path B, edge case)
+- **Task 15b SELESAI** — 2 missing endpoint sudah ditambahkan:
+  - `GET /api/transactions/{id}?storeId=...` (detail transaksi, secured by storeId)
+  - `GET /api/transactions/history?storeId=...` (riwayat per store, sorted newest)
+  - `TransactionDTO` (Java record) sebagai response DTO
+- **`mvn compile` BUILD SUCCESS** — zero errors
+- **Next**: Task 16 (Purchase UI) → Task 17 (Integration Test)
+- Sprint focus sekarang: **Task 16 + 17 saja** (Task 6 & 15b sudah clear)
+
+**2026-02-24** (August — Purchase Flow Backend Done!):
+- **Task 12-15 SELESAI** — Backend purchase prepaid sudah full functional
+- **Keputusan arsitektur baru**: Double-Entry Ledger (buku tabungan) menggantikan design awal
+  - `StoreMutations` = source of truth (immutable ledger)
+  - `Stores.balance` = read cache (sync otomatis saat mutasi)
+  - Polymorphic `referenceType + referenceId` (bukan hardcoded FK ke Transactions)
+- **3 endpoint siap**: `POST /purchase`, `POST /topup`, `GET /balance/{storeId}`
+- ~~Missing endpoint: `GET /{id}` dan `GET /history`~~ → **DONE (Task 15b)**
+
 **2026-02-22** (August — MVP Re-prioritization):
 - **KEPUTUSAN BESAR**: Admin Org Management (Task 7-11) dipindahkan ke BACKLOG
 - Alasan: Task 7-11 bukan MVP. User perlu bisa **beli pulsa**, bukan admin manage org
 - Purchase Flow (Task 12-17) di-UNLOCK — tidak perlu nunggu org management
-- Sprint sekarang: selesaikan Task 6 (test onboarding) → langsung Task 12-17 (purchase)
 - Sidebar cleanup sudah dilakukan: hapus 6 menu yang tidak punya controller
-- **Target**: User bisa beli pulsa end-to-end dalam sprint ini
 
 **2026-02-20** (August — Admin Org Management breakdown):
 - Sprint baru ditambahkan: Admin Organization Management Screen (Task 7-11)
@@ -154,5 +182,6 @@
 
 ---
 
-**Last Updated**: 2026-02-22
-**Next Review**: Setelah Task 6 (onboarding test) selesai
+**Last Updated**: 2026-02-24 15:46
+**Next Review**: Setelah Task 16 (Purchase UI) selesai
+

@@ -58,20 +58,6 @@
                                     class="input input-bordered focus:input-primary w-full" required />
                             </div>
 
-                            <!-- Role (Optional) -->
-                            <div class="form-control">
-                                <label class="label">
-                                    <span class="label-text font-medium">Role</span>
-                                    <span class="label-text-alt text-base-content/50">Opsional</span>
-                                </label>
-                                <select x-model="form.role" class="select select-bordered focus:select-primary w-full">
-                                    <option value="">-- Pilih Role --</option>
-                                    <th:block th:each="role : ${availableRoles}">
-                                        <option th:value="${role.name}" th:text="${role.name}"></option>
-                                    </th:block>
-                                </select>
-                            </div>
-
                             <!-- Upline (Optional) -->
                             <div class="form-control">
                                 <label class="label">
@@ -108,7 +94,6 @@
                         email: '',
                         orgName: '',
                         phone: '',
-                        role: '',
                         upline: ''
                     },
                     async submitForm() {
@@ -120,7 +105,6 @@
                             params.append('email', this.form.email);
                             params.append('orgName', this.form.orgName);
                             params.append('phone', this.form.phone);
-                            if (this.form.role) params.append('role', this.form.role);
                             if (this.form.upline) params.append('upline', this.form.upline);
 
                             const response = await fetch('/api/admin/resellers', {
@@ -133,7 +117,7 @@
 
                             if (response.ok && data.status === 'success') {
                                 Alpine.store('toast').success(data.message || 'Reseller berhasil dibuat');
-                                this.form = { username: '', email: '', orgName: '', phone: '', role: '', upline: '' };
+                                this.form = { username: '', email: '', orgName: '', phone: '', upline: '' };
                             } else {
                                 Alpine.store('toast').error(data.message || 'Gagal membuat reseller');
                             }

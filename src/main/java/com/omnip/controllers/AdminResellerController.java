@@ -28,11 +28,10 @@ public class AdminResellerController {
             @RequestParam("email") String email,
             @RequestParam("orgName") String orgName,
             @RequestParam("phone") String phone,
-            @RequestParam(value = "role", required = false) String role,
             @RequestParam(value = "upline", required = false) String upline) {
 
         try {
-            adminOnboardingService.onboardReseller(username, email, orgName, phone, role, upline);
+            adminOnboardingService.onboardReseller(username, email, orgName, phone, upline);
             return ResponseEntity
                     .ok(Map.of("status", "success", "message", "Reseller " + username + " berhasil dibuat."));
         } catch (BusinessException e) {

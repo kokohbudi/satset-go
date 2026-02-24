@@ -57,6 +57,19 @@ public class GlobalExceptionHandler {
     /**
      * Handle business exceptions.
      */
+    @ExceptionHandler(InsufficientBalanceException.class)
+    public ResponseEntity<Map<String, Object>> handleInsufficientBalance(InsufficientBalanceException ex) {
+        Map<String, Object> response = new HashMap<>();
+        response.put("timestamp", LocalDateTime.now().toString());
+        response.put("status", "error");
+        response.put("code", "INSUFFICIENT_BALANCE");
+        response.put("message", ex.getErrorMessage());
+
+        log.warn("Insufficient balance: {}", ex.getErrorMessage());
+
+        return ResponseEntity.status(422).body(response);
+    }
+
     @ExceptionHandler(BusinessException.class)
     public ResponseEntity<Map<String, Object>> handleBusinessException(BusinessException ex) {
         Map<String, Object> response = new HashMap<>();
@@ -68,6 +81,23 @@ public class GlobalExceptionHandler {
         log.error("Business exception: {} - {}", ex.getErrorCode(), ex.getErrorMessage());
 
         return ResponseEntity.badRequest().body(response);
+    }
+
+    /**
+     * Handle resource not found exceptions (404).
+     */
+    @ExceptionHandler(ResourceNotFoundException.class)
+    public ResponseEntity<Map<String, Object>> handleResourceNotFound(ResourceNotFoundException ex) {
+        Map<String, Object> response = new HashMap<>();
+        response.put("timestamp", LocalDateTime.now().toString());
+        response.put("status", "error");
+        response.put("code", "NOT_FOUND");
+        response.put("message", ex.getMessage());
+        response.put("resource", ex.getResourceName());
+
+        log.warn("Resource not found: {}", ex.getMessage());
+
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
     }
 
     /**

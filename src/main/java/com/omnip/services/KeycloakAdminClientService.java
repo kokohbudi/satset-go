@@ -1011,12 +1011,11 @@ public class KeycloakAdminClientService {
          * @param username      Username (biasanya nama pendek / toko)
          * @param fullname      Nama lengkap reseller
          * @param email         Email reseller (akan digunakan sebagai login)
-         * @param requestedRole Realm role yang akan di-assign (nullable)
          * @return Keycloak User ID dari reseller yang baru dibuat
          * @throws BusinessException Jika gagal membuat user
          */
-        public String createResellerUser(String username, String fullname, String email,
-                        String requestedRole) throws BusinessException {
+        public String createResellerUser(String username, String fullname, String email)
+                        throws BusinessException {
                 UserRepresentation userRep = this.keycloakAdminClientBusiness
                                 .prepareResellerUserRepresentation(username, fullname, email);
 
@@ -1036,11 +1035,7 @@ public class KeycloakAdminClientService {
                                         "SMTP might not be configured in Keycloak. User was still created.", email, e);
                 }
 
-                if (requestedRole != null && !requestedRole.isEmpty()) {
-                        assignRoleToUser(createdUserId, requestedRole);
-                }
-
-                log.info("Reseller user '{}' created: id='{}', role='{}'", email, createdUserId, requestedRole);
+                log.info("Reseller user '{}' created: id='{}'", email, createdUserId);
                 return createdUserId;
         }
 

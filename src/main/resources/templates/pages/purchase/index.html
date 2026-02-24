@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html layout:decorate="~{layouts/base}" xmlns:th="http://www.thymeleaf.org"
+    xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" xmlns:x-transition="http://www.w3.org/1999/xhtml">
+
+<head>
+    <title>Beli Pulsa & Paket Data</title>
+</head>
+
+<body>
+    <div layout:fragment="content" x-data="purchaseFlow()">
+
+        <!-- Page Header -->
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+            <div>
+                <h1 class="text-2xl font-bold text-base-content mb-2">Beli Pulsa & Paket Data</h1>
+                <p class="text-base-content/60">Pilih provider, produk, dan masukkan nomor tujuan</p>
+            </div>
+            <div class="text-right">
+                <p class="text-sm text-base-content/60">Saldo Anda</p>
+                <p class="text-xl font-bold text-primary"
+                    x-text="loadingBalance ? '...' : formatCurrency(currentBalance)"></p>
+            </div>
+        </div>
+
+        <!-- MAIN FLOW VIEWS -->
+        <div class="space-y-6">
+
+            <!-- ==================== VIEW 1: SELECTION & INPUT ==================== -->
+            <div x-show="view === 'selection'" x-transition:enter="transition ease-out duration-300"
+                x-transition:enter-start="opacity-0 translate-y-4" x-transition:enter-end="opacity-100 translate-y-0"
+                class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+                <!-- Left Column: Catalog Selection -->
+                <div class="lg:col-span-2 space-y-6">
+
+                    <!-- Breadcrumb Navigation -->
+                    <div class="text-sm breadcrumbs mb-4 card bg-base-100 shadow-sm border border-base-300/50 p-4">
+                        <ul>
+                            <li><a @click="showCategories()" class="cursor-pointer font-medium"
+                                    :class="catalogStep === 'categories' ? 'text-primary' : ''">Kategori</a></li>
+                            <li x-show="catalogStep === 'products' || catalogStep === 'denoms'">
+                                <a @click="catalogStep === 'denoms' ? showProducts(selectedCategory) : null"
+                                    class="cursor-pointer font-medium"
+                                    :class="catalogStep === 'products' ? 'text-primary' : ''"
+                                    x-text="selectedCategory?.name"></a>
+                            </li>
+                            <li x-show="catalogStep === 'denoms'">
+                                <span class="font-medium text-primary" x-text="selectedProduct?.name"></span>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <!-- Catalog Content -->
+                    <div class="card bg-base-100 shadow-sm border border-base-300/50 min-h-[400px]">
+                        <div class="card-body p-0">
+                            <!-- Loading State -->
+                            <div x-show="loadingCatalog" class="flex justify-center items-center h-64">
+                                <span class="loading loading-spinner loading-lg text-primary"></span>
+                            </div>
+
+                            <!-- Categories -->
+                            <div x-show="!loadingCatalog && catalogStep === 'categories'"
+                                class="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <template x-for="cat in categories" :key="cat.id">
+                                    <div @click="showProducts(cat)"
+                                        class="flex items-center gap-4 p-4 border border-base-300 rounded-xl hover:border-primary cursor-pointer transition-all hover:shadow-md bg-base-100 hover:bg-primary/5">
+                                        <div
+                                            class="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary font-bold text-xl">
+                                            <span x-text="cat.name.substring(0, 1).toUpperCase()"></span>
+                                        </div>
+                                        <div>
+                                            <h3 class="font-bold text-base-content" x-text="cat.name"></h3>
+                                            <p class="text-sm text-base-content/60"
+                                                x-text="cat.categoryType === 'PREPAID' ? 'Prabayar' : 'Pascabayar'"></p>
+                                        </div>
+                                        <div class="ml-auto">
+                                            <svg class="w-5 h-5 text-base-content/30" fill="none" stroke="currentColor"
+                                                viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M9 5l7 7-7 7" />
+                                            </svg>
+                                        </div>
+                                    </div>
+                                </template>
+                            </div>
+
+                            <!-- Products -->
+                            <div x-show="!loadingCatalog && catalogStep === 'products'"
+                                class="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <template x-for="prod in products" :key="prod.id">
+                                    <div @click="showDenoms(prod)"
+                                        class="flex items-start gap-4 p-4 border border-base-300 rounded-xl hover:border-primary cursor-pointer transition-all hover:shadow-md bg-base-100 hover:bg-primary/5">
+                                        <div
+                                            class="w-10 h-10 rounded-full bg-base-200 flex items-center justify-center font-bold text-base-content/70">
+                                            <span x-text="prod.name.substring(0, 1).toUpperCase()"></span>
+                                        </div>
+                                        <div class="flex-1">
+                                            <h3 class="font-bold text-base-content" x-text="prod.name"></h3>
+                                            <p class="text-xs badge badge-outline mt-1" x-text="prod.providerName"></p>
+                                        </div>
+                                    </div>
+                                </template>
+                                <div x-show="products.length === 0"
+                                    class="col-span-full py-12 text-center text-base-content/50">
+                                    Tidak ada produk di kategori ini.
+                                </div>
+                            </div>
+
+                            <!-- Denoms -->
+                            <div x-show="!loadingCatalog && catalogStep === 'denoms'" class="p-4">
+                                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                    <template x-for="denom in denoms" :key="denom.id">
+                                        <div @click="selectDenom(denom)"
+                                            class="border rounded-xl p-4 cursor-pointer transition-all hover:shadow-md relative overflow-hidden"
+                                            :class="selectedDenom?.id === denom.id ? 'border-primary bg-primary/5 shadow-md ring-1 ring-primary' : 'border-base-300 bg-base-100 hover:border-primary/50'">
+
+                                            <!-- Selected Checkmark -->
+                                            <div x-show="selectedDenom?.id === denom.id"
+                                                class="absolute top-0 right-0 w-8 h-8 flex items-center justify-center bg-primary rounded-bl-lg">
+                                                <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor"
+                                                    viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                        stroke-width="2" d="M5 13l4 4L19 7" />
+                                                </svg>
+                                            </div>
+
+                                            <h4 class="font-bold text-base-content mb-1 pr-6" x-text="denom.name"></h4>
+                                            <div class="flex flex-col gap-1 mb-3">
+                                                <span class="text-xl font-bold text-primary"
+                                                    x-text="formatCurrency(denom.price)"></span>
+                                                <span class="text-xs text-base-content/60"
+                                                    x-text="'Admin: ' + formatCurrency(denom.adminFee)"></span>
+                                            </div>
+
+                                            <div class="flex flex-wrap gap-1 mt-auto">
+                                                <span x-show="denom.validityDays" class="badge badge-sm badge-ghost"
+                                                    x-text="denom.validityDays + ' hari'"></span>
+                                                <span x-show="denom.quotaMb"
+                                                    class="badge badge-sm badge-info badge-outline"
+                                                    x-text="formatQuota(denom.quotaMb)"></span>
+                                            </div>
+                                        </div>
+                                    </template>
+                                </div>
+                                <div x-show="denoms.length === 0" class="py-12 text-center text-base-content/50">
+                                    Tidak ada pecahan untuk produk ini.
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Column: Input & Summary -->
+                <div class="space-y-6">
+                    <!-- Target Number Input -->
+                    <div class="card bg-base-100 shadow-sm border border-base-300/50">
+                        <div class="card-body">
+                            <h2 class="card-title text-lg mb-4">Nomor Tujuan</h2>
+
+                            <div class="floating-input-wrapper">
+                                <input type="text" x-model="targetNumber" @input="validateForm" class="floating-input"
+                                    :class="errors.targetNumber ? 'input-error' : ''" placeholder=" " id="targetNumber">
+                                <label for="targetNumber" class="floating-label">08xx / Nomor Pelanggan</label>
+                            </div>
+                            <p x-show="errors.targetNumber" class="text-error text-xs mt-1"
+                                x-text="errors.targetNumber"></p>
+                        </div>
+                    </div>
+
+                    <!-- Summary & Actions -->
+                    <div class="card bg-base-100 shadow-md border border-primary/20 relative overflow-hidden">
+                        <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary to-accent"></div>
+                        <div class="card-body">
+                            <h2 class="card-title text-base mb-4">Ringkasan</h2>
+
+                            <div x-show="!selectedDenom" class="text-sm text-base-content/50 italic py-4">
+                                Silakan pilih produk terlebih dahulu
+                            </div>
+
+                            <div x-show="selectedDenom" class="space-y-3 text-sm">
+                                <div class="flex justify-between">
+                                    <span class="text-base-content/70">Produk</span>
+                                    <span class="font-medium text-right" x-text="selectedProduct?.name"></span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-base-content/70">Pecahan</span>
+                                    <span class="font-medium text-right" x-text="selectedDenom?.name"></span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-base-content/70">Nomor Tujuan</span>
+                                    <span class="font-medium text-right" x-text="targetNumber || '-'"></span>
+                                </div>
+                                <div class="divider my-1"></div>
+                                <div class="flex justify-between">
+                                    <span class="text-base-content/70">Harga Pokok</span>
+                                    <span x-text="selectedDenom ? formatCurrency(selectedDenom.price) : '-'"></span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-base-content/70">Biaya Admin</span>
+                                    <span x-text="selectedDenom ? formatCurrency(selectedDenom.adminFee) : '-'"></span>
+                                </div>
+                                <div class="divider my-1"></div>
+                                <div class="flex justify-between items-center bg-base-200/50 p-3 rounded-lg">
+                                    <span class="font-bold">Total Pembayaran</span>
+                                    <span class="font-bold text-lg text-primary"
+                                        x-text="selectedDenom ? formatCurrency(selectedDenom.price + (selectedDenom.adminFee || 0)) : '-'"></span>
+                                </div>
+
+                                <div x-show="isInsufficientBalance"
+                                    class="alert alert-error shadow-sm p-3 mt-4 text-sm rounded-lg flex items-start gap-2">
+                                    <svg class="w-5 h-5 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor"
+                                        viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                    </svg>
+                                    <span>Saldo tidak cukup. Saldo Anda: <strong
+                                            x-text="formatCurrency(currentBalance)"></strong></span>
+                                </div>
+                            </div>
+
+                            <div class="mt-6">
+                                <button @click="openConfirmModal()" class="btn btn-primary w-full gap-2"
+                                    :disabled="!isValid || isInsufficientBalance">
+                                    Konfirmasi Pembelian
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ==================== VIEW 2: CONFIRMATION MODAL ==================== -->
+            <!-- Handled safely via a dedicated custom modal, not just the confirm store -->
+            <dialog id="confirm_purchase_modal" class="modal modal-bottom sm:modal-middle">
+                <div class="modal-box">
+                    <h3 class="font-bold text-lg border-b pb-3 mb-4">Konfirmasi Pembelian</h3>
+
+                    <div class="p-4 bg-base-200 rounded-xl space-y-3 mb-6">
+                        <div class="grid grid-cols-3 gap-2 text-sm">
+                            <div class="text-base-content/60">Nomor Tujuan</div>
+                            <div class="col-span-2 font-bold font-mono text-lg tracking-wider" x-text="targetNumber">
+                            </div>
+
+                            <div class="col-span-3 divider my-1"></div>
+
+                            <div class="text-base-content/60">Produk</div>
+                            <div class="col-span-2 font-medium" x-text="selectedProduct?.name"></div>
+
+                            <div class="text-base-content/60">Pecahan</div>
+                            <div class="col-span-2 font-medium" x-text="selectedDenom?.name"></div>
+
+                            <div class="col-span-3 divider my-1"></div>
+
+                            <div class="text-base-content/60">Total Bayar</div>
+                            <div class="col-span-2 font-bold text-primary text-xl"
+                                x-text="formatCurrency(selectedDenom ? (selectedDenom.price + (selectedDenom.adminFee || 0)) : 0)">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div
+                        class="alert bg-warning/10 text-warning-content border border-warning/20 p-3 rounded-lg text-sm flex gap-3 items-center">
+                        <svg class="w-6 h-6 flex-shrink-0 text-warning" fill="none" stroke="currentColor"
+                            viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <span>Pastikan nomor tujuan sudah benar. Transaksi yang sukses tidak dapat dibatalkan.</span>
+                    </div>
+
+                    <div class="modal-action mt-6 gap-2">
+                        <button class="btn btn-ghost" @click="closeConfirmModal()"
+                            :disabled="isSubmitting">Batal</button>
+                        <button class="btn btn-primary min-w-[120px]" @click="submitPurchase()"
+                            :disabled="isSubmitting">
+                            <span x-show="!isSubmitting">Bayar Sekarang</span>
+                            <span x-show="isSubmitting" class="loading loading-spinner"></span>
+                        </button>
+                    </div>
+                </div>
+                <form method="dialog" class="modal-backdrop">
+                    <button @click="closeConfirmModal()" :disabled="isSubmitting">close</button>
+                </form>
+            </dialog>
+
+            <!-- ==================== VIEW 3: RESULT ==================== -->
+            <div x-show="view === 'result'" x-cloak x-transition:enter="transition ease-out duration-500 delay-200"
+                x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100"
+                class="max-w-2xl mx-auto">
+
+                <div class="card bg-base-100 shadow-xl border border-base-300">
+                    <!-- Success Header -->
+                    <div x-show="resultData?.status === 'SUCCESS'"
+                        class="bg-success text-success-content p-8 text-center rounded-t-xl">
+                        <div
+                            class="w-20 h-20 rounded-full bg-white/20 flex items-center justify-center mx-auto mb-4 backdrop-blur-sm">
+                            <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3"
+                                    d="M5 13l4 4L19 7" />
+                            </svg>
+                        </div>
+                        <h2 class="text-2xl font-bold">Transaksi Berhasil!</h2>
+                        <p class="opacity-90 mt-2">Pembelian produk telah sukses dilakukan.</p>
+                    </div>
+
+                    <!-- Failed Header -->
+                    <div x-show="resultData?.status !== 'SUCCESS'"
+                        class="bg-error text-error-content p-8 text-center rounded-t-xl">
+                        <div
+                            class="w-20 h-20 rounded-full bg-white/20 flex items-center justify-center mx-auto mb-4 backdrop-blur-sm">
+                            <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3"
+                                    d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </div>
+                        <h2 class="text-2xl font-bold">Transaksi Gagal</h2>
+                        <p class="opacity-90 mt-2" x-text="resultError || 'Terjadi kesalahan pada transaksi.'"></p>
+                    </div>
+
+                    <div class="card-body p-6 md:p-8">
+                        <!-- Receipt Details -->
+                        <div class="bg-base-200/50 rounded-xl p-6 space-y-4 mb-6 relative">
+                            <!-- Decorative zigzag lines for receipt feel effect -->
+                            <div class="absolute -top-1 left-0 right-0 h-2"
+                                style="background-image: radial-gradient(circle, transparent 4px, hsl(var(--b1)) 4px); background-size: 10px 10px; background-position: -5px -5px;">
+                            </div>
+
+                            <div class="text-center pb-4 border-b border-base-300 border-dashed">
+                                <p class="text-3xl font-bold text-primary" x-text="formatCurrency(resultData?.total)">
+                                </p>
+                                <p class="text-xs text-base-content/50 mt-1"
+                                    x-text="'ID: ' + (resultData?.transactionId || '-')"></p>
+                            </div>
+
+                            <div class="space-y-3 text-sm">
+                                <div class="flex justify-between">
+                                    <span class="text-base-content/60">Nomor Tujuan</span>
+                                    <span class="font-bold tracking-wider" x-text="targetNumber"></span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-base-content/60">Produk</span>
+                                    <span class="font-medium text-right"
+                                        x-text="selectedProduct?.name + ' - ' + selectedDenom?.name"></span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-base-content/60">Provider Ref</span>
+                                    <span class="font-mono text-xs mt-0.5"
+                                        x-text="resultData?.providerRef || '-'"></span>
+                                </div>
+
+                                <!-- Serial Number (Success only) -->
+                                <div x-show="resultData?.status === 'SUCCESS'"
+                                    class="flex flex-col gap-1 mt-4 p-3 bg-base-100 border border-success/20 rounded-lg">
+                                    <span class="text-xs text-success font-bold uppercase">Serial Number (SN)</span>
+                                    <span class="font-mono font-medium text-lg"
+                                        x-text="resultData?.serialNumber || 'Proses'"></span>
+                                </div>
+
+                                <!-- Refund Notice (Failed only) -->
+                                <div x-show="resultData?.status === 'REFUNDED'"
+                                    class="flex items-center gap-2 p-3 bg-warning/10 text-warning-content border border-warning/20 rounded-lg">
+                                    <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor"
+                                        viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
+                                    </svg>
+                                    <span>Saldo telah dikembalikan secara otomatis ke akun Anda.</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="flex flex-col sm:flex-row gap-3">
+                            <button class="btn btn-outline flex-1" @click="goToTransactions()">Lihat Riwayat</button>
+                            <button class="btn btn-primary flex-1" @click="resetForm()">Beli Lagi</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <div layout:fragment="scripts">
+        <script>
+            function purchaseFlow() {
+                return {
+                    view: 'selection', // selection, result
+                    catalogStep: 'categories', // categories, products, denoms
+
+                    // Data
+                    categories: [],
+                    products: [],
+                    denoms: [],
+
+                    // Selections
+                    selectedCategory: null,
+                    selectedProduct: null,
+                    selectedDenom: null,
+                    targetNumber: '',
+
+                    // State
+                    loadingCatalog: false,
+                    loadingBalance: false,
+                    isSubmitting: false,
+                    currentBalance: 0,
+
+                    // Result
+                    resultData: null,
+                    resultError: '',
+
+                    // Validation
+                    errors: {},
+                    get isValid() {
+                        return this.selectedDenom !== null &&
+                            this.targetNumber !== '' &&
+                            Object.keys(this.errors).length === 0;
+                    },
+
+                    get isInsufficientBalance() {
+                        if (!this.selectedDenom) return false;
+                        const total = this.selectedDenom.price + (this.selectedDenom.adminFee || 0);
+                        return this.currentBalance < total;
+                    },
+
+                    init() {
+                        this.loadCategories();
+                        this.fetchBalance();
+                    },
+
+                    // API Calls
+                    async loadCategories() {
+                        this.loadingCatalog = true;
+                        try {
+                            const res = await fetch('/api/categories/type/PREPAID'); // Only prepaid for purchase
+                            if (res.ok) this.categories = await res.json();
+                        } catch (e) {
+                            Alpine.store('toast').error('Gagal memuat kategori');
+                        }
+                        this.loadingCatalog = false;
+                    },
+
+                    async fetchBalance() {
+                        this.loadingBalance = true;
+                        try {
+                            const res = await fetch('/api/transactions/balance');
+                            if (res.ok) {
+                                const data = await res.json();
+                                this.currentBalance = data.balance;
+                            }
+                        } catch (e) {
+                            console.error('Failed to fetch balance', e);
+                        }
+                        this.loadingBalance = false;
+                    },
+
+                    async showProducts(category) {
+                        this.selectedCategory = category;
+                        this.catalogStep = 'products';
+                        this.selectedProduct = null;
+                        this.selectedDenom = null;
+                        this.loadingCatalog = true;
+                        try {
+                            const res = await fetch(`/api/categories/${category.code}/products`);
+                            if (res.ok) this.products = await res.json();
+                        } catch (e) {
+                            Alpine.store('toast').error('Gagal memuat produk');
+                        }
+                        this.loadingCatalog = false;
+                    },
+
+                    async showDenoms(product) {
+                        this.selectedProduct = product;
+                        this.catalogStep = 'denoms';
+                        this.selectedDenom = null;
+                        this.loadingCatalog = true;
+                        try {
+                            const res = await fetch(`/api/products/${product.code}/denoms`);
+                            if (res.ok) this.denoms = await res.json();
+                        } catch (e) {
+                            Alpine.store('toast').error('Gagal memuat pecahan');
+                        }
+                        this.loadingCatalog = false;
+                    },
+
+                    showCategories() {
+                        this.catalogStep = 'categories';
+                        this.selectedCategory = null;
+                        this.selectedProduct = null;
+                        this.selectedDenom = null;
+                    },
+
+                    selectDenom(denom) {
+                        this.selectedDenom = denom;
+                    },
+
+                    // Validation
+                    validateForm() {
+                        this.errors = {};
+                        if (!this.targetNumber) {
+                            // Empty is fine while typing, button will be disabled anyway
+                            return;
+                        }
+                        if (this.targetNumber.length < 10) {
+                            this.errors.targetNumber = "Nomor terlalu pendek (min 10 digit)";
+                        } else if (!/^[0-9]+$/.test(this.targetNumber)) {
+                            this.errors.targetNumber = "Hanya boleh angka";
+                        }
+                    },
+
+                    // Flow Actions
+                    openConfirmModal() {
+                        this.validateForm();
+                        if (!this.isValid || this.isInsufficientBalance) return;
+
+                        document.getElementById('confirm_purchase_modal').showModal();
+                    },
+
+                    closeConfirmModal() {
+                        document.getElementById('confirm_purchase_modal').close();
+                    },
+
+                    async submitPurchase() {
+                        this.isSubmitting = true;
+
+                        try {
+                            const response = await fetch('/api/transactions/purchase', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    denomId: this.selectedDenom.id,
+                                    targetNumber: this.targetNumber
+                                })
+                            });
+
+                            const data = await response.json();
+
+                            this.closeConfirmModal();
+
+                            if (response.ok) {
+                                this.resultData = data;
+                                this.resultError = '';
+                                this.view = 'result';
+                                Alpine.store('toast').success('Transaksi berhasil dimulai');
+                                this.fetchBalance(); // Refresh balance
+                            } else {
+                                if (response.status === 422) {
+                                    // Insufficient balance or similar
+                                    Alpine.store('toast').error(data.message || 'Saldo tidak cukup');
+                                    this.fetchBalance(); // Refresh balance specifically for 422
+                                } else {
+                                    // API failed logic, but let's show result view with FAILED status
+                                    this.resultData = { status: 'FAILED' };
+                                    this.resultError = data.message || 'Terjadi kesalahan sistem';
+                                    this.view = 'result';
+                                }
+                            }
+                        } catch (e) {
+                            this.closeConfirmModal();
+                            Alpine.store('toast').error('Terjadi kesalahan jaringan');
+                            this.resultData = { status: 'FAILED' };
+                            this.resultError = 'Gagal menghubungi server';
+                            this.view = 'result';
+                        } finally {
+                            this.isSubmitting = false;
+                        }
+                    },
+
+                    resetForm() {
+                        this.view = 'selection';
+                        this.catalogStep = 'categories';
+                        this.selectedCategory = null;
+                        this.selectedProduct = null;
+                        this.selectedDenom = null;
+                        this.targetNumber = '';
+                        this.resultData = null;
+                        this.resultError = '';
+                        this.errors = {};
+                        this.fetchBalance();
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                    },
+
+                    goToTransactions() {
+                        window.location.href = '/transactions';
+                    },
+
+                    // Formatters
+                    formatCurrency(amount) {
+                        if (amount == null) return '-';
+                        return new Intl.NumberFormat('id-ID', {
+                            style: 'currency', currency: 'IDR',
+                            minimumFractionDigits: 0, maximumFractionDigits: 0
+                        }).format(amount);
+                    },
+
+                    formatQuota(mb) {
+                        if (!mb) return '';
+                        if (mb >= 1024) return (mb / 1024).toFixed(1).replace('.0', '') + ' GB';
+                        return mb + ' MB';
+                    }
+                }
+            }
+        </script>
+    </div>
+</body>
+
+</html>

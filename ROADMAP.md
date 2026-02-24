@@ -81,50 +81,37 @@
 
 **Goal**: User bisa beli pulsa/paket data (with mock provider)
 
-### Day 1-2: Domain Model & Service
-- [ ] Create entities:
-  - `Transactions` (id, userId, totalAmount, status, createdAt, etc)
-  - `TransactionItems` (transactionId, denomId, quantity, price, etc)
-- [ ] `TransactionService`:
-  - `createOrder(userId, denomId, quantity)` - validate & create order
-  - Validate: product active, stock available (if applicable)
-  - Calculate total price (price * quantity + admin_fee)
-  - Set initial status: PENDING
-- [ ] `BalanceService`:
-  - `checkBalance(userId)` - get current balance
-  - `deductBalance(userId, amount)` - with pessimistic lock (@Lock)
-  - `getBalanceHistory(userId)` - transaction history
-- [ ] Migration: Add `balance` column to `users` table (DECIMAL(15,2), default 0)
+### Day 1-2: Domain Model & Service ✅
+- [x] Create entities:
+  - `Transactions` (id, storeId, productDenomId, targetNumber, price, adminFee, total, status, providerRef, serialNumber)
+  - `StoreMutations` (Double-Entry Ledger: amount, type, balanceAfter, referenceType, referenceId)
+- [x] Enums: `TransactionStatus`, `MutationType`, `MutationReferenceType`
+- [x] `BalanceService` (pessimistic lock + ledger + cache sync)
+- [x] `Stores.balance` (BigDecimal cache field, default 0)
+- [x] `InsufficientBalanceException` (extends BusinessException)
 
-### Day 3: Provider Integration (Mock)
-- [ ] Create `ProviderService` interface
-  - `fulfillOrder(Transaction transaction)` → ProviderResponse
-- [ ] `MockProviderService` implementation
-  - Random success/failure (90% success rate)
-  - Simulate API delay (500ms - 2s)
-  - Return mock transaction reference
-- [ ] Async worker (Spring @Async or @Scheduled)
-  - Poll PENDING transactions
-  - Call provider → update status to SUCCESS/FAILED
+### Day 3: Provider Integration (Mock) ✅
+- [x] `ProviderService` interface → `sendTransaction(targetNumber, denomCode, amount)`
+- [x] `MockProviderService` (90% success, 500ms delay, random ref + SN)
+- [x] `ProviderResponse` (Java record)
 
-### Day 4: REST API
-- [ ] `TransactionController`
-  - `POST /api/transactions/purchase` - create new order
-    - Body: `{denomCode, quantity}`
-  - `GET /api/transactions/{id}` - check order status
-  - `GET /api/transactions/history?page=0&size=10` - user's transaction history
-- [ ] DTOs:
-  - `PurchaseRequest` (denomCode, quantity)
-  - `TransactionResponse` (id, status, amount, productName, createdAt)
+### Day 4: REST API ✅ (partial)
+- [x] `TransactionController`
+  - `POST /api/transactions/purchase` — purchase prepaid
+  - `POST /api/transactions/topup` — admin top-up
+  - `GET /api/transactions/balance/{storeId}` — check balance
+- [x] DTOs: `PurchaseRequest`, `TopUpRequest` (Java records with validation)
+- [ ] `GET /api/transactions/{id}` — detail transaksi
+- [ ] `GET /api/transactions/history` — riwayat per store
 
 ### Day 5: UI & Testing
 - [ ] Thymeleaf: Product detail page with "Buy" button
-- [ ] Purchase form (select quantity, show total price, confirm button)
+- [ ] Purchase form (select product → input number → confirm)
 - [ ] Show success/error message after purchase
 - [ ] Transaction history page (table with status badges)
 - [ ] End-to-end test: browse → buy → check balance → verify history
 
-**Demo Outcome**: User can purchase products, balance decreases, transaction history visible
+**Demo Outcome**: Backend API ✅ working. UI & testing still pending.
 
 ---
 
@@ -331,11 +318,13 @@ Update this section weekly:
 - [x] REST API (ProductCatalogController with caching)
 - [x] UI (Product catalog browsing with Thymeleaf)
 
-### Week 2 Status: 🟡 Ready to Start
-**Week 1 complete, ready for purchase flow implementation**
-- [ ] Transaction entities & service
-- [ ] Provider mock
-- [ ] Purchase API & UI
+### Week 2 Status: 🟢 Backend Done (2026-02-24)
+**Purchase flow backend fully implemented with Double-Entry Ledger**
+- [x] Transaction entities & StoreMutations ledger
+- [x] Provider mock (90% success)
+- [x] Purchase API (3 endpoints)
+- [ ] Purchase UI (Thymeleaf)
+- [ ] Missing endpoints: GET /{id}, GET /history
 
 ### Week 3 Status: ⏸️ Blocked (Waiting for Week 2)
 - [ ] Payment service
@@ -420,8 +409,24 @@ Update this section weekly:
 - Week 2 will introduce transactions, which requires balance field in Users table
 - Mock provider pattern will be established (interface → mock → real implementation later)
 
-### Week 2:
--
+### Week 2 (2026-02-24):
+
+**Key Decisions**:
+1. **Double-Entry Ledger** (buku tabungan) menggantikan desain awal
+   - `StoreMutations` = source of truth (immutable)
+   - `Stores.balance` = read cache (sync saat mutasi)
+   - Alasan: Auditability 100%, zero desync risk, extensible
+2. **Polymorphic Reference**: `referenceType + referenceId` instead of nullable FK
+   - Extensible: TOP_UP, PURCHASE, REFUND, ADJUSTMENT
+3. **Saga Pattern**: Purchase flow not wrapped in single @Transactional
+   - Each step (deduct, provider, refund) commits independently
+
+**Architecture**:
+- Pessimistic lock pada `Stores` row sebagai serialization point
+- `StoreMutations` immutable (only `createdAt`, no `updatedAt`)
+- Balance = `Stores.balance` cache, reconcilable dari ledger terakhir
+
+**Files Created**: 10 new + 2 modified (see walkthrough)
 
 ### Week 3:
 -
@@ -431,6 +436,6 @@ Update this section weekly:
 
 ---
 
-**Last Updated**: 2026-02-12 (Week 1 Complete ✅)
-**Next Review**: End of Week 2 (2026-02-19)
-**Current Phase**: Week 1 Complete ✅ → Ready for Week 2 🚀
+**Last Updated**: 2026-02-24 (Week 2 Backend Complete ✅)
+**Next Review**: After Purchase UI complete
+**Current Phase**: Week 2 Backend ✅ → Purchase UI & Testing next 🚀

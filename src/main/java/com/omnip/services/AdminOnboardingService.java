@@ -9,7 +9,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -29,7 +28,7 @@ public class AdminOnboardingService {
     }
 
     @Transactional
-    public void onboardReseller(String username, String email, String orgName, String phone, String role,
+    public void onboardReseller(String username, String email, String orgName, String phone,
             String uplineStoreId) throws BusinessException {
         log.info("Admin onboarding reseller: username={}, orgName={}", username, orgName);
 
@@ -44,7 +43,7 @@ public class AdminOnboardingService {
 
         try {
             // 2. Create Reseller User in Keycloak -> get userId
-            String userId = keycloakAdminClientService.createResellerUser(username, username, email, role);
+            String userId = keycloakAdminClientService.createResellerUser(username, username, email);
 
             // 3. Add user to Organization
             keycloakAdminClientService.addMemberToOrganization(orgId, userId);
@@ -80,9 +79,6 @@ public class AdminOnboardingService {
                 user.setActive(true);
                 user.setDeleted(false);
                 user.setRegistrationChannel("ADMIN_ONBOARDING");
-                if (role != null && !role.trim().isEmpty()) {
-                    user.setRoles(List.of(role));
-                }
             }
 
             // Link User -> Store
