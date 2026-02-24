@@ -56,9 +56,27 @@ public class TransactionDomainService implements PurchaseUseCase, TopUpUseCase, 
                 ProductDenoms denom = productDenomRepository.findById(denomId)
                                 .orElseThrow(() -> new ResourceNotFoundException("ProductDenom", denomId));
 
+                if (!denom.isActive() || denom.isDeleted()) {
+                        throw new IllegalArgumentException("Product nominal is not active or has been deleted.");
+                }
+
                 BigDecimal price = denom.getPrice();
                 BigDecimal adminFee = denom.getAdminFee() != null ? denom.getAdminFee() : BigDecimal.ZERO;
                 BigDecimal total = price.add(adminFee);
+
+                // 0. Double submit protection (Idempotency check)
+                java.time.LocalDateTime oneMinuteAgo = java.time.LocalDateTime.now().minusMinutes(1);
+                boolean isDuplicate = transactionRepository
+                                .existsByStoreIdAndProductDenomIdAndTargetNumberAndStatusInAndCreatedAtAfter(
+                                                storeId, denomId, targetNumber,
+                                                java.util.Arrays.asList(TransactionStatus.PENDING,
+                                                                TransactionStatus.PROCESSING,
+                                                                TransactionStatus.SUCCESS),
+                                                oneMinuteAgo);
+                if (isDuplicate) {
+                        throw new IllegalArgumentException(
+                                        "Harap tunggu 1 menit sebelum melakukan transaksi ke nomor yang sama.");
+                }
 
                 // 1. Create transaction (PENDING)
                 Transactions transaction = new Transactions();
@@ -101,15 +119,21 @@ public class TransactionDomainService implements PurchaseUseCase, TopUpUseCase, 
                         transaction.setStatus(TransactionStatus.FAILED);
                         transactionRepository.save(transaction);
 
-                        balanceService.addBalance(storeId, total,
-                                        MutationReferenceType.REFUND, transaction.getId(),
-                                        "Refund " + denom.getName() + " - " + response.message());
+                        try {
+                                balanceService.addBalance(storeId, total,
+                                                MutationReferenceType.REFUND, transaction.getId(),
+                                                "Refund " + denom.getName() + " - " + response.message());
 
-                        transaction.setStatus(TransactionStatus.REFUNDED);
-                        transaction = transactionRepository.save(transaction);
+                                transaction.setStatus(TransactionStatus.REFUNDED);
+                                transaction = transactionRepository.save(transaction);
 
-                        log.warn("Transaction REFUNDED: id={} reason={}",
-                                        transaction.getId(), response.message());
+                                log.warn("Transaction REFUNDED: id={} reason={}",
+                                                transaction.getId(), response.message());
+                        } catch (Exception e) {
+                                log.error("ALERT: Failed to refund transaction {} for store {}. Reason: {}",
+                                                transaction.getId(), storeId, e.getMessage(), e);
+                                // Leave status as FAILED so Ops team can retry manual refund
+                        }
                 }
 
                 return transaction;

@@ -20,10 +20,10 @@
 - [x] **`GET /api/transactions/{id}`** — detail transaksi
 - [x] **`GET /api/transactions/history`** — riwayat transaksi per store
 
-### Task 16 — Purchase UI
-- [ ] **Purchase form**: pilih produk → input nomor → konfirmasi → submit
-- [ ] **Success/error page**: status transaksi, serial number (jika sukses)
-- [ ] **Transaction history page**: tabel riwayat transaksi
+### Task 16 — Purchase UI ✅
+- [x] **Purchase form**: pilih produk → input nomor → konfirmasi → submit
+- [x] **Success/error page**: status transaksi, serial number (jika sukses)
+- [x] **Transaction history page**: tabel riwayat transaksi
 
 ### Task 17 — Integration Test Purchase Flow
 - [ ] **Test happy path**: pilih produk → beli → saldo terpotong → transaksi SUCCESS
@@ -60,20 +60,21 @@
 
 ### 🏗️ Hexagonal Architecture + Unit Tests (Post-Purchase UI) ⭐ HIGH PRIORITY
 > *Refactor arsitektur flat → Hexagonal (Ports & Adapters) + comprehensive unit tests*
-- [-] Domain layer: pure business logic, zero framework dependency
-- [-] Port in (use cases): `PurchasePrepaidUseCase`, `TopUpUseCase`, `ViewHistoryUseCase`
-- [-] Port out (adapters): `TransactionPort`, `BalancePort`, `ProviderPort`
-- [-] Adapter in/web: Controllers
-- [-] Adapter out/persistence: JPA repositories
-- [-] Adapter out/provider: MockProvider, RealProvider
-- [-] Unit tests edge cases:
-  - Saldo pas-pasan → SUCCESS, balance = 0
-  - Saldo kurang Rp 1 → REJECTED, balance unchanged
-  - Provider timeout → FAILED → auto refund
-  - Double submit (idempotency) → second rejected
-  - Concurrent purchase (2 thread, 1 saldo) → hanya 1 berhasil
-  - Purchase denom inactive/deleted → REJECTED
-  - Refund gagal setelah provider fail → alert
+- [x] Domain layer: pure business logic, zero framework dependency
+- [x] Port in (use cases): `PurchasePrepaidUseCase`, `TopUpUseCase`, `ViewHistoryUseCase`
+- [x] Port out (adapters): `TransactionPort`, `BalancePort`, `ProviderPort`
+- [x] Adapter in/web: Controllers
+- [x] Adapter out/persistence: JPA repositories
+- [x] Adapter out/provider: MockProvider, RealProvider
+- [x] Unit tests for Identity (`UserDomainService`, `IdentityDomainService`)
+- [x] Unit tests edge cases (Transaction):
+  - [x] Saldo pas-pasan → SUCCESS, balance = 0
+  - [x] Saldo kurang Rp 1 → REJECTED, balance unchanged
+  - [x] Provider timeout → FAILED → auto refund
+  - [x] Double submit (idempotency) → second rejected
+  - [x] Concurrent purchase (2 thread, 1 saldo) → hanya 1 berhasil
+  - [x] Purchase denom inactive/deleted → REJECTED
+  - [x] Refund gagal setelah provider fail → alert
 
 ### Reseller Experience (Post-MVP)
 - [-] **White-label Storefront** — setiap Store punya URL sendiri
@@ -143,6 +144,17 @@
 ---
 
 ## 💬 PM NOTES
+
+**2026-02-24 18:57** (August — Purchase UI Done!):
+- **Task 16 SELESAI** — Purchase UI dan Transaction history UI sudah diimplementasikan beserta controller-nya (TransactionPageController).
+- **Next**: Task 17 (Integration Test Purchase Flow) dan Unit Test Transaction.
+
+**2026-02-24 18:55** (August — Hexagonal & Identity Tests Done!):
+- **Hexagonal Architecture Refactor SELESAI** — Bounded contexts (Transaction, Catalog, Identity, Onboarding) sudah pakai Ports & Adapters.
+- **Identity Unit Tests SELESAI** — Test untuk `UserDomainService` dan `IdentityDomainService` dengan Mockito.
+- **Role Management Refined** — Realm roles vs Client roles separation (khusus backoffice vs reseller).
+- **Tailwind CSS Fixed** — Bug font-sans berhasil di-resolve, bloker Purchase UI sudah hilang.
+- **Next**: Melanjutkan Task 16 (Purchase UI) dan menyelesaikan Unit Test Transaction.
 
 **2026-02-24 15:46** (August — Task 6 & 15b Done!):
 - **Task 6 SELESAI** — Onboarding integration test sudah dilakukan (Path A, Path B, edge case)

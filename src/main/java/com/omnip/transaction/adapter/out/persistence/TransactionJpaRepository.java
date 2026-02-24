@@ -27,4 +27,9 @@ public interface TransactionJpaRepository extends JpaRepository<Transactions, UU
                         "JOIN FETCH pd.product " +
                         "WHERE t.id = :id AND t.store.id = :storeId")
         Optional<Transactions> findByIdAndStoreIdWithDetails(@Param("id") UUID id, @Param("storeId") UUID storeId);
+
+        boolean existsByStoreIdAndProductDenomIdAndTargetNumberAndStatusInAndCreatedAtAfter(
+                        UUID storeId, UUID denomId, String targetNumber,
+                        java.util.Collection<com.omnip.transaction.domain.model.TransactionStatus> statuses,
+                        java.time.LocalDateTime since);
 }
