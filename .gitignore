@@ -53,3 +53,4 @@ node/
 /logs/omnip-services-2026-02-02-1.log.gz
 /.env
 /*.jfr
+.worktrees/
