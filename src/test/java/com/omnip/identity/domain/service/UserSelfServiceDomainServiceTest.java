@@ -27,35 +27,20 @@ class UserSelfServiceDomainServiceTest {
     @Test
     void changeMyPassword_ValidatesPasswordsMatch() {
         ChangeMyPasswordRequestDTO req = new ChangeMyPasswordRequestDTO();
-        req.setOldPassword("oldPass");
         req.setNewPassword("newPass123");
         req.setConfirmPassword("mismatchPass");
 
         assertThrows(IllegalArgumentException.class, () ->
             service.changeMyPassword("user123", "test@test.com", req));
-    }
 
-    @Test
-    void changeMyPassword_ValidatesOldPassword() {
-        ChangeMyPasswordRequestDTO req = new ChangeMyPasswordRequestDTO();
-        req.setOldPassword("wrongOld");
-        req.setNewPassword("newPass123");
-        req.setConfirmPassword("newPass123");
-
-        when(keycloakPort.verifyUserPassword("test@test.com", "wrongOld")).thenReturn(false);
-
-        assertThrows(IllegalArgumentException.class, () ->
-            service.changeMyPassword("user123", "test@test.com", req));
+        verify(keycloakPort, never()).changeUserPassword(any(), any());
     }
 
     @Test
     void changeMyPassword_Success() {
         ChangeMyPasswordRequestDTO req = new ChangeMyPasswordRequestDTO();
-        req.setOldPassword("correctOld");
         req.setNewPassword("newPass123");
         req.setConfirmPassword("newPass123");
-
-        when(keycloakPort.verifyUserPassword("test@test.com", "correctOld")).thenReturn(true);
 
         service.changeMyPassword("user123", "test@test.com", req);
 
