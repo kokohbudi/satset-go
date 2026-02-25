@@ -11,6 +11,8 @@ import java.util.UUID;
  */
 public interface DenomRepositoryPort {
 
+    Optional<ProductDenoms> findById(UUID id);
+
     List<ProductDenoms> findByProductIdAndActiveTrueAndDeletedFalseOrderBySortOrder(UUID productId);
 
     Optional<ProductDenoms> findByCode(String code);

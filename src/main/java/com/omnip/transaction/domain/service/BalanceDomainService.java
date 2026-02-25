@@ -6,8 +6,8 @@ import com.omnip.transaction.domain.model.MutationReferenceType;
 import com.omnip.transaction.domain.model.MutationType;
 import com.omnip.transaction.domain.port.in.BalanceManagementUseCase;
 import com.omnip.shared.exception.InsufficientBalanceException;
-import com.omnip.transaction.adapter.out.persistence.StoreMutationJpaRepository;
-import com.omnip.onboarding.adapter.out.persistence.StoreJpaRepository;
+import com.omnip.transaction.domain.port.out.StoreMutationRepositoryPort;
+import com.omnip.transaction.domain.port.out.StoreBalancePort;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,11 +19,11 @@ import java.util.UUID;
 @Service
 public class BalanceDomainService implements BalanceManagementUseCase {
 
-        private final StoreJpaRepository storeRepository;
-        private final StoreMutationJpaRepository storeMutationRepository;
+        private final StoreBalancePort storeRepository;
+        private final StoreMutationRepositoryPort storeMutationRepository;
 
-        public BalanceDomainService(StoreJpaRepository storeRepository,
-                        StoreMutationJpaRepository storeMutationRepository) {
+        public BalanceDomainService(StoreBalancePort storeRepository,
+                        StoreMutationRepositoryPort storeMutationRepository) {
                 this.storeRepository = storeRepository;
                 this.storeMutationRepository = storeMutationRepository;
         }

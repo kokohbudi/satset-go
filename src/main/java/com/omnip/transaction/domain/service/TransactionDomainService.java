@@ -12,9 +12,9 @@ import com.omnip.transaction.domain.model.MutationReferenceType;
 import com.omnip.transaction.domain.model.TransactionStatus;
 import com.omnip.shared.exception.InsufficientBalanceException;
 import com.omnip.shared.exception.ResourceNotFoundException;
-import com.omnip.catalog.adapter.out.persistence.DenomJpaRepository;
-import com.omnip.onboarding.adapter.out.persistence.StoreJpaRepository;
-import com.omnip.transaction.adapter.out.persistence.TransactionJpaRepository;
+import com.omnip.catalog.domain.port.out.DenomRepositoryPort;
+import com.omnip.transaction.domain.port.out.StoreBalancePort;
+import com.omnip.transaction.domain.port.out.TransactionRepositoryPort;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -28,15 +28,15 @@ import java.util.UUID;
 @Service
 public class TransactionDomainService implements PurchaseUseCase, TopUpUseCase, TransactionQueryUseCase {
 
-        private final TransactionJpaRepository transactionRepository;
-        private final StoreJpaRepository storeRepository;
-        private final DenomJpaRepository productDenomRepository;
+        private final TransactionRepositoryPort transactionRepository;
+        private final StoreBalancePort storeRepository;
+        private final DenomRepositoryPort productDenomRepository;
         private final BalanceDomainService balanceService;
         private final ProviderPort providerService;
 
-        public TransactionDomainService(TransactionJpaRepository transactionRepository,
-                        StoreJpaRepository storeRepository,
-                        DenomJpaRepository productDenomRepository,
+        public TransactionDomainService(TransactionRepositoryPort transactionRepository,
+                        StoreBalancePort storeRepository,
+                        DenomRepositoryPort productDenomRepository,
                         BalanceDomainService balanceService,
                         ProviderPort providerService) {
                 this.transactionRepository = transactionRepository;
