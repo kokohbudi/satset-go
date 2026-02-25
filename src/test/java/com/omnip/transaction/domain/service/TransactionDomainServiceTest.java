@@ -1,11 +1,11 @@
 package com.omnip.transaction.domain.service;
 
-import com.omnip.catalog.adapter.out.persistence.DenomJpaRepository;
+import com.omnip.catalog.domain.port.out.DenomRepositoryPort;
 import com.omnip.catalog.domain.model.ProductDenoms;
-import com.omnip.onboarding.adapter.out.persistence.StoreJpaRepository;
 import com.omnip.onboarding.domain.model.Stores;
 import com.omnip.shared.exception.InsufficientBalanceException;
-import com.omnip.transaction.adapter.out.persistence.TransactionJpaRepository;
+import com.omnip.transaction.domain.port.out.TransactionRepositoryPort;
+import com.omnip.transaction.domain.port.out.StoreBalancePort;
 import com.omnip.transaction.domain.model.MutationReferenceType;
 import com.omnip.transaction.domain.model.ProviderResponse;
 import com.omnip.transaction.domain.model.Transactions;
@@ -32,11 +32,11 @@ import static org.mockito.Mockito.*;
 class TransactionDomainServiceTest {
 
     @Mock
-    private TransactionJpaRepository transactionRepository;
+    private TransactionRepositoryPort transactionRepository;
     @Mock
-    private StoreJpaRepository storeRepository;
+    private StoreBalancePort storeRepository;
     @Mock
-    private DenomJpaRepository productDenomRepository;
+    private DenomRepositoryPort productDenomRepository;
     @Mock
     private BalanceDomainService balanceService;
     @Mock
