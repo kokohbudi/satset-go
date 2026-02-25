@@ -2,8 +2,8 @@ package com.omnip.onboarding.domain.service;
 
 import com.omnip.onboarding.domain.model.Stores;
 import com.omnip.identity.domain.model.Users;
-import com.omnip.onboarding.adapter.out.persistence.StoreJpaRepository;
-import com.omnip.identity.adapter.out.persistence.UserJpaRepository;
+import com.omnip.onboarding.domain.port.out.StoreRepositoryPort;
+import com.omnip.onboarding.domain.port.out.OnboardingUserPort;
 import org.springframework.stereotype.Component;
 
 import java.text.Normalizer;
@@ -19,8 +19,8 @@ import java.util.Random;
  */
 @Component
 public class RegistrationHelper {
-    private final StoreJpaRepository storeRepository;
-    private final UserJpaRepository usersRepository;
+    private final StoreRepositoryPort storeRepository;
+    private final OnboardingUserPort usersRepository;
     private final Random random = new Random();
 
     /**
@@ -29,7 +29,7 @@ public class RegistrationHelper {
      * @param storeRepository Repository untuk operasi data Store
      * @param usersRepository Repository untuk operasi data Users
      */
-    public RegistrationHelper(StoreJpaRepository storeRepository, UserJpaRepository usersRepository) {
+    public RegistrationHelper(StoreRepositoryPort storeRepository, OnboardingUserPort usersRepository) {
         this.storeRepository = storeRepository;
         this.usersRepository = usersRepository;
     }

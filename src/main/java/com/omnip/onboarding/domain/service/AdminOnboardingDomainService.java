@@ -1,13 +1,13 @@
 package com.omnip.onboarding.domain.service;
 
-import com.omnip.identity.adapter.out.keycloak.KeycloakAdminClientService;
+import com.omnip.onboarding.domain.port.out.KeycloakOrganizationPort;
 
 import com.omnip.onboarding.domain.model.Stores;
 import com.omnip.identity.domain.model.Users;
 import com.omnip.onboarding.domain.port.in.AdminOnboardingUseCase;
 import com.omnip.shared.exception.BusinessException;
-import com.omnip.onboarding.adapter.out.persistence.StoreJpaRepository;
-import com.omnip.identity.adapter.out.persistence.UserJpaRepository;
+import com.omnip.onboarding.domain.port.out.StoreRepositoryPort;
+import com.omnip.onboarding.domain.port.out.OnboardingUserPort;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,13 +18,13 @@ import java.util.UUID;
 @Slf4j
 public class AdminOnboardingDomainService implements AdminOnboardingUseCase {
 
-    private final KeycloakAdminClientService keycloakAdminClientService;
-    private final StoreJpaRepository storeRepository;
-    private final UserJpaRepository usersRepository;
+    private final KeycloakOrganizationPort keycloakAdminClientService;
+    private final StoreRepositoryPort storeRepository;
+    private final OnboardingUserPort usersRepository;
 
-    public AdminOnboardingDomainService(KeycloakAdminClientService keycloakAdminClientService,
-            StoreJpaRepository storeRepository,
-            UserJpaRepository usersRepository) {
+    public AdminOnboardingDomainService(KeycloakOrganizationPort keycloakAdminClientService,
+            StoreRepositoryPort storeRepository,
+            OnboardingUserPort usersRepository) {
         this.keycloakAdminClientService = keycloakAdminClientService;
         this.storeRepository = storeRepository;
         this.usersRepository = usersRepository;
