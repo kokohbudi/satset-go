@@ -1,29 +1,14 @@
 # SatSetGo - Task Board
 
 > **Owner**: August (Senior PM)
-> **Last Updated**: 2026-02-24 15:46
-> **Sprint**: MVP Sprint — Purchase Flow UI & Testing
+> **Last Updated**: 2026-02-25
+> **Sprint**: MVP Sprint — Testing & Refactoring
 
 ---
 
 ## 🔥 CURRENT SPRINT: MVP Critical Path
 
 > **Prinsip**: Fitur yang membuat user bisa **beli pulsa** = MVP. Sisanya backlog.
-
-### Task 6 — Onboarding: Integration & Manual Test ✅
-- [x] **Test Path A**: Login Google → belum punya Store → muncul form → isi → submit → redirect Dashboard
-- [x] **Test Path B**: Admin tambah reseller → user terima email set-password → login → langsung ke Dashboard (sudah punya store)
-- [x] **Test edge case**: User login, tutup tab sebelum submit form → login lagi → masih redirect ke `/onboarding`
-- [x] **Commit** semua changes dengan message `feat: store-onboarding + keycloak-organization`
-
-### Task 15b — Purchase API (Missing Endpoints) ✅
-- [x] **`GET /api/transactions/{id}`** — detail transaksi
-- [x] **`GET /api/transactions/history`** — riwayat transaksi per store
-
-### Task 16 — Purchase UI ✅
-- [x] **Purchase form**: pilih produk → input nomor → konfirmasi → submit
-- [x] **Success/error page**: status transaksi, serial number (jika sukses)
-- [x] **Transaction history page**: tabel riwayat transaksi
 
 ### Task 17 — Integration Test Purchase Flow
 - [ ] **Test happy path**: pilih produk → beli → saldo terpotong → transaksi SUCCESS
@@ -122,13 +107,19 @@
 - [x] Sidebar cleanup: hapus menu tanpa controller (/users, /groups, /user-groups, /transactions, /deposit, /settings)
 
 ### Self-Service Password Change (2026-02-25)
-- [x] `ChangeMyPasswordRequestDTO` (Bean Validation: oldPassword, newPassword, confirmPassword)
-- [x] `ManageMyProfileUseCase` (port in) + `verifyUserPassword` added to `KeycloakPort` (port out)
-- [x] `IdentityDomainService.changeMyPassword` — validate old password via ROPC, enforce confirmPassword match, call Keycloak reset
-- [x] `KeycloakAdapter.verifyUserPassword` — Resource Owner Password Credentials (ROPC) grant against Keycloak token endpoint
-- [x] `ProfileController` (GET /profile, POST /profile/change-password) — secured, session-aware
-- [x] `profile.html` Thymeleaf UI — user info card + password change form with validation errors
+- [x] `ChangeMyPasswordRequestDTO` (Bean Validation: newPassword, confirmPassword)
+- [x] `ManageMyProfileUseCase` (port in) + `UserSelfServiceDomainService` (domain service)
+- [x] `UserSelfServiceController` — dual auth principal (OidcUser + Jwt), session-aware
+- [x] `ProfileController` (GET /profile, POST /profile/change-password) — secured
+- [x] `profile.html` Thymeleaf UI — user info card + password change form + toggle show/hide password
 - [x] Build verification: `mvn clean package -DskipTests=true` → **BUILD SUCCESS**
+
+### Code Cleanup & Refinement (2026-02-25)
+> *Hapus dead code, simplify password flow, IDE cleanup*
+- [x] **Role Attributes dihapus** — `role-attributes.html`, endpoint API, service logic, port/use case methods (~400 baris dibuang)
+- [x] **Password Change disederhanakan** — `oldPassword` field dihapus (user sudah authenticated via session, tidak perlu ROPC verification)
+- [x] **Profile UI enhanced** — toggle show/hide password (eye icon) untuk newPassword & confirmPassword
+- [x] **IDE files cleanup** — `.idea/.gitignore`, `omnip-services.iml` dihapus dari tracking
 
 ### Purchase Prepaid — Task 12-15b (2026-02-24)
 - [x] **Task 12**: Entity `Transactions` + `StoreMutations` (Double-Entry Ledger) + 3 enums
@@ -154,11 +145,19 @@
 
 ## 💬 PM NOTES
 
+**2026-02-25** (August — Code Cleanup & Password Refinement):
+- **Role Attributes DIHAPUS** — Fitur ini dead code, tidak ada use case di MVP. ~400 baris dibuang dari 7 file (controller, service, port, adapter, template).
+- **Password Change DISEDERHANAKAN** — `oldPassword` dihapus. Reasoning: user sudah login via session, ROPC verification overkill untuk UI flow. Lebih simpel, lebih aman (tidak perlu kirim password lama via JS).
+- **Profile UI** — Toggle show/hide password ditambahkan. UX improvement kecil tapi penting.
+- **Dual Auth Principal** — `UserSelfServiceController` sekarang support `OidcUser` (UI session) + `Jwt` (API token). Lebih robust.
+- ⚠️ **Perubahan belum di-commit** — 14 files changed, 41 insertions, 481 deletions.
+- **Next**: Commit cleanup, lalu Task 17 (Integration Test Purchase Flow).
+
 **2026-02-25** (August — Self-Service Password Change Done!):
 - **Self-Service Password Change SELESAI** — User bisa ganti password sendiri dari halaman `/profile` tanpa butuh Admin.
-- Arsitektur: Hexagonal (Controller → UseCase → KeycloakPort). Old password diverifikasi via ROPC grant ke Keycloak.
+- Arsitektur: Hexagonal (Controller → UseCase → DomainService → KeycloakPort).
 - `mvn clean package -DskipTests=true` → **BUILD SUCCESS** (119 source files compiled, 0 errors).
-- **Next**: Task 17 (Integration Test Purchase Flow) masih open.
+- **Next**: ~~Task 17 (Integration Test Purchase Flow)~~ → Code cleanup dulu.
 
 **2026-02-24 18:57** (August — Purchase UI Done!):
 - **Task 16 SELESAI** — Purchase UI dan Transaction history UI sudah diimplementasikan beserta controller-nya (TransactionPageController).
@@ -209,6 +208,6 @@
 
 ---
 
-**Last Updated**: 2026-02-25
-**Next Review**: Task 17 (Integration Test Purchase Flow)
+**Last Updated**: 2026-02-25 (Session 2)
+**Next Review**: Commit cleanup → Task 17 (Integration Test Purchase Flow)
 

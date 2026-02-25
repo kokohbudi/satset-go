@@ -40,11 +40,4 @@ public class UserPageController {
         return "pages/admin/user-management";
     }
 
-    @GetMapping("/admin/role-attributes")
-    public String roleAttributesPage(Model model) {
-        log.info("Accessing admin role attributes page");
-        model.addAttribute("currentPage", "role-attributes");
-        model.addAttribute("breadcrumb", "Role Attributes");
-        return "pages/admin/role-attributes";
-    }
 }

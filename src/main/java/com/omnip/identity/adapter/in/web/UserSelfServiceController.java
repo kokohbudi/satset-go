@@ -22,11 +22,21 @@ public class UserSelfServiceController {
     @PutMapping("/password")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<Map<String, String>> changePassword(
-            @AuthenticationPrincipal Jwt jwt,
+            @AuthenticationPrincipal Object principal,
             @Valid @RequestBody ChangeMyPasswordRequestDTO requestDTO) {
 
-        String providerUserId = jwt.getSubject();
-        String email = jwt.getClaimAsString("email");
+        String providerUserId;
+        String email;
+
+        if (principal instanceof org.springframework.security.oauth2.core.oidc.user.OidcUser oidcUser) {
+            providerUserId = oidcUser.getSubject();
+            email = oidcUser.getEmail();
+        } else if (principal instanceof Jwt jwt) {
+            providerUserId = jwt.getSubject();
+            email = jwt.getClaimAsString("email");
+        } else {
+            return ResponseEntity.status(401).body(Map.of("error", "Unsupported authentication type"));
+        }
 
         try {
             manageMyProfileUseCase.changeMyPassword(providerUserId, email, requestDTO);

@@ -326,32 +326,6 @@ public class IdentityDomainService implements ManageGroupsUseCase, ManageRolesUs
         return keycloakAdminClientService.getSubGroups(parentPath);
     }
 
-    // ==================== Role Attributes ====================
-
-    /**
-     * Update attributes dari role.
-     *
-     * @param roleName   Nama role
-     * @param attributes Map of attribute key to list of values
-     */
-    public Map<String, String> updateRoleAttributes(String roleName, Map<String, List<String>> attributes)
-            throws BusinessException {
-        keycloakAdminClientService.updateRoleAttributes(roleName, attributes);
-        log.info("Role '{}' attributes updated", roleName);
-        return Map.of(
-                "status", "success",
-                "message", "Role attributes updated successfully");
-    }
-
-    /**
-     * Mendapatkan role dengan attributes (full detail).
-     *
-     * @param roleName Nama role
-     */
-    public KeycloakRoleDTO getRoleWithAttributes(String roleName) {
-        return keycloakAdminClientService.getCachedRoleWithAttributes(roleName);
-    }
-
     // ==================== Backoffice Users ====================
 
     /**

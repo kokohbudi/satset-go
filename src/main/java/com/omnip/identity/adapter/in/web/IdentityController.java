@@ -171,23 +171,6 @@ public class IdentityController {
         return ResponseEntity.ok(manageGroupsUseCase.getSubGroups(parentPath));
     }
 
-    // ==================== Role Attributes ====================
-
-    @GetMapping("/roles/{roleName}")
-    @PreAuthorize("hasRole('REALM_manage_roles')")
-    public ResponseEntity<KeycloakRoleDTO> getRoleWithAttributes(
-            @PathVariable String roleName) {
-        return ResponseEntity.ok(manageRolesUseCase.getRoleWithAttributes(roleName));
-    }
-
-    @PutMapping("/roles/{roleName}/attributes")
-    @PreAuthorize("hasRole('REALM_manage_roles')")
-    public ResponseEntity<Map<String, String>> updateRoleAttributes(
-            @PathVariable String roleName,
-            @RequestBody Map<String, List<String>> attributes) throws BusinessException {
-        return ResponseEntity.ok(manageRolesUseCase.updateRoleAttributes(roleName, attributes));
-    }
-
     // ==================== Backoffice Users ====================
 
     @GetMapping("/backoffice/users")

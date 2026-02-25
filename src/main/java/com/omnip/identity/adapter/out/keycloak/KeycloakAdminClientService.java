@@ -778,41 +778,6 @@ public class KeycloakAdminClientService implements KeycloakIdentityPort, Keycloa
                                 .orElse(List.of());
         }
 
-        // ==================== Role Attributes ====================
-
-        /**
-         * Update attributes dari role
-         *
-         * @param roleName   Nama role
-         * @param attributes Map of attribute key to list of values
-         */
-        public void updateRoleAttributes(String roleName, java.util.Map<String, java.util.List<String>> attributes)
-                        throws BusinessException {
-                ClientResource clientResource = this.keycloak
-                                .realm(this.realm)
-                                .clients()
-                                .findByClientId(this.clientId)
-                                .stream()
-                                .findFirst()
-                                .map(client -> this.keycloak
-                                                .realm(this.realm)
-                                                .clients()
-                                                .get(client.getId()))
-                                .orElseThrow(() -> new BusinessException("Client not found: " + this.clientId));
-
-                RoleRepresentation role = clientResource.roles()
-                                .get(roleName)
-                                .toRepresentation();
-
-                role.setAttributes(attributes);
-
-                clientResource.roles()
-                                .get(roleName)
-                                .update(role);
-
-                log.info("Role '{}' attributes updated: {}", roleName, attributes.keySet());
-        }
-
         /**
          * Get DIRECTLY ASSIGNED (granular) realm roles for a user.
          * Used for User Management display - shows only roles assigned directly to

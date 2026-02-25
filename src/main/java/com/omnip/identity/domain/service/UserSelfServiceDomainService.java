@@ -20,14 +20,7 @@ public class UserSelfServiceDomainService implements ManageMyProfileUseCase {
             throw new IllegalArgumentException("Password baru dan konfirmasi tidak cocok");
         }
 
-        if (requestDTO.getOldPassword().equals(requestDTO.getNewPassword())) {
-            throw new IllegalArgumentException("Password baru tidak boleh sama dengan password lama");
-        }
-
-        boolean isOldPasswordValid = keycloakPort.verifyUserPassword(email, requestDTO.getOldPassword());
-        if (!isOldPasswordValid) {
-            throw new IllegalArgumentException("Password lama tidak sesuai");
-        }
+        // Old password verification is skipped as the user is already authenticated via UI session
 
         keycloakPort.changeUserPassword(providerUserId, requestDTO.getNewPassword());
         log.info("User {} successfully changed their password", email);

@@ -8,18 +8,13 @@ import lombok.Data;
 /**
  * DTO for the "change my password" request.
  *
- * <p>Carries the user's current password ({@code oldPassword}) and the desired new
- * password ({@code newPassword}) together with a confirmation copy
+ * <p>Carries the desired new password ({@code newPassword}) together with a confirmation copy
  * ({@code confirmPassword}). A class-level cross-field validation ensures that
  * {@code newPassword} and {@code confirmPassword} are identical before the request
  * is processed by the domain service.
  */
 @Data
 public class ChangeMyPasswordRequestDTO {
-
-    @NotBlank(message = "Password lama wajib diisi")
-    @Size(max = 128, message = "Password lama maksimal 128 karakter")
-    private String oldPassword;
 
     @NotBlank(message = "Password baru wajib diisi")
     @Size(min = 8, max = 128, message = "Password baru harus antara 8 sampai 128 karakter")

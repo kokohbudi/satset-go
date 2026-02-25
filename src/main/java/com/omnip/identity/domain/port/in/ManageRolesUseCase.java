@@ -26,10 +26,5 @@ public interface ManageRolesUseCase {
 
     void unassignRoleFromUser(String userId, String roleName) throws BusinessException;
 
-    Map<String, String> updateRoleAttributes(String roleName, Map<String, List<String>> attributes)
-            throws BusinessException;
-
-    KeycloakRoleDTO getRoleWithAttributes(String roleName);
-
     List<KeycloakRoleDTO> getRolesForDropdown();
 }

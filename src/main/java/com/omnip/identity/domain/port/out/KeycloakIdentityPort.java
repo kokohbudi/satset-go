@@ -49,8 +49,6 @@ public interface KeycloakIdentityPort {
 
     void unassignRoleFromUser(String userId, String roleName) throws BusinessException;
 
-    void updateRoleAttributes(String roleName, Map<String, List<String>> attributes) throws BusinessException;
-
     KeycloakRoleDTO getCachedRoleWithAttributes(String roleName);
 
     List<KeycloakRoleDTO> getRolesWithHierarchy();
