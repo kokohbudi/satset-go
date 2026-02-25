@@ -121,6 +121,15 @@
 - [x] OnboardingController + reseller-form.html
 - [x] Sidebar cleanup: hapus menu tanpa controller (/users, /groups, /user-groups, /transactions, /deposit, /settings)
 
+### Self-Service Password Change (2026-02-25)
+- [x] `ChangeMyPasswordRequestDTO` (Bean Validation: oldPassword, newPassword, confirmPassword)
+- [x] `ManageMyProfileUseCase` (port in) + `verifyUserPassword` added to `KeycloakPort` (port out)
+- [x] `IdentityDomainService.changeMyPassword` — validate old password via ROPC, enforce confirmPassword match, call Keycloak reset
+- [x] `KeycloakAdapter.verifyUserPassword` — Resource Owner Password Credentials (ROPC) grant against Keycloak token endpoint
+- [x] `ProfileController` (GET /profile, POST /profile/change-password) — secured, session-aware
+- [x] `profile.html` Thymeleaf UI — user info card + password change form with validation errors
+- [x] Build verification: `mvn clean package -DskipTests=true` → **BUILD SUCCESS**
+
 ### Purchase Prepaid — Task 12-15b (2026-02-24)
 - [x] **Task 12**: Entity `Transactions` + `StoreMutations` (Double-Entry Ledger) + 3 enums
 - [x] **Task 13**: `Stores.balance` (cache) + `BalanceService` (pessimistic lock + ledger)
@@ -144,6 +153,12 @@
 ---
 
 ## 💬 PM NOTES
+
+**2026-02-25** (August — Self-Service Password Change Done!):
+- **Self-Service Password Change SELESAI** — User bisa ganti password sendiri dari halaman `/profile` tanpa butuh Admin.
+- Arsitektur: Hexagonal (Controller → UseCase → KeycloakPort). Old password diverifikasi via ROPC grant ke Keycloak.
+- `mvn clean package -DskipTests=true` → **BUILD SUCCESS** (119 source files compiled, 0 errors).
+- **Next**: Task 17 (Integration Test Purchase Flow) masih open.
 
 **2026-02-24 18:57** (August — Purchase UI Done!):
 - **Task 16 SELESAI** — Purchase UI dan Transaction history UI sudah diimplementasikan beserta controller-nya (TransactionPageController).
@@ -194,6 +209,6 @@
 
 ---
 
-**Last Updated**: 2026-02-24 15:46
-**Next Review**: Setelah Task 16 (Purchase UI) selesai
+**Last Updated**: 2026-02-25
+**Next Review**: Task 17 (Integration Test Purchase Flow)
 
