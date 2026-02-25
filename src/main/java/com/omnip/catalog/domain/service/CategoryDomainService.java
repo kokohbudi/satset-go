@@ -3,7 +3,7 @@ package com.omnip.catalog.domain.service;
 import com.omnip.catalog.domain.model.Categories;
 import com.omnip.catalog.domain.model.CategoryType;
 import com.omnip.catalog.domain.port.in.BrowseCategoriesUseCase;
-import com.omnip.catalog.adapter.out.persistence.CategoryJpaRepository;
+import com.omnip.catalog.domain.port.out.CategoryRepositoryPort;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -15,9 +15,9 @@ import java.util.Optional;
 @Transactional(readOnly = true)
 public class CategoryDomainService implements BrowseCategoriesUseCase {
 
-    private final CategoryJpaRepository categoryRepository;
+    private final CategoryRepositoryPort categoryRepository;
 
-    public CategoryDomainService(CategoryJpaRepository categoryRepository) {
+    public CategoryDomainService(CategoryRepositoryPort categoryRepository) {
         this.categoryRepository = categoryRepository;
     }
 

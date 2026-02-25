@@ -4,9 +4,9 @@ import com.omnip.catalog.domain.model.ProductDenomMeta;
 import com.omnip.catalog.domain.model.ProductDenoms;
 import com.omnip.catalog.domain.model.Products;
 import com.omnip.catalog.domain.port.in.BrowseDenomsUseCase;
-import com.omnip.catalog.adapter.out.persistence.DenomMetaJpaRepository;
-import com.omnip.catalog.adapter.out.persistence.DenomJpaRepository;
-import com.omnip.catalog.adapter.out.persistence.ProductJpaRepository;
+import com.omnip.catalog.domain.port.out.DenomMetaRepositoryPort;
+import com.omnip.catalog.domain.port.out.DenomRepositoryPort;
+import com.omnip.catalog.domain.port.out.ProductRepositoryPort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -17,13 +17,13 @@ import java.util.Optional;
 @Transactional(readOnly = true)
 public class DenomDomainService implements BrowseDenomsUseCase {
 
-    private final DenomJpaRepository denomRepository;
-    private final DenomMetaJpaRepository metaRepository;
-    private final ProductJpaRepository productRepository;
+    private final DenomRepositoryPort denomRepository;
+    private final DenomMetaRepositoryPort metaRepository;
+    private final ProductRepositoryPort productRepository;
 
-    public DenomDomainService(DenomJpaRepository denomRepository,
-            DenomMetaJpaRepository metaRepository,
-            ProductJpaRepository productRepository) {
+    public DenomDomainService(DenomRepositoryPort denomRepository,
+            DenomMetaRepositoryPort metaRepository,
+            ProductRepositoryPort productRepository) {
         this.denomRepository = denomRepository;
         this.metaRepository = metaRepository;
         this.productRepository = productRepository;

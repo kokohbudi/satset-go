@@ -3,8 +3,8 @@ package com.omnip.catalog.domain.service;
 import com.omnip.catalog.domain.model.Categories;
 import com.omnip.catalog.domain.model.Products;
 import com.omnip.catalog.domain.port.in.BrowseProductsUseCase;
-import com.omnip.catalog.adapter.out.persistence.CategoryJpaRepository;
-import com.omnip.catalog.adapter.out.persistence.ProductJpaRepository;
+import com.omnip.catalog.domain.port.out.CategoryRepositoryPort;
+import com.omnip.catalog.domain.port.out.ProductRepositoryPort;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -16,10 +16,10 @@ import java.util.Optional;
 @Transactional(readOnly = true)
 public class ProductDomainService implements BrowseProductsUseCase {
 
-    private final ProductJpaRepository productRepository;
-    private final CategoryJpaRepository categoryRepository;
+    private final ProductRepositoryPort productRepository;
+    private final CategoryRepositoryPort categoryRepository;
 
-    public ProductDomainService(ProductJpaRepository productRepository, CategoryJpaRepository categoryRepository) {
+    public ProductDomainService(ProductRepositoryPort productRepository, CategoryRepositoryPort categoryRepository) {
         this.productRepository = productRepository;
         this.categoryRepository = categoryRepository;
     }
