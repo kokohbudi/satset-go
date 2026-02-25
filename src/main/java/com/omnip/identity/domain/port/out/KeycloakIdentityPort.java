@@ -72,6 +72,8 @@ public interface KeycloakIdentityPort {
 
     boolean userExistsByEmail(String email);
 
+    boolean verifyUserPassword(String email, String password);
+
     // ==================== Organizations ====================
 
     String createOrganization(String orgName) throws BusinessException;

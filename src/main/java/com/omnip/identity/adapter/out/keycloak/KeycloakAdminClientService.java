@@ -1047,4 +1047,9 @@ public class KeycloakAdminClientService implements KeycloakIdentityPort, Keycloa
                                 .searchByEmail(email, true); // exact match
                 return users != null && !users.isEmpty();
         }
+
+        @Override
+        public boolean verifyUserPassword(String email, String password) {
+                throw new UnsupportedOperationException("verifyUserPassword not yet implemented");
+        }
 }
