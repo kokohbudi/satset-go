@@ -1,7 +1,7 @@
 package com.omnip.identity.domain.service;
 
 import com.omnip.identity.adapter.in.web.dto.KeycloakGroupDTO;
-import com.omnip.identity.adapter.out.keycloak.KeycloakAdminClientService;
+import com.omnip.identity.domain.port.out.KeycloakIdentityPort;
 import com.omnip.identity.adapter.in.web.dto.KeycloakRoleDTO;
 import com.omnip.identity.domain.port.in.ChangePasswordUseCase;
 import com.omnip.identity.domain.port.in.ManageBackofficeUsersUseCase;
@@ -27,11 +27,11 @@ import java.util.Map;
 public class IdentityDomainService implements ManageGroupsUseCase, ManageRolesUseCase,
         ManageBackofficeUsersUseCase, ChangePasswordUseCase {
 
-    private final KeycloakAdminClientService keycloakAdminClientService;
+    private final KeycloakIdentityPort keycloakAdminClientService;
     private final UserDomainService userManagementService;
 
     public IdentityDomainService(
-            KeycloakAdminClientService keycloakAdminClientService,
+            KeycloakIdentityPort keycloakAdminClientService,
             UserDomainService userManagementService) {
         this.keycloakAdminClientService = keycloakAdminClientService;
         this.userManagementService = userManagementService;

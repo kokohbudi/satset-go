@@ -10,6 +10,8 @@ import java.util.List;
  */
 public interface UserRepositoryPort {
 
+    Users save(Users user);
+
     Users findByEmail(String email);
 
     Users findByProviderUserId(String providerUserId);

@@ -5,8 +5,8 @@ import com.omnip.shared.dto.UserDTO;
 import com.omnip.identity.domain.model.Users;
 import com.omnip.identity.domain.port.in.UserQueryUseCase;
 import com.omnip.shared.exception.BusinessException;
-import com.omnip.identity.adapter.out.persistence.UserJpaRepository;
-import com.omnip.identity.adapter.out.keycloak.KeycloakAdminClientService;
+import com.omnip.identity.domain.port.out.UserRepositoryPort;
+import com.omnip.identity.domain.port.out.KeycloakIdentityPort;
 import org.springframework.stereotype.Service;
 
 /**
@@ -15,10 +15,10 @@ import org.springframework.stereotype.Service;
  */
 @Service
 public class UserDomainService implements UserQueryUseCase {
-    private final UserJpaRepository usersRepository;
+    private final UserRepositoryPort usersRepository;
     private final UserManagementHelper userManagementBusiness;
     private final UserDTO userDTO;
-    private final KeycloakAdminClientService keycloakAdminClientService;
+    private final KeycloakIdentityPort keycloakAdminClientService;
 
     /**
      * Konstruktor dengan dependency injection.
@@ -30,8 +30,8 @@ public class UserDomainService implements UserQueryUseCase {
      * @param keycloakAdminClientService Service untuk interaksi dengan Keycloak
      *                                   Admin API
      */
-    public UserDomainService(UserJpaRepository usersRepository, UserManagementHelper userManagementBusiness,
-            UserDTO userDTO, KeycloakAdminClientService keycloakAdminClientService) {
+    public UserDomainService(UserRepositoryPort usersRepository, UserManagementHelper userManagementBusiness,
+            UserDTO userDTO, KeycloakIdentityPort keycloakAdminClientService) {
         this.usersRepository = usersRepository;
         this.userManagementBusiness = userManagementBusiness;
         this.userDTO = userDTO;

@@ -3,7 +3,7 @@ package com.omnip.identity.domain.service;
 import com.omnip.shared.dto.UserDTO;
 import com.omnip.identity.domain.model.Users;
 import com.omnip.shared.exception.BusinessException;
-import com.omnip.identity.adapter.out.persistence.UserJpaRepository;
+import com.omnip.identity.domain.port.out.UserRepositoryPort;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -17,7 +17,7 @@ import java.util.Objects;
 @Component
 public class UserManagementHelper {
     private final UserDTO userDTO;
-    private final UserJpaRepository usersRepository;
+    private final UserRepositoryPort usersRepository;
 
     /**
      * Konstruktor dengan dependency injection.
@@ -25,7 +25,7 @@ public class UserManagementHelper {
      * @param userDTO         UserDTO yang mewakili pengguna saat ini
      * @param usersRepository Repository untuk operasi data pengguna
      */
-    public UserManagementHelper(UserDTO userDTO, UserJpaRepository usersRepository) {
+    public UserManagementHelper(UserDTO userDTO, UserRepositoryPort usersRepository) {
         this.userDTO = userDTO;
         this.usersRepository = usersRepository;
     }
@@ -67,7 +67,7 @@ public class UserManagementHelper {
      * @param usersRepository  Repository untuk operasi data pengguna
      * @throws BusinessException Jika pengguna yang diminta tidak ditemukan
      */
-    public void setUserStatus(UserDTO sessionUserDTO, UserDTO requestedUserDTO, UserJpaRepository usersRepository)
+    public void setUserStatus(UserDTO sessionUserDTO, UserDTO requestedUserDTO, UserRepositoryPort usersRepository)
             throws BusinessException {
         Users user = this.getRequestedUserOnStore(sessionUserDTO, requestedUserDTO, usersRepository);
 
@@ -90,7 +90,7 @@ public class UserManagementHelper {
      * @throws BusinessException Jika pengguna tidak berada pada toko yang sama
      */
     private Users getRequestedUserOnStore(UserDTO sessionUserDTO, UserDTO requestUserDTO,
-            UserJpaRepository usersRepository) throws BusinessException {
+            UserRepositoryPort usersRepository) throws BusinessException {
         String[] emails = { sessionUserDTO.getEmail(), requestUserDTO.getEmail() };
         List<Users> users = usersRepository.findByEmailInAndStoreId(List.of(emails),
                 sessionUserDTO.getStores().getId().toString());
