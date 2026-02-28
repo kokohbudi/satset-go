@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<body>
+
+    <!-- ============================================== -->
+    <!-- MODAL COMPONENTS                               -->
+    <!-- ============================================== -->
+
+    <!-- Base Modal Template -->
+    <!-- Usage: Include Alpine.js x-data to control modal state -->
+    <dialog th:fragment="modal(id, title, size)" th:id="${id}" class="modal modal-bottom sm:modal-middle">
+        <div class="modal-box"
+            th:classappend="${size == 'lg'} ? 'max-w-3xl' : (${size == 'xl'} ? 'max-w-5xl' : (${size == 'full'} ? 'max-w-full h-full' : ''))">
+            <!-- Modal Header -->
+            <div class="flex items-center justify-between border-b border-base-300 pb-4 mb-4">
+                <h3 th:text="${title}" class="text-lg font-bold">Modal Title</h3>
+                <form method="dialog">
+                    <button class="btn btn-sm btn-circle btn-ghost hover:bg-base-200">
+                        <svg th:replace="~{components/icons :: icon-close}"></svg>
+                    </button>
+                </form>
+            </div>
+
+            <!-- Modal Content Slot -->
+            <div class="modal-content">
+                <th:block th:replace="${content}"></th:block>
+            </div>
+        </div>
+        <form method="dialog" class="modal-backdrop">
+            <button>close</button>
+        </form>
+    </dialog>
+
+    <!-- Confirmation Modal -->
+    <!-- Usage: <div th:replace="~{components/modals :: confirm-modal(id='delete-modal', title='Konfirmasi Hapus', message='Apakah Anda yakin?', confirmText='Hapus', confirmType='danger')}"></div> -->
+    <dialog th:fragment="confirm-modal(id, title, message, confirmText, confirmType)" th:id="${id}"
+        class="modal modal-bottom sm:modal-middle">
+        <div class="modal-box">
+            <div class="flex flex-col items-center text-center py-4">
+                <!-- Warning Icon -->
+                <div class="w-16 h-16 rounded-full flex items-center justify-center mb-4"
+                    th:classappend="${confirmType == 'danger'} ? 'bg-error/20' : 'bg-warning/20'">
+                    <svg th:replace="~{components/icons :: icon-warning(class='w-8 h-8')}"
+                        th:classappend="${confirmType == 'danger'} ? 'text-error' : 'text-warning'"></svg>
+                </div>
+                <h3 th:text="${title}" class="text-lg font-bold mb-2">Konfirmasi</h3>
+                <p th:text="${message}" class="text-base-content/70 mb-6">Apakah Anda yakin ingin melanjutkan?</p>
+
+                <div class="flex gap-3 w-full">
+                    <form method="dialog" class="flex-1">
+                        <button class="btn btn-ghost w-full">Batal</button>
+                    </form>
+                    <button th:text="${confirmText ?: 'Konfirmasi'}" class="btn flex-1"
+                        th:classappend="${confirmType == 'danger'} ? 'btn-error' : 'btn-warning'"
+                        onclick="handleConfirm(this)">
+                        Konfirmasi
+                    </button>
+                </div>
+            </div>
+        </div>
+        <form method="dialog" class="modal-backdrop">
+            <button>close</button>
+        </form>
+    </dialog>
+
+    <!-- Form Modal -->
+    <!-- Usage: Create User Modal, Edit User Modal, etc. -->
+    <dialog th:fragment="form-modal(id, title, submitText)" th:id="${id}" class="modal modal-bottom sm:modal-middle">
+        <div class="modal-box max-w-2xl">
+            <!-- Modal Header -->
+            <div class="flex items-center justify-between border-b border-base-300 pb-4 mb-6">
+                <h3 th:text="${title}" class="text-lg font-bold flex items-center gap-2">
+                    <svg th:replace="~{components/icons :: icon-edit(class='w-5 h-5 text-primary')}"></svg>
+                    Form Title
+                </h3>
+                <form method="dialog">
+                    <button class="btn btn-sm btn-circle btn-ghost hover:bg-base-200">
+                        <svg th:replace="~{components/icons :: icon-close}"></svg>
+                    </button>
+                </form>
+            </div>
+
+            <!-- Form Content Slot -->
+            <div class="modal-form-content">
+                <th:block th:replace="${formContent}"></th:block>
+            </div>
+
+            <!-- Modal Actions -->
+            <div class="modal-action border-t border-base-300 pt-4 mt-6">
+                <form method="dialog">
+                    <button class="btn btn-ghost">Batal</button>
+                </form>
+                <button th:text="${submitText ?: 'Simpan'}" class="btn btn-primary shadow-lg shadow-primary/30"
+                    type="submit" form="modal-form">
+                    Simpan
+                </button>
+            </div>
+        </div>
+        <form method="dialog" class="modal-backdrop">
+            <button>close</button>
+        </form>
+    </dialog>
+
+    <!-- Success Modal -->
+    <dialog th:fragment="success-modal(id, title, message)" th:id="${id}" class="modal modal-bottom sm:modal-middle">
+        <div class="modal-box">
+            <div class="flex flex-col items-center text-center py-6">
+                <!-- Success Animation -->
+                <div class="w-20 h-20 rounded-full bg-success/20 flex items-center justify-center mb-4 animate-bounce">
+                    <svg th:replace="~{components/icons :: icon-check(class='w-10 h-10 text-success')}"></svg>
+                </div>
+                <h3 th:text="${title}" class="text-xl font-bold text-success mb-2">Berhasil!</h3>
+                <p th:text="${message}" class="text-base-content/70 mb-6">Operasi berhasil dilakukan.</p>
+
+                <form method="dialog">
+                    <button class="btn btn-success btn-wide">Tutup</button>
+                </form>
+            </div>
+        </div>
+        <form method="dialog" class="modal-backdrop">
+            <button>close</button>
+        </form>
+    </dialog>
+
+    <!-- Loading Modal -->
+    <dialog th:fragment="loading-modal(id, message)" th:id="${id}" class="modal">
+        <div class="modal-box max-w-xs">
+            <div class="flex flex-col items-center text-center py-6">
+                <span class="loading loading-spinner loading-lg text-primary mb-4"></span>
+                <p th:text="${message ?: 'Mohon tunggu...'}" class="text-base-content/70">Memproses...</p>
+            </div>
+        </div>
+    </dialog>
+
+    <!-- Image Preview Modal -->
+    <dialog th:fragment="image-modal(id)" th:id="${id}" class="modal">
+        <div class="modal-box max-w-4xl p-2">
+            <form method="dialog">
+                <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2 z-10 bg-base-100/80">
+                    <svg th:replace="~{components/icons :: icon-close}"></svg>
+                </button>
+            </form>
+            <img id="modal-image" src="" alt="Preview" class="w-full h-auto rounded-lg" />
+        </div>
+        <form method="dialog" class="modal-backdrop">
+            <button>close</button>
+        </form>
+    </dialog>
+
+</body>
+
+</html>

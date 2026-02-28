@@ -23,15 +23,41 @@
 hs_err_pid*
 replay_pid*
 
-# IDE
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Build and IDE directories
+/target/
+/.idea/
 .run/
+
+# Node.js
+node_modules/
+node/
+
+# Maven wrapper
+/mvnw
+/mvnw.cmd
+
+# Help file
+/HELP.md
 
 # Secrets & local config
 /.env
 /config/application-secret.yml
+/config/keycloak/realm-export.json
 
 # Claude Code local settings
 .claude/settings.local.json
 
-# Logs
+# Generated & logs
+/src/main/resources/static/css/output.css
 /logs/
+/*.jfr
+.worktrees/

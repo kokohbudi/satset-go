@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html layout:decorate="~{layouts/base}" xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout">
+
+<head>
+    <title>Profil Saya</title>
+</head>
+
+<body>
+    <div layout:fragment="content">
+
+        <h1 class="text-2xl font-semibold text-base-content mb-6">Profil & Pengaturan Akun</h1>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <!-- Left Column: User Info -->
+            <div class="md:col-span-1">
+                <div class="card bg-base-100 shadow rounded-lg p-6">
+                    <div class="text-center mb-4">
+                        <div class="h-24 w-24 rounded-full bg-primary mx-auto flex items-center justify-center text-primary-content text-3xl font-bold uppercase">
+                            <span th:text="${name != null ? #strings.substring(name,0,1) : 'U'}">U</span>
+                        </div>
+                    </div>
+                    <div class="text-center">
+                        <h2 class="text-xl font-bold text-base-content" th:text="${name}">User Name</h2>
+                        <p class="text-sm text-base-content/60" th:text="${email}">user@example.com</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column: Password Change Form -->
+            <div class="md:col-span-2">
+                <div class="card bg-base-100 shadow rounded-lg p-6">
+                    <h3 class="text-lg font-medium text-base-content mb-4">Ganti Password</h3>
+
+                    <div id="alertMessage" class="hidden mb-4 p-4 rounded-md"></div>
+
+                    <form id="changePasswordForm">
+                        <!-- CSRF Token -->
+                        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" id="csrfToken" />
+
+                        <div class="mb-4">
+                            <label for="newPassword" class="block text-sm font-medium text-base-content/80">Password Baru</label>
+                            <div class="relative mt-1">
+                                <input type="password" id="newPassword" name="newPassword" required minlength="8"
+                                       class="block w-full rounded-md border border-base-300 bg-base-100 shadow-sm focus:border-primary focus:ring-primary sm:text-sm pr-10 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                                <button type="button" onclick="togglePassword('newPassword', this)" class="absolute inset-y-0 right-0 flex items-center pr-3 text-base-content/40 hover:text-base-content/70">
+                                    <svg class="eye-open h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                                    <svg class="eye-closed h-5 w-5 hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878l4.242 4.242M21 21l-3.12-3.12"/></svg>
+                                </button>
+                            </div>
+                            <p class="mt-1 text-xs text-base-content/60">Minimal 8 karakter.</p>
+                        </div>
+
+                        <div class="mb-6">
+                            <label for="confirmPassword" class="block text-sm font-medium text-base-content/80">Konfirmasi Password Baru</label>
+                            <div class="relative mt-1">
+                                <input type="password" id="confirmPassword" name="confirmPassword" required minlength="8"
+                                       class="block w-full rounded-md border border-base-300 bg-base-100 shadow-sm focus:border-primary focus:ring-primary sm:text-sm pr-10 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                                <button type="button" onclick="togglePassword('confirmPassword', this)" class="absolute inset-y-0 right-0 flex items-center pr-3 text-base-content/40 hover:text-base-content/70">
+                                    <svg class="eye-open h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                                    <svg class="eye-closed h-5 w-5 hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878l4.242 4.242M21 21l-3.12-3.12"/></svg>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div>
+                            <button type="submit" id="submitBtn"
+                                    class="btn btn-primary">
+                                Simpan Password Baru
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <th:block layout:fragment="scripts">
+        <script>
+            document.getElementById('changePasswordForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+
+                const submitBtn = document.getElementById('submitBtn');
+                const alertBox = document.getElementById('alertMessage');
+                const csrfToken = document.getElementById('csrfToken').value;
+
+                const newPassword = document.getElementById('newPassword').value;
+                const confirmPassword = document.getElementById('confirmPassword').value;
+
+                // Basic validation
+                if (newPassword !== confirmPassword) {
+                    showAlert('error', 'Password baru dan konfirmasi tidak cocok!');
+                    return;
+                }
+
+                // UI Loading state
+                submitBtn.disabled = true;
+                submitBtn.innerText = 'Menyimpan...';
+                alertBox.classList.add('hidden');
+
+                fetch('/api/users/me/password', {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': csrfToken
+                    },
+                    body: JSON.stringify({
+                        newPassword: newPassword,
+                        confirmPassword: confirmPassword
+                    })
+                })
+                .then(response => response.json().then(data => ({status: response.status, body: data})))
+                .then(res => {
+                    if (res.status === 200) {
+                        showAlert('success', res.body.message || 'Password berhasil diubah!');
+                        document.getElementById('changePasswordForm').reset();
+                    } else {
+                        showAlert('error', res.body.error || 'Terjadi kesalahan saat mengubah password.');
+                    }
+                })
+                .catch(err => {
+                    showAlert('error', 'Gagal terhubung ke server.');
+                })
+                .finally(() => {
+                    submitBtn.disabled = false;
+                    submitBtn.innerText = 'Simpan Password Baru';
+                });
+            });
+
+            function togglePassword(inputId, btn) {
+                const input = document.getElementById(inputId);
+                const isPassword = input.type === 'password';
+                input.type = isPassword ? 'text' : 'password';
+                btn.querySelector('.eye-open').classList.toggle('hidden', isPassword);
+                btn.querySelector('.eye-closed').classList.toggle('hidden', !isPassword);
+            }
+
+            function showAlert(type, message) {
+                const alertBox = document.getElementById('alertMessage');
+                alertBox.classList.remove('hidden', 'bg-red-50', 'text-red-800', 'bg-green-50', 'text-green-800');
+
+                if (type === 'error') {
+                    alertBox.classList.add('bg-red-50', 'text-red-800');
+                } else {
+                    alertBox.classList.add('bg-green-50', 'text-green-800');
+                }
+
+                alertBox.innerText = message;
+            }
+        </script>
+    </th:block>
+</body>
+
+</html>

@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html layout:decorate="~{layouts/base}" xmlns:th="http://www.thymeleaf.org"
+    xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout">
+
+<head>
+    <title>Pendaftaran Toko</title>
+</head>
+
+<body>
+    <div layout:fragment="content">
+        <div class="max-w-md mx-auto mt-10">
+            <div class="card bg-base-100 shadow-xl border border-base-300">
+                <div class="card-body">
+                    <h2 class="card-title text-2xl font-bold mb-2">Pendaftaran Toko Baru</h2>
+                    <p class="text-base-content/70 text-sm mb-6">Lengkapi data berikut untuk membuat organisasi toko
+                        Anda dan mengakses fitur dashboard.</p>
+
+                    <div th:if="${error}" class="alert alert-error shadow-sm mb-4 rounded-xl text-sm">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current flex-shrink-0 h-5 w-5" fill="none"
+                            viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <span th:text="${error}"></span>
+                    </div>
+
+                    <form th:action="@{/onboarding}" method="POST" class="space-y-4">
+                        <div class="form-control">
+                            <label class="label">
+                                <span class="label-text font-medium">Nama Toko *</span>
+                            </label>
+                            <input type="text" name="orgName" placeholder="Contoh: Toko Maju Jaya"
+                                class="input input-bordered focus:input-primary w-full" required />
+                        </div>
+
+                        <div class="form-control">
+                            <label class="label">
+                                <span class="label-text font-medium">No. Handphone *</span>
+                            </label>
+                            <input type="tel" name="phone" placeholder="Contoh: 081234567890"
+                                class="input input-bordered focus:input-primary w-full" required />
+                        </div>
+
+                        <div class="form-control mt-6">
+                            <button type="submit"
+                                class="btn btn-primary w-full shadow-sm hover:shadow-md transition-shadow">
+                                Daftarkan Toko
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>
