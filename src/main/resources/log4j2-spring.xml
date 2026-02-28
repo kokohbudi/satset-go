@@ -1,53 +1,51 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Configuration status="WARN">
     <Properties>
-        <!-- Color pattern for console logs -->
         <Property name="LOG_PATTERN">
             %d{yyyy-MM-dd HH:mm:ss.SSS} %highlight{%-5level}{FATAL=red blink, ERROR=red, WARN=yellow bold, INFO=green, DEBUG=blue, TRACE=white} %style{[%t]}{magenta} %style{%c{1.}}{cyan} : %msg%n
+        </Property>
+        <Property name="FILE_PATTERN">
+            %d{yyyy-MM-dd HH:mm:ss.SSS} [%t] %-5level %c{1.} : %msg%n
         </Property>
     </Properties>
 
     <Appenders>
-        <!-- Console Appender -->
         <Console name="Console" target="SYSTEM_OUT">
             <PatternLayout pattern="${LOG_PATTERN}"/>
         </Console>
 
-        <!-- Rolling File Appender (Optional, for production readiness) -->
         <RollingFile name="File" fileName="logs/omnip-services.log"
                      filePattern="logs/omnip-services-%d{yyyy-MM-dd}-%i.log.gz">
-            <PatternLayout>
-                <Pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%t] %-5level %c{1.} : %msg%n</Pattern>
-            </PatternLayout>
+            <PatternLayout pattern="${FILE_PATTERN}"/>
             <Policies>
-                <TimeBasedTriggeringPolicy />
-                <SizeBasedTriggeringPolicy size="10 MB"/>
+                <TimeBasedTriggeringPolicy/>
+                <SizeBasedTriggeringPolicy size="10MB"/>
             </Policies>
             <DefaultRolloverStrategy max="10"/>
         </RollingFile>
     </Appenders>
 
     <Loggers>
-        <!-- Application specific logging -->
-        <Logger name="com.omnip" level="debug" additivity="false">
+        <!-- AsyncLogger untuk package aplikasi sendiri (DEBUG level) -->
+        <AsyncLogger name="com.omnip" level="debug" additivity="false">
             <AppenderRef ref="Console"/>
             <AppenderRef ref="File"/>
-        </Logger>
+        </AsyncLogger>
 
-        <!-- Spring Security -->
-        <Logger name="org.springframework.security" level="info" additivity="false">
+        <!-- AsyncLogger untuk Spring Security -->
+        <AsyncLogger name="org.springframework.security" level="info" additivity="false">
             <AppenderRef ref="Console"/>
-        </Logger>
+        </AsyncLogger>
 
-        <!-- Hibernate SQL (set to debug to see queries) -->
-        <Logger name="org.hibernate.SQL" level="info" additivity="false">
+        <!-- AsyncLogger untuk Hibernate SQL -->
+        <AsyncLogger name="org.hibernate.SQL" level="info" additivity="false">
             <AppenderRef ref="Console"/>
-        </Logger>
+        </AsyncLogger>
 
-        <!-- Root Logger -->
-        <Root level="info">
+        <!-- AsyncRoot: semua logger lain -->
+        <AsyncRoot level="info">
             <AppenderRef ref="Console"/>
             <AppenderRef ref="File"/>
-        </Root>
+        </AsyncRoot>
     </Loggers>
 </Configuration>
