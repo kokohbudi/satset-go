@@ -1,8 +1,8 @@
 # SatSetGo - Technical Specifications
 
 > **Owner**: Neo (Chief Technical Architect)
-> **Last Updated**: 2026-02-20
-> **Current Sprint**: Prerequisite — Store Onboarding + Keycloak Organization
+> **Last Updated**: 2026-02-25 (Session 5)
+> **Current Sprint**: Port Boundary & Config Consolidation COMPLETE
 
 ---
 
@@ -93,6 +93,7 @@ See `CLAUDE.md` for entity details. Schema managed by Hibernate DDL (`update` mo
 - **Enabled**: `spring.threads.virtual.enabled=true`
 - **Benefit**: High concurrency for I/O-bound operations (DB, HTTP calls)
 - **Caution**: Don't use `synchronized` blocks (pinning issue)
+- **Config Cleanup (M-6)**: Removed `tomcat.max-threads` & `min-spare-threads` (irrelevant with virtual threads)
 
 ---
 
@@ -224,11 +225,22 @@ Optional<Users> findById(UUID id);
 
 ### Environment Variables
 ```bash
+# Application secrets (all moved to .env, 2026-02-25)
+KEYCLOAK_REALM=satset-go
+KEYCLOAK_BASE_URL=http://localhost:9999
+KEYCLOAK_CLIENT_ID=satsetgo-client
+KEYCLOAK_CLIENT_SECRET=<secret>
+DB_URL=jdbc:postgresql://localhost:5432/omni_pulsa
+DB_USERNAME=admin
+DB_PASSWORD=password
+
+# Production example
 SPRING_PROFILES_ACTIVE=prod
-DB_URL=jdbc:postgresql://prod-host:5432/satsetgo
+KEYCLOAK_REALM=satsetgo-prod
+KEYCLOAK_BASE_URL=https://auth.satsetgo.com
+DB_URL=jdbc:postgresql://prod-host:5432/satsetgo_prod
 DB_USERNAME=satsetgo_user
 DB_PASSWORD=<strong-password>
-KEYCLOAK_ISSUER_URI=https://auth.satsetgo.com/realms/satsetgo
 ```
 
 ---
@@ -257,28 +269,38 @@ KEYCLOAK_ISSUER_URI=https://auth.satsetgo.com/realms/satsetgo
 | **C-1** | Domain models are JPA `@Entity` objects — violates hexagonal boundary | All `domain/model/*.java` | Domain layer coupled to persistence infrastructure |
 | **C-2** | Cross-context JPA FK coupling: `Transactions` → `Stores`, `Users` → `Stores`, `Transactions` → `ProductDenoms` | `Transactions.java`, `Users.java`, `StoreMutations.java` | Bounded contexts cannot evolve independently |
 
-### 🟠 High — Architecture Violations & Security
+### ✅ High — Architecture Violations (RESOLVED)
 
-| ID | Issue | File(s) | Impact |
+| ID | Issue | Fix | Resolved |
 |---|---|---|---|
-| **H-1** | `shared` package imports JPA adapter repos directly | `Beans.java`, `StoreOnboardingInterceptor.java`, `DataSeeder.java` | Shared kernel coupled to specific adapter layer |
-| **H-3** | Port interfaces reference adapter-layer DTOs & Keycloak SDK (`UserRepresentation`) | `KeycloakIdentityPort.java`, `ManageRolesUseCase.java`, `ManageMyProfileUseCase.java` | Inward dependency violation |
-| **H-6** | `UserDTO` holds `Stores` JPA entity reference | `UserDTO.java:31` | `LazyInitializationException` risk in session serialization |
+| **H-1** | `shared` package imports JPA adapter repos directly | Replaced with port interfaces (`CategoryRepositoryPort`, `ProductRepositoryPort`, etc.) | ✅ 2026-02-25 |
+| **H-3** | Port interfaces reference Keycloak SDK (`UserRepresentation`) | Created domain record `GroupMemberInfo`; adapter boundary converts `UserRepresentation` → `GroupMemberInfo` | ✅ 2026-02-25 |
+| **H-6** | `UserDTO` holds `Stores` JPA entity reference | Replaced with `UUID storeId`; updated in 5 consumers | ✅ 2026-02-25 |
 
-### 🟡 Medium — Correctness & Fragility
+### ✅ Medium — Correctness (RESOLVED)
+
+| ID | Issue | Fix | Resolved |
+|---|---|---|---|
+| **M-1** | `Transactions` missing `@Version` | Added `@Version private Long version;` | ✅ 2026-02-25 |
+| **M-4** | `RegistrationHelper` uses `Random` (not `SecureRandom`) | Replaced with `SecureRandom` | ✅ 2026-02-25 |
+| **M-8** | Cache name collision (`findAll()` + `findByType()` → `"categories"`) | Split into `"categoriesAll"` + `"categoriesByType"` | ✅ 2026-02-25 |
+
+### ✅ Medium — Configuration (RESOLVED)
+
+| ID | Issue | Fix | Resolved |
+|---|---|---|---|
+| **M-3** | Mixed pessimistic + optimistic locking on `Stores.balance` | Documented both strategies (financial ops use pessimistic, general use optimistic) | ✅ 2026-02-25 |
+| **M-5** | Role prefix magic strings (works by coincidence) | Centralized in `OmniConstants`: `ROLE_PREFIX_REALM`, `ROLE_PREFIX_CLIENT`, 7 permission constants; updated 4 controllers | ✅ 2026-02-25 |
+| **M-6** | Tomcat `max-threads: 200` (irrelevant with virtual threads) | Removed; kept only `max-connections` | ✅ 2026-02-25 |
+| **M-10** | Hardcoded `keycloak.realm: satset-go` | Externalized to `.env` (KEYCLOAK_REALM=satset-go); application.yml references `${KEYCLOAK_REALM}` | ✅ 2026-02-25 |
+
+### 🟡 Medium — Remaining Fragility
 
 | ID | Issue | File(s) |
 |---|---|---|
-| **M-1** | `Transactions` entity missing `@Version` — race condition on status update | `Transactions.java` |
-| **M-2** | `StoreMutations` entity missing `@Version` (append-only, but inconsistent with pattern) | `StoreMutations.java` |
-| **M-3** | Mixed pessimistic + optimistic locking on `Stores.balance` | `Stores.java`, `BalanceDomainService.java` |
-| **M-4** | `RegistrationHelper` uses `java.util.Random` (not `SecureRandom`) for referral IDs | `RegistrationHelper.java:24` |
-| **M-5** | Role prefix double-prefix: `ROLE_REALM_` works by coincidence | `SecurityConfig.java:135` |
-| **M-6** | Tomcat `max-threads: 200` irrelevant with virtual threads enabled | `application.yml:77-81` |
+| **M-2** | `StoreMutations` missing `@Version` (append-only, but inconsistent with pattern) | `StoreMutations.java` |
 | **M-7** | `ProductDenoms.metadata` `@Transient` field — null in all paths except `getDenomWithMeta()` | `ProductDenoms.java:93-94` |
-| **M-8** | Cache name collision: `findAll()` and `findByType()` share cache `"categories"` | `CategoryDomainService.java` |
 | **M-9** | `StoreMutationJpaRepository.findTopBy...` accepts `Stores` entity instead of `UUID` | `StoreMutationJpaRepository.java:15` |
-| **M-10** | Hardcoded `keycloak.realm: satset-go` in default config (no env variable) | `application.yml:66` |
 
 ### 🟢 Low — Hygiene & Consistency
 

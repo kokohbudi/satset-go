@@ -67,11 +67,11 @@
   - ✅ Transaction: `TransactionDomainService`, `BalanceDomainService`
   - ✅ Unit test `TransactionDomainServiceTest` uses port interfaces
 
-### 🔧 Technical Debt — Port Boundary Cleanup (H-1, H-3, H-6) ⭐ HIGH PRIORITY
-> *Ref: TechSpecs.md debt register. Surgical fixes, 1-2 sesi kerja.*
-- [ ] **H-1**: `shared` package (`Beans.java`, `StoreOnboardingInterceptor.java`, `DataSeeder.java`) masih import JPA adapter repos → ganti dengan port interfaces
-- [ ] **H-3**: Port interfaces (`KeycloakIdentityPort`, `ManageRolesUseCase`, `ManageMyProfileUseCase`) reference adapter-layer DTOs & Keycloak SDK (`UserRepresentation`) → buat domain-level DTOs
-- [ ] **H-6**: `UserDTO.java:31` holds `Stores` JPA entity reference → ganti dengan `storeId` (UUID) atau store summary DTO
+### ✅ Technical Debt — Port Boundary Cleanup (H-1, H-3, H-6) DONE
+> *Surgical fixes, completed in 1 session (2026-02-25)*
+- [x] **H-1**: `shared` package (`Beans.java`, `StoreOnboardingInterceptor.java`, `DataSeeder.java`) — JPA adapter repos replaced with port interfaces ✅
+- [x] **H-3**: `KeycloakIdentityPort` — `UserRepresentation` replaced with domain record `GroupMemberInfo` at boundary ✅
+- [x] **H-6**: `UserDTO` — `Stores` entity reference replaced with `storeId` (UUID), updated in 5 consumers ✅
 
 ### 🔧 Technical Debt — Correctness Quick Wins (M-1, M-4, M-8)
 > *Quick fixes, masing-masing <15 menit. Bisa dikerjakan kapan saja.*
@@ -79,12 +79,12 @@
 - [x] **M-4**: `RegistrationHelper.java:24` — ganti `java.util.Random` → `SecureRandom` untuk referral IDs ✅
 - [x] **M-8**: `CategoryDomainService` — fix cache name collision (`findAll()` dan `findByType()` share cache `"categories"`) ✅
 
-### 🔧 Technical Debt — Config & Locking Cleanup (M-3, M-5, M-6, M-10)
-> *Config-level fixes, low risk.*
-- [ ] **M-3**: Pilih satu strategi locking untuk `Stores.balance` (pessimistic vs optimistic, jangan campur)
-- [ ] **M-5**: `SecurityConfig.java:135` — role prefix `ROLE_REALM_` works by coincidence, formalkan
-- [ ] **M-6**: `application.yml:77-81` — hapus `max-threads: 200` (irrelevant with virtual threads)
-- [ ] **M-10**: `application.yml:66` — externalkan `keycloak.realm: satset-go` ke env variable
+### ✅ Technical Debt — Config & Security Formalization (M-3, M-5, M-6, M-10) DONE
+> *Config-level fixes, completed in 1 session (2026-02-25)*
+- [x] **M-3**: `Stores.balance` locking strategy documented — dual approach: pessimistic lock in `BalanceDomainService` (financial ops), optimistic lock `@Version` (general concurrency) ✅
+- [x] **M-5**: Role prefixes formalized — `ROLE_PREFIX_REALM`, `ROLE_PREFIX_CLIENT` + 7 permission constants in `OmniConstants`; @PreAuthorize updated across 4 controllers ✅
+- [x] **M-6**: Virtual threads cleanup — `max-threads: 200` & `min-spare-threads: 10` removed from `application.yml` ✅
+- [x] **M-10**: Config externalization — all secrets moved to `.env`, single `application.yml` with env variable references, `application-secret.yml` deleted ✅
 
 ### 🏗️ Technical Debt — Domain Model Separation (C-1, C-2) 🔴 EPIC
 > *MASSIVE refactor. Butuh dedicated plan dari Neo sebelum eksekusi.*
@@ -190,6 +190,21 @@
 
 ## 💬 PM NOTES
 
+**2026-02-25 (FINAL SESSION)** (August — Port Boundary + Config Consolidation Sprint Complete!):
+- **H-series COMPLETE** (3 items, 1 session):
+  - H-1: Shared package cleaned — `Beans`, `DataSeeder`, `StoreOnboardingInterceptor` now inject port interfaces, not JPA repos
+  - H-3: Domain boundary enforced — `GroupMemberInfo` domain record replaces `UserRepresentation` at Keycloak port boundary
+  - H-6: Entity leak fixed — `UserDTO.storeId` (UUID) replaces `Stores` entity reference; updated in `KeycloakLoginEventListener`, `UserManagementHelper`, `TransactionController`, `PurchaseFlowIntegrationTest`
+- **M-series CONFIG COMPLETE** (4 items, 1 session):
+  - M-3: Dual locking documented — pessimistic (financial) + optimistic `@Version` (general concurrency)
+  - M-5: Security formalized — `OmniConstants` holds 7 permission constants (`PERM_VIEW_USERS`, `PERM_MANAGE_USERS`, etc.) + role prefixes; all 4 controllers updated to use constants
+  - M-6: Virtual threads cleanup — removed irrelevant `tomcat.max-threads` & `min-spare-threads`
+  - M-10: Config externalized — `.env` now single source for secrets (DB, Keycloak); `application-secret.yml` deleted; `.gitignore` updated to exclude `.env`, `logs/`, `.claude/settings.local.json`
+- **Deployment workflow simplified** — `application.yml` now references `${KEYCLOAK_REALM}`, `${KEYCLOAK_BASE_URL}`, `${DB_URL}` from `.env`
+- **Tests**: 15/15 pass (3 integration + 7 unit + 5 others)
+- **Merge to main**: Squash merge `user-management-ui` → `main` (commit d187b65), branch deleted (local + remote)
+- **9 commits authored** in this session, consolidated into 1 squash commit on main
+
 **2026-02-25** (August — Technical Debt Register → Task Board):
 - **Neo audit** → 24 debt items teridentifikasi, 7 sudah di-fix hari ini (sesi sebelumnya + sesi ini).
 - **3 fix hari ini**: H-2 (port boundary `UserSessionControllerAdvice`), H-4 (cross-context `RegistrationDomainService`), H-5 (entity leak `TransactionController` → `TransactionSummary` domain record).
@@ -283,6 +298,16 @@
 
 ---
 
-**Last Updated**: 2026-02-25 (Session 4)
-**Next Review**: Pick next feature dari BACKLOG, atau tackle Technical Debt H-series
+**Last Updated**: 2026-02-25 (Session 5 — Technical Debt H & M series COMPLETE)
+**Status**:
+- ✅ MVP Sprint COMPLETE
+- ✅ H-series (port boundary) DONE
+- ✅ M-series (config) DONE
+- ⏳ C-series (domain model separation) — Deferred, awaiting Neo plan
+- 📌 L-series (code hygiene) — Backlog
+
+**Next Options**:
+1. Pick next feature dari BACKLOG (admin org, balance top-up, product management)
+2. Tackle C-1/C-2 (require dedicated Neo architecture plan)
+3. Implement L-series (test coverage, code cleanup)
 
