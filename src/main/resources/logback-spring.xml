@@ -1,10 +1,10 @@
-<configuration>
+<configuration debug="true">
 
     <!-- Spring Boot color support untuk console -->
     <conversionRule conversionWord="clr"
-                    converterClass="org.springframework.boot.logging.logback.ColorConverter"/>
+                    class="org.springframework.boot.logging.logback.ColorConverter"/>
     <conversionRule conversionWord="wex"
-                    converterClass="org.springframework.boot.logging.logback.WhitespaceThrowableProxyConverter"/>
+                    class="org.springframework.boot.logging.logback.WhitespaceThrowableProxyConverter"/>
 
     <property name="LOG_FILE" value="logs/omnip-services.log"/>
     <property name="LOG_PATTERN"
@@ -22,13 +22,11 @@
 
     <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
         <file>${LOG_FILE}</file>
-        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-            <fileNamePattern>logs/omnip-services-%d{yyyy-MM-dd}.log.gz</fileNamePattern>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>logs/omnip-services-%d{yyyy-MM-dd}-%i.log.gz</fileNamePattern>
+            <maxFileSize>10MB</maxFileSize>
             <maxHistory>10</maxHistory>
         </rollingPolicy>
-        <triggeringPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
-            <maxFileSize>10MB</maxFileSize>
-        </triggeringPolicy>
         <encoder>
             <pattern>${FILE_PATTERN}</pattern>
         </encoder>
