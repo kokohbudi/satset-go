@@ -60,4 +60,7 @@ public class Transactions {
 
     @LastModifiedDate
     private LocalDateTime updatedAt;
+
+    @Version
+    private Long version;
 }

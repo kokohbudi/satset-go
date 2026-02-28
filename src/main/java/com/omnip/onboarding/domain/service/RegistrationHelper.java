@@ -10,7 +10,7 @@ import java.text.Normalizer;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
+import java.security.SecureRandom;
 
 /**
  * Kelas komponen bisnis yang menangani logika terkait proses registrasi.
@@ -21,7 +21,7 @@ import java.util.Random;
 public class RegistrationHelper {
     private final StoreRepositoryPort storeRepository;
     private final OnboardingUserPort usersRepository;
-    private final Random random = new Random();
+    private final SecureRandom random = new SecureRandom();
 
     /**
      * Konstruktor dengan dependency injection repository.
@@ -170,7 +170,7 @@ public class RegistrationHelper {
      * @param random Objek Random untuk menghasilkan nilai acak
      * @return String acak dengan panjang yang ditentukan
      */
-    private String generateRandomString(int length, Random random) {
+    private String generateRandomString(int length, SecureRandom random) {
         String characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
         StringBuilder result = new StringBuilder();
         for (int i = 0; i < length; i++) {

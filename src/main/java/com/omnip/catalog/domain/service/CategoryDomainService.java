@@ -22,7 +22,7 @@ public class CategoryDomainService implements BrowseCategoriesUseCase {
     }
 
     @Override
-    @Cacheable(value = "categories", cacheManager = "standardCacheManager")
+    @Cacheable(value = "categoriesAll", cacheManager = "standardCacheManager")
     public List<Categories> findAll() {
         return categoryRepository.findByActiveTrueAndDeletedFalseOrderBySortOrder();
     }
@@ -34,7 +34,7 @@ public class CategoryDomainService implements BrowseCategoriesUseCase {
     }
 
     @Override
-    @Cacheable(value = "categories", key = "#type", cacheManager = "standardCacheManager")
+    @Cacheable(value = "categoriesByType", key = "#type", cacheManager = "standardCacheManager")
     public List<Categories> findByType(CategoryType type) {
         return categoryRepository.findByCategoryTypeAndActiveTrueAndDeletedFalseOrderBySortOrder(type);
     }

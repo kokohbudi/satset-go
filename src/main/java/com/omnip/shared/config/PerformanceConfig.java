@@ -71,7 +71,8 @@ public class PerformanceConfig {
                                 "vouchers",
                                 "purchasePrices",
                                 "sellPrices",
-                                "categories",
+                                "categoriesAll",
+                                "categoriesByType",
                                 "products",
                                 "denoms");
                 cacheManager.setCaffeine(Caffeine.newBuilder()
