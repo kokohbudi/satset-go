@@ -65,12 +65,10 @@
                         <th:block th:each="child : ${role.children}">
                             <a th:if="${child.attributes != null and child.attributes['sidebar'] == '1' and child.attributes['url'] != null and !child.attributes['url'].isEmpty()}"
                                 th:href="${child.attributes['url']}"
+                                th:with="iconName=${child.attributes['icon'] != null and !child.attributes['icon'].isEmpty() ? child.attributes['icon'] : 'icon-document'}"
                                 class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all"
                                 th:classappend="${currentPath != null and currentPath.startsWith(child.attributes['url'])} ? 'bg-primary text-primary-content shadow-lg' : 'hover:bg-primary/10 hover:text-primary'">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                                </svg>
+                                <svg th:replace="~{components/icons :: __${iconName}__(class='w-5 h-5')}"></svg>
                                 <span
                                     th:text="${child.attributes['display_name'] != null and !child.attributes['display_name'].isEmpty()} ? ${child.attributes['display_name']} : ${child.name}">Menu
                                     Item</span>
@@ -81,12 +79,10 @@
                     <!-- CASE 2: Role tanpa children tapi punya sidebar=1 dan url (sebagai standalone menu item) -->
                     <a th:if="${role.attributes != null and role.attributes['sidebar'] == '1' and role.attributes['url'] != null and !role.attributes['url'].isEmpty() and (role.children == null or role.children.isEmpty())}"
                         th:href="${role.attributes['url']}"
+                        th:with="iconName=${role.attributes['icon'] != null and !role.attributes['icon'].isEmpty() ? role.attributes['icon'] : 'icon-document'}"
                         class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all"
                         th:classappend="${currentPath != null and currentPath.startsWith(role.attributes['url'])} ? 'bg-primary text-primary-content shadow-lg' : 'hover:bg-primary/10 hover:text-primary'">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                        </svg>
+                        <svg th:replace="~{components/icons :: __${iconName}__(class='w-5 h-5')}"></svg>
                         <span
                             th:text="${role.attributes['display_name'] != null and !role.attributes['display_name'].isEmpty()} ? ${role.attributes['display_name']} : ${role.name}">Menu
                             Item</span>
