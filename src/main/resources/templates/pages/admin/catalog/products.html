@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="id" xmlns:th="http://www.thymeleaf.org"
       xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
       layout:decorate="~{layouts/base}">
 
 <head>
@@ -8,7 +9,16 @@
 </head>
 
 <body>
-<div layout:fragment="content" x-data="productManager()" x-init="init()">
+<div layout:fragment="content" x-data="productManager()" x-init="init()"
+     th:data-can-manage="${#authorization.expression('hasRole(''REALM_manage_products'')')}">
+
+    <!-- Tab Navigation (when accessed directly, not from category drill-down) -->
+    <th:block th:if="${categoryName == null or categoryName.isEmpty()}">
+        <div role="tablist" class="tabs tabs-bordered mb-6">
+            <a role="tab" class="tab" href="/admin/catalog/categories">Kategori</a>
+            <a role="tab" class="tab tab-active">Semua Produk</a>
+        </div>
+    </th:block>
 
     <!-- Breadcrumb (only when navigated from category drill-down) -->
     <div th:if="${categoryName != null and !categoryName.isEmpty()}" class="text-sm breadcrumbs mb-4">
@@ -24,7 +34,7 @@
             <h1 class="text-2xl font-bold">Produk</h1>
             <p class="text-base-content/60 text-sm mt-1">Kelola produk per kategori (Telkomsel, XL, PLN, dll)</p>
         </div>
-        <button class="btn btn-primary" @click="openCreateModal()">
+        <button sec:authorize="hasRole('REALM_manage_products')" class="btn btn-primary" @click="openCreateModal()">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                 <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"/>
             </svg>
@@ -82,8 +92,12 @@
                             <div class="flex justify-center gap-1">
                                 <a :href="'/admin/catalog/products/' + prod.id + '/denoms'"
                                    class="btn btn-ghost btn-xs">Denoms</a>
-                                <button class="btn btn-ghost btn-xs" @click="openEditModal(prod)" :disabled="prod.deleted">Edit</button>
-                                <button class="btn btn-ghost btn-xs text-error" @click="confirmDelete(prod)" :disabled="prod.deleted">Hapus</button>
+                                <template x-if="canManage">
+                                    <button class="btn btn-ghost btn-xs" @click="openEditModal(prod)" :disabled="prod.deleted">Edit</button>
+                                </template>
+                                <template x-if="canManage">
+                                    <button class="btn btn-ghost btn-xs text-error" @click="confirmDelete(prod)" :disabled="prod.deleted">Hapus</button>
+                                </template>
                             </div>
                         </td>
                     </tr>
@@ -174,6 +188,7 @@
 
     function productManager() {
         return {
+            canManage: document.querySelector('[data-can-manage]')?.dataset.canManage === 'true',
             categories: [],
             products: [],
             filterCategoryId: INITIAL_CATEGORY_ID,

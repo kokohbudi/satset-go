@@ -20,4 +20,7 @@ public class OmniConstants {
     // Admin Catalog Management
     public static final String PERM_VIEW_CATALOG = "REALM_view_catalog";
     public static final String PERM_MANAGE_CATALOG = "REALM_manage_catalog";
+    public static final String PERM_MANAGE_CATEGORIES = "REALM_manage_categories";
+    public static final String PERM_MANAGE_PRODUCTS = "REALM_manage_products";
+    public static final String PERM_MANAGE_DENOMS = "REALM_manage_denoms";
 }

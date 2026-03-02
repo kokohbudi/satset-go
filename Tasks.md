@@ -60,15 +60,15 @@
 - [x] **AP-TEST**: 3 test classes, 27 unit tests (Category 8, Product 10, Denom 9) ✅
 - [x] **AP-KC**: Keycloak roles `view_catalog` + `manage_catalog` created & assigned to admin@satset-go.id ✅
 
-### Catalog Drill-down Navigation — AP-N series
-> *Neo design plan selesai 2026-03-02. Lihat `TechSpecs.md` → "Catalog Drill-down Navigation — Action Plan (Option A)".*
+### ~~Catalog Drill-down Navigation — AP-N series~~ ✅ DONE
+> *Implemented bersamaan dengan AP-series (2026-03-02). Detail di `TechSpecs.md` → "Catalog Drill-down Navigation — Action Plan (Option A)".*
 > *Single sidebar "Kelola Katalog" → Categories → Products (filtered) → Denoms. 4 file, ~36 LOC.*
 
-- [ ] **AP-N1**: `AdminCatalogPageController` — root redirect `/admin/catalog` + `@RequestParam` categoryId/categoryName di `productsPage()`
-- [ ] **AP-N2**: `categories.html` — tambah tombol "Produk →" per row di kolom Aksi
-- [ ] **AP-N3**: `products.html` — breadcrumb conditional + JS `INITIAL_CATEGORY_ID` + pre-set `filterCategoryId`
-- [ ] **AP-N4**: `denoms.html` — extend `loadProduct()` untuk category context + fix breadcrumb dynamic links
-- [ ] **AP-N5**: Manual test drill-down end-to-end + `mvn compile` verify
+- [x] **AP-N1**: `AdminCatalogPageController` — root redirect `/admin/catalog` + `@RequestParam` categoryId/categoryName di `productsPage()` ✅
+- [x] **AP-N2**: `categories.html` — tambah tombol "Produk →" per row di kolom Aksi ✅
+- [x] **AP-N3**: `products.html` — breadcrumb conditional + JS `INITIAL_CATEGORY_ID` + pre-set `filterCategoryId` ✅
+- [x] **AP-N4**: `denoms.html` — extend `loadProduct()` untuk category context + fix breadcrumb dynamic links ✅
+- [x] **AP-N5**: Manual test drill-down end-to-end + `mvn compile` verify ✅
 
 ### Revenue & Pricing (Post-MVP)
 - [-] **Reseller Tier & Dynamic Pricing** — Bronze/Silver/Gold/Platinum, naik otomatis dari volume

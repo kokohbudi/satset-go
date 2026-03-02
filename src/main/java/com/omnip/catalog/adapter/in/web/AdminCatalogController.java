@@ -62,7 +62,7 @@ public class AdminCatalogController {
     }
 
     @PostMapping("/categories")
-    @PreAuthorize("hasRole('" + OmniConstants.PERM_MANAGE_CATALOG + "')")
+    @PreAuthorize("hasRole('" + OmniConstants.PERM_MANAGE_CATEGORIES + "')")
     public ResponseEntity<?> createCategory(@Valid @RequestBody CreateCategoryRequest req)
             throws BusinessException {
         Categories created = manageCategoriesUseCase.create(req);
@@ -70,7 +70,7 @@ public class AdminCatalogController {
     }
 
     @PutMapping("/categories/{id}")
-    @PreAuthorize("hasRole('" + OmniConstants.PERM_MANAGE_CATALOG + "')")
+    @PreAuthorize("hasRole('" + OmniConstants.PERM_MANAGE_CATEGORIES + "')")
     public ResponseEntity<?> updateCategory(@PathVariable UUID id,
             @Valid @RequestBody UpdateCategoryRequest req) throws BusinessException {
         Categories updated = manageCategoriesUseCase.update(id, req);
@@ -78,7 +78,7 @@ public class AdminCatalogController {
     }
 
     @DeleteMapping("/categories/{id}")
-    @PreAuthorize("hasRole('" + OmniConstants.PERM_MANAGE_CATALOG + "')")
+    @PreAuthorize("hasRole('" + OmniConstants.PERM_MANAGE_CATEGORIES + "')")
     public ResponseEntity<Void> deleteCategory(@PathVariable UUID id) {
         manageCategoriesUseCase.softDelete(id);
         return ResponseEntity.noContent().build();
@@ -112,7 +112,7 @@ public class AdminCatalogController {
     }
 
     @PostMapping("/products")
-    @PreAuthorize("hasRole('" + OmniConstants.PERM_MANAGE_CATALOG + "')")
+    @PreAuthorize("hasRole('" + OmniConstants.PERM_MANAGE_PRODUCTS + "')")
     public ResponseEntity<?> createProduct(@Valid @RequestBody CreateProductRequest req)
             throws BusinessException {
         Products created = manageProductsUseCase.create(req);
@@ -120,7 +120,7 @@ public class AdminCatalogController {
     }
 
     @PutMapping("/products/{id}")
-    @PreAuthorize("hasRole('" + OmniConstants.PERM_MANAGE_CATALOG + "')")
+    @PreAuthorize("hasRole('" + OmniConstants.PERM_MANAGE_PRODUCTS + "')")
     public ResponseEntity<?> updateProduct(@PathVariable UUID id,
             @Valid @RequestBody UpdateProductRequest req) throws BusinessException {
         Products updated = manageProductsUseCase.update(id, req);
@@ -128,7 +128,7 @@ public class AdminCatalogController {
     }
 
     @DeleteMapping("/products/{id}")
-    @PreAuthorize("hasRole('" + OmniConstants.PERM_MANAGE_CATALOG + "')")
+    @PreAuthorize("hasRole('" + OmniConstants.PERM_MANAGE_PRODUCTS + "')")
     public ResponseEntity<Void> deleteProduct(@PathVariable UUID id) {
         manageProductsUseCase.softDelete(id);
         return ResponseEntity.noContent().build();
@@ -154,7 +154,7 @@ public class AdminCatalogController {
     }
 
     @PostMapping("/products/{productId}/denoms")
-    @PreAuthorize("hasRole('" + OmniConstants.PERM_MANAGE_CATALOG + "')")
+    @PreAuthorize("hasRole('" + OmniConstants.PERM_MANAGE_DENOMS + "')")
     public ResponseEntity<?> createDenom(@PathVariable UUID productId,
             @Valid @RequestBody CreateDenomRequest req) throws BusinessException {
         ProductDenoms created = manageDenomsUseCase.create(productId, req);
@@ -162,7 +162,7 @@ public class AdminCatalogController {
     }
 
     @PutMapping("/denoms/{id}")
-    @PreAuthorize("hasRole('" + OmniConstants.PERM_MANAGE_CATALOG + "')")
+    @PreAuthorize("hasRole('" + OmniConstants.PERM_MANAGE_DENOMS + "')")
     public ResponseEntity<?> updateDenom(@PathVariable UUID id,
             @Valid @RequestBody UpdateDenomRequest req) throws BusinessException {
         ProductDenoms updated = manageDenomsUseCase.update(id, req);
@@ -170,7 +170,7 @@ public class AdminCatalogController {
     }
 
     @DeleteMapping("/denoms/{id}")
-    @PreAuthorize("hasRole('" + OmniConstants.PERM_MANAGE_CATALOG + "')")
+    @PreAuthorize("hasRole('" + OmniConstants.PERM_MANAGE_DENOMS + "')")
     public ResponseEntity<Void> deleteDenom(@PathVariable UUID id) {
         manageDenomsUseCase.softDelete(id);
         return ResponseEntity.noContent().build();

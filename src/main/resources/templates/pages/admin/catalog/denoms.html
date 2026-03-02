@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="id" xmlns:th="http://www.thymeleaf.org"
       xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
       layout:decorate="~{layouts/base}">
 
 <head>
@@ -8,7 +9,8 @@
 </head>
 
 <body>
-<div layout:fragment="content" x-data="denomManager()" x-init="init()">
+<div layout:fragment="content" x-data="denomManager()" x-init="init()"
+     th:data-can-manage="${#authorization.expression('hasRole(''REALM_manage_denoms'')')}">
 
     <!-- Breadcrumb -->
     <div class="text-sm breadcrumbs mb-4">
@@ -30,7 +32,7 @@
             <h1 class="text-2xl font-bold" x-text="productName ? 'Denom: ' + productName : 'Denominasi'"></h1>
             <p class="text-base-content/60 text-sm mt-1">Kelola denominasi (harga, nominal, tipe)</p>
         </div>
-        <button class="btn btn-primary" @click="openCreateModal()">
+        <button sec:authorize="hasRole('REALM_manage_denoms')" class="btn btn-primary" @click="openCreateModal()">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                 <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"/>
             </svg>
@@ -79,8 +81,12 @@
                         </td>
                         <td class="text-center">
                             <div class="flex justify-center gap-1">
-                                <button class="btn btn-ghost btn-xs" @click="openEditModal(d)" :disabled="d.deleted">Edit</button>
-                                <button class="btn btn-ghost btn-xs text-error" @click="confirmDelete(d)" :disabled="d.deleted">Hapus</button>
+                                <template x-if="canManage">
+                                    <button class="btn btn-ghost btn-xs" @click="openEditModal(d)" :disabled="d.deleted">Edit</button>
+                                </template>
+                                <template x-if="canManage">
+                                    <button class="btn btn-ghost btn-xs text-error" @click="confirmDelete(d)" :disabled="d.deleted">Hapus</button>
+                                </template>
                             </div>
                         </td>
                     </tr>
@@ -216,6 +222,7 @@
 
     function denomManager() {
         return {
+            canManage: document.querySelector('[data-can-manage]')?.dataset.canManage === 'true',
             productId: PRODUCT_ID,
             productName: '',
             categoryId: '',

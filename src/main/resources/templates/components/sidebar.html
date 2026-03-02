@@ -52,15 +52,16 @@
             <div class="pt-4" th:if="${userRoles != null and !userRoles.isEmpty()}">
 
                 <th:block th:each="role : ${userRoles}">
-                    <!-- CASE 1: Parent role dengan children (sebagai section header) -->
+                    <!-- CASE 1: Role dengan children -->
                     <th:block
-                        th:if="${role.attributes != null and role.attributes['sidebar'] == '1' and role.children != null and !role.children.isEmpty()}">
-                        <!-- Section Header dari parent -->
+                        th:if="${role.children != null and !role.children.isEmpty()}">
+                        <!-- Section Header: hanya muncul kalau parent punya sidebar=1 -->
                         <span
+                            th:if="${role.attributes != null and role.attributes['sidebar'] == '1'}"
                             class="px-4 text-xs font-semibold uppercase tracking-wider text-base-content/50 block pt-4"
                             th:text="${role.attributes['display_name'] != null} ? ${role.attributes['display_name']} : ${role.name}">Section</span>
 
-                        <!-- Children sebagai menu items -->
+                        <!-- Children: muncul berdasarkan sidebar flag masing-masing -->
                         <th:block th:each="child : ${role.children}">
                             <a th:if="${child.attributes != null and child.attributes['sidebar'] == '1' and child.attributes['url'] != null and !child.attributes['url'].isEmpty()}"
                                 th:href="${child.attributes['url']}"
