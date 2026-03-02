@@ -93,7 +93,7 @@ public class AdminOnboardingDomainService implements AdminOnboardingUseCase {
         } catch (Exception e) {
             log.error("Failed to complete Admin Reseller Onboarding for '{}', org '{}' may be orphaned", username,
                     orgId, e);
-            throw new BusinessException("Admin Reseller Onboarding failed: " + e.getMessage());
+            throw new BusinessException("Gagal membuat reseller. Silakan coba lagi.");
         }
     }
 }

@@ -102,6 +102,7 @@ public class GlobalExceptionHandler {
 
     /**
      * Handle general runtime exceptions.
+     * Detail error hanya di-log, TIDAK dikirim ke client.
      */
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<Map<String, Object>> handleRuntimeException(RuntimeException ex) {
@@ -109,9 +110,9 @@ public class GlobalExceptionHandler {
         response.put("timestamp", LocalDateTime.now().toString());
         response.put("status", "error");
         response.put("code", "INTERNAL_ERROR");
-        response.put("message", "Terjadi kesalahan server: " + ex.getMessage());
+        response.put("message", "Terjadi kesalahan server. Silakan coba lagi.");
 
-        log.error("Runtime exception", ex);
+        log.error("Runtime exception: {}", ex.getMessage(), ex);
 
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
     }

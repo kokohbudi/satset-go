@@ -9,7 +9,7 @@
 </head>
 
 <body>
-<div layout:fragment="content" x-data="categoryManager()" x-init="loadCategories()"
+<div layout:fragment="content" x-data="categoryManager()"
      th:data-can-manage="${#authorization.expression('hasRole(''REALM_manage_categories'')')}">
 
     <!-- Tab Navigation -->
@@ -32,13 +32,18 @@
         </button>
     </div>
 
-    <!-- Loading -->
-    <div x-show="loading" class="flex justify-center py-12">
-        <span class="loading loading-spinner loading-lg text-primary"></span>
+    <!-- Search -->
+    <div class="mb-4">
+        <label class="input input-bordered input-sm flex items-center gap-2 w-full max-w-xs">
+            <svg class="w-4 h-4 text-base-content/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+            </svg>
+            <input type="search" x-model="searchQuery" placeholder="Cari kategori..." class="grow bg-transparent outline-none"/>
+        </label>
     </div>
 
     <!-- Table -->
-    <div x-show="!loading" x-cloak class="card bg-base-100 shadow-sm">
+    <div class="card bg-base-100 shadow-sm">
         <div class="overflow-x-auto">
             <table class="table table-zebra">
                 <thead>
@@ -52,7 +57,7 @@
                 </tr>
                 </thead>
                 <tbody>
-                <template x-for="cat in categories" :key="cat.id">
+                <template x-for="cat in filteredCategories" :key="cat.id">
                     <tr :class="cat.deleted ? 'opacity-40' : ''">
                         <td class="font-mono text-sm" x-text="cat.code"></td>
                         <td x-text="cat.name"></td>
@@ -79,7 +84,7 @@
                         </td>
                     </tr>
                 </template>
-                <tr x-show="categories.length === 0">
+                <tr x-show="filteredCategories.length === 0">
                     <td colspan="6" class="text-center py-8 text-base-content/50">Belum ada kategori</td>
                 </tr>
                 </tbody>
@@ -156,28 +161,36 @@
 <th:block layout:fragment="scripts">
 <script th:inline="javascript">
     const CATEGORY_TYPES = /*[[${categoryTypes}]]*/ [];
+    const INITIAL_CATEGORIES = /*[[${initialCategories}]]*/ [];
 
     function categoryManager() {
         return {
             canManage: document.querySelector('[data-can-manage]')?.dataset.canManage === 'true',
-            categories: [],
+            categories: INITIAL_CATEGORIES,
             categoryTypes: CATEGORY_TYPES,
-            loading: true,
+            searchQuery: '',
             showModal: false,
             editMode: false,
             saving: false,
             editId: null,
             form: { code: '', name: '', categoryType: '', iconUrl: '', sortOrder: 0, active: true },
 
+            get filteredCategories() {
+                if (!this.searchQuery) return this.categories;
+                const q = this.searchQuery.toLowerCase();
+                return this.categories.filter(c =>
+                    c.code.toLowerCase().includes(q) ||
+                    c.name.toLowerCase().includes(q) ||
+                    (c.categoryType && c.categoryType.toLowerCase().includes(q))
+                );
+            },
+
             async loadCategories() {
-                this.loading = true;
                 try {
                     const res = await fetch('/api/admin/catalog/categories');
                     this.categories = await res.json();
                 } catch (e) {
                     Alpine.store('toast').error('Gagal memuat kategori');
-                } finally {
-                    this.loading = false;
                 }
             },
 

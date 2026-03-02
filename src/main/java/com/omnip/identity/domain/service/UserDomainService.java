@@ -120,7 +120,7 @@ public class UserDomainService implements UserQueryUseCase {
             return this.userManagementBusiness.createSuccessResponse(reqUserDTO, providerUserId);
         } catch (Exception e) {
             return this.userManagementBusiness
-                    .createErrorResponse("Failed to save user to database: " + e.getMessage());
+                    .createErrorResponse("Gagal menyimpan data pengguna. Silakan coba lagi.");
         }
     }
 

@@ -972,7 +972,7 @@ public class KeycloakAdminClientService implements KeycloakIdentityPort, Keycloa
                         throw e;
                 } catch (Exception e) {
                         log.error("Failed to add user '{}' to organization '{}'", userId, orgId, e);
-                        throw new BusinessException("Failed to add member to Keycloak organization: " + e.getMessage());
+                        throw new BusinessException("Gagal menambahkan member ke organisasi. Silakan coba lagi.");
                 }
         }
 

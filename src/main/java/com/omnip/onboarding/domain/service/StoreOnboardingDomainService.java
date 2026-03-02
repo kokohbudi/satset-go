@@ -79,7 +79,7 @@ public class StoreOnboardingDomainService implements SelfOnboardingUseCase {
 
         } catch (Exception e) {
             log.error("Failed to onboard store, organization '{}' might be orphaned in Keycloak", orgName, e);
-            throw new BusinessException("Store onboarding failed: " + e.getMessage());
+            throw new BusinessException("Gagal mendaftarkan toko. Silakan coba lagi.");
         }
     }
 }

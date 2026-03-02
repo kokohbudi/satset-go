@@ -9,7 +9,7 @@
 </head>
 
 <body>
-<div layout:fragment="content" x-data="productManager()" x-init="init()"
+<div layout:fragment="content" x-data="productManager()"
      th:data-can-manage="${#authorization.expression('hasRole(''REALM_manage_products'')')}">
 
     <!-- Tab Navigation (when accessed directly, not from category drill-down) -->
@@ -42,17 +42,23 @@
         </button>
     </div>
 
-    <!-- Filter by Category -->
-    <div class="mb-4">
+    <!-- Filter & Search -->
+    <div class="flex flex-col sm:flex-row gap-3 mb-4">
         <select class="select select-bordered select-sm w-full max-w-xs" x-model="filterCategoryId" @change="loadProducts()">
             <option value="">Semua Kategori</option>
             <template x-for="cat in categories" :key="cat.id">
                 <option :value="cat.id" x-text="cat.name"></option>
             </template>
         </select>
+        <label class="input input-bordered input-sm flex items-center gap-2 w-full max-w-xs">
+            <svg class="w-4 h-4 text-base-content/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+            </svg>
+            <input type="search" x-model="searchQuery" placeholder="Cari produk..." class="grow bg-transparent outline-none"/>
+        </label>
     </div>
 
-    <!-- Loading -->
+    <!-- Loading (shown only during category filter reload) -->
     <div x-show="loading" class="flex justify-center py-12">
         <span class="loading loading-spinner loading-lg text-primary"></span>
     </div>
@@ -73,7 +79,7 @@
                 </tr>
                 </thead>
                 <tbody>
-                <template x-for="prod in products" :key="prod.id">
+                <template x-for="prod in filteredProducts" :key="prod.id">
                     <tr :class="prod.deleted ? 'opacity-40' : ''">
                         <td class="font-mono text-sm" x-text="prod.code"></td>
                         <td>
@@ -102,7 +108,7 @@
                         </td>
                     </tr>
                 </template>
-                <tr x-show="products.length === 0">
+                <tr x-show="filteredProducts.length === 0">
                     <td colspan="7" class="text-center py-8 text-base-content/50">Belum ada produk</td>
                 </tr>
                 </tbody>
@@ -185,30 +191,32 @@
 <th:block layout:fragment="scripts">
 <script th:inline="javascript">
     const INITIAL_CATEGORY_ID = /*[[${categoryId}]]*/ '';
+    const INITIAL_CATEGORIES = /*[[${initialCategories}]]*/ [];
+    const INITIAL_PRODUCTS = /*[[${initialProducts}]]*/ [];
 
     function productManager() {
         return {
             canManage: document.querySelector('[data-can-manage]')?.dataset.canManage === 'true',
-            categories: [],
-            products: [],
+            categories: INITIAL_CATEGORIES.filter(c => !c.deleted),
+            products: INITIAL_PRODUCTS,
             filterCategoryId: INITIAL_CATEGORY_ID,
-            loading: true,
+            searchQuery: '',
+            loading: false,
             showModal: false,
             editMode: false,
             saving: false,
             editId: null,
             form: { categoryId: '', code: '', name: '', providerName: '', description: '', iconUrl: '', sortOrder: 0, active: true },
 
-            async init() {
-                await this.loadCategories();
-                await this.loadProducts();
-            },
-
-            async loadCategories() {
-                try {
-                    const res = await fetch('/api/admin/catalog/categories');
-                    this.categories = (await res.json()).filter(c => !c.deleted);
-                } catch (e) { /* ignore */ }
+            get filteredProducts() {
+                if (!this.searchQuery) return this.products;
+                const q = this.searchQuery.toLowerCase();
+                return this.products.filter(p =>
+                    p.code.toLowerCase().includes(q) ||
+                    p.name.toLowerCase().includes(q) ||
+                    (p.providerName && p.providerName.toLowerCase().includes(q)) ||
+                    (p.categoryName && p.categoryName.toLowerCase().includes(q))
+                );
             },
 
             async loadProducts() {

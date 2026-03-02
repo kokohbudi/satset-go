@@ -50,7 +50,7 @@ public class OnboardingController {
             return "redirect:/dashboard";
         } catch (Exception e) {
             log.error("Error during store onboarding", e);
-            redirectAttributes.addFlashAttribute("toastMessage", "Gagal mendaftarkan toko: " + e.getMessage());
+            redirectAttributes.addFlashAttribute("toastMessage", "Gagal mendaftarkan toko. Silakan coba lagi.");
             redirectAttributes.addFlashAttribute("toastType", "error");
             return "redirect:/onboarding";
         }

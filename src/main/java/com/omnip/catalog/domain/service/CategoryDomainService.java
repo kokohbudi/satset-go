@@ -64,8 +64,8 @@ public class CategoryDomainService implements BrowseCategoriesUseCase, ManageCat
     @Override
     @Transactional
     @Caching(evict = {
-        @CacheEvict(value = "categoriesAll", allEntries = true),
-        @CacheEvict(value = "categoriesByType", allEntries = true)
+        @CacheEvict(value = "categoriesAll", allEntries = true, cacheManager = "standardCacheManager"),
+        @CacheEvict(value = "categoriesByType", allEntries = true, cacheManager = "standardCacheManager")
     })
     public Categories create(CreateCategoryRequest req) throws BusinessException {
         if (categoryRepository.findByCode(req.code().toUpperCase().trim()).isPresent()) {
@@ -85,8 +85,8 @@ public class CategoryDomainService implements BrowseCategoriesUseCase, ManageCat
     @Override
     @Transactional
     @Caching(evict = {
-        @CacheEvict(value = "categoriesAll", allEntries = true),
-        @CacheEvict(value = "categoriesByType", allEntries = true)
+        @CacheEvict(value = "categoriesAll", allEntries = true, cacheManager = "standardCacheManager"),
+        @CacheEvict(value = "categoriesByType", allEntries = true, cacheManager = "standardCacheManager")
     })
     public Categories update(UUID id, UpdateCategoryRequest req) throws BusinessException {
         Categories cat = categoryRepository.findById(id)
@@ -106,8 +106,8 @@ public class CategoryDomainService implements BrowseCategoriesUseCase, ManageCat
     @Override
     @Transactional
     @Caching(evict = {
-        @CacheEvict(value = "categoriesAll", allEntries = true),
-        @CacheEvict(value = "categoriesByType", allEntries = true)
+        @CacheEvict(value = "categoriesAll", allEntries = true, cacheManager = "standardCacheManager"),
+        @CacheEvict(value = "categoriesByType", allEntries = true, cacheManager = "standardCacheManager")
     })
     public void softDelete(UUID id) {
         Categories cat = categoryRepository.findById(id)

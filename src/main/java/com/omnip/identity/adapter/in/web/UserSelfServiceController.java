@@ -4,6 +4,7 @@ import com.omnip.identity.adapter.in.web.dto.ChangeMyPasswordRequestDTO;
 import com.omnip.identity.domain.port.in.ManageMyProfileUseCase;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -12,6 +13,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/users/me")
 @RequiredArgsConstructor
@@ -42,7 +44,8 @@ public class UserSelfServiceController {
             manageMyProfileUseCase.changeMyPassword(providerUserId, email, requestDTO);
             return ResponseEntity.ok(Map.of("message", "Password berhasil diubah"));
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+            log.warn("Password change validation failed: {}", e.getMessage());
+            return ResponseEntity.badRequest().body(Map.of("error", "Gagal mengubah password. Periksa kembali data Anda."));
         }
     }
 }

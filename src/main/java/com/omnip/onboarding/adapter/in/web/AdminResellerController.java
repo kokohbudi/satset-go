@@ -40,7 +40,7 @@ public class AdminResellerController {
                     .ok(Map.of("status", "success", "message", "Reseller " + username + " berhasil dibuat."));
         } catch (BusinessException e) {
             log.warn("Business error creating reseller '{}': {}", username, e.getMessage());
-            return ResponseEntity.badRequest().body(Map.of("status", "error", "message", e.getMessage()));
+            return ResponseEntity.badRequest().body(Map.of("status", "error", "message", "Gagal membuat reseller. Silakan coba lagi."));
         } catch (Exception e) {
             log.error("Unexpected error creating reseller '{}'", username, e);
             return ResponseEntity.internalServerError()

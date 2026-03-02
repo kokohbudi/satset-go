@@ -74,7 +74,7 @@ public class ProductDomainService implements BrowseProductsUseCase, ManageProduc
 
     @Override
     @Transactional
-    @CacheEvict(value = "products", allEntries = true)
+    @CacheEvict(value = "products", allEntries = true, cacheManager = "standardCacheManager")
     public Products create(CreateProductRequest req) throws BusinessException {
         Categories category = categoryRepository.findById(req.categoryId())
             .orElseThrow(() -> new ResourceNotFoundException("Category", req.categoryId()));
@@ -96,7 +96,7 @@ public class ProductDomainService implements BrowseProductsUseCase, ManageProduc
 
     @Override
     @Transactional
-    @CacheEvict(value = "products", allEntries = true)
+    @CacheEvict(value = "products", allEntries = true, cacheManager = "standardCacheManager")
     public Products update(UUID id, UpdateProductRequest req) throws BusinessException {
         Products product = productRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Product", id));
@@ -118,7 +118,7 @@ public class ProductDomainService implements BrowseProductsUseCase, ManageProduc
 
     @Override
     @Transactional
-    @CacheEvict(value = "products", allEntries = true)
+    @CacheEvict(value = "products", allEntries = true, cacheManager = "standardCacheManager")
     public void softDelete(UUID id) {
         Products product = productRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Product", id));

@@ -237,7 +237,7 @@ public class IdentityDomainService implements ManageGroupsUseCase, ManageRolesUs
         } catch (Exception e) {
             log.error("Failed to set backoffice user status: {}", e.getMessage());
             result.setStatus("failed");
-            result.setMessage("Gagal mengubah status: " + e.getMessage());
+            result.setMessage("Gagal mengubah status pengguna. Silakan coba lagi.");
         }
         return result;
     }
