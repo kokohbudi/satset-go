@@ -90,6 +90,8 @@ public class ProductDenoms {
     @Version
     private Long version;
 
+    // Intentionally @Transient — metadata lives in ProductDenomMeta table.
+    // Only populated via DenomDomainService.getDenomWithMeta(). Null otherwise.
     @Transient
     private List<ProductDenomMeta> metadata;
 }

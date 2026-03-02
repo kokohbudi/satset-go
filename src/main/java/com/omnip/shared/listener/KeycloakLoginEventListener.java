@@ -28,7 +28,6 @@ import java.util.Map;
 public class KeycloakLoginEventListener {
     private final JwtDecoder jwtDecoder;
     private static final Logger logger = LoggerFactory.getLogger(KeycloakLoginEventListener.class);
-    // private final UserJpaRepository usersRepository;
     private final UserDomainService userManagementService;
     private final RegistrationDomainService registrationService;
 
@@ -38,7 +37,6 @@ public class KeycloakLoginEventListener {
     public KeycloakLoginEventListener(JwtDecoder jwtDecoder, UserDomainService userManagementService,
             RegistrationDomainService registrationService) {
         this.jwtDecoder = jwtDecoder;
-        // this.usersRepository = usersRepository;
         this.userManagementService = userManagementService;
         this.registrationService = registrationService;
     }

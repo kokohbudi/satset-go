@@ -2,6 +2,12 @@
 <html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
     xmlns:x-transition="http://www.w3.org/1999/xhtml">
 
+<!--
+    SIDEBAR LINKS = KEYCLOAK-DRIVEN. JANGAN HARDCODE MENU DI SINI.
+    Semua menu (kecuali Dashboard & Logout) dirender dari Keycloak role attributes:
+      - sidebar=1, url=/path, display_name=Label
+    Jika ada task "tambah sidebar link", SKIP — cukup set role attributes di Keycloak.
+-->
 <body>
 
     <!-- Backdrop Overlay -->

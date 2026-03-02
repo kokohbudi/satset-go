@@ -1,8 +1,8 @@
 # SatSetGo - Task Board
 
 > **Owner**: August (Senior PM)
-> **Last Updated**: 2026-02-25
-> **Sprint**: MVP Sprint — Testing & Refactoring
+> **Last Updated**: 2026-03-02
+> **Sprint**: AP-N series (Catalog Drill-down Navigation) — Ready
 
 ---
 
@@ -27,6 +27,7 @@
 ### Admin User Management Cleanup (Post-MVP)
 - [-] Fix `/admin/user-management` — filter hanya tampilkan backoffice users
 - [-] Sidebar: menu `/users`, `/groups` sudah dihapus (tidak ada page controller)
+- [-] **Refactor User Search** — migrasi dari Keycloak Admin API ke DB lokal untuk database-level pagination. Saat ini fetch all → filter di memory, tidak efisien. Target: query langsung ke DB, lazy-load roles hanya untuk user yang tampil.
 
 ### Balance Top-up (Week 3+)
 - [-] Payment service entities (Deposits, PaymentTransactions)
@@ -34,9 +35,40 @@
 - [-] Top-up UI with payment flow
 - [-] **Store Mutations UI**: Tab riwayat mutasi saldo di menu /transactions untuk melihat top-up, potongan pembelian, dan refund
 
-### Admin Product Management (Week 4)
-- [-] AdminProductService (CRUD for categories, products, denoms)
-- [-] Admin UI (dashboard, forms, tables)
+### ~~Admin Product Management — AP-series (Week 4)~~ ✅ DONE
+> *Neo design plan selesai 2026-03-02. Lihat `TechSpecs.md` → "Admin Product Management Blueprint" untuk detail.*
+> *Session A = backend (AP-1..AP-7). Session B = frontend (AP-8..AP-11).*
+> *Bonus: Hex architecture fix (request DTOs → domain layer) + 27 unit tests + Keycloak roles setup.*
+
+**Session A — Backend:**
+- [x] **AP-1**: Extend port out interfaces — `findById`, `findAllAdmin`, `existsByCodeAndIdNot` untuk Category/Product/Denom ✅
+- [x] **AP-2**: Verify JPA adapters compile setelah AP-1 (JpaRepository auto-satisfy) ✅
+- [x] **AP-3**: Buat 3 use case interfaces + 6 request DTO records (Create/Update per entity) ✅
+- [x] **AP-4**: Extend `CategoryDomainService` — implements `ManageCategoriesUseCase` + `@CacheEvict` ✅
+- [x] **AP-5**: Extend `ProductDomainService` — implements `ManageProductsUseCase` + cascade softDelete denoms ✅
+- [x] **AP-6**: Extend `DenomDomainService` — implements `ManageDenomsUseCase` ✅
+- [x] **AP-7**: `OmniConstants` (2 constants: `PERM_VIEW_CATALOG`, `PERM_MANAGE_CATALOG`) + `SecurityConfig` path rules ✅
+
+**Session B — Frontend:**
+- [x] **AP-8**: `AdminCatalogController` — Category CRUD REST endpoints ✅
+- [x] **AP-9**: `AdminCatalogController` — Product + Denom CRUD REST endpoints ✅
+- [x] **AP-10**: `AdminCatalogPageController` + 3 Thymeleaf templates (categories, products, denoms) ✅
+- [x] **AP-11**: Sidebar link + `mvn clean package` verify ✅
+
+**Bonus (sesi yang sama):**
+- [x] **AP-HEX**: Hex fix — request DTOs dipindah dari `adapter.in.web.dto` → `domain.port.in` ✅
+- [x] **AP-TEST**: 3 test classes, 27 unit tests (Category 8, Product 10, Denom 9) ✅
+- [x] **AP-KC**: Keycloak roles `view_catalog` + `manage_catalog` created & assigned to admin@satset-go.id ✅
+
+### Catalog Drill-down Navigation — AP-N series
+> *Neo design plan selesai 2026-03-02. Lihat `TechSpecs.md` → "Catalog Drill-down Navigation — Action Plan (Option A)".*
+> *Single sidebar "Kelola Katalog" → Categories → Products (filtered) → Denoms. 4 file, ~36 LOC.*
+
+- [ ] **AP-N1**: `AdminCatalogPageController` — root redirect `/admin/catalog` + `@RequestParam` categoryId/categoryName di `productsPage()`
+- [ ] **AP-N2**: `categories.html` — tambah tombol "Produk →" per row di kolom Aksi
+- [ ] **AP-N3**: `products.html` — breadcrumb conditional + JS `INITIAL_CATEGORY_ID` + pre-set `filterCategoryId`
+- [ ] **AP-N4**: `denoms.html` — extend `loadProduct()` untuk category context + fix breadcrumb dynamic links
+- [ ] **AP-N5**: Manual test drill-down end-to-end + `mvn compile` verify
 
 ### Revenue & Pricing (Post-MVP)
 - [-] **Reseller Tier & Dynamic Pricing** — Bronze/Silver/Gold/Platinum, naik otomatis dari volume
@@ -95,17 +127,17 @@
 ### 🔧 Technical Debt — Code Hygiene (L-series + M-2, M-7, M-9)
 > *Nice-to-have. Pick ketika lagi refactor area terkait.*
 - [ ] **L-1**: Tambah test coverage — catalog, onboarding, controllers masih 0 test
-- [ ] **L-2**: `UserDomainServiceTest` — mock port interfaces, bukan concrete adapters
-- [ ] **L-3**: Hapus deprecated `changePassword` di `UserDomainService` (sudah ada di `IdentityDomainService`)
-- [ ] **L-4**: `Stores.java` — rename `createdDate/updatedDate` → `createdAt/updatedAt` (konsisten)
-- [ ] **L-5**: Hapus dead commented-out code di `KeycloakLoginEventListener.java:31,41`
-- [ ] **L-6**: `DataSeeder` — buat idempotent untuk partial runs
-- [ ] **L-7**: `BalanceDomainService` — konsistenkan exception types (`ResourceNotFoundException`)
+- [x] **L-2**: `UserDomainServiceTest` — mock port interfaces (`UserRepositoryPort`, `KeycloakIdentityPort`) ✅
+- [x] **L-3**: Hapus deprecated methods di `UserDomainService` (`setUserStatus(UserDTO)`, `createNewUser(UserDTO)`) ✅
+- [x] **L-4**: `Stores.java` — rename `createdDate/updatedDate` → `createdAt/updatedAt` (konsisten) ✅
+- [x] **L-5**: Hapus dead commented-out code di `KeycloakLoginEventListener.java:31,41` ✅
+- [x] **L-6**: `DataSeeder` — idempotent: `findByCode().orElseGet()` per item + count() fast-path guard ✅
+- [x] **L-7**: `BalanceDomainService` — `RuntimeException` → `ResourceNotFoundException` (3 occurrences) ✅
 - [ ] **L-8**: Pagination untuk product listing (low urgency, tunggu >100 produk)
-- [ ] **L-9**: `KeycloakLoginEventListener` — hapus auto-create Store (legacy dari sebelum onboarding flow)
-- [ ] **M-2**: `StoreMutations.java` — tambah `@Version` (append-only tapi inkonsisten dengan pattern)
-- [ ] **M-7**: `ProductDenoms.metadata` `@Transient` — null di semua path kecuali `getDenomWithMeta()`
-- [ ] **M-9**: `StoreMutationJpaRepository.findTopBy...` — terima `UUID` bukan `Stores` entity
+- [x] **L-9**: `KeycloakLoginEventListener` — auto-create Store sudah tidak ada (removed in previous session) ✅
+- [x] **M-2**: `StoreMutations.java` — tambah `@Version` (append-only tapi inkonsisten dengan pattern) ✅
+- [x] **M-7**: `ProductDenoms.metadata` `@Transient` — tambah komentar documenting intentional null-by-default behavior ✅
+- [x] **M-9**: `StoreMutationJpaRepository.findTopBy...` — terima `UUID` bukan `Stores` entity ✅
 
 - [-] **White-label Storefront** — setiap Store punya URL sendiri
 - [-] **Dashboard Analytics per Store** — total transaksi, produk terlaris, profit bulanan
@@ -296,18 +328,53 @@
 **2026-02-12**:
 - Tasks.md pertama kali dibuat. Foundation Phase 0 & Week 1 done.
 
+**2026-03-02** (August — AP-series Admin Product Management COMPLETE! ✅):
+- **AP-1..AP-7 (Backend) SELESAI**:
+  - Port out interfaces extended (findById, findAllAdmin, existsByCodeAndIdNot)
+  - 3 use case interfaces: `ManageCategoriesUseCase`, `ManageProductsUseCase`, `ManageDenomsUseCase`
+  - 6 request DTO records (Create/Update per entity) di domain layer
+  - 3 domain services extended dengan CRUD + `@CacheEvict`
+  - `OmniConstants` + `SecurityConfig` path rules
+- **AP-8..AP-11 (Frontend) SELESAI**:
+  - `AdminCatalogController` — full CRUD REST endpoints (Category + Product + Denom)
+  - `AdminCatalogPageController` + 3 Thymeleaf templates
+  - Sidebar link "Kelola Katalog" via Keycloak role attribute
+- **Bonus**:
+  - Hex architecture fix: request DTOs moved dari `adapter.in.web.dto` → `domain.port.in`
+  - 27 unit tests (3 classes: Category 8, Product 10, Denom 9)
+  - Keycloak roles `view_catalog` + `manage_catalog` created & assigned
+- **UX Decision**: Single sidebar menu "Kelola Katalog" → drill-down (Categories → Products → Denoms)
+- **Bug Report**: Tombol "Add User" tidak muncul di `/admin/user-management` meski role `manage_users` sudah ada — belum diinvestigasi
+- **⚠️ Uncommitted**: Semua perubahan masih di branch `admin-product-management`, belum commit
+
+**2026-03-01** (August — L-series & M-series Code Hygiene Sprint):
+- **M-2**: `StoreMutations.java` — `@Version` ditambah ✅
+- **M-9**: `StoreMutationJpaRepository.findTopBy...` — parameter `Stores` → `UUID` ✅
+- **L-4**: `Stores.java` — `createdDate/updatedDate` → `createdAt/updatedAt` + `@Column(name=...)` untuk DB compat ✅
+- **L-5**: Dead commented-out code dihapus dari `KeycloakLoginEventListener` (line 31, 41) ✅
+- **L-2**: `UserDomainServiceTest` — mocks diupdate: `UserJpaRepository` → `UserRepositoryPort`, `KeycloakAdminClientService` → `KeycloakIdentityPort` ✅
+- **L-3**: Deprecated methods dihapus dari `UserDomainService`: `setUserStatus(UserDTO)` + `createNewUser(UserDTO)` ✅
+- **L-6**: `DataSeeder` idempotent — `findByCode().orElseGet()` per item + `count()` fast-path guard ✅
+- **L-7**: `BalanceDomainService` — 3x `RuntimeException` → `ResourceNotFoundException` ✅
+- **L-9**: Dikonfirmasi sudah done di sesi sebelumnya — tidak ada auto-create Store di listener ✅
+- **M-7**: `ProductDenoms.metadata @Transient` — komentar ditambah untuk mendokumentasikan intentional null-by-default ✅
+- **Tests**: 14/14 pass (berkurang 1 karena test deprecated `shouldSetUserStatus` dihapus bersama L-3)
+- **Sync**: Tasks.md + Google Tasks updated setiap task selesai
+
 ---
 
-**Last Updated**: 2026-02-25 (Session 5 — Technical Debt H & M series COMPLETE)
+**Last Updated**: 2026-03-02 (Session 7 — AP-series Admin Product Management COMPLETE)
 **Status**:
 - ✅ MVP Sprint COMPLETE
 - ✅ H-series (port boundary) DONE
-- ✅ M-series (config) DONE
+- ✅ M-series (config + correctness + hygiene) DONE
+- ✅ L-series (code hygiene) DONE — kecuali L-1 (test coverage) & L-8 (pagination, low urgency)
+- ✅ AP-series (admin product management) DONE — backend + frontend + tests + Keycloak roles
 - ⏳ C-series (domain model separation) — Deferred, awaiting Neo plan
-- 📌 L-series (code hygiene) — Backlog
 
 **Next Options**:
-1. Pick next feature dari BACKLOG (admin org, balance top-up, product management)
-2. Tackle C-1/C-2 (require dedicated Neo architecture plan)
-3. Implement L-series (test coverage, code cleanup)
+1. **🔜 AP-N series**: Catalog drill-down navigation (~55 mnt, 1 sesi)
+2. Pick next feature dari BACKLOG (balance top-up)
+3. Tackle C-1/C-2 (require dedicated Neo architecture plan)
+4. L-1: Tambah test coverage (catalog, onboarding, controllers)
 

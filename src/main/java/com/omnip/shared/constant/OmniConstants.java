@@ -16,4 +16,8 @@ public class OmniConstants {
     public static final String PERM_ASSIGN_USER_TO_GROUPS = "REALM_assign_user_to_groups";
     public static final String PERM_VIEW_RESELLERS = "REALM_view-resellers";
     public static final String PERM_CREATE_RESELLER = "REALM_create-reseller";
+
+    // Admin Catalog Management
+    public static final String PERM_VIEW_CATALOG = "REALM_view_catalog";
+    public static final String PERM_MANAGE_CATALOG = "REALM_manage_catalog";
 }

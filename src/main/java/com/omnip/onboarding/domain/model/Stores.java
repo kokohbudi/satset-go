@@ -43,10 +43,12 @@ public class Stores {
     private boolean deleted;
 
     @CreatedDate
-    private LocalDateTime createdDate;
+    @Column(name = "created_date")
+    private LocalDateTime createdAt;
 
     @LastModifiedDate
-    private LocalDateTime updatedDate;
+    @Column(name = "updated_date")
+    private LocalDateTime updatedAt;
 
     @CreatedBy
     private String createdBy;

@@ -48,14 +48,13 @@ public class DataSeeder implements ApplicationRunner {
             log.info("Data already seeded, skipping...");
             return;
         }
-
-        log.info("Seeding product catalog data...");
+        log.info("Seeding product catalog data (idempotent)...");
         seedPulsa();
         seedPaketData();
         seedGame();
         seedPlnPostpaid();
         seedEwallet();
-        log.info("Product catalog data seeded successfully!");
+        log.info("Product catalog seeding complete.");
     }
 
     // ========== PULSA ==========
@@ -203,51 +202,57 @@ public class DataSeeder implements ApplicationRunner {
     // ========== HELPER METHODS ==========
 
     private Categories createCategory(String code, String name, CategoryType type, String iconUrl, int sortOrder) {
-        Categories category = new Categories();
-        category.setCode(code);
-        category.setName(name);
-        category.setCategoryType(type);
-        category.setIconUrl(iconUrl);
-        category.setActive(true);
-        category.setDeleted(false);
-        category.setSortOrder(sortOrder);
-        return categoryRepository.save(category);
+        return categoryRepository.findByCode(code).orElseGet(() -> {
+            Categories category = new Categories();
+            category.setCode(code);
+            category.setName(name);
+            category.setCategoryType(type);
+            category.setIconUrl(iconUrl);
+            category.setActive(true);
+            category.setDeleted(false);
+            category.setSortOrder(sortOrder);
+            return categoryRepository.save(category);
+        });
     }
 
     private Products createProduct(Categories category, String code, String name, String providerName,
                                    String description, String iconUrl, int sortOrder) {
-        Products product = new Products();
-        product.setCategory(category);
-        product.setCode(code);
-        product.setName(name);
-        product.setProviderName(providerName);
-        product.setDescription(description);
-        product.setIconUrl(iconUrl);
-        product.setActive(true);
-        product.setDeleted(false);
-        product.setSortOrder(sortOrder);
-        return productRepository.save(product);
+        return productRepository.findByCode(code).orElseGet(() -> {
+            Products product = new Products();
+            product.setCategory(category);
+            product.setCode(code);
+            product.setName(name);
+            product.setProviderName(providerName);
+            product.setDescription(description);
+            product.setIconUrl(iconUrl);
+            product.setActive(true);
+            product.setDeleted(false);
+            product.setSortOrder(sortOrder);
+            return productRepository.save(product);
+        });
     }
 
     private ProductDenoms createDenom(Products product, String code, String name, DenomType denomType,
                                       long nominal, long price, long basePrice, long adminFee,
                                       Integer validityDays, Long quotaMb, int sortOrder) {
-        ProductDenoms denom = new ProductDenoms();
-        denom.setProduct(product);
-        denom.setCode(code);
-        denom.setName(name);
-        denom.setDenomType(denomType);
-        denom.setNominal(BigDecimal.valueOf(nominal));
-        denom.setPrice(BigDecimal.valueOf(price));
-        denom.setBasePrice(BigDecimal.valueOf(basePrice));
-        denom.setAdminFee(BigDecimal.valueOf(adminFee));
-        denom.setValidityDays(validityDays);
-        denom.setQuotaMb(quotaMb);
-        denom.setRequiresInquiry(false);
-        denom.setActive(true);
-        denom.setDeleted(false);
-        denom.setSortOrder(sortOrder);
-        return denomRepository.save(denom);
+        return denomRepository.findByCode(code).orElseGet(() -> {
+            ProductDenoms denom = new ProductDenoms();
+            denom.setProduct(product);
+            denom.setCode(code);
+            denom.setName(name);
+            denom.setDenomType(denomType);
+            denom.setNominal(BigDecimal.valueOf(nominal));
+            denom.setPrice(BigDecimal.valueOf(price));
+            denom.setBasePrice(BigDecimal.valueOf(basePrice));
+            denom.setAdminFee(BigDecimal.valueOf(adminFee));
+            denom.setValidityDays(validityDays);
+            denom.setQuotaMb(quotaMb);
+            denom.setRequiresInquiry(false);
+            denom.setActive(true);
+            denom.setDeleted(false);
+            denom.setSortOrder(sortOrder);
+            return denomRepository.save(denom);
+        });
     }
 
     private void createMeta(ProductDenoms denom, String key, String value) {

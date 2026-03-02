@@ -1,21 +1,27 @@
 package com.omnip.catalog.domain.service;
 
+import com.omnip.catalog.domain.port.in.CreateDenomRequest;
+import com.omnip.catalog.domain.port.in.UpdateDenomRequest;
 import com.omnip.catalog.domain.model.ProductDenomMeta;
 import com.omnip.catalog.domain.model.ProductDenoms;
 import com.omnip.catalog.domain.model.Products;
 import com.omnip.catalog.domain.port.in.BrowseDenomsUseCase;
+import com.omnip.catalog.domain.port.in.ManageDenomsUseCase;
 import com.omnip.catalog.domain.port.out.DenomMetaRepositoryPort;
 import com.omnip.catalog.domain.port.out.DenomRepositoryPort;
 import com.omnip.catalog.domain.port.out.ProductRepositoryPort;
+import com.omnip.shared.exception.BusinessException;
+import com.omnip.shared.exception.ResourceNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Service
 @Transactional(readOnly = true)
-public class DenomDomainService implements BrowseDenomsUseCase {
+public class DenomDomainService implements BrowseDenomsUseCase, ManageDenomsUseCase {
 
     private final DenomRepositoryPort denomRepository;
     private final DenomMetaRepositoryPort metaRepository;
@@ -28,6 +34,8 @@ public class DenomDomainService implements BrowseDenomsUseCase {
         this.metaRepository = metaRepository;
         this.productRepository = productRepository;
     }
+
+    // === Browse (read-only) ===
 
     @Override
     public List<ProductDenoms> findByProduct(String productCode) {
@@ -54,5 +62,82 @@ public class DenomDomainService implements BrowseDenomsUseCase {
                     denom.setMetadata(metaList);
                     return denom;
                 });
+    }
+
+    // === Manage (admin CRUD) ===
+
+    @Override
+    public List<ProductDenoms> findByProductForAdmin(UUID productId) {
+        return denomRepository.findByProductIdOrderBySortOrder(productId);
+    }
+
+    @Override
+    public Optional<ProductDenoms> findById(UUID id) {
+        return denomRepository.findById(id);
+    }
+
+    @Override
+    @Transactional
+    public ProductDenoms create(UUID productId, CreateDenomRequest req) throws BusinessException {
+        Products product = productRepository.findById(productId)
+            .orElseThrow(() -> new ResourceNotFoundException("Product", productId));
+        if (denomRepository.findByCode(req.code().toUpperCase().trim()).isPresent()) {
+            throw new BusinessException("DUPLICATE_CODE", "Denom code already exists: " + req.code());
+        }
+        ProductDenoms denom = new ProductDenoms();
+        denom.setProduct(product);
+        denom.setCode(req.code().toUpperCase().trim());
+        denom.setName(req.name());
+        denom.setDenomType(req.denomType());
+        denom.setNominal(req.nominal());
+        denom.setPrice(req.price());
+        denom.setBasePrice(req.basePrice());
+        denom.setAdminFee(req.adminFee());
+        denom.setValidityDays(req.validityDays());
+        denom.setQuotaMb(req.quotaMb());
+        denom.setMinAmount(req.minAmount());
+        denom.setMaxAmount(req.maxAmount());
+        denom.setRequiresInquiry(req.requiresInquiry());
+        denom.setStockAvailable(req.stockAvailable());
+        denom.setActive(req.active());
+        denom.setSortOrder(req.sortOrder());
+        denom.setDeleted(false);
+        return denomRepository.save(denom);
+    }
+
+    @Override
+    @Transactional
+    public ProductDenoms update(UUID id, UpdateDenomRequest req) throws BusinessException {
+        ProductDenoms denom = denomRepository.findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("Denom", id));
+        if (denomRepository.existsByCodeAndIdNot(req.code().toUpperCase().trim(), id)) {
+            throw new BusinessException("DUPLICATE_CODE", "Denom code already exists: " + req.code());
+        }
+        denom.setCode(req.code().toUpperCase().trim());
+        denom.setName(req.name());
+        denom.setDenomType(req.denomType());
+        denom.setNominal(req.nominal());
+        denom.setPrice(req.price());
+        denom.setBasePrice(req.basePrice());
+        denom.setAdminFee(req.adminFee());
+        denom.setValidityDays(req.validityDays());
+        denom.setQuotaMb(req.quotaMb());
+        denom.setMinAmount(req.minAmount());
+        denom.setMaxAmount(req.maxAmount());
+        denom.setRequiresInquiry(req.requiresInquiry());
+        denom.setStockAvailable(req.stockAvailable());
+        denom.setActive(req.active());
+        denom.setSortOrder(req.sortOrder());
+        return denomRepository.save(denom);
+    }
+
+    @Override
+    @Transactional
+    public void softDelete(UUID id) {
+        ProductDenoms denom = denomRepository.findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("Denom", id));
+        denom.setDeleted(true);
+        denom.setActive(false);
+        denomRepository.save(denom);
     }
 }

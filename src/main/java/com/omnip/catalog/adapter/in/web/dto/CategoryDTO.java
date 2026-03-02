@@ -13,4 +13,6 @@ public class CategoryDTO {
     private CategoryType categoryType;
     private String iconUrl;
     private int sortOrder;
+    private boolean active;
+    private boolean deleted;
 }

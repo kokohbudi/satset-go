@@ -96,24 +96,6 @@ public class UserDomainService implements UserQueryUseCase {
     }
 
     /**
-     * Mengubah status aktif pengguna.
-     * DEPRECATED: Gunakan IdentityManagementService.setUserStatus() untuk flow yang
-     * lebih clean.
-     *
-     * @param requestedUserDTO UserDTO yang berisi data permintaan
-     * @throws BusinessException Jika operasi gagal
-     */
-    @Deprecated
-    public void setUserStatus(UserDTO requestedUserDTO) throws BusinessException {
-        // Update status di database lokal
-        this.userManagementBusiness.setUserStatus(this.userDTO, requestedUserDTO, this.usersRepository);
-
-        // Dapatkan pengguna dan update status di Keycloak
-        Users user = this.usersRepository.findByEmail(requestedUserDTO.getEmail());
-        this.keycloakAdminClientService.updateUserStatus(user.getProviderUserId(), requestedUserDTO.isActive());
-    }
-
-    /**
      * Menyimpan pengguna baru ke database.
      *
      * @param user Objek Users yang akan disimpan
@@ -139,37 +121,6 @@ public class UserDomainService implements UserQueryUseCase {
         } catch (Exception e) {
             return this.userManagementBusiness
                     .createErrorResponse("Failed to save user to database: " + e.getMessage());
-        }
-    }
-
-    /**
-     * Membuat pengguna baru di Keycloak dan database lokal.
-     * DEPRECATED: Gunakan IdentityManagementService.createUser() untuk flow yang
-     * lebih clean.
-     *
-     * @param reqUserDTO DTO yang berisi data pengguna baru
-     * @return UserDTO dengan status operasi
-     */
-    @Deprecated
-    public UserDTO createNewUser(UserDTO reqUserDTO) {
-        try {
-            // Buat pengguna di Keycloak
-            String createdProviderUserId = this.keycloakAdminClientService.createBackofficeUser(
-                    reqUserDTO.getUsername(),
-                    reqUserDTO.getFullname(),
-                    reqUserDTO.getEmail(),
-                    reqUserDTO.getPassword(),
-                    reqUserDTO.getRoles().getFirst());
-
-            // Buat pengguna di database lokal
-            Users user = this.userManagementBusiness.createUserObject(reqUserDTO, createdProviderUserId);
-            this.createNewUser(user);
-
-            // Buat respons sukses
-            return this.userManagementBusiness.createSuccessResponse(reqUserDTO, createdProviderUserId);
-        } catch (BusinessException e) {
-            // Buat respons error jika gagal
-            return this.userManagementBusiness.createErrorResponse(e.getErrorMessage());
         }
     }
 

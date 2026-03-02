@@ -17,5 +17,9 @@ public interface DenomRepositoryPort {
 
     List<ProductDenoms> findByProductIdAndActiveTrueAndDeletedFalseOrderBySortOrder(UUID productId);
 
+    List<ProductDenoms> findByProductIdOrderBySortOrder(UUID productId);
+
     Optional<ProductDenoms> findByCode(String code);
+
+    boolean existsByCodeAndIdNot(String code, UUID id);
 }

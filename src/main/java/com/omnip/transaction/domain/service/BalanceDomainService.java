@@ -6,6 +6,7 @@ import com.omnip.transaction.domain.model.MutationReferenceType;
 import com.omnip.transaction.domain.model.MutationType;
 import com.omnip.transaction.domain.port.in.BalanceManagementUseCase;
 import com.omnip.shared.exception.InsufficientBalanceException;
+import com.omnip.shared.exception.ResourceNotFoundException;
 import com.omnip.transaction.domain.port.out.StoreMutationRepositoryPort;
 import com.omnip.transaction.domain.port.out.StoreBalancePort;
 import lombok.extern.slf4j.Slf4j;
@@ -36,7 +37,7 @@ public class BalanceDomainService implements BalanceManagementUseCase {
                         throws InsufficientBalanceException {
 
                 Stores store = storeRepository.findByIdWithPessimisticLock(storeId)
-                                .orElseThrow(() -> new RuntimeException("Store not found: " + storeId));
+                                .orElseThrow(() -> new ResourceNotFoundException("Store", storeId));
 
                 BigDecimal currentBalance = store.getBalance();
 
@@ -73,7 +74,7 @@ public class BalanceDomainService implements BalanceManagementUseCase {
                         UUID referenceId, String description) {
 
                 Stores store = storeRepository.findByIdWithPessimisticLock(storeId)
-                                .orElseThrow(() -> new RuntimeException("Store not found: " + storeId));
+                                .orElseThrow(() -> new ResourceNotFoundException("Store", storeId));
 
                 BigDecimal newBalance = store.getBalance().add(amount);
 
@@ -101,6 +102,6 @@ public class BalanceDomainService implements BalanceManagementUseCase {
         public BigDecimal getBalance(UUID storeId) {
                 return storeRepository.findById(storeId)
                                 .map(Stores::getBalance)
-                                .orElseThrow(() -> new RuntimeException("Store not found: " + storeId));
+                                .orElseThrow(() -> new ResourceNotFoundException("Store", storeId));
         }
 }

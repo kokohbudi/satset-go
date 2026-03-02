@@ -50,4 +50,7 @@ public class StoreMutations {
     @CreatedDate
     @Column(updatable = false)
     private LocalDateTime createdAt;
+
+    @Version
+    private Long version;
 }

@@ -12,6 +12,10 @@ public class ProductDTO {
     private String providerName;
     private String description;
     private String iconUrl;
+    private UUID categoryId;
     private String categoryCode;
     private String categoryName;
+    private int sortOrder;
+    private boolean active;
+    private boolean deleted;
 }

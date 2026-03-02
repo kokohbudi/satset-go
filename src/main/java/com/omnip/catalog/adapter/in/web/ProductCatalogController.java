@@ -101,6 +101,8 @@ public class ProductCatalogController {
         dto.setCategoryType(entity.getCategoryType());
         dto.setIconUrl(entity.getIconUrl());
         dto.setSortOrder(entity.getSortOrder());
+        dto.setActive(entity.isActive());
+        dto.setDeleted(entity.isDeleted());
         return dto;
     }
 
@@ -112,7 +114,11 @@ public class ProductCatalogController {
         dto.setProviderName(entity.getProviderName());
         dto.setDescription(entity.getDescription());
         dto.setIconUrl(entity.getIconUrl());
+        dto.setSortOrder(entity.getSortOrder());
+        dto.setActive(entity.isActive());
+        dto.setDeleted(entity.isDeleted());
         if (entity.getCategory() != null) {
+            dto.setCategoryId(entity.getCategory().getId());
             dto.setCategoryCode(entity.getCategory().getCode());
             dto.setCategoryName(entity.getCategory().getName());
         }
@@ -127,13 +133,19 @@ public class ProductCatalogController {
         dto.setDenomType(entity.getDenomType());
         dto.setNominal(entity.getNominal());
         dto.setPrice(entity.getPrice());
+        dto.setBasePrice(entity.getBasePrice());
         dto.setAdminFee(entity.getAdminFee());
         dto.setValidityDays(entity.getValidityDays());
         dto.setQuotaMb(entity.getQuotaMb());
         dto.setMinAmount(entity.getMinAmount());
         dto.setMaxAmount(entity.getMaxAmount());
         dto.setRequiresInquiry(entity.isRequiresInquiry());
+        dto.setStockAvailable(entity.getStockAvailable());
+        dto.setSortOrder(entity.getSortOrder());
+        dto.setActive(entity.isActive());
+        dto.setDeleted(entity.isDeleted());
         if (entity.getProduct() != null) {
+            dto.setProductId(entity.getProduct().getId());
             dto.setProductCode(entity.getProduct().getCode());
             dto.setProductName(entity.getProduct().getName());
         }

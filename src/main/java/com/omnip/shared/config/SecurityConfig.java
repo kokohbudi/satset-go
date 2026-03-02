@@ -55,6 +55,10 @@ public class SecurityConfig {
                         // User management endpoints - require authenticated with specific roles
                         .requestMatchers("/api/users/**").authenticated()
 
+                        // Admin catalog management
+                        .requestMatchers("/admin/catalog/**").authenticated()
+                        .requestMatchers("/api/admin/catalog/**").authenticated()
+
                         // Dashboard requires authentication
                         .requestMatchers("/dashboard/**").authenticated()
 

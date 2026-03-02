@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="id" xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layouts/base}">
+
+<head>
+    <title>Kategori Produk</title>
+</head>
+
+<body>
+<div layout:fragment="content" x-data="categoryManager()" x-init="loadCategories()">
+
+    <!-- Page Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-4">
+        <div>
+            <h1 class="text-2xl font-bold">Kategori Produk</h1>
+            <p class="text-base-content/60 text-sm mt-1">Kelola kategori produk (Pulsa, Data, Game, PLN, dll)</p>
+        </div>
+        <button class="btn btn-primary" @click="openCreateModal()">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"/>
+            </svg>
+            Tambah Kategori
+        </button>
+    </div>
+
+    <!-- Loading -->
+    <div x-show="loading" class="flex justify-center py-12">
+        <span class="loading loading-spinner loading-lg text-primary"></span>
+    </div>
+
+    <!-- Table -->
+    <div x-show="!loading" x-cloak class="card bg-base-100 shadow-sm">
+        <div class="overflow-x-auto">
+            <table class="table table-zebra">
+                <thead>
+                <tr>
+                    <th>Code</th>
+                    <th>Nama</th>
+                    <th>Tipe</th>
+                    <th class="text-center">Sort</th>
+                    <th class="text-center">Status</th>
+                    <th class="text-center">Aksi</th>
+                </tr>
+                </thead>
+                <tbody>
+                <template x-for="cat in categories" :key="cat.id">
+                    <tr :class="cat.deleted ? 'opacity-40' : ''">
+                        <td class="font-mono text-sm" x-text="cat.code"></td>
+                        <td x-text="cat.name"></td>
+                        <td>
+                            <span class="badge badge-outline badge-sm" x-text="cat.categoryType"></span>
+                        </td>
+                        <td class="text-center" x-text="cat.sortOrder"></td>
+                        <td class="text-center">
+                            <span class="badge badge-sm"
+                                  :class="cat.deleted ? 'badge-error' : (cat.active ? 'badge-success' : 'badge-warning')"
+                                  x-text="cat.deleted ? 'Deleted' : (cat.active ? 'Active' : 'Inactive')"></span>
+                        </td>
+                        <td class="text-center">
+                            <div class="flex justify-center gap-1">
+                                <a :href="'/admin/catalog/products?categoryId=' + cat.id + '&categoryName=' + encodeURIComponent(cat.name)"
+                                   class="btn btn-ghost btn-xs" :class="cat.deleted ? 'btn-disabled' : ''">Produk &rarr;</a>
+                                <button class="btn btn-ghost btn-xs" @click="openEditModal(cat)" :disabled="cat.deleted">Edit</button>
+                                <button class="btn btn-ghost btn-xs text-error" @click="confirmDelete(cat)" :disabled="cat.deleted">Hapus</button>
+                            </div>
+                        </td>
+                    </tr>
+                </template>
+                <tr x-show="categories.length === 0">
+                    <td colspan="6" class="text-center py-8 text-base-content/50">Belum ada kategori</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Create/Edit Modal -->
+    <div x-show="showModal" x-cloak class="fixed inset-0 z-50 flex items-center justify-center"
+         x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0"
+         x-transition:enter-end="opacity-100" x-transition:leave="transition ease-in duration-150"
+         x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0">
+        <div class="absolute inset-0 bg-black/50" @click="showModal = false"></div>
+        <div class="relative bg-base-100 rounded-xl shadow-2xl w-full max-w-lg mx-4 overflow-hidden"
+             x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 scale-95"
+             x-transition:enter-end="opacity-100 scale-100">
+
+            <div class="px-6 py-4 border-b border-base-300">
+                <h3 class="text-lg font-semibold" x-text="editMode ? 'Edit Kategori' : 'Tambah Kategori'"></h3>
+            </div>
+
+            <form @submit.prevent="saveCategory()">
+                <div class="px-6 py-5 space-y-4">
+                    <div class="form-control">
+                        <label class="label"><span class="label-text">Code</span></label>
+                        <input type="text" class="input input-bordered" x-model="form.code" required maxlength="50"
+                               placeholder="e.g. PULSA" :disabled="saving">
+                    </div>
+                    <div class="form-control">
+                        <label class="label"><span class="label-text">Nama</span></label>
+                        <input type="text" class="input input-bordered" x-model="form.name" required maxlength="100"
+                               placeholder="e.g. Pulsa & Telepon" :disabled="saving">
+                    </div>
+                    <div class="form-control">
+                        <label class="label"><span class="label-text">Tipe Kategori</span></label>
+                        <select class="select select-bordered" x-model="form.categoryType" required :disabled="saving">
+                            <option value="">-- Pilih --</option>
+                            <template x-for="type in categoryTypes" :key="type">
+                                <option :value="type" x-text="type"></option>
+                            </template>
+                        </select>
+                    </div>
+                    <div class="form-control">
+                        <label class="label"><span class="label-text">Icon URL</span></label>
+                        <input type="text" class="input input-bordered" x-model="form.iconUrl" placeholder="https://..." :disabled="saving">
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="form-control">
+                            <label class="label"><span class="label-text">Sort Order</span></label>
+                            <input type="number" class="input input-bordered" x-model.number="form.sortOrder" :disabled="saving">
+                        </div>
+                        <div class="form-control">
+                            <label class="label"><span class="label-text">Status</span></label>
+                            <label class="label cursor-pointer justify-start gap-3">
+                                <input type="checkbox" class="toggle toggle-primary" x-model="form.active" :disabled="saving">
+                                <span class="label-text" x-text="form.active ? 'Active' : 'Inactive'"></span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="px-6 py-4 bg-base-200/50 flex justify-end gap-3">
+                    <button type="button" class="btn btn-ghost" @click="showModal = false" :disabled="saving">Batal</button>
+                    <button type="submit" class="btn btn-primary" :disabled="saving">
+                        <span x-show="saving" class="loading loading-spinner loading-sm"></span>
+                        <span x-text="editMode ? 'Update' : 'Simpan'"></span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<th:block layout:fragment="scripts">
+<script th:inline="javascript">
+    const CATEGORY_TYPES = /*[[${categoryTypes}]]*/ [];
+
+    function categoryManager() {
+        return {
+            categories: [],
+            categoryTypes: CATEGORY_TYPES,
+            loading: true,
+            showModal: false,
+            editMode: false,
+            saving: false,
+            editId: null,
+            form: { code: '', name: '', categoryType: '', iconUrl: '', sortOrder: 0, active: true },
+
+            async loadCategories() {
+                this.loading = true;
+                try {
+                    const res = await fetch('/api/admin/catalog/categories');
+                    this.categories = await res.json();
+                } catch (e) {
+                    Alpine.store('toast').error('Gagal memuat kategori');
+                } finally {
+                    this.loading = false;
+                }
+            },
+
+            openCreateModal() {
+                this.editMode = false;
+                this.editId = null;
+                this.form = { code: '', name: '', categoryType: '', iconUrl: '', sortOrder: 0, active: true };
+                this.showModal = true;
+            },
+
+            openEditModal(cat) {
+                this.editMode = true;
+                this.editId = cat.id;
+                this.form = { code: cat.code, name: cat.name, categoryType: cat.categoryType,
+                              iconUrl: cat.iconUrl || '', sortOrder: cat.sortOrder, active: cat.active };
+                this.showModal = true;
+            },
+
+            async saveCategory() {
+                this.saving = true;
+                try {
+                    const url = this.editMode
+                        ? `/api/admin/catalog/categories/${this.editId}`
+                        : '/api/admin/catalog/categories';
+                    const method = this.editMode ? 'PUT' : 'POST';
+                    const res = await fetch(url, {
+                        method, headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(this.form)
+                    });
+                    if (!res.ok) {
+                        const err = await res.json().catch(() => ({}));
+                        throw new Error(err.errorMessage || err.message || 'Gagal menyimpan');
+                    }
+                    this.showModal = false;
+                    await this.loadCategories();
+                    Alpine.store('toast').success(this.editMode ? 'Kategori diperbarui' : 'Kategori ditambahkan');
+                } catch (e) {
+                    Alpine.store('toast').error(e.message);
+                } finally {
+                    this.saving = false;
+                }
+            },
+
+            async confirmDelete(cat) {
+                const ok = await Alpine.store('confirm').open({
+                    title: 'Hapus Kategori',
+                    message: `Yakin hapus kategori "${cat.name}"? Semua produk & denominasi di bawahnya akan ikut dihapus.`,
+                    confirmText: 'Hapus',
+                    confirmClass: 'btn-error'
+                });
+                if (!ok) return;
+                try {
+                    const res = await fetch(`/api/admin/catalog/categories/${cat.id}`, { method: 'DELETE' });
+                    if (!res.ok) throw new Error('Gagal menghapus');
+                    await this.loadCategories();
+                    Alpine.store('toast').success('Kategori dihapus');
+                } catch (e) {
+                    Alpine.store('toast').error(e.message);
+                }
+            }
+        };
+    }
+</script>
+</th:block>
+</body>
+</html>

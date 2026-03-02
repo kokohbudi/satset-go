@@ -559,3 +559,617 @@ POST /admin/resellers     → Buat reseller baru (admin only)
 **Task 1 Status**: ✅ DONE — `Stores.java` updated, `StoreRepository.java` fixed
 **Security Hotfix**: ✅ DONE 2026-02-25 — `@Transactional` purchase flow, `@PreAuthorize` admin/transaction endpoints, cached set defensive copy
 **Next Review**: Setelah Task 3 (Interceptor) selesai — Neo review implementasi sebelum test
+
+---
+
+---
+
+## 🗂️ Admin Product Management — Technical Blueprint
+
+> **Neo Design**: 2026-03-02
+> **Status**: READY FOR IMPLEMENTATION
+> **Scope**: CRUD penuh untuk Categories, Products, ProductDenoms via Admin UI + REST API
+
+---
+
+### 0. Analisis Existing Codebase
+
+**Yang sudah ada:**
+- Entities: `Categories`, `Products`, `ProductDenoms`, `ProductDenomMeta` — siap dipakai
+- Port out: `CategoryRepositoryPort`, `ProductRepositoryPort`, `DenomRepositoryPort` — punya `save()`, tapi **belum ada** `findById()` untuk Category/Product, dan belum ada method "admin variant" (tanpa `active=true AND deleted=false` filter)
+- Domain services: `CategoryDomainService`, `ProductDomainService`, `DenomDomainService` — read-only, belum ada write logic
+- Browse use cases: `BrowseCategoriesUseCase`, `BrowseProductsUseCase`, `BrowseDenomsUseCase` — buat reseller, bukan admin
+
+**Yang perlu dibuat:**
+- Port in (use cases): Manage variants
+- Request DTOs
+- Domain service extensions (write operations + cache eviction)
+- REST API controller
+- Thymeleaf page controller + templates
+
+---
+
+### 1. Port Out Extensions (Minimal Additions)
+
+Tambah method ke existing port interfaces — **hanya yang dibutuhkan**:
+
+```java
+// CategoryRepositoryPort.java — tambah:
+Optional<Categories> findById(UUID id);
+List<Categories> findAllByOrderBySortOrder(); // admin: semua, tanpa filter active/deleted
+boolean existsByCodeAndIdNot(String code, UUID id); // uniqueness check saat update
+
+// ProductRepositoryPort.java — tambah:
+Optional<Products> findById(UUID id);
+List<Products> findByCategoryIdOrderBySortOrder(UUID categoryId); // admin: semua
+boolean existsByCodeAndIdNot(String code, UUID id);
+
+// DenomRepositoryPort.java — tambah:
+List<ProductDenoms> findByProductIdOrderBySortOrder(UUID productId); // admin: semua
+boolean existsByCodeAndIdNot(String code, UUID id);
+void deleteMetaByDenomId(UUID denomId); // DenomMetaRepositoryPort, bukan di sini
+```
+
+> `findById()` untuk `Categories` dan `Products` belum ada di port — JpaRepository punya, tapi domain service tidak bisa akses karena inject port bukan JpaRepository.
+
+---
+
+### 2. New Port In — Use Case Interfaces
+
+**File baru** di `catalog/domain/port/in/`:
+
+```java
+// ManageCategoriesUseCase.java
+public interface ManageCategoriesUseCase {
+    List<Categories> findAllForAdmin();
+    Optional<Categories> findById(UUID id);
+    Categories create(CreateCategoryRequest req);
+    Categories update(UUID id, UpdateCategoryRequest req);
+    void softDelete(UUID id);
+}
+
+// ManageProductsUseCase.java
+public interface ManageProductsUseCase {
+    List<Products> findAllForAdmin();
+    List<Products> findByCategoryForAdmin(UUID categoryId);
+    Optional<Products> findById(UUID id);
+    Products create(CreateProductRequest req);
+    Products update(UUID id, UpdateProductRequest req);
+    void softDelete(UUID id); // cascade: soft-delete semua denoms juga
+}
+
+// ManageDenomsUseCase.java
+public interface ManageDenomsUseCase {
+    List<ProductDenoms> findByProductForAdmin(UUID productId);
+    Optional<ProductDenoms> findById(UUID id);
+    ProductDenoms create(UUID productId, CreateDenomRequest req);
+    ProductDenoms update(UUID id, UpdateDenomRequest req);
+    void softDelete(UUID id);
+}
+```
+
+---
+
+### 3. Request DTOs (Java Records)
+
+**File baru** di `catalog/adapter/in/web/dto/`:
+
+```java
+// CreateCategoryRequest.java
+public record CreateCategoryRequest(
+    @NotBlank @Size(max = 50) String code,
+    @NotBlank @Size(max = 100) String name,
+    @NotNull CategoryType categoryType,
+    String iconUrl,
+    boolean active,
+    int sortOrder
+) {}
+
+// UpdateCategoryRequest.java — sama dengan CreateCategoryRequest (code bisa diupdate)
+
+// CreateProductRequest.java
+public record CreateProductRequest(
+    @NotNull UUID categoryId,
+    @NotBlank @Size(max = 50) String code,
+    @NotBlank @Size(max = 100) String name,
+    @Size(max = 100) String providerName,
+    String description,
+    String iconUrl,
+    boolean active,
+    int sortOrder
+) {}
+
+// UpdateProductRequest.java — sama, categoryId bisa diubah (pindah kategori)
+
+// CreateDenomRequest.java
+public record CreateDenomRequest(
+    @NotBlank @Size(max = 100) String code,
+    @NotBlank @Size(max = 150) String name,
+    @NotNull DenomType denomType,
+    BigDecimal nominal,
+    @NotNull BigDecimal price,
+    BigDecimal basePrice,
+    BigDecimal adminFee,
+    Integer validityDays,
+    Long quotaMb,
+    BigDecimal minAmount,
+    BigDecimal maxAmount,
+    boolean requiresInquiry,
+    Integer stockAvailable,
+    boolean active,
+    int sortOrder
+) {}
+
+// UpdateDenomRequest.java — sama
+```
+
+---
+
+### 4. Domain Service Extensions
+
+**Extend existing services** — tidak buat service baru (avoid duplication).
+
+#### CategoryDomainService — tambah ManageCategoriesUseCase:
+
+```java
+@Service
+@Transactional(readOnly = true)
+public class CategoryDomainService implements BrowseCategoriesUseCase, ManageCategoriesUseCase {
+
+    @Override
+    public List<Categories> findAllForAdmin() {
+        return categoryRepository.findAllByOrderBySortOrder(); // no active/deleted filter
+    }
+
+    @Override
+    public Optional<Categories> findById(UUID id) {
+        return categoryRepository.findById(id);
+    }
+
+    @Override
+    @Transactional
+    @CacheEvict(value = {"categoriesAll", "categoriesByType"}, allEntries = true)
+    public Categories create(CreateCategoryRequest req) {
+        // Validate code uniqueness
+        if (categoryRepository.findByCode(req.code()).isPresent()) {
+            throw new BusinessException("Category code already exists: " + req.code());
+        }
+        Categories cat = new Categories();
+        cat.setCode(req.code().toUpperCase().trim());
+        cat.setName(req.name());
+        cat.setCategoryType(req.categoryType());
+        cat.setIconUrl(req.iconUrl());
+        cat.setActive(req.active());
+        cat.setSortOrder(req.sortOrder());
+        cat.setDeleted(false);
+        return categoryRepository.save(cat);
+    }
+
+    @Override
+    @Transactional
+    @CacheEvict(value = {"categoriesAll", "categoriesByType"}, allEntries = true)
+    public Categories update(UUID id, UpdateCategoryRequest req) {
+        Categories cat = categoryRepository.findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("Category not found: " + id));
+        // Check code uniqueness (exclude self)
+        if (categoryRepository.existsByCodeAndIdNot(req.code(), id)) {
+            throw new BusinessException("Category code already exists: " + req.code());
+        }
+        cat.setCode(req.code().toUpperCase().trim());
+        cat.setName(req.name());
+        cat.setCategoryType(req.categoryType());
+        cat.setIconUrl(req.iconUrl());
+        cat.setActive(req.active());
+        cat.setSortOrder(req.sortOrder());
+        return categoryRepository.save(cat);
+    }
+
+    @Override
+    @Transactional
+    @CacheEvict(value = {"categoriesAll", "categoriesByType"}, allEntries = true)
+    public void softDelete(UUID id) {
+        Categories cat = categoryRepository.findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("Category not found: " + id));
+        cat.setDeleted(true);
+        cat.setActive(false);
+        categoryRepository.save(cat);
+    }
+}
+```
+
+> Pola yang sama untuk `ProductDomainService` dan `DenomDomainService`. `ProductDomainService.softDelete()` juga cascade soft-delete semua denoms milik product tersebut.
+
+---
+
+### 5. Security Constants
+
+Tambah ke `OmniConstants.java`:
+
+```java
+// Admin Catalog Management — Keycloak realm roles
+public static final String PERM_VIEW_CATALOG   = "REALM_view_catalog";
+public static final String PERM_MANAGE_CATALOG = "REALM_manage_catalog";
+```
+
+> **Catatan keycloak**: Buat 2 realm roles ini di Keycloak dan assign ke admin user. Atau pakai existing `REALM_manage_roles` sementara jika belum ada. Dokumentasikan keputusan ini.
+
+Tambah di `SecurityConfig.java`:
+```java
+.requestMatchers("/admin/catalog/**").authenticated()
+.requestMatchers("/api/admin/catalog/**").authenticated()
+```
+> Fine-grained authorization via `@PreAuthorize` di controller — tidak perlu buat rule baru di SecurityConfig.
+
+---
+
+### 6. REST API Contract
+
+**AdminCatalogController** — `@RestController @RequestMapping("/api/admin/catalog")`:
+
+```
+=== CATEGORIES ===
+GET    /api/admin/catalog/categories          → List<CategoryDTO>  [PERM_VIEW_CATALOG]
+GET    /api/admin/catalog/categories/{id}     → CategoryDTO        [PERM_VIEW_CATALOG]
+POST   /api/admin/catalog/categories          → CategoryDTO 201    [PERM_MANAGE_CATALOG]
+PUT    /api/admin/catalog/categories/{id}     → CategoryDTO        [PERM_MANAGE_CATALOG]
+DELETE /api/admin/catalog/categories/{id}     → 204 No Content     [PERM_MANAGE_CATALOG]
+
+=== PRODUCTS ===
+GET    /api/admin/catalog/products            → List<ProductDTO>   [PERM_VIEW_CATALOG]
+GET    /api/admin/catalog/products?categoryId={uuid} → filtered   [PERM_VIEW_CATALOG]
+GET    /api/admin/catalog/products/{id}       → ProductDTO         [PERM_VIEW_CATALOG]
+POST   /api/admin/catalog/products            → ProductDTO 201     [PERM_MANAGE_CATALOG]
+PUT    /api/admin/catalog/products/{id}       → ProductDTO         [PERM_MANAGE_CATALOG]
+DELETE /api/admin/catalog/products/{id}       → 204 No Content     [PERM_MANAGE_CATALOG] ← cascade delete denoms
+
+=== DENOMS ===
+GET    /api/admin/catalog/products/{productId}/denoms   → List<ProductDenomDTO>  [PERM_VIEW_CATALOG]
+GET    /api/admin/catalog/denoms/{id}                   → ProductDenomDTO        [PERM_VIEW_CATALOG]
+POST   /api/admin/catalog/products/{productId}/denoms   → ProductDenomDTO 201   [PERM_MANAGE_CATALOG]
+PUT    /api/admin/catalog/denoms/{id}                   → ProductDenomDTO        [PERM_MANAGE_CATALOG]
+DELETE /api/admin/catalog/denoms/{id}                   → 204 No Content         [PERM_MANAGE_CATALOG]
+```
+
+> Gunakan existing `CategoryDTO`, `ProductDTO`, `ProductDenomDTO` untuk response — tidak perlu DTO baru.
+
+---
+
+### 7. Page Controller + UI Routes
+
+**AdminCatalogPageController** — `@Controller @RequestMapping("/admin/catalog")`:
+
+```
+GET /admin/catalog/categories          → pages/admin/catalog/categories.html
+GET /admin/catalog/products            → pages/admin/catalog/products.html
+GET /admin/catalog/products/{id}/denoms → pages/admin/catalog/denoms.html
+```
+
+Model attributes:
+- `categories.html`: `categories` (List<CategoryDTO>), `categoryTypes` (CategoryType[])
+- `products.html`: `products` (List<ProductDTO>), `categories` (for filter dropdown)
+- `denoms.html`: `denoms` (List<ProductDenomDTO>), `product` (ProductDTO), `denomTypes` (DenomType[])
+
+---
+
+### 8. UI Template Structure
+
+Pattern: ikuti `user-management.html` (table + filter + modal form + Alpine.js).
+
+```
+templates/pages/admin/catalog/
+├── categories.html   — Table: code | name | type | active | actions (edit/delete)
+│                        Modal: create/edit form
+│                        Delete: confirm dialog
+├── products.html     — Table: code | name | category | active | actions
+│                        Filter: by category (dropdown)
+│                        Modal: create/edit form (with category select)
+└── denoms.html       — Table: code | name | price | nominal | type | active | actions
+                         Header: bread-crumb (Category → Product → Denoms)
+                         Modal: create/edit form (full denom fields)
+```
+
+Sidebar tambah menu "Catalog" di bawah Admin section (hardcoded, bukan dari Keycloak role attributes):
+```html
+<!-- sidebar.html — tambah sec:authorize -->
+<a th:href="@{/admin/catalog/categories}" sec:authorize="hasRole('REALM_view_catalog')">
+    Catalog Management
+</a>
+```
+
+---
+
+### 9. Edge Cases & Risk Register
+
+| Case | Risk | Mitigasi |
+|---|---|---|
+| Code duplicate saat create | DB throws `DataIntegrityViolationException` | Validate di domain service sebelum save. Handler di `GlobalExceptionHandler` → 409 Conflict |
+| Code duplicate saat update | Ganti code ke yang sudah dipakai entity lain | `existsByCodeAndIdNot()` check di update |
+| Delete category yg masih ada products | Orphan products (category_id still valid) | Cascade: soft-delete semua products (dan denoms) ketika category di-delete. Atau: cek dulu, throw error jika ada product aktif |
+| Delete product yg masih ada denoms | Orphan denoms | Domain service: loop soft-delete semua denoms sebelum soft-delete product |
+| Delete denom yg sedang ada di Transactions | Data inconsistency | Denoms pakai soft-delete (bukan hard delete). Transactions tetap punya referensi valid. OK. |
+| Concurrent update (2 admin edit bersamaan) | Lost update | `@Version` sudah ada di semua entities → `OptimisticLockException` → 409 Conflict |
+| Cache stale setelah write | Reseller lihat data lama | `@CacheEvict` wajib di semua write operations |
+| Denom price = 0 | Invalid data masuk DB | `@Positive` validation di `CreateDenomRequest.price` |
+| Sort order kosong | Default ke 0, item numpuk | Di domain service: jika `sortOrder == 0`, set ke `currentMax + 10` (future improvement, optional) |
+
+---
+
+### 10. Task Breakdown untuk August
+
+> **Kode seri**: `AP-` = **Admin Product** catalog management
+> Ordered by dependency. Sequential — tiap task blocking task berikutnya.
+
+| Task ID | Deskripsi | File(s) | Estimasi |
+|---|---|---|---|
+| **AP-1** | Extend port out: tambah `findById`, `findAllAdmin`, `existsByCodeAndIdNot` ke 3 repository ports | `CategoryRepositoryPort`, `ProductRepositoryPort`, `DenomRepositoryPort` | 20 mnt |
+| **AP-2** | Verify JPA adapters compile setelah AP-1 (JpaRepository auto-satisfy port methods) | `CategoryJpaRepository`, `ProductJpaRepository`, `DenomJpaRepository` | 15 mnt |
+| **AP-3** | Buat 3 use case interfaces + 6 request DTO records | `ManageCategories/Products/DenomsUseCase`, `Create/UpdateCategoryRequest`, `Create/UpdateProductRequest`, `Create/UpdateDenomRequest` | 30 mnt |
+| **AP-4** | Extend `CategoryDomainService`: implements `ManageCategoriesUseCase` + `@CacheEvict` | `CategoryDomainService` | 30 mnt |
+| **AP-5** | Extend `ProductDomainService`: implements `ManageProductsUseCase` + cascade softDelete denoms | `ProductDomainService` | 30 mnt |
+| **AP-6** | Extend `DenomDomainService`: implements `ManageDenomsUseCase` | `DenomDomainService` | 25 mnt |
+| **AP-7** | `OmniConstants`: 2 constants baru (`PERM_VIEW_CATALOG`, `PERM_MANAGE_CATALOG`) + `SecurityConfig`: 2 path rules | `OmniConstants`, `SecurityConfig` | 10 mnt |
+| **AP-8** | `AdminCatalogController` — Category CRUD REST endpoints | `AdminCatalogController` | 30 mnt |
+| **AP-9** | `AdminCatalogController` — Product + Denom CRUD REST endpoints | (lanjutan AP-8) | 30 mnt |
+| **AP-10** | `AdminCatalogPageController` + 3 Thymeleaf templates (categories, products, denoms) | `AdminCatalogPageController`, `categories.html`, `products.html`, `denoms.html` | 90 mnt |
+| **AP-11** | Sidebar link + `mvn clean package` verify (full build green) | `sidebar.html` | 10 mnt |
+
+**Total estimasi: ~5.5 jam / 2-3 sesi**
+
+**Session A (backend):** AP-1 → AP-2 → AP-3 → AP-4 → AP-5 → AP-6 → AP-7 → compile check
+**Session B (frontend):** AP-8 → AP-9 → AP-10 → AP-11 → full test
+
+---
+
+**Neo's Warning:**
+1. `CategoryJpaRepository extends JpaRepository<Categories, UUID>, CategoryRepositoryPort` — Setelah tambah `findById(UUID)` ke port, pastikan tidak conflict dengan JpaRepository yang juga punya `findById()`. Solution: **jangan tambah** `findById` ke port, karena JpaRepository sudah provide-nya. Domain service bisa langsung dapat dari JPA. Tapi ini melanggar hexagonal rule... **Decision**: Tambah tetap ke port (explicit contract), JpaRepository auto-implements via inheritance. Tidak ada conflict.
+
+2. **Jangan** implement cache eviction di controller — harus di domain service layer. Cache adalah domain concern, bukan HTTP concern.
+
+3. Denom `ProductDenoms.metadata` field adalah `@Transient` — **jangan include** dalam form submit. Admin form untuk denom tidak perlu edit metadata (kompleks, future feature).
+
+---
+
+**Last Updated**: 2026-03-02 (Neo — Admin Product Management Blueprint)
+**Status**: DESIGN COMPLETE — Ready for August task breakdown + developer execution
+
+---
+
+---
+
+## 🧭 Catalog Drill-down Navigation — Action Plan (Option A)
+
+> **Neo Design**: 2026-03-02
+> **Status**: READY FOR IMPLEMENTATION
+> **Scope**: Ubah 3 halaman katalog jadi drill-down navigation (Categories → Products → Denoms)
+
+---
+
+### 0. Analisis Current State
+
+**Sidebar**: Keycloak-driven, `view_catalog` role → `url=/admin/catalog/categories`, `display_name=Kelola Katalog`. ✅ Sudah 1 entry point. Tidak perlu diubah.
+
+**Categories page** (`categories.html`):
+- CRUD lengkap (Edit/Hapus per baris)
+- ❌ Tidak ada navigasi ke Products dari sini — harus manually pergi ke halaman Products
+
+**Products page** (`products.html`):
+- Dropdown filter by category, tapi mulai dari "Semua Kategori"
+- Nama produk sudah link ke `/admin/catalog/products/{id}/denoms` ✅
+- Ada tombol "Denoms" per baris ✅
+- ❌ Tidak ada breadcrumb
+- ❌ Tidak bisa di-pre-filter dari URL param
+
+**Denoms page** (`denoms.html`):
+- Ada breadcrumb: `Kategori → Produk → {productName}`
+- ❌ Breadcrumb link "Produk" pergi ke `/admin/catalog/products` tanpa filter — kehilangan konteks category
+
+---
+
+### 1. Desired UX Flow
+
+```
+Sidebar: "Kelola Katalog"
+    ↓
+┌─────────────────────────────┐
+│ /admin/catalog/categories   │  Entry point
+│ Tabel kategori + CRUD       │
+│ [Produk →] per baris        │──────┐
+└─────────────────────────────┘      │
+                                     ↓
+┌─────────────────────────────────────────┐
+│ /admin/catalog/products?categoryId=xxx  │
+│ Breadcrumb: Katalog > {CategoryName}    │
+│ Tabel produk (pre-filtered) + CRUD      │
+│ [Denom →] per baris                     │──────┐
+└─────────────────────────────────────────┘      │
+                                                 ↓
+┌──────────────────────────────────────────────────────┐
+│ /admin/catalog/products/{id}/denoms                  │
+│ Breadcrumb: Katalog > {CategoryName} > {ProductName} │
+│ Tabel denom + CRUD                                   │
+└──────────────────────────────────────────────────────┘
+```
+
+---
+
+### 2. Changes Per File
+
+#### 2.1 `AdminCatalogPageController.java` — 2 perubahan
+
+**A) Root redirect** — `/admin/catalog` → `/admin/catalog/categories`:
+```java
+@GetMapping
+public String catalogRoot() {
+    return "redirect:/admin/catalog/categories";
+}
+```
+
+**B) `productsPage()` — terima `categoryId` + `categoryName` query params:**
+```java
+@GetMapping("/products")
+public String productsPage(
+        @RequestParam(required = false) String categoryId,
+        @RequestParam(required = false) String categoryName,
+        Model model) {
+    model.addAttribute("currentPage", "admin-catalog");
+    model.addAttribute("categoryId", categoryId != null ? categoryId : "");
+    model.addAttribute("categoryName", categoryName != null ? categoryName : "");
+    return "pages/admin/catalog/products";
+}
+```
+
+> `denomsPage()` tidak perlu berubah — context category di-fetch via JS dari product API response.
+
+---
+
+#### 2.2 `categories.html` — 1 perubahan
+
+Tambah tombol **"Produk →"** di kolom Aksi, sebelum tombol Edit:
+
+```html
+<a :href="'/admin/catalog/products?categoryId=' + cat.id + '&categoryName=' + encodeURIComponent(cat.name)"
+   class="btn btn-ghost btn-xs" :disabled="cat.deleted">Produk →</a>
+```
+
+Lokasi: di dalam `<div class="flex justify-center gap-1">`, sebelum tombol Edit.
+
+---
+
+#### 2.3 `products.html` — 3 perubahan
+
+**A) Tambah breadcrumb** (conditional, hanya muncul kalau dari drill-down):
+
+Taruh sebelum Page Header:
+
+```html
+<!-- Breadcrumb (only when navigated from category drill-down) -->
+<div th:if="${categoryName != null and !categoryName.isEmpty()}" class="text-sm breadcrumbs mb-4">
+    <ul>
+        <li><a href="/admin/catalog/categories">Katalog</a></li>
+        <li class="font-semibold" th:text="${categoryName}">Nama Kategori</li>
+    </ul>
+</div>
+```
+
+**B) Inject `INITIAL_CATEGORY_ID` dari Thymeleaf ke JS:**
+
+Di `<script>` block, tambah inline vars (ubah tag jadi `th:inline="javascript"`):
+```html
+<script th:inline="javascript">
+    const INITIAL_CATEGORY_ID = /*[[${categoryId}]]*/ '';
+</script>
+```
+
+**C) Pre-set `filterCategoryId` di Alpine.js:**
+
+Dalam `productManager()`:
+```js
+filterCategoryId: INITIAL_CATEGORY_ID,  // was: ''
+```
+
+Tidak perlu perubahan lain — `loadProducts()` sudah pakai `filterCategoryId` untuk query param.
+
+---
+
+#### 2.4 `denoms.html` — 2 perubahan
+
+**A) Extend `denomManager()` state + `loadProduct()` untuk capture category context:**
+
+Tambah fields:
+```js
+categoryId: '',
+categoryName: '',
+```
+
+Update `loadProduct()`:
+```js
+async loadProduct() {
+    try {
+        const res = await fetch(`/api/admin/catalog/products/${this.productId}`);
+        if (res.ok) {
+            const prod = await res.json();
+            this.productName = prod.name;
+            this.categoryId = prod.categoryId || '';
+            this.categoryName = prod.categoryName || '';
+        }
+    } catch (e) { /* ignore */ }
+},
+```
+
+**B) Fix breadcrumb** — ganti static links dengan dynamic Alpine.js bindings:
+
+Replace existing breadcrumb:
+```html
+<!-- Before (static) -->
+<li><a href="/admin/catalog/categories">Kategori</a></li>
+<li><a href="/admin/catalog/products">Produk</a></li>
+<li class="font-semibold" x-text="productName || 'Denominasi'"></li>
+```
+
+Menjadi:
+```html
+<!-- After (dynamic with category context) -->
+<li><a href="/admin/catalog/categories">Katalog</a></li>
+<li>
+    <a :href="categoryId
+        ? '/admin/catalog/products?categoryId=' + categoryId + '&categoryName=' + encodeURIComponent(categoryName)
+        : '/admin/catalog/products'"
+       x-text="categoryName || 'Produk'"></a>
+</li>
+<li class="font-semibold" x-text="productName || 'Denominasi'"></li>
+```
+
+---
+
+### 3. File Inventory
+
+| # | File | Perubahan | LOC estimate |
+|---|---|---|---|
+| 1 | `AdminCatalogPageController.java` | +root redirect, +2 `@RequestParam` | ~8 lines |
+| 2 | `categories.html` | +1 drill-down link per row | ~3 lines |
+| 3 | `products.html` | +breadcrumb, +JS vars, +pre-set filter | ~15 lines |
+| 4 | `denoms.html` | +2 Alpine state fields, fix breadcrumb links | ~10 lines |
+
+**Total: 4 file, ~36 lines changed. Tidak ada file baru.**
+
+---
+
+### 4. Tidak Perlu Diubah
+
+- **Sidebar** (`sidebar.html`): Sudah benar — 1 entry point via Keycloak role.
+- **AdminCatalogController.java** (REST API): Sudah support `?categoryId=` di product listing.
+- **Backend** (domain services, ports): Zero changes.
+- **Keycloak**: Zero changes.
+
+---
+
+### 5. Task Breakdown untuk August
+
+> **Kode seri**: `AP-N` = **Admin Product Navigation** (drill-down)
+> Semua bisa dilakukan dalam 1 sesi.
+
+| Task ID | Deskripsi | File(s) | Estimasi |
+|---|---|---|---|
+| **AP-N1** | `AdminCatalogPageController` — root redirect + `@RequestParam` categoryId/categoryName di `productsPage()` | `AdminCatalogPageController.java` | 10 mnt |
+| **AP-N2** | `categories.html` — tambah tombol "Produk →" per row di kolom Aksi | `categories.html` | 5 mnt |
+| **AP-N3** | `products.html` — breadcrumb + JS `INITIAL_CATEGORY_ID` + pre-set `filterCategoryId` | `products.html` | 15 mnt |
+| **AP-N4** | `denoms.html` — extend `loadProduct()` untuk category context + fix breadcrumb dynamic links | `denoms.html` | 15 mnt |
+| **AP-N5** | Manual test: drill-down flow end-to-end + verify breadcrumb links + `mvn compile` | — | 10 mnt |
+
+**Total estimasi: ~55 menit / 1 sesi**
+
+---
+
+### 6. Neo's Notes
+
+1. **Query param `categoryName`**: Pragmatic approach — pass display name via URL param, bukan fetch ulang dari API. Trade-off: URL lebih panjang, tapi zero extra backend calls. Acceptable untuk admin UI.
+
+2. **Breadcrumb di products.html conditional**: Hanya muncul kalau ada `categoryName`. Kalau user langsung akses `/admin/catalog/products` tanpa param (misal bookmark), halaman tetap berfungsi normal tanpa breadcrumb — graceful degradation.
+
+3. **Denoms breadcrumb dynamic**: Category info di-fetch dari product API response (`ProductDTO.categoryId`, `ProductDTO.categoryName`). Sudah confirmed field ini ada di DTO. Tidak perlu API call tambahan.
+
+4. **Tidak perlu `@RequestParam` di denoms page controller**: Product info (termasuk category) sudah di-fetch via Alpine.js `loadProduct()`. Menambah param di server-side controller hanya duplikasi.
+
+---
+
+**Last Updated**: 2026-03-02 (Neo — Catalog Drill-down Navigation Action Plan)
