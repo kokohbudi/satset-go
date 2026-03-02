@@ -113,9 +113,11 @@
 
                                         <!-- Add Role Dropdown - Two Section Picker -->
                                         <div x-show="canAssignGroups && !isSelf(user)" class="relative"
-                                            x-data="{ open: false }" @click.outside="open = false">
+                                            x-data="{ open: false, _btn: null, _raf: null }" @click.outside="open = false"
+                                            @scroll.window="if(open && _btn && !_raf) _raf = requestAnimationFrame(() => { positionDropdown(_btn, _btn.nextElementSibling); _raf = null; })"
+                                            @keydown.escape.window="open = false">
                                             <button
-                                                @click="open = !open; if(open) $nextTick(() => positionDropdown($el, $el.nextElementSibling))"
+                                                @click="open = !open; if(open) { _btn = $el; $nextTick(() => positionDropdown($el, $el.nextElementSibling)); } else { _btn = null; }"
                                                 class="btn btn-ghost btn-xs btn-circle border border-dashed border-base-content/30 hover:border-primary hover:text-primary">
                                                 <svg class="w-4 h-4" fill="none" stroke="currentColor"
                                                     viewBox="0 0 24 24">
@@ -131,78 +133,78 @@
                                                 x-transition:leave-end="opacity-0 scale-95"
                                                 class="fixed z-[9999] p-2 shadow-xl bg-base-100 rounded-box w-80 border border-base-300 max-h-[400px] overflow-y-scroll overflow-x-hidden">
 
-                                                <!-- Section: Composite Roles -->
-                                                <div class="menu-title px-2 py-1">
-                                                    <span class="text-xs text-base-content/60">📁 Composite Roles</span>
-                                                </div>
-                                                <template x-for="role in getCompositeRolesForPicker(user)"
-                                                    :key="'composite-' + role.id">
-                                                    <div class="px-1">
-                                                        <a @click="addRoleToUser(user.providerUserId, role.name); open = false"
-                                                            class="flex flex-col items-start gap-0.5 py-2 px-3 rounded-lg hover:bg-base-200 cursor-pointer">
-                                                            <span class="font-medium flex items-center gap-2">
-                                                                <svg class="w-4 h-4 text-success flex-shrink-0"
-                                                                    fill="none" stroke="currentColor"
-                                                                    viewBox="0 0 24 24">
-                                                                    <path stroke-linecap="round" stroke-linejoin="round"
-                                                                        stroke-width="2" d="M12 4v16m8-8H4" />
-                                                                </svg>
-                                                                <span
-                                                                    x-text="role.attributes?.display_name || role.name"></span>
-                                                            </span>
-                                                            <span class="text-xs text-base-content/50 ml-6 break-words"
-                                                                x-text="'→ ' + (role.children || []).map(c => c.attributes?.display_name || c.name).join(', ')"></span>
-                                                        </a>
+                                                    <!-- Section: Composite Roles -->
+                                                    <div class="menu-title px-2 py-1">
+                                                        <span class="text-xs text-base-content/60">📁 Composite Roles</span>
                                                     </div>
-                                                </template>
-                                                <template x-if="getCompositeRolesForPicker(user).length === 0">
-                                                    <div class="text-base-content/40 px-4 py-1 text-xs italic">Semua
-                                                        sudah dimiliki</div>
-                                                </template>
+                                                    <template x-for="role in getCompositeRolesForPicker(user)"
+                                                        :key="'composite-' + role.id">
+                                                        <div class="px-1">
+                                                            <a @click="addRoleToUser(user.providerUserId, role.name); open = false"
+                                                                class="flex flex-col items-start gap-0.5 py-2 px-3 rounded-lg hover:bg-base-200 cursor-pointer">
+                                                                <span class="font-medium flex items-center gap-2">
+                                                                    <svg class="w-4 h-4 text-success flex-shrink-0"
+                                                                        fill="none" stroke="currentColor"
+                                                                        viewBox="0 0 24 24">
+                                                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                                                            stroke-width="2" d="M12 4v16m8-8H4" />
+                                                                    </svg>
+                                                                    <span
+                                                                        x-text="role.attributes?.display_name || role.name"></span>
+                                                                </span>
+                                                                <span class="text-xs text-base-content/50 ml-6 break-words"
+                                                                    x-text="'→ ' + (role.children || []).map(c => c.attributes?.display_name || c.name).join(', ')"></span>
+                                                            </a>
+                                                        </div>
+                                                    </template>
+                                                    <template x-if="getCompositeRolesForPicker(user).length === 0">
+                                                        <div class="text-base-content/40 px-4 py-1 text-xs italic">Semua
+                                                            sudah dimiliki</div>
+                                                    </template>
 
-                                                <div class="divider my-1 text-xs text-base-content/40">atau individual
-                                                </div>
-
-                                                <!-- Section: Granular Roles -->
-                                                <div class="menu-title px-2 py-1">
-                                                    <span class="text-xs text-base-content/60">🎯 Granular Roles</span>
-                                                </div>
-                                                <template x-for="role in getGranularRolesForPicker(user)"
-                                                    :key="'granular-' + role.id">
-                                                    <div class="px-1">
-                                                        <a @click="!role.disabled && (addRoleToUser(user.providerUserId, role.name), open = false)"
-                                                            :class="{'opacity-40 cursor-not-allowed bg-base-200': role.disabled, 'hover:bg-base-200 cursor-pointer': !role.disabled}"
-                                                            class="flex items-center justify-between py-1.5 px-3 rounded-lg">
-                                                            <span class="flex items-center gap-2">
-                                                                <svg x-show="!role.disabled"
-                                                                    class="w-4 h-4 text-success flex-shrink-0"
-                                                                    fill="none" stroke="currentColor"
-                                                                    viewBox="0 0 24 24">
-                                                                    <path stroke-linecap="round" stroke-linejoin="round"
-                                                                        stroke-width="2" d="M12 4v16m8-8H4" />
-                                                                </svg>
-                                                                <svg x-show="role.disabled"
-                                                                    class="w-4 h-4 text-base-content/30 flex-shrink-0"
-                                                                    fill="none" stroke="currentColor"
-                                                                    viewBox="0 0 24 24">
-                                                                    <path stroke-linecap="round" stroke-linejoin="round"
-                                                                        stroke-width="2" d="M5 13l4 4L19 7" />
-                                                                </svg>
-                                                                <span
-                                                                    x-text="role.attributes?.display_name || role.name"></span>
-                                                            </span>
-                                                            <span x-show="role.inheritedFrom"
-                                                                class="text-xs text-base-content/40 ml-2"
-                                                                x-text="'via ' + role.inheritedFrom"></span>
-                                                            <span x-show="role.directlyAssigned && !role.inheritedFrom"
-                                                                class="badge badge-xs badge-ghost">assigned</span>
-                                                        </a>
+                                                    <div class="divider my-1 text-xs text-base-content/40">atau individual
                                                     </div>
-                                                </template>
-                                                <template x-if="getGranularRolesForPicker(user).length === 0">
-                                                    <div class="text-base-content/40 px-4 py-1 text-xs italic">Tidak ada
-                                                        role tersedia</div>
-                                                </template>
+
+                                                    <!-- Section: Granular Roles -->
+                                                    <div class="menu-title px-2 py-1">
+                                                        <span class="text-xs text-base-content/60">🎯 Granular Roles</span>
+                                                    </div>
+                                                    <template x-for="role in getGranularRolesForPicker(user)"
+                                                        :key="'granular-' + role.id">
+                                                        <div class="px-1">
+                                                            <a @click="!role.disabled && (addRoleToUser(user.providerUserId, role.name), open = false)"
+                                                                :class="{'opacity-40 cursor-not-allowed bg-base-200': role.disabled, 'hover:bg-base-200 cursor-pointer': !role.disabled}"
+                                                                class="flex items-center justify-between py-1.5 px-3 rounded-lg">
+                                                                <span class="flex items-center gap-2">
+                                                                    <svg x-show="!role.disabled"
+                                                                        class="w-4 h-4 text-success flex-shrink-0"
+                                                                        fill="none" stroke="currentColor"
+                                                                        viewBox="0 0 24 24">
+                                                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                                                            stroke-width="2" d="M12 4v16m8-8H4" />
+                                                                    </svg>
+                                                                    <svg x-show="role.disabled"
+                                                                        class="w-4 h-4 text-base-content/30 flex-shrink-0"
+                                                                        fill="none" stroke="currentColor"
+                                                                        viewBox="0 0 24 24">
+                                                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                                                            stroke-width="2" d="M5 13l4 4L19 7" />
+                                                                    </svg>
+                                                                    <span
+                                                                        x-text="role.attributes?.display_name || role.name"></span>
+                                                                </span>
+                                                                <span x-show="role.inheritedFrom"
+                                                                    class="text-xs text-base-content/40 ml-2"
+                                                                    x-text="'via ' + role.inheritedFrom"></span>
+                                                                <span x-show="role.directlyAssigned && !role.inheritedFrom"
+                                                                    class="badge badge-xs badge-ghost">assigned</span>
+                                                            </a>
+                                                        </div>
+                                                    </template>
+                                                    <template x-if="getGranularRolesForPicker(user).length === 0">
+                                                        <div class="text-base-content/40 px-4 py-1 text-xs italic">Tidak ada
+                                                            role tersedia</div>
+                                                    </template>
                                             </div>
                                         </div>
 
@@ -219,22 +221,33 @@
                                     </span>
                                 </td>
                                 <td>
-                                    <div class="dropdown dropdown-end">
-                                        <button tabindex="0" class="btn btn-ghost btn-xs btn-circle">
+                                    <div class="relative" x-data="{ open: false, _btn: null, _raf: null }"
+                                        @click.outside="open = false"
+                                        @scroll.window="if(open && _btn && !_raf) _raf = requestAnimationFrame(() => { positionDropdown(_btn, _btn.nextElementSibling, 192); _raf = null; })"
+                                        @keydown.escape.window="open = false">
+                                        <button
+                                            @click="open = !open; if(open) { _btn = $el; $nextTick(() => positionDropdown($el, $el.nextElementSibling, 192)); } else { _btn = null; }"
+                                            class="btn btn-ghost btn-xs btn-circle">
                                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                                     d="M12 5v.01M12 12v.01M12 19v.01" />
                                             </svg>
                                         </button>
-                                        <ul tabindex="0"
-                                            class="dropdown-content !fixed z-[9999] menu p-2 shadow-xl bg-base-100 rounded-box w-48 border border-base-300">
+                                        <ul x-show="open"
+                                            x-transition:enter="transition ease-out duration-100"
+                                            x-transition:enter-start="opacity-0 scale-95"
+                                            x-transition:enter-end="opacity-100 scale-100"
+                                            x-transition:leave="transition ease-in duration-75"
+                                            x-transition:leave-start="opacity-100 scale-100"
+                                            x-transition:leave-end="opacity-0 scale-95"
+                                            class="fixed z-[9999] menu p-2 shadow-xl bg-base-100 rounded-box w-48 border border-base-300">
                                             <li :class="{ 'disabled opacity-50 pointer-events-none': isSelf(user) }">
                                                 <a>Edit</a>
                                             </li>
                                             <li><a>Reset Password</a></li>
                                             <li
                                                 :class="[user.active ? 'text-error' : 'text-success', { 'disabled opacity-50 pointer-events-none': isSelf(user) }]">
-                                                <a @click="!isSelf(user) && toggleUserStatus(user)"
+                                                <a @click="!isSelf(user) && (toggleUserStatus(user), open = false)"
                                                     x-text="user.active ? 'Nonaktifkan' : 'Aktifkan'"></a>
                                             </li>
                                             <template x-if="isSelf(user)">
@@ -879,24 +892,38 @@
                     },
 
                     // Position dropdown relative to trigger button
-                    positionDropdown(button, dropdown) {
+                    positionDropdown(button, dropdown, overrideWidth) {
                         if (!dropdown) return;
                         const rect = button.getBoundingClientRect();
-                        const dropdownWidth = 288; // w-72 = 18rem = 288px
+                        const dropdownWidth = overrideWidth || 320; // default w-80 = 320px
+                        const maxDropdownHeight = 400;
+                        const gap = 6;
+                        const margin = 12;
 
-                        // Position below button, aligned to right edge
+                        // Align to right edge of button, clamp to screen
                         let left = rect.right - dropdownWidth;
-                        let top = rect.bottom + 8;
-
-                        // Ensure it doesn't go off-screen left
-                        if (left < 8) left = 8;
-
-                        // Ensure it doesn't go off-screen bottom
-                        const maxHeight = window.innerHeight - top - 16;
-                        dropdown.style.maxHeight = Math.min(320, maxHeight) + 'px';
-
+                        if (left < margin) left = margin;
+                        if (left + dropdownWidth > window.innerWidth - margin)
+                            left = window.innerWidth - dropdownWidth - margin;
                         dropdown.style.left = left + 'px';
-                        dropdown.style.top = top + 'px';
+                        dropdown.style.right = 'auto';
+
+                        const spaceBelow = window.innerHeight - rect.bottom - gap - margin;
+                        const spaceAbove = rect.top - gap - margin;
+
+                        let height;
+                        if (spaceBelow >= 180 || spaceBelow >= spaceAbove) {
+                            // Open downward: anchor top of popup to below button
+                            dropdown.style.top = (rect.bottom + gap) + 'px';
+                            dropdown.style.bottom = 'auto';
+                            height = Math.min(maxDropdownHeight, spaceBelow);
+                        } else {
+                            // Open upward: anchor bottom of popup to above button
+                            dropdown.style.top = 'auto';
+                            dropdown.style.bottom = (window.innerHeight - rect.top + gap) + 'px';
+                            height = Math.min(maxDropdownHeight, spaceAbove);
+                        }
+                        dropdown.style.maxHeight = height + 'px';
                     },
 
                     async addRoleToUser(userId, roleName) {

@@ -16,7 +16,41 @@
 
     <properties>
         <java.version>25</java.version>
+        <jackson-bom.version>3.1.0</jackson-bom.version>
+        <tomcat.version>11.0.18</tomcat.version>
+        <!-- CVE-2026-24400: XXE in isXmlEqualTo, fixed in 3.27.7 -->
+        <assertj.version>3.27.7</assertj.version>
+        <!-- CVE-2026-1225 + CVE-2025-11226: RCE/ACE in logback config processing, fixed in 1.5.25 -->
+        <logback.version>1.5.25</logback.version>
     </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <!-- CVE-2024-47554: DoS via XmlStreamReader, fixed in 2.14.0+ -->
+            <dependency>
+                <groupId>commons-io</groupId>
+                <artifactId>commons-io</artifactId>
+                <version>2.17.0</version>
+            </dependency>
+            <!-- Pin Jackson 2.x to latest LTS — overrides transitive version from keycloak-admin-client -->
+            <dependency>
+                <groupId>com.fasterxml.jackson.core</groupId>
+                <artifactId>jackson-core</artifactId>
+                <version>2.21.1</version>
+            </dependency>
+            <dependency>
+                <groupId>com.fasterxml.jackson.core</groupId>
+                <artifactId>jackson-databind</artifactId>
+                <version>2.21.1</version>
+            </dependency>
+            <!-- jackson-annotations uses major.minor versioning only (no patch) since 2.20 -->
+            <dependency>
+                <groupId>com.fasterxml.jackson.core</groupId>
+                <artifactId>jackson-annotations</artifactId>
+                <version>2.21</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
     <dependencies>
         <dependency>
             <groupId>org.springframework.boot</groupId>
