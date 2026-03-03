@@ -1172,4 +1172,147 @@ Menjadi:
 
 ---
 
-**Last Updated**: 2026-03-02 (Neo — Catalog Drill-down Navigation Action Plan)
+---
+
+## 🔐 Mandatory Role Assignment — Technical Blueprint
+
+> **Neo Design**: 2026-03-03
+> **Status**: READY FOR IMPLEMENTATION
+> **Scope**: Pastikan setiap user yang dibuat di SatSetGo punya minimal 1 role — zero orphan users
+> **Effort**: ~1 sesi (4 file, ~30 LOC perubahan + fix bug)
+
+### Context
+
+Julia requirement (2026-03-03): "Zero user tanpa role." Tiga alur pembuatan user:
+
+| Path | Alur | Role | Status |
+|------|------|------|--------|
+| A | Self-service onboarding | `org_owner` (client) auto-assign | ✅ Already implemented |
+| B | Admin create org/reseller | `org_owner` (client) auto-assign | ✅ Already implemented |
+| C | Admin create backoffice user | Realm role mandatory input | ❌ **Needs fix** |
+
+**Path A & B sudah benar** — `StoreOnboardingDomainService` dan `AdminOnboardingDomainService` sudah panggil `assignClientRoleToUser(userId, "org_owner")`. Tidak ada perubahan.
+
+**Path C punya 3 masalah:**
+
+### Problem Analysis (Path C)
+
+#### P1 — DTO tanpa validasi
+```java
+// CreateUserRequest.java
+private List<String> roles;  // NO @NotNull, NO @NotEmpty
+// Comment: "Can be empty if no roles should be assigned" ← SALAH, harus mandatory
+```
+
+#### P2 — Frontend "Skip" button
+```html
+<!-- user-management.html Step 2 -->
+<button @click="skipRoles()">Skip</button>  <!-- Bisa bikin user tanpa role -->
+```
+`skipRoles()` set `selectedRoles = []` lalu langsung `submitForm()`.
+
+#### P3 — Service crash on empty roles
+```java
+// IdentityDomainService.java:141
+reqUserDTO.getRoles().getFirst();  // NoSuchElementException jika roles = []
+                                   // NullPointerException jika roles = null
+```
+Tidak di-catch oleh `catch (BusinessException e)` → HTTP 500.
+
+### Implementation Plan
+
+#### MR-1: Validate `roles` as mandatory in DTO
+**File**: `src/main/java/com/omnip/identity/adapter/in/web/dto/CreateUserRequest.java`
+**Change**:
+```java
+// BEFORE:
+private List<String> roles;
+
+// AFTER:
+@NotEmpty(message = "Minimal 1 role harus dipilih")
+private List<String> roles;
+```
+**Impact**: Request tanpa roles → HTTP 400 Bad Request (Bean Validation), bukan 500.
+
+#### MR-2: Support multi-role assignment at creation
+**File**: `src/main/java/com/omnip/identity/domain/service/IdentityDomainService.java`
+**Change**: Ganti `.getFirst()` → loop semua roles:
+```java
+// BEFORE:
+String providerUserId = keycloakAdminClientService.createBackofficeUser(
+    ..., reqUserDTO.getRoles().getFirst());
+
+// AFTER:
+// Create user dulu (tanpa role di method createBackofficeUser)
+// Lalu assign semua roles via loop
+String providerUserId = keycloakAdminClientService.createBackofficeUser(
+    reqUserDTO.getUsername(), reqUserDTO.getFullname(),
+    reqUserDTO.getEmail(), reqUserDTO.getPassword(),
+    reqUserDTO.getRoles().getFirst());
+
+// Assign additional roles (index 1+)
+for (int i = 1; i < reqUserDTO.getRoles().size(); i++) {
+    keycloakAdminClientService.assignRoleToUser(
+        providerUserId, reqUserDTO.getRoles().get(i));
+}
+```
+**Rationale**: Admin mungkin perlu assign >1 realm role sekaligus (contoh: `view_users` + `manage_users`). `createBackofficeUser()` sudah handle role pertama, sisanya via `assignRoleToUser()`.
+
+#### MR-3: Remove "Skip" button, enforce role selection in form
+**File**: `src/main/resources/templates/pages/admin/user-management.html`
+**Changes**:
+1. **Hapus tombol "Skip"** (`skipRoles()` function call)
+2. **Tambah validasi di `submitForm()`**: Block submit jika `selectedRoles.length === 0`
+3. **Set `errors.roles`** jika tidak ada role terpilih:
+```javascript
+// Di submitForm() atau validateStep2():
+if (this.selectedRoles.length === 0) {
+    this.errors.roles = 'Minimal 1 role harus dipilih';
+    return;
+}
+```
+4. **Disable tombol "Buat User"** saat `selectedRoles.length === 0` (visual feedback)
+
+#### MR-4: Update comment di DTO
+**File**: `CreateUserRequest.java`
+**Change**: Update Javadoc comment:
+```java
+// BEFORE: "Can be empty if no roles should be assigned."
+// AFTER: "At least one role is required for backoffice users."
+```
+
+### File Impact Summary
+
+| # | File | Change | LOC |
+|---|------|--------|-----|
+| MR-1 | `CreateUserRequest.java` | Add `@NotEmpty` + update comment | ~3 |
+| MR-2 | `IdentityDomainService.java` | Multi-role loop, fix crash | ~8 |
+| MR-3 | `user-management.html` | Remove Skip, add validation | ~15 |
+| MR-4 | `CreateUserRequest.java` | Update comment (merged with MR-1) | — |
+| **Total** | **3 files** | | **~26 LOC** |
+
+### Execution Order
+
+```
+MR-1 (DTO validation)  ──→  MR-2 (service fix)  ──→  MR-3 (frontend)  ──→  mvn compile verify
+```
+
+Sequential — MR-1 protects the backend, MR-2 fixes the crash, MR-3 fixes the UI.
+
+### Edge Cases
+
+| Case | Expected Behavior |
+|------|-------------------|
+| API call tanpa `roles` field | HTTP 400 — `@NotEmpty` validation |
+| API call dengan `roles: []` | HTTP 400 — `@NotEmpty` validation |
+| API call dengan `roles: ["nonexistent_role"]` | Keycloak throws → `BusinessException` → handled |
+| Form submit tanpa pilih role | Button disabled + error message |
+| Existing users tanpa role | **OUT OF SCOPE** — separate migration task |
+
+### Out of Scope (Conscious Decision)
+
+1. **Existing user migration** — cek dan fix user lama yang tidak punya role. Ini butuh audit Keycloak + DB, beda task.
+2. **Path A & B changes** — sudah benar, tidak disentuh.
+3. **Role hierarchy changes** — `org_owner` → `org_operator` → `transaction` tetap.
+
+**Last Updated**: 2026-03-03 (Neo — Mandatory Role Assignment Blueprint)

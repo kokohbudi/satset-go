@@ -55,6 +55,7 @@ node/
 
 # Claude Code local settings
 .claude/settings.local.json
+.mcp.json
 
 # Generated & logs
 /src/main/resources/static/css/output.css

@@ -132,14 +132,22 @@ public class IdentityDomainService implements ManageGroupsUseCase, ManageRolesUs
     @CacheEvict(value = "backofficeUsers", cacheManager = "shortTtlCacheManager", allEntries = true)
     public UserDTO createBackofficeUser(UserDTO reqUserDTO) {
         try {
-            // Step 1: Buat user di Keycloak
+            List<String> roles = reqUserDTO.getRoles();
+
+            // Step 1: Buat user di Keycloak + assign role pertama
             String providerUserId = keycloakAdminClientService.createBackofficeUser(
                     reqUserDTO.getUsername(),
                     reqUserDTO.getFullname(),
                     reqUserDTO.getEmail(),
                     reqUserDTO.getPassword(),
-                    reqUserDTO.getRoles().getFirst());
+                    roles.getFirst());
             log.info("User created in Keycloak with providerUserId: {}", providerUserId);
+
+            // Step 2: Assign additional roles (index 1+)
+            for (int i = 1; i < roles.size(); i++) {
+                keycloakAdminClientService.assignRoleToUser(providerUserId, roles.get(i));
+                log.info("Additional role '{}' assigned to user '{}'", roles.get(i), providerUserId);
+            }
 
             // Return user data (constructed from request + providerId)
             // Note: Data is NOT saved to local DB yet (Sync on Login)

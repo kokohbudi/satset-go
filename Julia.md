@@ -94,6 +94,53 @@ Supplier (H2H) → SatSetGo (base price + margin) → Store/Reseller (markup) �
 
 ---
 
+### Mandatory Role Assignment (All User Creation Paths)
+
+**Objective**: Zero user tanpa role di SatSetGo. Setiap user yang masuk ke sistem **pasti** punya minimal 1 role. Tidak boleh ada user "orphan" tanpa role.
+
+**Why**:
+- User tanpa role = tidak bisa apa-apa di sistem, tapi tetap occupy resources
+- Role menentukan akses (apa yang boleh dilihat/dilakukan)
+- Konsistensi data: setiap user punya identitas jelas (Owner, Operator, Admin)
+
+**Keycloak Role Hierarchy** (Client: `satsetgo-client`):
+```
+org_owner          ← pemilik toko (composite)
+  └─ org_operator  ← staff/kasir (composite)
+       └─ transaction  ← hak transaksi
+```
+
+**Business Rules per Alur:**
+
+#### Path A — Self-service Onboarding (Google Login → Daftar Toko)
+- User daftar sendiri → **otomatis dapat `org_owner`** (client role)
+- Tidak perlu pilih role, auto-assign saat onboarding selesai (Store created)
+- Rationale: yang daftar sendiri = pemilik toko
+
+#### Path B — Admin Create Org/Reseller (backoffice onboarding)
+- Admin buat organisasi baru di backoffice → user yang dibuat **otomatis dapat `org_owner`** (client role)
+- Sama seperti Path A, auto-assign, bukan pilihan
+- Rationale: setiap org punya 1 owner by default
+
+#### Path C — Admin Create User di `/admin/user-management`
+- Ini untuk user **backoffice/admin** (bukan reseller)
+- Role admin **wajib diinput** (mandatory field di form)
+- Role di sini = **realm roles** (view_users, manage_users, view_catalog, manage_catalog, dll.)
+- Tidak boleh submit tanpa memilih minimal 1 role
+
+**Key Decisions:**
+
+| Pertanyaan | Keputusan | Rationale |
+|---|---|---|
+| Role untuk self-service | **Auto `org_owner`** | Owner = yang daftar sendiri |
+| Role untuk admin-created org | **Auto `org_owner`** | Setiap org harus punya owner |
+| Role untuk admin-created user | **Mandatory input** | Admin harus tentukan role backoffice |
+| Existing users tanpa role | **Migration needed** | Cek dan assign retroactively |
+
+**Date**: 2026-03-03
+
+---
+
 ### Admin: Organization Management Screen
 
 **Objective**: Admin bisa melihat, mengelola, dan memonitor semua organisasi/toko dalam satu tabel. CRUD org dari sisi admin backoffice.

@@ -2,6 +2,7 @@ package com.omnip.identity.adapter.in.web.dto;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
@@ -34,8 +35,9 @@ public class CreateUserRequest {
 
     /**
      * List of role names to assign to the user.
-     * Can be empty if no roles should be assigned.
+     * At least one role is required for backoffice users.
      */
+    @NotEmpty(message = "Minimal 1 role harus dipilih")
     private List<String> roles;
 
     /**

@@ -533,9 +533,8 @@
                             </svg>
                             Kembali
                         </button>
-                        <button type="button" @click="skipRoles()" class="btn btn-ghost">Skip</button>
                         <button type="button" @click="submitForm()" class="btn btn-primary gap-2"
-                            :disabled="submitting">
+                            :disabled="submitting || selectedRoles.length === 0">
                             <span x-show="submitting" class="loading loading-spinner loading-sm"></span>
                             <span x-text="submitting ? 'Membuat...' : 'Buat User'"></span>
                         </button>
@@ -1207,26 +1206,20 @@
                         return roleName;
                     },
 
-                    skipRoles() {
-                        this.selectedRoles = [];
-                        this.submitForm();
-                    },
-
                     async submitForm() {
-                        if (this.selectedRoles.length === 0 && this.step === 2) {
-                            // Allow skip - don't validate roles
+                        if (this.selectedRoles.length === 0) {
+                            this.errors.roles = 'Minimal 1 role harus dipilih';
+                            return;
                         }
 
                         this.submitting = true;
                         try {
-                            // Step 1: Create user with first role (or empty array)
-                            const firstRole = this.selectedRoles.length > 0 ? this.selectedRoles[0] : null;
                             const payload = {
                                 username: this.form.username.trim(),
                                 email: this.form.email.trim(),
                                 fullname: this.form.fullname.trim(),
                                 password: this.form.password,
-                                roles: firstRole ? [firstRole] : []
+                                roles: this.selectedRoles
                             };
 
                             const res = await fetch('/api/idm/backoffice/users', {
@@ -1239,16 +1232,6 @@
 
                             if (!res.ok || data.status === 'failed') {
                                 throw new Error(data.message || 'Gagal membuat user');
-                            }
-
-                            // Step 2: Assign additional roles if any
-                            const additionalRoles = this.selectedRoles.slice(1);
-                            const userId = data.providerUserId;
-
-                            for (const roleName of additionalRoles) {
-                                await fetch(`/api/idm/users/${userId}/roles/${roleName}`, {
-                                    method: 'POST'
-                                });
                             }
 
                             // Success!

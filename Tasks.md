@@ -1,8 +1,8 @@
 # SatSetGo - Task Board
 
 > **Owner**: August (Senior PM)
-> **Last Updated**: 2026-03-02
-> **Sprint**: AP-N series (Catalog Drill-down Navigation) — Ready
+> **Last Updated**: 2026-03-03
+> **Sprint**: MR-series (Mandatory Role Assignment) — Ready
 
 ---
 
@@ -23,6 +23,15 @@
 > *Dipindahkan dari "UP NEXT" — bukan MVP blocker*
 - [-] Task 7-11: KC Org API read/update, AdminOrgService, Admin Org UI, members modal, edit business data
 - [-] User segregation backoffice vs reseller (brainstorm Option A/B/C sudah documented)
+
+### ~~Mandatory Role Assignment — MR-series~~ ✅ DONE
+> *Neo design plan selesai 2026-03-03. Lihat `TechSpecs.md` → "Mandatory Role Assignment — Technical Blueprint".*
+> *Path A (self-service) & Path B (admin create org): sudah auto-assign `org_owner` ✅. Scope hanya Path C (admin create backoffice user).*
+> *3 file, ~26 LOC. Sequential: MR-1 → MR-2 → MR-3 → verify.*
+
+- [x] **MR-1**: `CreateUserRequest.java` — tambah `@NotEmpty` validasi pada field `roles` + update comment ✅
+- [x] **MR-2**: `IdentityDomainService.java` — fix crash `.getFirst()` pada empty list + support multi-role assignment ✅
+- [x] **MR-3**: `user-management.html` — hapus tombol "Skip", enforce role selection mandatory di form ✅
 
 ### Admin User Management Cleanup (Post-MVP)
 - [-] Fix `/admin/user-management` — filter hanya tampilkan backoffice users
@@ -344,7 +353,7 @@
   - 27 unit tests (3 classes: Category 8, Product 10, Denom 9)
   - Keycloak roles `view_catalog` + `manage_catalog` created & assigned
 - **UX Decision**: Single sidebar menu "Kelola Katalog" → drill-down (Categories → Products → Denoms)
-- **Bug Report**: Tombol "Add User" tidak muncul di `/admin/user-management` meski role `manage_users` sudah ada — belum diinvestigasi
+- ~~**Bug Report**: Tombol "Add User" tidak muncul di `/admin/user-management` meski role `manage_users` sudah ada~~ → ✅ Solved
 - **⚠️ Uncommitted**: Semua perubahan masih di branch `admin-product-management`, belum commit
 
 **2026-03-01** (August — L-series & M-series Code Hygiene Sprint):
