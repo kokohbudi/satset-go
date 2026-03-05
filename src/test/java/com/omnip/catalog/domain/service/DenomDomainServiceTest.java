@@ -19,6 +19,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -63,6 +64,96 @@ class DenomDomainServiceTest {
         existingDenom.setPrice(new BigDecimal("5500.00"));
         existingDenom.setActive(true);
         existingDenom.setDeleted(false);
+    }
+
+    // === READ / BROWSE ===
+
+    @Test
+    void findByProduct_ProductFound_ReturnsDenoms() {
+        when(productRepository.findByCode("TELKOMSEL")).thenReturn(Optional.of(product));
+        when(denomRepository.findByProductIdAndActiveTrueAndDeletedFalseOrderBySortOrder(productId))
+                .thenReturn(List.of(existingDenom));
+
+        List<ProductDenoms> result = denomService.findByProduct("TELKOMSEL");
+
+        assertEquals(1, result.size());
+        assertEquals("TLKM5", result.get(0).getCode());
+    }
+
+    @Test
+    void findByProduct_ProductNotFound_ReturnsEmpty() {
+        when(productRepository.findByCode("UNKNOWN")).thenReturn(Optional.empty());
+
+        List<ProductDenoms> result = denomService.findByProduct("UNKNOWN");
+
+        assertTrue(result.isEmpty());
+    }
+
+    @Test
+    void findByCode_ActiveDenom_ReturnsOptional() {
+        when(denomRepository.findByCode("TLKM5")).thenReturn(Optional.of(existingDenom));
+
+        Optional<ProductDenoms> result = denomService.findByCode("TLKM5");
+
+        assertTrue(result.isPresent());
+        assertEquals("TLKM5", result.get().getCode());
+    }
+
+    @Test
+    void findByCode_InactiveDenom_ReturnsEmpty() {
+        existingDenom.setActive(false);
+        when(denomRepository.findByCode("TLKM5")).thenReturn(Optional.of(existingDenom));
+
+        assertTrue(denomService.findByCode("TLKM5").isEmpty());
+    }
+
+    @Test
+    void getDenomWithMeta_Found_LoadsMeta() {
+        com.omnip.catalog.domain.model.ProductDenomMeta meta = new com.omnip.catalog.domain.model.ProductDenomMeta();
+        meta.setId(UUID.randomUUID());
+        when(denomRepository.findByCode("TLKM5")).thenReturn(Optional.of(existingDenom));
+        when(metaRepository.findByProductDenomId(denomId)).thenReturn(List.of(meta));
+
+        Optional<ProductDenoms> result = denomService.getDenomWithMeta("TLKM5");
+
+        assertTrue(result.isPresent());
+        assertEquals(1, result.get().getMetadata().size());
+        verify(metaRepository).findByProductDenomId(denomId);
+    }
+
+    @Test
+    void getDenomWithMeta_NotFound_ReturnsEmpty() {
+        when(denomRepository.findByCode("UNKNOWN")).thenReturn(Optional.empty());
+
+        assertTrue(denomService.getDenomWithMeta("UNKNOWN").isEmpty());
+        verify(metaRepository, never()).findByProductDenomId(any());
+    }
+
+    @Test
+    void findByProductForAdmin_ReturnsList() {
+        when(denomRepository.findByProductIdOrderBySortOrder(productId))
+                .thenReturn(List.of(existingDenom));
+
+        List<ProductDenoms> result = denomService.findByProductForAdmin(productId);
+
+        assertEquals(1, result.size());
+    }
+
+    @Test
+    void findById_Found_ReturnsOptional() {
+        when(denomRepository.findById(denomId)).thenReturn(Optional.of(existingDenom));
+
+        Optional<ProductDenoms> result = denomService.findById(denomId);
+
+        assertTrue(result.isPresent());
+        assertEquals(denomId, result.get().getId());
+    }
+
+    @Test
+    void findById_NotFound_ReturnsEmpty() {
+        when(denomRepository.findById(denomId)).thenReturn(Optional.empty());
+
+        assertTrue(denomService.findById(denomId).isEmpty());
     }
 
     // === CREATE ===

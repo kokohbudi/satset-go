@@ -66,6 +66,84 @@ class ProductDomainServiceTest {
         existingProduct.setDeleted(false);
     }
 
+    // === READ / BROWSE ===
+
+    @Test
+    void findByCategory_CategoryFound_ReturnsProducts() {
+        when(categoryRepository.findByCode("PULSA")).thenReturn(Optional.of(category));
+        when(productRepository.findByCategoryIdAndActiveTrueAndDeletedFalseOrderBySortOrder(categoryId))
+                .thenReturn(List.of(existingProduct));
+
+        List<Products> result = productService.findByCategory("PULSA");
+
+        assertEquals(1, result.size());
+        assertEquals("TELKOMSEL", result.get(0).getCode());
+    }
+
+    @Test
+    void findByCategory_CategoryNotFound_ReturnsEmpty() {
+        when(categoryRepository.findByCode("UNKNOWN")).thenReturn(Optional.empty());
+
+        List<Products> result = productService.findByCategory("UNKNOWN");
+
+        assertTrue(result.isEmpty());
+    }
+
+    @Test
+    void findActiveProducts_ReturnsList() {
+        when(productRepository.findByActiveTrueAndDeletedFalseOrderBySortOrder())
+                .thenReturn(List.of(existingProduct));
+
+        List<Products> result = productService.findActiveProducts();
+
+        assertEquals(1, result.size());
+    }
+
+    @Test
+    void findByCode_ActiveProduct_ReturnsOptional() {
+        when(productRepository.findByCode("TELKOMSEL")).thenReturn(Optional.of(existingProduct));
+
+        Optional<Products> result = productService.findByCode("TELKOMSEL");
+
+        assertTrue(result.isPresent());
+        assertEquals("TELKOMSEL", result.get().getCode());
+    }
+
+    @Test
+    void findByCode_InactiveProduct_ReturnsEmpty() {
+        existingProduct.setActive(false);
+        when(productRepository.findByCode("TELKOMSEL")).thenReturn(Optional.of(existingProduct));
+
+        assertTrue(productService.findByCode("TELKOMSEL").isEmpty());
+    }
+
+    @Test
+    void findByCategoryForAdmin_ReturnsList() {
+        when(productRepository.findByCategoryIdOrderBySortOrder(categoryId))
+                .thenReturn(List.of(existingProduct));
+
+        List<Products> result = productService.findByCategoryForAdmin(categoryId);
+
+        assertEquals(1, result.size());
+    }
+
+    @Test
+    void findById_Found_ReturnsOptional() {
+        when(productRepository.findById(productId)).thenReturn(Optional.of(existingProduct));
+
+        Optional<Products> result = productService.findById(productId);
+
+        assertTrue(result.isPresent());
+        assertEquals(productId, result.get().getId());
+    }
+
+    @Test
+    void findById_NotFound_ReturnsEmpty() {
+        when(productRepository.findById(productId)).thenReturn(Optional.empty());
+
+        assertTrue(productService.findById(productId).isEmpty());
+    }
+
     // === CREATE ===
 
     @Test

@@ -15,6 +15,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -45,6 +46,82 @@ class CategoryDomainServiceTest {
         existingCategory.setActive(true);
         existingCategory.setDeleted(false);
         existingCategory.setSortOrder(1);
+    }
+
+    // === READ / BROWSE ===
+
+    @Test
+    void findAll_ReturnsList() {
+        when(categoryRepository.findByActiveTrueAndDeletedFalseOrderBySortOrder())
+                .thenReturn(List.of(existingCategory));
+
+        List<Categories> result = categoryService.findAll();
+
+        assertEquals(1, result.size());
+        assertEquals("PULSA", result.get(0).getCode());
+    }
+
+    @Test
+    void findByCode_ActiveCategory_ReturnsOptional() {
+        when(categoryRepository.findByCode("PULSA")).thenReturn(Optional.of(existingCategory));
+
+        Optional<Categories> result = categoryService.findByCode("PULSA");
+
+        assertTrue(result.isPresent());
+        assertEquals("PULSA", result.get().getCode());
+    }
+
+    @Test
+    void findByCode_InactiveCategory_ReturnsEmpty() {
+        existingCategory.setActive(false);
+        when(categoryRepository.findByCode("PULSA")).thenReturn(Optional.of(existingCategory));
+
+        Optional<Categories> result = categoryService.findByCode("PULSA");
+
+        assertTrue(result.isEmpty());
+    }
+
+    @Test
+    void findByCode_NotFound_ReturnsEmpty() {
+        when(categoryRepository.findByCode("UNKNOWN")).thenReturn(Optional.empty());
+
+        assertTrue(categoryService.findByCode("UNKNOWN").isEmpty());
+    }
+
+    @Test
+    void findByType_ReturnsList() {
+        when(categoryRepository.findByCategoryTypeAndActiveTrueAndDeletedFalseOrderBySortOrder(CategoryType.PREPAID))
+                .thenReturn(List.of(existingCategory));
+
+        List<Categories> result = categoryService.findByType(CategoryType.PREPAID);
+
+        assertEquals(1, result.size());
+    }
+
+    @Test
+    void findAllForAdmin_ReturnsList() {
+        when(categoryRepository.findAllByOrderBySortOrder()).thenReturn(List.of(existingCategory));
+
+        List<Categories> result = categoryService.findAllForAdmin();
+
+        assertEquals(1, result.size());
+    }
+
+    @Test
+    void findById_Found_ReturnsOptional() {
+        when(categoryRepository.findById(categoryId)).thenReturn(Optional.of(existingCategory));
+
+        Optional<Categories> result = categoryService.findById(categoryId);
+
+        assertTrue(result.isPresent());
+        assertEquals(categoryId, result.get().getId());
+    }
+
+    @Test
+    void findById_NotFound_ReturnsEmpty() {
+        when(categoryRepository.findById(categoryId)).thenReturn(Optional.empty());
+
+        assertTrue(categoryService.findById(categoryId).isEmpty());
     }
 
     // === CREATE ===
