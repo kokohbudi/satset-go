@@ -1,0 +1,715 @@
+{
+  "realm": "satset-go",
+  "displayName": "",
+  "enabled": true,
+  "sslRequired": "none",
+  "registrationAllowed": true,
+  "registrationEmailAsUsername": true,
+  "rememberMe": false,
+  "verifyEmail": false,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "resetPasswordAllowed": false,
+  "accessTokenLifespan": 300,
+  "ssoSessionIdleTimeout": 1800,
+  "ssoSessionMaxLifespan": 36000,
+  "roles": {
+    "realm": [
+      {
+        "id": "c78782bd-f497-4ad7-9cb2-f6e61a2d4f11",
+        "name": "create-reseller",
+        "description": "",
+        "composite": false,
+        "clientRole": false,
+        "containerId": "83c44bdc-a3c2-48e5-aab7-204b945f85ab"
+      },
+      {
+        "id": "d121da99-6a66-40e9-af03-696324c910a0",
+        "name": "delete_users",
+        "description": "",
+        "composite": false,
+        "clientRole": false,
+        "containerId": "83c44bdc-a3c2-48e5-aab7-204b945f85ab"
+      },
+      {
+        "id": "6e05fc1e-871c-4e00-9932-5f0b9db6e0d3",
+        "name": "edit_users",
+        "description": "",
+        "composite": false,
+        "clientRole": false,
+        "containerId": "83c44bdc-a3c2-48e5-aab7-204b945f85ab"
+      },
+      {
+        "id": "a3878c42-60cc-4e32-acfe-86e0601c5b31",
+        "name": "manage_catalog",
+        "description": "Create, update, delete categories, products, and denoms",
+        "composite": true,
+        "clientRole": false,
+        "containerId": "83c44bdc-a3c2-48e5-aab7-204b945f85ab"
+      },
+      {
+        "id": "b7d8073c-85b6-41ae-8889-96445ad2519d",
+        "name": "manage_users",
+        "description": "",
+        "composite": true,
+        "clientRole": false,
+        "containerId": "83c44bdc-a3c2-48e5-aab7-204b945f85ab"
+      },
+      {
+        "id": "8d1d135a-ff3e-4965-9322-a966b453ff09",
+        "name": "view_users",
+        "composite": false,
+        "clientRole": false,
+        "containerId": "83c44bdc-a3c2-48e5-aab7-204b945f85ab"
+      },
+      {
+        "id": "25f61093-149f-4844-9af9-4adbbc95476c",
+        "name": "offline_access",
+        "description": "${role_offline-access}",
+        "composite": false,
+        "clientRole": false,
+        "containerId": "83c44bdc-a3c2-48e5-aab7-204b945f85ab"
+      },
+      {
+        "id": "74981479-c446-43ab-ac25-cfdbb2f97e24",
+        "name": "default-roles-satset-go",
+        "description": "${role_default-roles}",
+        "composite": true,
+        "clientRole": false,
+        "containerId": "83c44bdc-a3c2-48e5-aab7-204b945f85ab"
+      },
+      {
+        "id": "492d7aae-25cc-4228-83e4-948c23c02ab8",
+        "name": "view_catalog",
+        "description": "View categories, products, and denoms in admin catalog",
+        "composite": false,
+        "clientRole": false,
+        "containerId": "83c44bdc-a3c2-48e5-aab7-204b945f85ab"
+      },
+      {
+        "id": "836bf23b-97f8-48de-bf73-968ca7fb41fe",
+        "name": "create_users",
+        "description": "",
+        "composite": false,
+        "clientRole": false,
+        "containerId": "83c44bdc-a3c2-48e5-aab7-204b945f85ab"
+      },
+      {
+        "id": "46975212-3181-4dcf-9292-b7df183c237c",
+        "name": "assign_user_to_groups",
+        "description": "",
+        "composite": false,
+        "clientRole": false,
+        "containerId": "83c44bdc-a3c2-48e5-aab7-204b945f85ab"
+      },
+      {
+        "id": "3a0a8819-bb61-4c35-980d-cceff7b761ab",
+        "name": "backoffice-admin",
+        "description": "admin backoffice",
+        "composite": true,
+        "clientRole": false,
+        "containerId": "83c44bdc-a3c2-48e5-aab7-204b945f85ab"
+      },
+      {
+        "id": "7c66e1bb-5d19-41da-aae4-8c1528dd2779",
+        "name": "view-resellers",
+        "composite": false,
+        "clientRole": false,
+        "containerId": "83c44bdc-a3c2-48e5-aab7-204b945f85ab"
+      },
+      {
+        "id": "16bb54fc-fabc-49d4-ae60-2ffd25a35d27",
+        "name": "manage_categories",
+        "description": "CRUD categories in catalog",
+        "composite": false,
+        "clientRole": false,
+        "containerId": "83c44bdc-a3c2-48e5-aab7-204b945f85ab"
+      },
+      {
+        "id": "d77f4c9a-5977-4bbe-b5a8-185a294645c8",
+        "name": "manage-reseller",
+        "description": "",
+        "composite": true,
+        "clientRole": false,
+        "containerId": "83c44bdc-a3c2-48e5-aab7-204b945f85ab"
+      },
+      {
+        "id": "ee924826-e4fd-44f2-b4cf-7093f7702fdb",
+        "name": "uma_authorization",
+        "description": "${role_uma_authorization}",
+        "composite": false,
+        "clientRole": false,
+        "containerId": "83c44bdc-a3c2-48e5-aab7-204b945f85ab"
+      },
+      {
+        "id": "1ecf211f-638b-40ea-a966-a428d854da96",
+        "name": "backoffice-operator",
+        "description": "",
+        "composite": true,
+        "clientRole": false,
+        "containerId": "83c44bdc-a3c2-48e5-aab7-204b945f85ab"
+      },
+      {
+        "id": "f42552f5-f880-4569-b0f1-041c5637dcb8",
+        "name": "manage_denoms",
+        "description": "CRUD denoms in catalog",
+        "composite": false,
+        "clientRole": false,
+        "containerId": "83c44bdc-a3c2-48e5-aab7-204b945f85ab"
+      },
+      {
+        "id": "46837adb-e4b4-4ee5-9ac9-742403870dcc",
+        "name": "manage_products",
+        "description": "CRUD products in catalog",
+        "composite": false,
+        "clientRole": false,
+        "containerId": "83c44bdc-a3c2-48e5-aab7-204b945f85ab"
+      }
+    ]
+  },
+  "users": [
+    {
+      "id": "90790adc-aed8-49c0-954f-2969f5f2d81a",
+      "username": "admin@satset-go.id",
+      "firstName": "Administrator",
+      "lastName": "Satset-Go",
+      "email": "admin@satset-go.id",
+      "emailVerified": false,
+      "createdTimestamp": 1769677598167,
+      "enabled": true,
+      "totp": false,
+      "disableableCredentialTypes": [],
+      "requiredActions": [],
+      "notBefore": 0,
+      "access": {
+        "manage": true
+      }
+    },
+    {
+      "id": "1a5a9fbf-39af-4434-a40f-01f53c981c10",
+      "username": "bdalem759@gmail.com",
+      "firstName": "ban",
+      "lastName": "dalem",
+      "email": "bdalem759@gmail.com",
+      "emailVerified": false,
+      "createdTimestamp": 1771930382163,
+      "enabled": true,
+      "totp": false,
+      "disableableCredentialTypes": [],
+      "requiredActions": [],
+      "notBefore": 0,
+      "access": {
+        "manage": true
+      }
+    },
+    {
+      "id": "17c7f490-39b4-40ce-8ad0-fa60ae1fe8b4",
+      "username": "bebekwekwek@gmail.com",
+      "firstName": "toko bebek",
+      "lastName": "toko bebek",
+      "email": "bebekwekwek@gmail.com",
+      "emailVerified": true,
+      "createdTimestamp": 1771996338022,
+      "enabled": true,
+      "totp": false,
+      "disableableCredentialTypes": [],
+      "requiredActions": [
+        "UPDATE_PASSWORD"
+      ],
+      "notBefore": 0,
+      "access": {
+        "manage": true
+      }
+    },
+    {
+      "id": "c516dc70-4630-4b50-9c82-b63d1bd80570",
+      "username": "dedyadiha@gmail.com",
+      "firstName": "Adiha",
+      "lastName": "Dedy",
+      "email": "dedyadiha@gmail.com",
+      "emailVerified": false,
+      "createdTimestamp": 1771917122083,
+      "enabled": true,
+      "totp": false,
+      "disableableCredentialTypes": [],
+      "requiredActions": [],
+      "notBefore": 0,
+      "access": {
+        "manage": true
+      }
+    },
+    {
+      "id": "42552292-8601-4e4c-9bdc-c1d412ebc902",
+      "username": "kokohbudi75@gmail.com",
+      "firstName": "kokohbudi2",
+      "lastName": "romansyah",
+      "email": "kokohbudi75@gmail.com",
+      "emailVerified": false,
+      "createdTimestamp": 1772324911826,
+      "enabled": true,
+      "totp": false,
+      "disableableCredentialTypes": [],
+      "requiredActions": [],
+      "notBefore": 0,
+      "access": {
+        "manage": true
+      }
+    },
+    {
+      "id": "54b38010-853b-4321-8595-553c3e721bc9",
+      "username": "koza.ninja@gmail.com",
+      "firstName": "Kokoh",
+      "lastName": "Budi Romansyah",
+      "email": "koza.ninja@gmail.com",
+      "emailVerified": false,
+      "createdTimestamp": 1771930156163,
+      "enabled": true,
+      "totp": false,
+      "disableableCredentialTypes": [],
+      "requiredActions": [],
+      "notBefore": 0,
+      "access": {
+        "manage": true
+      }
+    },
+    {
+      "id": "9c358a2e-7813-45f2-b58b-a5afdbd46ee0",
+      "username": "meletbebek@gmail.com",
+      "firstName": "melet",
+      "lastName": "melet",
+      "email": "meletbebek@gmail.com",
+      "emailVerified": false,
+      "createdTimestamp": 1770021664452,
+      "enabled": true,
+      "totp": false,
+      "disableableCredentialTypes": [],
+      "requiredActions": [],
+      "notBefore": 0,
+      "access": {
+        "manage": true
+      }
+    }
+  ],
+  "clients": [
+    {
+      "id": "d6910e7b-418a-4cf7-9b3c-db58166e652a",
+      "clientId": "account",
+      "name": "${client_account}",
+      "rootUrl": "${authBaseUrl}",
+      "baseUrl": "/realms/satset-go/account/",
+      "surrogateAuthRequired": false,
+      "enabled": true,
+      "alwaysDisplayInConsole": false,
+      "clientAuthenticatorType": "client-secret",
+      "redirectUris": [
+        "/realms/satset-go/account/*"
+      ],
+      "webOrigins": [],
+      "notBefore": 0,
+      "bearerOnly": false,
+      "consentRequired": false,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "publicClient": true,
+      "frontchannelLogout": false,
+      "protocol": "openid-connect",
+      "attributes": {
+        "realm_client": "false",
+        "post.logout.redirect.uris": "+"
+      },
+      "authenticationFlowBindingOverrides": {},
+      "fullScopeAllowed": false,
+      "nodeReRegistrationTimeout": 0,
+      "defaultClientScopes": [
+        "web-origins",
+        "acr",
+        "profile",
+        "roles",
+        "basic",
+        "email"
+      ],
+      "optionalClientScopes": [
+        "address",
+        "phone",
+        "offline_access",
+        "organization",
+        "microprofile-jwt"
+      ],
+      "access": {
+        "view": true,
+        "configure": true,
+        "manage": true
+      }
+    },
+    {
+      "id": "8436a53d-4491-4f18-8b9d-8d04ba762254",
+      "clientId": "account-console",
+      "name": "${client_account-console}",
+      "rootUrl": "${authBaseUrl}",
+      "baseUrl": "/realms/satset-go/account/",
+      "surrogateAuthRequired": false,
+      "enabled": true,
+      "alwaysDisplayInConsole": false,
+      "clientAuthenticatorType": "client-secret",
+      "redirectUris": [
+        "/realms/satset-go/account/*"
+      ],
+      "webOrigins": [],
+      "notBefore": 0,
+      "bearerOnly": false,
+      "consentRequired": false,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "publicClient": true,
+      "frontchannelLogout": false,
+      "protocol": "openid-connect",
+      "attributes": {
+        "realm_client": "false",
+        "post.logout.redirect.uris": "+",
+        "pkce.code.challenge.method": "S256"
+      },
+      "authenticationFlowBindingOverrides": {},
+      "fullScopeAllowed": false,
+      "nodeReRegistrationTimeout": 0,
+      "protocolMappers": [
+        {
+          "id": "57eb2175-02c3-47c7-ad1c-01801d9496d2",
+          "name": "audience resolve",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-resolve-mapper",
+          "consentRequired": false,
+          "config": {}
+        }
+      ],
+      "defaultClientScopes": [
+        "web-origins",
+        "acr",
+        "profile",
+        "roles",
+        "basic",
+        "email"
+      ],
+      "optionalClientScopes": [
+        "address",
+        "phone",
+        "offline_access",
+        "organization",
+        "microprofile-jwt"
+      ],
+      "access": {
+        "view": true,
+        "configure": true,
+        "manage": true
+      }
+    },
+    {
+      "id": "209836de-a252-4533-b039-f774d25cfd05",
+      "clientId": "admin-cli",
+      "name": "${client_admin-cli}",
+      "surrogateAuthRequired": false,
+      "enabled": true,
+      "alwaysDisplayInConsole": false,
+      "clientAuthenticatorType": "client-secret",
+      "redirectUris": [],
+      "webOrigins": [],
+      "notBefore": 0,
+      "bearerOnly": false,
+      "consentRequired": false,
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": true,
+      "serviceAccountsEnabled": false,
+      "publicClient": true,
+      "frontchannelLogout": false,
+      "protocol": "openid-connect",
+      "attributes": {
+        "realm_client": "false",
+        "client.use.lightweight.access.token.enabled": "true"
+      },
+      "authenticationFlowBindingOverrides": {},
+      "fullScopeAllowed": true,
+      "nodeReRegistrationTimeout": 0,
+      "defaultClientScopes": [
+        "web-origins",
+        "acr",
+        "profile",
+        "roles",
+        "basic",
+        "email"
+      ],
+      "optionalClientScopes": [
+        "address",
+        "phone",
+        "offline_access",
+        "organization",
+        "microprofile-jwt"
+      ],
+      "access": {
+        "view": true,
+        "configure": true,
+        "manage": true
+      }
+    },
+    {
+      "id": "a62b1340-68cf-4034-9720-38cca069ee2f",
+      "clientId": "broker",
+      "name": "${client_broker}",
+      "surrogateAuthRequired": false,
+      "enabled": true,
+      "alwaysDisplayInConsole": false,
+      "clientAuthenticatorType": "client-secret",
+      "redirectUris": [],
+      "webOrigins": [],
+      "notBefore": 0,
+      "bearerOnly": true,
+      "consentRequired": false,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "publicClient": false,
+      "frontchannelLogout": false,
+      "protocol": "openid-connect",
+      "attributes": {
+        "realm_client": "true"
+      },
+      "authenticationFlowBindingOverrides": {},
+      "fullScopeAllowed": false,
+      "nodeReRegistrationTimeout": 0,
+      "defaultClientScopes": [
+        "web-origins",
+        "acr",
+        "profile",
+        "roles",
+        "basic",
+        "email"
+      ],
+      "optionalClientScopes": [
+        "address",
+        "phone",
+        "offline_access",
+        "organization",
+        "microprofile-jwt"
+      ],
+      "access": {
+        "view": true,
+        "configure": true,
+        "manage": true
+      }
+    },
+    {
+      "id": "f8c3f3f2-d287-4270-b482-a18fc189b89e",
+      "clientId": "realm-management",
+      "name": "${client_realm-management}",
+      "surrogateAuthRequired": false,
+      "enabled": true,
+      "alwaysDisplayInConsole": false,
+      "clientAuthenticatorType": "client-secret",
+      "redirectUris": [],
+      "webOrigins": [],
+      "notBefore": 0,
+      "bearerOnly": true,
+      "consentRequired": false,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "publicClient": false,
+      "frontchannelLogout": false,
+      "protocol": "openid-connect",
+      "attributes": {
+        "realm_client": "true"
+      },
+      "authenticationFlowBindingOverrides": {},
+      "fullScopeAllowed": false,
+      "nodeReRegistrationTimeout": 0,
+      "defaultClientScopes": [
+        "web-origins",
+        "acr",
+        "profile",
+        "roles",
+        "basic",
+        "email"
+      ],
+      "optionalClientScopes": [
+        "address",
+        "phone",
+        "offline_access",
+        "organization",
+        "microprofile-jwt"
+      ],
+      "access": {
+        "view": true,
+        "configure": true,
+        "manage": true
+      }
+    },
+    {
+      "id": "aaf63ddc-90db-4397-891e-5b45e688a984",
+      "clientId": "satsetgo-client",
+      "name": "",
+      "description": "",
+      "rootUrl": "",
+      "adminUrl": "",
+      "baseUrl": "",
+      "surrogateAuthRequired": false,
+      "enabled": true,
+      "alwaysDisplayInConsole": false,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "DK7FlkfgrBrRbKEBNMhJuS3ta8oolUcj",
+      "redirectUris": [
+        "http://localhost:8080/*",
+        "http://localhost:8080/login/oauth2/code/keycloak"
+      ],
+      "webOrigins": [
+        "/*"
+      ],
+      "notBefore": 0,
+      "bearerOnly": false,
+      "consentRequired": false,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": true,
+      "authorizationServicesEnabled": true,
+      "publicClient": false,
+      "frontchannelLogout": false,
+      "protocol": "openid-connect",
+      "attributes": {
+        "realm_client": "false",
+        "oidc.ciba.grant.enabled": "false",
+        "client.secret.creation.time": "1769678731",
+        "backchannel.logout.session.required": "true",
+        "backchannel.logout.url": "http://localhost:8080/logout/connect/back-channel/keycloak",
+        "standard.token.exchange.enabled": "false",
+        "frontchannel.logout.session.required": "true",
+        "post.logout.redirect.uris": "ttp://localhost:8080##http://localhost:8080/",
+        "display.on.consent.screen": "false",
+        "oauth2.device.authorization.grant.enabled": "false",
+        "backchannel.logout.revoke.offline.tokens": "false"
+      },
+      "authenticationFlowBindingOverrides": {},
+      "fullScopeAllowed": true,
+      "nodeReRegistrationTimeout": -1,
+      "protocolMappers": [
+        {
+          "id": "6e31680a-7456-4b86-8174-bb9e4fda9451",
+          "name": "realm roles",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-realm-role-mapper",
+          "consentRequired": false,
+          "config": {
+            "introspection.token.claim": "true",
+            "multivalued": "true",
+            "userinfo.token.claim": "false",
+            "user.attribute": "foo",
+            "id.token.claim": "true",
+            "lightweight.claim": "false",
+            "access.token.claim": "false",
+            "claim.name": "realm_access.roles",
+            "jsonType.label": "String"
+          }
+        }
+      ],
+      "defaultClientScopes": [
+        "service_account",
+        "web-origins",
+        "acr",
+        "profile",
+        "roles",
+        "organization",
+        "basic",
+        "email"
+      ],
+      "optionalClientScopes": [
+        "address",
+        "phone",
+        "offline_access",
+        "microprofile-jwt"
+      ],
+      "access": {
+        "view": true,
+        "configure": true,
+        "manage": true
+      }
+    },
+    {
+      "id": "98f7b660-c606-4538-b300-56fe35f0e8ba",
+      "clientId": "security-admin-console",
+      "name": "${client_security-admin-console}",
+      "rootUrl": "${authAdminUrl}",
+      "baseUrl": "/admin/satset-go/console/",
+      "surrogateAuthRequired": false,
+      "enabled": true,
+      "alwaysDisplayInConsole": false,
+      "clientAuthenticatorType": "client-secret",
+      "redirectUris": [
+        "/admin/satset-go/console/*"
+      ],
+      "webOrigins": [
+        "+"
+      ],
+      "notBefore": 0,
+      "bearerOnly": false,
+      "consentRequired": false,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "publicClient": true,
+      "frontchannelLogout": false,
+      "protocol": "openid-connect",
+      "attributes": {
+        "realm_client": "false",
+        "client.use.lightweight.access.token.enabled": "true",
+        "post.logout.redirect.uris": "+",
+        "pkce.code.challenge.method": "S256"
+      },
+      "authenticationFlowBindingOverrides": {},
+      "fullScopeAllowed": true,
+      "nodeReRegistrationTimeout": 0,
+      "protocolMappers": [
+        {
+          "id": "850db0e2-31f7-4cda-aef9-b8800fcd30a5",
+          "name": "locale",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-attribute-mapper",
+          "consentRequired": false,
+          "config": {
+            "introspection.token.claim": "true",
+            "userinfo.token.claim": "true",
+            "user.attribute": "locale",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "claim.name": "locale",
+            "jsonType.label": "String"
+          }
+        }
+      ],
+      "defaultClientScopes": [
+        "web-origins",
+        "acr",
+        "profile",
+        "roles",
+        "basic",
+        "email"
+      ],
+      "optionalClientScopes": [
+        "address",
+        "phone",
+        "offline_access",
+        "organization",
+        "microprofile-jwt"
+      ],
+      "access": {
+        "view": true,
+        "configure": true,
+        "manage": true
+      }
+    }
+  ]
+}
