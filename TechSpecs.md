@@ -1316,3 +1316,639 @@ Sequential — MR-1 protects the backend, MR-2 fixes the crash, MR-3 fixes the U
 3. **Role hierarchy changes** — `org_owner` → `org_operator` → `transaction` tetap.
 
 **Last Updated**: 2026-03-03 (Neo — Mandatory Role Assignment Blueprint)
+
+---
+
+---
+
+## 💰 Wallet Service — Technical Design
+
+> **Neo Design**: 2026-03-05
+> **Status**: PLANNING — belum dieksekusi. Menunggu keputusan repo structure dari Kokoh.
+> **Scope**: Pisahkan semua urusan finansial ke service terpisah `omnip-wallet`
+
+---
+
+### 1. Architecture Overview
+
+```
+┌─────────────────────────────────┐     ┌──────────────────────────────────┐
+│   omnip-services-3 (Core)       │     │   omnip-wallet (Wallet Service)  │
+│                                 │     │                                  │
+│  - Catalog (produk, denom)      │────>│  - Balance management            │
+│  - Transactions (flow)          │REST │  - Mutation ledger (Double-Entry) │
+│  - Onboarding (store, user)     │     │  - Top-up processing             │
+│  - User management              │     │  - Refund operations             │
+│  - UI (Thymeleaf)               │     │  - Mutation history              │
+└─────────────────────────────────┘     └──────────────────────────────────┘
+              │                                        │
+              └──────────────────┬─────────────────────┘
+                                 │
+                    ┌────────────▼────────────┐
+                    │       Keycloak          │
+                    │     (satset-go)         │
+                    │   Shared Auth Realm     │
+                    └─────────────────────────┘
+```
+
+---
+
+### 2. Data Ownership
+
+| Data | Current Location | After Separation |
+|------|-----------------|------------------|
+| `store_mutations` table | Core DB (`omni_pulsa`) | **Wallet DB** (terpisah) |
+| `stores.balance` field | Core DB (`Stores` entity) | **Deprecated** — Wallet = single source of truth |
+| `Transactions` table | Core DB | Tetap di Core |
+| Payment gateway callbacks | (belum ada) | **Wallet Service** — bukan Core |
+| Store entity | Core DB | Tetap di Core — wallet hanya kenal `storeId` (UUID) |
+
+**Key Decision**: Wallet tidak kenal `Stores` entity. Hanya pakai `storeId` (UUID) sebagai identifier. Ini clean boundary.
+
+---
+
+### 3. Wallet Service — Internal API Contract
+
+```
+Base URL: /internal/wallet
+
+GET  /internal/wallet/balance/{storeId}
+     → { storeId, balance, currency: "IDR", asOf: timestamp }
+
+POST /internal/wallet/debit
+     Body: { storeId, amount, referenceId, referenceType, description }
+     → { mutationId, newBalance }
+
+POST /internal/wallet/credit
+     Body: { storeId, amount, referenceId, referenceType, description }
+     → { mutationId, newBalance }
+
+POST /internal/wallet/refund
+     Body: { storeId, amount, originalReferenceId, description }
+     → { mutationId, newBalance }
+
+GET  /internal/wallet/mutations/{storeId}?page=0&size=20
+     → Page<MutationDTO>
+```
+
+**Auth**: JWT Bearer token. Wallet = Keycloak Resource Server (realm `satset-go`, issuer same). Core call wallet via **service account** (client credentials grant — bukan atas nama user).
+
+---
+
+### 4. Distributed Transaction — Saga Pattern
+
+Masalah utama pemisahan: `TransactionDomainService` saat ini melakukan atomic:
+```
+1. deductBalance()  →  2. callProvider()  →  3. (if fail) refundBalance()
+```
+
+Dalam 1 DB transaction. Setelah pemisahan, ini tidak bisa atomic lagi.
+
+**Solusi: Saga Choreography dengan Idempotent Operations**
+
+```
+Core: POST /api/purchase
+  Step 1: POST /internal/wallet/debit  { storeId, amount, referenceId: txId }
+          → OK (balance deducted)
+  Step 2: Core calls MockProvider/RealProvider
+          → SUCCESS → Core marks Transaction status = SUCCESS
+          → FAIL    → Step 3
+  Step 3 (compensating): POST /internal/wallet/refund { storeId, amount, originalReferenceId: txId }
+          → Balance restored (compensating mutation appended to ledger)
+```
+
+**Idempotency**: Setiap operation harus idempotent via `referenceId`. Kalau Core retry debit dengan `referenceId` yang sama → Wallet check: sudah ada → return existing result tanpa debit ulang.
+
+```sql
+-- Wallet DB: unique constraint
+ALTER TABLE store_mutations ADD CONSTRAINT uq_mutations_reference
+    UNIQUE (reference_id, reference_type, mutation_type);
+```
+
+---
+
+### 5. Auth Integration (Keycloak)
+
+```yaml
+# omnip-wallet/src/main/resources/application.yml
+spring:
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${KEYCLOAK_BASE_URL}/realms/${KEYCLOAK_REALM}
+          # Same realm as core — shared JWKS endpoint
+```
+
+Core memanggil Wallet pakai **client credentials**:
+```java
+// Core: WalletClient.java (RestClient atau WebClient)
+// Ambil token dari Keycloak dengan client_credentials grant
+// Authorization: Bearer <service_account_token>
+```
+
+Wallet perlu validasi bahwa caller adalah service account (bukan end user) — via claim `azp` atau custom scope.
+
+---
+
+### 6. Migration Path dari Current Implementation
+
+| Phase | Action | Risk |
+|-------|--------|------|
+| **Phase 0** | Design finalized, repo created | Low |
+| **Phase 1** | Wallet service skeleton (Spring Boot, Keycloak auth, basic endpoints) | Low |
+| **Phase 2** | Migrate `StoreMutations` entity → Wallet DB | Medium — data migration needed |
+| **Phase 3** | `BalanceDomainService` logic → `WalletDomainService` di wallet service | Medium |
+| **Phase 4** | Core: replace `BalanceDomainService` calls → HTTP calls ke Wallet API | High — distributed tx |
+| **Phase 5** | Deprecated `Stores.balance` field (nullable, eventually removed) | Low |
+| **Phase 6** | Integration tests end-to-end (purchase flow with Saga) | Medium |
+
+---
+
+### 7. Wallet Service — Tech Stack (Proposed)
+
+| Concern | Decision | Rationale |
+|---------|----------|-----------|
+| Framework | Spring Boot 4.0.1 (sama) | Consistency, same team expertise |
+| Java | 25 (sama) | Virtual threads, same version |
+| Database | PostgreSQL (terpisah dari core) | Domain isolation |
+| Auth | Keycloak Resource Server | Same realm, zero new auth infra |
+| API style | REST (internal) | Simpel, debuggable, team familiar |
+| Communication | Sync REST (short-term) | Async event-driven bisa ditambah nanti |
+
+---
+
+### 8. Decisions (Resolved 2026-03-05)
+
+| # | Pertanyaan | Keputusan |
+|---|-----------|-----------|
+| 1 | **Repo structure?** | ✅ **Multi-module Maven** dalam 1 repo `omnip-services-3` |
+| 2 | **Database?** | Schema terpisah (`wallet_accounts`, `wallet_mutations`) di DB yang sama untuk MVP. Migrate ke DB terpisah kalau perlu scale. |
+| 3 | **Timeline eksekusi?** | WR-series dulu (di Core), lalu W-series (Wallet module baru) |
+
+---
+
+### 9. Multi-Module Maven — Structure & Migration Plan
+
+**Target Structure**:
+```
+omnip-services-3/
+├── pom.xml              ← Parent POM (packaging: pom)
+│                           inherits spring-boot-starter-parent 4.0.1
+│                           manages versions untuk semua child modules
+├── omnip-core/          ← Current app (code dipindah ke sini)
+│   ├── pom.xml          ← Spring Boot app, parent: omnip-services-3
+│   └── src/             ← semua code yang sekarang ada di root/src/
+└── omnip-wallet/        ← NEW wallet service
+    ├── pom.xml          ← Spring Boot app, parent: omnip-services-3
+    └── src/
+```
+
+**Parent POM** (`omnip-services-3/pom.xml`):
+```xml
+<parent>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-parent</artifactId>
+    <version>4.0.1</version>
+</parent>
+<groupId>com.omnip</groupId>
+<artifactId>omnip-platform</artifactId>
+<version>0.0.1-SNAPSHOT</version>
+<packaging>pom</packaging>
+
+<modules>
+    <module>omnip-core</module>
+    <module>omnip-wallet</module>
+</modules>
+
+<properties>
+    <java.version>25</java.version>
+    <!-- Semua version overrides dipindah ke sini dari omnip-core/pom.xml -->
+</properties>
+```
+
+**Core POM** (`omnip-core/pom.xml`):
+```xml
+<parent>
+    <groupId>com.omnip</groupId>
+    <artifactId>omnip-platform</artifactId>
+    <version>0.0.1-SNAPSHOT</version>
+</parent>
+<artifactId>omnip-core</artifactId>
+<packaging>jar</packaging>
+
+<!-- Semua <dependencies> dan <build> dari pom.xml yang sekarang dipindah ke sini -->
+```
+
+**Wallet POM** (`omnip-wallet/pom.xml`):
+```xml
+<parent>
+    <groupId>com.omnip</groupId>
+    <artifactId>omnip-platform</artifactId>
+    <version>0.0.1-SNAPSHOT</version>
+</parent>
+<artifactId>omnip-wallet</artifactId>
+<packaging>jar</packaging>
+
+<dependencies>
+    <dependency>spring-boot-starter-web</dependency>
+    <dependency>spring-boot-starter-data-jpa</dependency>
+    <dependency>spring-boot-starter-oauth2-resource-server</dependency>
+    <dependency>postgresql</dependency>
+    <dependency>lombok</dependency>
+</dependencies>
+```
+
+**Migration Steps (W-SETUP)**:
+```bash
+# 1. Buat direktori
+mkdir -p omnip-core omnip-wallet/src/main/java/com/omnip omnip-wallet/src/main/resources
+
+# 2. Pindah code (git mv — tercatat di history)
+git mv src omnip-core/src
+
+# 3. Pindah config files
+git mv .mvn omnip-core/.mvn   # kalau ada
+
+# 4. Update root pom.xml → parent POM
+# 5. Buat omnip-core/pom.xml (inherit dari parent, deps dari root pom.xml lama)
+# 6. Buat omnip-wallet/pom.xml skeleton
+
+# 7. Verify
+cd omnip-core && mvn compile   # harus sukses, zero code changes
+```
+
+**Yang TIDAK berubah setelah migration**:
+- Semua Java packages (`com.omnip.*`) — tetap
+- Semua source files — tetap, hanya path directory berubah
+- Database config, Keycloak config — tetap (di `omnip-core/src/main/resources/`)
+- Git history — `git mv` preserve history
+
+**Yang berubah**:
+- `mvn spring-boot:run` → dijalankan dari `omnip-core/` directory
+- Build command dari root: `mvn clean package` — build keduanya
+- IDE project structure — perlu re-import sebagai multi-module project
+
+---
+
+**Last Updated**: 2026-03-05 (Neo — Wallet Service Technical Design)
+**Status**: DESIGN DRAFT — Menunggu open questions resolved sebelum W-series execution
+
+---
+
+---
+
+## 🔧 Wallet Refactor — WR-series (Preparation dalam Core)
+
+> **Neo Design**: 2026-03-05
+> **Status**: READY FOR IMPLEMENTATION — tidak butuh keputusan repo dulu
+> **Prerequisite**: Harus selesai sebelum W-series (Wallet extraction)
+> **Goal**: Bersihkan domain model debit/kredit di Core agar siap di-extract ke Wallet service
+> **Risk**: Medium — ada DB migration (`wallet_accounts` table baru), tapi zero functional change
+> **Effort**: ~1 sesi (5 file baru, 6 file dimodifikasi)
+
+---
+
+### Context: Masalah yang Harus Dibersihkan
+
+```
+SEKARANG (kotor):
+StoreMutations ──@ManyToOne──> Stores          ← C-2 violation: cross-context JPA FK
+BalanceDomainService           ──inject──> StoreBalancePort (return Stores entity)
+TransactionDomainService       ──inject──> BalanceDomainService (concrete, bukan port)
+BalanceManagementUseCase.deductBalance()  → return StoreMutations (entity bocor di port)
+Stores.balance                 ← finansial data numpang di onboarding entity
+
+SETELAH REFACTOR (bersih):
+WalletMutation ──UUID storeId──> (no JPA relation) ← clean boundary
+BalanceDomainService           ──inject──> WalletAccountPort (return WalletAccount)
+TransactionDomainService       ──inject──> BalanceManagementUseCase (port, bukan concrete)
+BalanceManagementUseCase.deductBalance()  → return MutationResult (domain record)
+WalletAccount                  ← entity sendiri: { storeId, balance } — siap dipindah ke wallet service
+```
+
+---
+
+### WR-1: Introduce `WalletAccount` Entity
+
+**File baru**: `transaction/domain/model/WalletAccount.java`
+
+```java
+@Entity
+@EntityListeners(AuditingEntityListener.class)
+@Data
+public class WalletAccount {
+
+    @Id
+    @UuidGenerator
+    @Column(columnDefinition = "uuid", updatable = false, nullable = false)
+    private UUID id;
+
+    @Column(name = "store_id", columnDefinition = "uuid", nullable = false, unique = true)
+    private UUID storeId;                          // UUID saja, bukan @ManyToOne Stores
+
+    @Column(precision = 15, scale = 2, nullable = false)
+    private BigDecimal balance = BigDecimal.ZERO;
+
+    @CreatedDate
+    @Column(updatable = false)
+    private LocalDateTime createdAt;
+
+    @LastModifiedDate
+    private LocalDateTime updatedAt;
+
+    @Version
+    private Long version;                          // optimistic lock untuk general update
+}
+```
+
+**Table baru**: `wallet_accounts` — Hibernate DDL auto-create karena `ddl-auto: update`.
+
+**Data migration** (dijalankan sekali via `DataSeeder` atau SQL script):
+```sql
+INSERT INTO wallet_accounts (id, store_id, balance, created_at, updated_at, version)
+SELECT gen_random_uuid(), id, COALESCE(balance, 0), created_at, updated_at, 0
+FROM stores
+ON CONFLICT (store_id) DO NOTHING;
+```
+
+---
+
+### WR-2: Introduce `WalletAccountPort` (Port Out)
+
+**File baru**: `transaction/domain/port/out/WalletAccountPort.java`
+
+```java
+public interface WalletAccountPort {
+
+    Optional<WalletAccount> findByStoreId(UUID storeId);
+
+    // Pessimistic lock — untuk operasi finansial (debit/credit)
+    Optional<WalletAccount> findByStoreIdWithLock(UUID storeId);
+
+    WalletAccount save(WalletAccount account);
+}
+```
+
+**File baru**: `transaction/adapter/out/persistence/WalletAccountJpaRepository.java`
+
+```java
+@Repository
+public interface WalletAccountJpaRepository
+        extends JpaRepository<WalletAccount, UUID>, WalletAccountPort {
+
+    Optional<WalletAccount> findByStoreId(UUID storeId);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT w FROM WalletAccount w WHERE w.storeId = :storeId")
+    Optional<WalletAccount> findByStoreIdWithLock(@Param("storeId") UUID storeId);
+}
+```
+
+---
+
+### WR-3: Introduce `MutationResult` Domain Record (Port Return Type)
+
+**File baru**: `transaction/domain/model/MutationResult.java`
+
+```java
+// Domain record — bukan entity. Aman bocor ke port/controller.
+public record MutationResult(
+    UUID mutationId,
+    BigDecimal balanceAfter
+) {}
+```
+
+**Kenapa**: `BalanceManagementUseCase` sekarang return `StoreMutations` entity — entity tidak boleh bocor keluar domain service. `MutationResult` adalah clean return type yang bisa dipakai caller tanpa coupling ke persistence.
+
+---
+
+### WR-4: Fix `StoreMutations` — Hapus `@ManyToOne Stores`
+
+**File dimodifikasi**: `transaction/domain/model/StoreMutations.java`
+
+```java
+// BEFORE:
+@ManyToOne(fetch = FetchType.LAZY)
+@JoinColumn(name = "store_id", nullable = false)
+private Stores store;
+
+// AFTER:
+@Column(name = "store_id", columnDefinition = "uuid", nullable = false)
+private UUID storeId;
+```
+
+**DB impact**: Kolom `store_id` sudah ada (FK sebelumnya). Hibernate DDL `update` akan drop constraint FK, kolom tetap ada. Data tidak hilang.
+
+**Idempotency constraint** (tambah sekaligus):
+```java
+// Tambah ke StoreMutations untuk support idempotency di future Saga:
+@Column(name = "reference_id", columnDefinition = "uuid")
+private UUID referenceId;        // sudah ada ✅
+
+// Unique constraint untuk idempotency (DEBIT dengan referenceId yang sama = tolak duplikat):
+// @Table(uniqueConstraints = @UniqueConstraint(columnNames = {"reference_id", "reference_type", "type"}))
+// Catatan: tambahkan ini di class level @Table annotation
+```
+
+---
+
+### WR-5: Fix `BalanceManagementUseCase` Port
+
+**File dimodifikasi**: `transaction/domain/port/in/BalanceManagementUseCase.java`
+
+```java
+// BEFORE:
+StoreMutations deductBalance(UUID storeId, BigDecimal amount,
+        MutationReferenceType referenceType, UUID referenceId, String description)
+        throws InsufficientBalanceException;
+
+StoreMutations addBalance(UUID storeId, BigDecimal amount,
+        MutationReferenceType referenceType, UUID referenceId, String description);
+
+// AFTER:
+MutationResult deductBalance(UUID storeId, BigDecimal amount,
+        MutationReferenceType referenceType, UUID referenceId, String description)
+        throws InsufficientBalanceException;
+
+MutationResult addBalance(UUID storeId, BigDecimal amount,
+        MutationReferenceType referenceType, UUID referenceId, String description);
+
+BigDecimal getBalance(UUID storeId);   // tetap sama
+```
+
+---
+
+### WR-6: Refactor `BalanceDomainService`
+
+**File dimodifikasi**: `transaction/domain/service/BalanceDomainService.java`
+
+```java
+@Service
+public class BalanceDomainService implements BalanceManagementUseCase {
+
+    private final WalletAccountPort walletAccountPort;      // ← ganti StoreBalancePort
+    private final StoreMutationRepositoryPort mutationRepo;
+
+    @Override
+    @Transactional
+    public MutationResult deductBalance(UUID storeId, BigDecimal amount,
+            MutationReferenceType referenceType, UUID referenceId, String description) {
+
+        WalletAccount account = walletAccountPort.findByStoreIdWithLock(storeId)
+                .orElseThrow(() -> new ResourceNotFoundException("WalletAccount", storeId));
+
+        if (account.getBalance().compareTo(amount) < 0) {
+            throw new InsufficientBalanceException(...);
+        }
+
+        BigDecimal newBalance = account.getBalance().subtract(amount);
+
+        StoreMutations mutation = buildMutation(storeId, amount, MutationType.DEBIT,
+                newBalance, referenceType, referenceId, description);
+        mutation = mutationRepo.save(mutation);
+
+        account.setBalance(newBalance);
+        walletAccountPort.save(account);
+
+        return new MutationResult(mutation.getId(), newBalance);
+    }
+
+    @Override
+    @Transactional
+    public MutationResult addBalance(UUID storeId, BigDecimal amount, ...) {
+        WalletAccount account = walletAccountPort.findByStoreIdWithLock(storeId)
+                .orElseThrow(() -> new ResourceNotFoundException("WalletAccount", storeId));
+
+        BigDecimal newBalance = account.getBalance().add(amount);
+
+        StoreMutations mutation = buildMutation(storeId, amount, MutationType.CREDIT,
+                newBalance, referenceType, referenceId, description);
+        mutation = mutationRepo.save(mutation);
+
+        account.setBalance(newBalance);
+        walletAccountPort.save(account);
+
+        return new MutationResult(mutation.getId(), newBalance);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public BigDecimal getBalance(UUID storeId) {
+        return walletAccountPort.findByStoreId(storeId)
+                .map(WalletAccount::getBalance)
+                .orElseThrow(() -> new ResourceNotFoundException("WalletAccount", storeId));
+    }
+
+    private StoreMutations buildMutation(UUID storeId, BigDecimal amount,
+            MutationType type, BigDecimal balanceAfter,
+            MutationReferenceType refType, UUID refId, String description) {
+        StoreMutations m = new StoreMutations();
+        m.setStoreId(storeId);         // UUID, bukan Stores entity
+        m.setAmount(amount);
+        m.setType(type);
+        m.setBalanceAfter(balanceAfter);
+        m.setReferenceType(refType);
+        m.setReferenceId(refId);
+        m.setDescription(description);
+        return m;
+    }
+}
+```
+
+---
+
+### WR-7: Fix `TransactionDomainService` — Inject Port, Hapus `StoreBalancePort`
+
+**File dimodifikasi**: `transaction/domain/service/TransactionDomainService.java`
+
+```java
+// BEFORE:
+private final BalanceDomainService balanceService;       // concrete class
+private final StoreBalancePort storeRepository;          // untuk balance check
+
+// AFTER:
+private final BalanceManagementUseCase balanceService;   // inject port (interface)
+// StoreBalancePort dihapus dari TransactionDomainService
+// (balance check sudah di BalanceDomainService.deductBalance() via InsufficientBalanceException)
+```
+
+`topUp()` dan `createPurchase()` tidak berubah secara logic — hanya signature `balanceService` berubah dari concrete ke interface. Return type `deductBalance/addBalance` berubah dari `StoreMutations` ke `MutationResult`, tapi `TransactionDomainService` tidak pernah pakai return value-nya → **zero change di call site**.
+
+---
+
+### WR-8: Deprecate `Stores.balance`
+
+**File dimodifikasi**: `onboarding/domain/model/Stores.java`
+
+```java
+// BEFORE:
+private BigDecimal balance = BigDecimal.ZERO;
+
+// AFTER:
+@Deprecated(since = "wallet-refactor", forRemoval = true)
+@Column(nullable = true)   // nullable — tidak lagi jadi source of truth
+private BigDecimal balance;
+```
+
+Field tidak dihapus sekarang — tunggu `WalletAccount` stable dan data migration selesai. Hapus di W-series ketika Core tidak lagi reference `Stores.balance`.
+
+---
+
+### File Impact Summary
+
+| ID | File | Action | LOC change |
+|----|------|--------|-----------|
+| WR-1 | `WalletAccount.java` | **Baru** | ~40 |
+| WR-2a | `WalletAccountPort.java` | **Baru** | ~10 |
+| WR-2b | `WalletAccountJpaRepository.java` | **Baru** | ~15 |
+| WR-3 | `MutationResult.java` | **Baru** | ~5 |
+| WR-4 | `StoreMutations.java` | Modify — hapus `@ManyToOne`, ganti `UUID storeId` | ~8 |
+| WR-5 | `BalanceManagementUseCase.java` | Modify — return type → `MutationResult` | ~6 |
+| WR-6 | `BalanceDomainService.java` | Modify — inject `WalletAccountPort`, refactor logic | ~30 |
+| WR-7 | `TransactionDomainService.java` | Modify — inject port, hapus `StoreBalancePort` | ~5 |
+| WR-8 | `Stores.java` | Modify — `@Deprecated balance` | ~3 |
+| WR-9 | `StoreBalancePort.java` | **Delete** (setelah WR-7 tidak ada consumer) | -20 |
+| WR-10 | `DataSeeder.java` | Modify — seed `WalletAccount` dari existing `Stores.balance` | ~15 |
+| WR-11 | `TransactionDomainServiceTest.java` | Modify — mock `BalanceManagementUseCase` (port), update return type | ~10 |
+| WR-12 | `PurchaseFlowIntegrationTest.java` | Modify — mock `WalletAccountPort`, remove `StoreBalancePort` mocks | ~10 |
+
+**Total**: 5 file baru, 7 file dimodifikasi, 1 file dihapus. ~177 LOC net.
+
+---
+
+### Execution Order
+
+```
+WR-1 (WalletAccount entity)
+  → WR-2 (WalletAccountPort + JpaRepository)
+    → WR-3 (MutationResult record)
+      → WR-4 (StoreMutations fix)
+        → WR-5 (BalanceManagementUseCase fix)
+          → WR-6 (BalanceDomainService refactor)
+            → WR-7 (TransactionDomainService fix)
+              → WR-8 (Stores.balance deprecate)
+                → WR-9 (StoreBalancePort delete)
+                  → WR-10 (DataSeeder migration)
+                    → WR-11 + WR-12 (fix tests)
+                      → mvn clean package (BUILD SUCCESS, semua tests pass)
+```
+
+---
+
+### Neo's Critical Notes
+
+1. **`StoreBalancePort` masih dipakai oleh `StoreJpaRepository`** — cek consumer sebelum delete WR-9. Jalankan `grep -r "StoreBalancePort"` sebelum hapus.
+
+2. **DB migration `wallet_accounts`** — `DataSeeder` harus idempotent (sudah ada pattern dari L-6). Gunakan `findByStoreId().orElseGet()` pattern yang sama.
+
+3. **`StoreMutations.store` → `storeId`**: Kolom DB-nya sudah `store_id`. Setelah hapus `@ManyToOne`, Hibernate akan drop FK constraint saja — kolom data tetap ada. Aman.
+
+4. **`TransactionDomainService` tidak pakai return value dari `deductBalance/addBalance`** — konfirmasi di kode: `balanceService.deductBalance(...)` tanpa assignment. Berarti WR-5 (ubah return type) tidak break call site. ✅
+
+5. **Setelah WR-series selesai**, `StoreMutations` dan `WalletAccount` siap dipindah ke Wallet service (W-series) dengan zero structural changes — tinggal pindah package.
+
+---
+
+**Last Updated**: 2026-03-05 (Neo — WR-series Wallet Refactor Blueprint)
+**Status**: READY — bisa dikerjakan tanpa menunggu keputusan repo Wallet service

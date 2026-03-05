@@ -322,7 +322,71 @@ org_owner          ← pemilik toko (composite)
 
 ---
 
+### Wallet Service — Financial Domain Separation
+
+**Objective**: Pisahkan semua urusan finansial (saldo, mutasi, top-up, refund) ke service tersendiri (`omnip-wallet`). Core platform fokus ke katalog, transaksi, dan onboarding.
+
+**Status**: PLANNING — belum dieksekusi. Keputusan diambil 2026-03-05.
+
+**Koreksi Arah**: Julia sudah catat di 2026-02-12 bahwa payment/balance akan jadi microservice terpisah, tapi implementasi Task 12-15 malah taruh `StoreMutations` + `Stores.balance` di core. W-series adalah koreksi arah tersebut.
+
+**Scope Wallet Service**:
+- Saldo store (balance management)
+- Mutasi ledger (credit, debit, refund — Double-Entry)
+- Riwayat mutasi
+- Top-up processing (integrasikan payment gateway di sini, bukan di core)
+
+**Auth**: Keycloak shared — realm `satset-go`. Wallet service = Resource Server yang sama. Core call wallet pakai service account (client credentials).
+
+**Key Decisions**:
+
+| Pertanyaan | Keputusan | Rationale |
+|---|---|---|
+| Wallet scope | Semua urusan finansial (balance, mutasi, top-up, refund) | Single Responsibility |
+| Timing pemisahan | Physical separation (2 service berbeda) — plan dulu | Long-term clean architecture |
+| Auth strategy | Keycloak shared realm, wallet = Resource Server | Tidak perlu auth system baru |
+| Communication pattern | REST synchronous (internal API) | Simpel, debuggable |
+| Distributed tx handling | **Saga pattern (choreography)** | Idempotent compensating transactions |
+| `stores.balance` di Core | Dihapus setelah wallet live — wallet = single source of truth | Avoid data inconsistency |
+| Repo struktur | ✅ **Multi-module Maven** dalam 1 repo `omnip-services-3` | Pragmatis, 1 repo = 1 deployment concern |
+
+**API Contract (Planned)**:
+```
+GET  /internal/wallet/balance/{storeId}
+POST /internal/wallet/debit    { storeId, amount, referenceId, referenceType }
+POST /internal/wallet/credit   { storeId, amount, referenceId, referenceType }
+POST /internal/wallet/refund   { storeId, amount, originalReferenceId }
+GET  /internal/wallet/mutations/{storeId}?page=&size=
+```
+
+**Migration Needs**:
+- `StoreMutations` entity → pindah ke wallet service
+- `BalanceDomainService` logic → pindah ke wallet service
+- `Stores.balance` field → deprecated setelah wallet live
+- `TransactionDomainService` → call wallet API (bukan langsung BalanceDomainService)
+
+**Risks**:
+
+| Risk | Impact | Mitigation |
+|---|---|---|
+| Distributed transaction atomicity hilang | Saldo bisa inkonsisten | Saga + idempotent `referenceId` |
+| Latency naik (API call per operasi) | UX lebih lambat | Acceptable — financial ops tidak butuh sub-100ms |
+| Migration dari current impl cukup besar | Breaking changes | Feature flag / gradual migration |
+
+**Technical Reference**: Lihat `TechSpecs.md` → "Wallet Service — Technical Design"
+
+---
+
 ## Session Log
+
+### 2026-03-05 - Wallet Service Domain Separation
+- **Decision**: Pisahkan semua urusan finansial ke `omnip-wallet` — service terpisah, bukan hanya bounded context
+- **Decision**: Auth via Keycloak shared realm — zero new auth infra
+- **Decision**: Communication: REST synchronous (internal API) — Saga pattern untuk distributed tx
+- **Decision**: `stores.balance` akan deprecated — Wallet = single source of truth untuk balance
+- **Decision**: Top-up + payment gateway masuk Wallet (bukan Core)
+- **PENDING**: Repo structure (terpisah atau multi-module) + DB strategy — menunggu keputusan Kokoh
+- **NEXT**: Kokoh confirm open questions → August create W-series tasks → Neo finalize design → eksekusi
 
 ### 2026-02-20 - Admin Organization Management Screen
 - **Decision**: Data source = **Keycloak Organizations API** (primary) + **DB Stores** (business data: phone, email, upline)
