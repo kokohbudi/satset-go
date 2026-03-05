@@ -20,6 +20,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -212,6 +213,142 @@ class TransactionDomainServiceTest {
 
         assertNotNull(result);
         assertEquals(TransactionStatus.FAILED, result.status()); // Does not become REFUNDED
+    }
+
+    @Test
+    void createPurchase_StoreNotFound_ThrowsException() {
+        when(storeRepository.findById(storeId)).thenReturn(Optional.empty());
+
+        assertThrows(com.omnip.shared.exception.ResourceNotFoundException.class,
+                () -> transactionService.createPurchase(storeId, denomId, "081234567890"));
+
+        verify(transactionRepository, never()).save(any());
+    }
+
+    @Test
+    void createPurchase_DenomNotFound_ThrowsException() {
+        when(storeRepository.findById(storeId)).thenReturn(Optional.of(store));
+        when(productDenomRepository.findById(denomId)).thenReturn(Optional.empty());
+
+        assertThrows(com.omnip.shared.exception.ResourceNotFoundException.class,
+                () -> transactionService.createPurchase(storeId, denomId, "081234567890"));
+
+        verify(transactionRepository, never()).save(any());
+    }
+
+    // ==================== topUp ====================
+
+    @Test
+    void topUp_Success_CallsAddBalance() {
+        when(storeRepository.findById(storeId)).thenReturn(Optional.of(store));
+
+        transactionService.topUp(storeId, new BigDecimal("50000"), "Isi saldo");
+
+        verify(balanceService).addBalance(eq(storeId), eq(new BigDecimal("50000")),
+                eq(MutationReferenceType.TOP_UP), any(UUID.class), eq("Isi saldo"));
+    }
+
+    @Test
+    void topUp_NullDescription_UsesDefaultDescription() {
+        when(storeRepository.findById(storeId)).thenReturn(Optional.of(store));
+
+        transactionService.topUp(storeId, new BigDecimal("50000"), null);
+
+        verify(balanceService).addBalance(eq(storeId), eq(new BigDecimal("50000")),
+                eq(MutationReferenceType.TOP_UP), any(UUID.class), eq("Manual top-up"));
+    }
+
+    @Test
+    void topUp_StoreNotFound_ThrowsException() {
+        when(storeRepository.findById(storeId)).thenReturn(Optional.empty());
+
+        assertThrows(com.omnip.shared.exception.ResourceNotFoundException.class,
+                () -> transactionService.topUp(storeId, new BigDecimal("50000"), "desc"));
+
+        verify(balanceService, never()).addBalance(any(), any(), any(), any(), any());
+    }
+
+    // ==================== getTransaction ====================
+
+    @Test
+    void getTransaction_Found_ReturnsSummary() {
+        UUID txId = UUID.randomUUID();
+        Transactions tx = buildTransaction(txId);
+        when(transactionRepository.findByIdAndStoreIdWithDetails(txId, storeId))
+                .thenReturn(Optional.of(tx));
+
+        TransactionSummary result = transactionService.getTransaction(txId, storeId);
+
+        assertNotNull(result);
+        assertEquals(txId, result.id());
+        assertEquals(TransactionStatus.SUCCESS, result.status());
+    }
+
+    @Test
+    void getTransaction_NotFound_ThrowsException() {
+        UUID txId = UUID.randomUUID();
+        when(transactionRepository.findByIdAndStoreIdWithDetails(txId, storeId))
+                .thenReturn(Optional.empty());
+
+        assertThrows(com.omnip.shared.exception.ResourceNotFoundException.class,
+                () -> transactionService.getTransaction(txId, storeId));
+    }
+
+    // ==================== getTransactionHistory ====================
+
+    @Test
+    void getTransactionHistory_ReturnsPage() {
+        when(storeRepository.findById(storeId)).thenReturn(Optional.of(store));
+
+        UUID txId = UUID.randomUUID();
+        Transactions tx = buildTransaction(txId);
+        org.springframework.data.domain.Page<Transactions> page =
+                new org.springframework.data.domain.PageImpl<>(List.of(tx));
+        org.springframework.data.domain.Pageable pageable =
+                org.springframework.data.domain.PageRequest.of(0, 10);
+        when(transactionRepository.findByStoreIdWithDetails(storeId, pageable)).thenReturn(page);
+
+        org.springframework.data.domain.Page<TransactionSummary> result =
+                transactionService.getTransactionHistory(storeId, pageable);
+
+        assertEquals(1, result.getTotalElements());
+        assertEquals(txId, result.getContent().get(0).id());
+    }
+
+    @Test
+    void getTransactionHistory_StoreNotFound_ThrowsException() {
+        when(storeRepository.findById(storeId)).thenReturn(Optional.empty());
+
+        assertThrows(com.omnip.shared.exception.ResourceNotFoundException.class,
+                () -> transactionService.getTransactionHistory(storeId,
+                        org.springframework.data.domain.PageRequest.of(0, 10)));
+    }
+
+    // ==================== Helpers ====================
+
+    private Transactions buildTransaction(UUID txId) {
+        com.omnip.catalog.domain.model.Products product = new com.omnip.catalog.domain.model.Products();
+        product.setId(UUID.randomUUID());
+        product.setName("Telkomsel");
+
+        ProductDenoms d = new ProductDenoms();
+        d.setId(denomId);
+        d.setCode("TLKM5");
+        d.setName("Telkomsel 5K");
+        d.setPrice(new BigDecimal("5000.00"));
+        d.setAdminFee(BigDecimal.ZERO);
+        d.setProduct(product);
+
+        Transactions tx = new Transactions();
+        tx.setId(txId);
+        tx.setStore(store);
+        tx.setProductDenom(d);
+        tx.setTargetNumber("081234567890");
+        tx.setPrice(new BigDecimal("5000.00"));
+        tx.setAdminFee(BigDecimal.ZERO);
+        tx.setTotal(new BigDecimal("5000.00"));
+        tx.setStatus(TransactionStatus.SUCCESS);
+        return tx;
     }
 
     @Test

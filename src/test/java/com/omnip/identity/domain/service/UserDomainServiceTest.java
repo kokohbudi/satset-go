@@ -42,6 +42,96 @@ class UserDomainServiceTest {
         requestUserDTO.setPassword("newPassword123!");
     }
 
+    // ==================== findByEmail / findByProviderUserId ====================
+
+    @Test
+    void findByEmail_DelegatesToRepository() {
+        com.omnip.identity.domain.model.Users user = new com.omnip.identity.domain.model.Users();
+        when(usersRepository.findByEmail("alice@mail.com")).thenReturn(user);
+
+        assertSame(user, userDomainService.findByEmail("alice@mail.com"));
+    }
+
+    @Test
+    void findByProviderUserId_DelegatesToRepository() {
+        com.omnip.identity.domain.model.Users user = new com.omnip.identity.domain.model.Users();
+        when(usersRepository.findByProviderUserId("kc-abc")).thenReturn(user);
+
+        assertSame(user, userDomainService.findByProviderUserId("kc-abc"));
+    }
+
+    // ==================== getProviderUserIdByEmail ====================
+
+    @Test
+    void getProviderUserIdByEmail_Found_ReturnsId() throws BusinessException {
+        com.omnip.identity.domain.model.Users user = new com.omnip.identity.domain.model.Users();
+        user.setProviderUserId("kc-alice");
+        when(usersRepository.findByEmail("alice@mail.com")).thenReturn(user);
+
+        assertEquals("kc-alice", userDomainService.getProviderUserIdByEmail("alice@mail.com"));
+    }
+
+    @Test
+    void getProviderUserIdByEmail_NotFound_ThrowsBusinessException() {
+        when(usersRepository.findByEmail("unknown@mail.com")).thenReturn(null);
+
+        assertThrows(com.omnip.shared.exception.BusinessException.class,
+                () -> userDomainService.getProviderUserIdByEmail("unknown@mail.com"));
+    }
+
+    // ==================== createNewUser ====================
+
+    @Test
+    void createNewUser_DelegatesToRepository() {
+        com.omnip.identity.domain.model.Users user = new com.omnip.identity.domain.model.Users();
+        when(usersRepository.save(user)).thenReturn(user);
+
+        assertSame(user, userDomainService.createNewUser(user));
+    }
+
+    // ==================== saveUserToDb ====================
+
+    @Test
+    void saveUserToDb_Success_ReturnsSuccessDTO() {
+        UserDTO req = new UserDTO();
+        com.omnip.identity.domain.model.Users user = new com.omnip.identity.domain.model.Users();
+        UserDTO successDTO = new UserDTO();
+        successDTO.setStatus("success");
+
+        when(userManagementBusiness.createUserObject(req, "kc-new")).thenReturn(user);
+        when(usersRepository.save(user)).thenReturn(user);
+        when(userManagementBusiness.createSuccessResponse(req, "kc-new")).thenReturn(successDTO);
+
+        UserDTO result = userDomainService.saveUserToDb(req, "kc-new");
+
+        assertEquals("success", result.getStatus());
+    }
+
+    @Test
+    void saveUserToDb_RepositoryThrows_ReturnsErrorDTO() {
+        UserDTO req = new UserDTO();
+        UserDTO errorDTO = new UserDTO();
+        errorDTO.setStatus("failed");
+
+        when(userManagementBusiness.createUserObject(any(), any())).thenThrow(new RuntimeException("DB error"));
+        when(userManagementBusiness.createErrorResponse(any())).thenReturn(errorDTO);
+
+        UserDTO result = userDomainService.saveUserToDb(req, "kc-new");
+
+        assertEquals("failed", result.getStatus());
+    }
+
+    // ==================== updateUserStatusInDb ====================
+
+    @Test
+    void updateUserStatusInDb_DelegatesToHelper() throws com.omnip.shared.exception.BusinessException {
+        doNothing().when(userManagementBusiness).setUserStatus(any(), any(), any());
+
+        userDomainService.updateUserStatusInDb("alice@mail.com", false);
+
+        verify(userManagementBusiness).setUserStatus(any(), any(), any());
+    }
+
     @Test
     void shouldChangePasswordSuccessfully() throws BusinessException {
         // Arrange

@@ -19,6 +19,16 @@
 
 ## 📦 BACKLOG (GOOD IDEA, NOT NOW)
 
+### ~~JWT Org ID — OJ-series~~ ✅ CLOSED (Simplified)
+> *Keputusan (2026-03-03, Neo review): org_id di JWT TIDAK diperlukan. DB sudah punya chain User → Store → keycloak_organization_id. Single-service architecture = DB lookup cukup.*
+> *Cleanup: `org_id` mapper dihapus dari scope `roles`. `group membership` mapper + `organization` scope tetap dipertahankan.*
+
+- [x] **OJ-2**: Keycloak setup — `group membership` mapper + `organization` scope → default ✅
+- [~] **OJ-1**: ~~`org_id` protocol mapper~~ — REVERTED (mapper dihapus, tidak diperlukan)
+- [~] **OJ-3**: ~~Backend set `org_id` attribute~~ — CANCELLED (DB lookup cukup)
+- [~] **OJ-4**: ~~Parse `org_id` dari JWT~~ — CANCELLED (DB lookup cukup)
+- [~] **OJ-5**: ~~End-to-end verify~~ — CANCELLED (scope reduced)
+
 ### Admin Organization Management (Post-MVP)
 > *Dipindahkan dari "UP NEXT" — bukan MVP blocker*
 - [-] Task 7-11: KC Org API read/update, AdminOrgService, Admin Org UI, members modal, edit business data
@@ -38,11 +48,58 @@
 - [-] Sidebar: menu `/users`, `/groups` sudah dihapus (tidak ada page controller)
 - [-] **Refactor User Search** — migrasi dari Keycloak Admin API ke DB lokal untuk database-level pagination. Saat ini fetch all → filter di memory, tidak efisien. Target: query langsung ke DB, lazy-load roles hanya untuk user yang tampil.
 
-### Balance Top-up (Week 3+)
-- [-] Payment service entities (Deposits, PaymentTransactions)
-- [-] MockPaymentGateway implementation
-- [-] Top-up UI with payment flow
-- [-] **Store Mutations UI**: Tab riwayat mutasi saldo di menu /transactions untuk melihat top-up, potongan pembelian, dan refund
+### Wallet Refactor — WR-series (Preparation, bisa dikerjakan sekarang)
+
+> **Goal**: Bersihkan domain model debit/kredit di Core — hapus cross-context coupling, pisahkan balance ke entity sendiri.
+> **Prerequisite W-series**: WR-series harus selesai dulu sebelum Wallet extraction.
+> **Tidak butuh keputusan repo** — ini semua di `omnip-services-3`.
+> **Risk**: Medium (DB migration `wallet_accounts`), zero functional change.
+> Design lengkap: `TechSpecs.md` → "Wallet Refactor — WR-series"
+
+- [ ] **WR-1**: Buat `WalletAccount.java` entity — `{ storeId (UUID), balance, version }`, table `wallet_accounts`
+- [ ] **WR-2**: Buat `WalletAccountPort.java` + `WalletAccountJpaRepository.java` — `findByStoreId`, `findByStoreIdWithLock` (pessimistic), `save`
+- [ ] **WR-3**: Buat `MutationResult.java` domain record — `{ mutationId, balanceAfter }` — clean return type untuk port
+- [ ] **WR-4**: Fix `StoreMutations.java` — hapus `@ManyToOne Stores store`, ganti `UUID storeId` + tambah idempotency `@UniqueConstraint`
+- [ ] **WR-5**: Fix `BalanceManagementUseCase.java` — return type `StoreMutations` → `MutationResult`
+- [ ] **WR-6**: Refactor `BalanceDomainService.java` — inject `WalletAccountPort` (ganti `StoreBalancePort`), update logic
+- [ ] **WR-7**: Fix `TransactionDomainService.java` — inject `BalanceManagementUseCase` (port, bukan concrete), hapus `StoreBalancePort`
+- [ ] **WR-8**: `Stores.java` — `@Deprecated balance` field (nullable, bukan source of truth lagi)
+- [ ] **WR-9**: Delete `StoreBalancePort.java` — setelah verify zero consumer (`grep -r "StoreBalancePort"`)
+- [ ] **WR-10**: `DataSeeder.java` — seed `WalletAccount` dari existing `Stores.balance` (idempotent)
+- [ ] **WR-11**: Fix `TransactionDomainServiceTest.java` — mock `BalanceManagementUseCase` port
+- [ ] **WR-12**: Fix `PurchaseFlowIntegrationTest.java` — mock `WalletAccountPort`, hapus `StoreBalancePort` mocks
+- [ ] **WR-VERIFY**: `mvn clean package` → BUILD SUCCESS, semua tests pass
+
+### Wallet Service Separation — W-series (EPIC, Plan dulu)
+
+> **Context**: Pisahkan urusan finansial (balance, mutasi, top-up, refund) ke service terpisah `omnip-wallet`.
+> Auth: Keycloak shared realm `satset-go`. Communication: REST (internal API). Saga pattern untuk distributed tx.
+> Design lengkap: lihat `TechSpecs.md` → "Wallet Service — Technical Design"
+> **BLOCKER sebelum eksekusi**: Jawab Open Questions (repo structure + DB strategy)
+
+- [x] **W-0**: Keputusan repo structure → ✅ **Multi-module Maven** dalam 1 repo. DB: schema terpisah di DB yang sama.
+
+> **Prerequisite W-series**: WR-series harus selesai dulu.
+> Design lengkap: `TechSpecs.md` → "Multi-Module Maven — Structure & Migration Plan"
+
+- [ ] **W-SETUP**: Restructure project → multi-module Maven
+  - Buat `omnip-core/` + `git mv src omnip-core/src`
+  - Update root `pom.xml` → parent POM (`packaging: pom`, tambah `<modules>`)
+  - Buat `omnip-core/pom.xml` (inherit parent, deps dari root pom lama)
+  - Verify: `cd omnip-core && mvn compile` → BUILD SUCCESS
+- [ ] **W-1**: Buat `omnip-wallet/` module skeleton — Spring Boot app, Keycloak Resource Server, `/actuator/health`
+- [ ] **W-2**: Wallet domain model — `WalletAccount`, `WalletMutation` entities (pindah dari Core setelah WR-series)
+- [ ] **W-3**: Wallet use cases + domain service — `debit`, `credit`, `refund`, `getBalance`, `getMutationHistory`
+- [ ] **W-4**: Wallet REST endpoints — `/internal/wallet/*` (5 endpoints per API contract di TechSpecs)
+- [ ] **W-5**: Core: `WalletClient` (RestClient) — call Wallet API, service account auth (client credentials)
+- [ ] **W-6**: Core: replace `BalanceDomainService` calls → `WalletClient` di `TransactionDomainService`
+- [ ] **W-7**: Data migration — seed `wallet_accounts` + `wallet_mutations` dari Core DB
+- [ ] **W-8**: Integration test end-to-end — purchase flow Saga (Core → Wallet debit → Provider → Wallet refund)
+
+### Balance Top-up (Week 3+, koordinasi dengan W-series)
+- [-] MockPaymentGateway implementation — **akan masuk ke Wallet Service (bukan Core)**
+- [-] Top-up UI di Core — call Wallet credit endpoint
+- [-] **Store Mutations UI**: Tab riwayat mutasi saldo di menu /transactions — fetch dari Wallet API
 
 ### ~~Admin Product Management — AP-series (Week 4)~~ ✅ DONE
 > *Neo design plan selesai 2026-03-02. Lihat `TechSpecs.md` → "Admin Product Management Blueprint" untuk detail.*
@@ -372,14 +429,40 @@
 
 ---
 
-**Last Updated**: 2026-03-02 (Session 7 — AP-series Admin Product Management COMPLETE)
+**2026-03-05** (Session 8 — Unit Test Coverage Sprint COMPLETE! ✅):
+- **JaCoCo Coverage: 68% → 94%** 🎉
+  - Fixed 2 JaCoCo exclude path bugs (DataSeeder, KeycloakLoginEventListener)
+  - Added OmniConstants + LogoutController to excludes
+  - Instruction coverage: **94%**, Branch coverage: **72%**
+- **Test Suite Expansion**: 286 tests → **320 tests** (+34 tests)
+  - `AdminCatalogControllerTest`: 8 new tests (create/update category, product, denom + listDenoms, getDenom found)
+  - `CategoryDomainServiceTest`: 8 new read/browse tests (findAll, findByCode×3, findByType, findAllForAdmin, findById×2)
+  - `ProductDomainServiceTest`: 8 new read/browse tests (findByCategory×2, findActiveProducts, findByCode×2, findByCategoryForAdmin, findById×2)
+  - `DenomDomainServiceTest`: 8 new read/browse tests (findByProduct×2, findByCode×2, getDenomWithMeta×2, findByProductForAdmin, findById×2)
+  - `TransactionDomainServiceTest`: 10 new tests (createPurchase store/denom not found, topUp×3, getTransaction×2, getTransactionHistory×2)
+- **⚠️ Note**: Keycloak adapter testing (KeycloakAdminClientService, KeycloakLoginEventListener) **NOT covered** — requires live Keycloak infrastructure. **Plan**: Test containers (Testcontainers) untuk session mendatang
+- **JPA Repository interfaces**: Expected 0% coverage (Spring Data JPA generates implementations at runtime, not compile-time)
+- **BUILD SUCCESS**: `mvn test` 320/320 pass ✅
+
+**Last Updated**: 2026-03-05 (Session 8 — Unit Test Coverage Sprint COMPLETE)
 **Status**:
 - ✅ MVP Sprint COMPLETE
 - ✅ H-series (port boundary) DONE
 - ✅ M-series (config + correctness + hygiene) DONE
-- ✅ L-series (code hygiene) DONE — kecuali L-1 (test coverage) & L-8 (pagination, low urgency)
+- ✅ L-series (code hygiene) MOSTLY DONE — ✅ L-1 (test coverage) 94%, ⏳ L-8 (pagination, low urgency)
 - ✅ AP-series (admin product management) DONE — backend + frontend + tests + Keycloak roles
+- ✅ AP-N series (catalog drill-down) DONE
+- ✅ Unit test coverage (repository-based, mocked ports) — **94% instruction**
+- ⏳ Keycloak adapter testing — Pending test containers
 - ⏳ C-series (domain model separation) — Deferred, awaiting Neo plan
+
+**2026-03-03** (August — MCP Setup + JWT Org ID → Simplified):
+- **Custom MCP Keycloak** dibangun (49 tools) — manage realm, users, roles, composites, groups, client scopes, protocol mappers. File: `~/myProjects/mcp-keycloak/index.js`
+- **MCP PostgreSQL** ditambahkan — read-only query ke `omni_pulsa`
+- **OJ-2 DONE**: `group membership` mapper + scope `organization` → default
+- **OJ-1 REVERTED**: `org_id` mapper dihapus — tidak diperlukan
+- **OJ-3..OJ-5 CANCELLED**: Neo review: DB chain `User → Store → keycloak_organization_id` cukup untuk single-service. JWT org_id hanya diperlukan kalau scale ke microservices.
+- **Keycloak Org tetap dipakai**: Member management, domain-based auto-join, SSO isolation. Tapi data filtering tetap lewat DB.
 
 **Next Options**:
 1. **🔜 AP-N series**: Catalog drill-down navigation (~55 mnt, 1 sesi)
