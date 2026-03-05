@@ -3,17 +3,21 @@ package com.omnip.shared.testcontainers;
 import dasniko.testcontainers.keycloak.KeycloakContainer;
 import org.keycloak.admin.client.Keycloak;
 import org.keycloak.admin.client.KeycloakBuilder;
-import org.keycloak.representations.idm.ClientRepresentation;
 import org.keycloak.representations.idm.CredentialRepresentation;
 import org.keycloak.representations.idm.RealmRepresentation;
-import org.keycloak.representations.idm.RoleRepresentation;
 import org.keycloak.representations.idm.UserRepresentation;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.List;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
  * Singleton Keycloak container — starts once per JVM, shared across all IT classes.
- * Realm setup done programmatically via Admin API (version-agnostic, no JSON format issues).
+ * Realm setup via JSON import (satset-go-realm-full.json exported from live KC 26.1).
+ * Includes all roles, users, and clients from production realm.
  */
 public abstract class KeycloakContainerSupport {
 
@@ -24,7 +28,7 @@ public abstract class KeycloakContainerSupport {
 
     static {
         configureDockerHost();
-        KEYCLOAK = new KeycloakContainer("quay.io/keycloak/keycloak:26.0.5");
+        KEYCLOAK = new KeycloakContainer("quay.io/keycloak/keycloak:latest");
         KEYCLOAK.start();
         setupTestRealm();
     }
@@ -47,51 +51,47 @@ public abstract class KeycloakContainerSupport {
 
     private static void setupTestRealm() {
         try (Keycloak admin = masterAdminClient()) {
-            // 1. Create realm
-            RealmRepresentation realm = new RealmRepresentation();
-            realm.setRealm(TEST_REALM);
-            realm.setEnabled(true);
-            realm.setSslRequired("none");
-            realm.setLoginWithEmailAllowed(true);
-            realm.setDuplicateEmailsAllowed(false);
+            // 1. Import realm from JSON export (includes roles, users, clients from live KC)
+            RealmRepresentation realm = loadRealmFromJson();
             admin.realms().create(realm);
 
-            // 2. Create realm roles (mirrors production satset-go roles)
-            for (String roleName : List.of("view_users", "manage_users", "view_catalog", "manage_catalog")) {
-                RoleRepresentation role = new RoleRepresentation();
-                role.setName(roleName);
-                role.setComposite(false);
-                admin.realm(TEST_REALM).roles().create(role);
-            }
-
-            // 3. Create client
-            ClientRepresentation client = new ClientRepresentation();
-            client.setClientId(TEST_CLIENT_ID);
-            client.setEnabled(true);
-            client.setPublicClient(false);
-            client.setSecret(TEST_CLIENT_SECRET);
-            client.setDirectAccessGrantsEnabled(true);
-            client.setServiceAccountsEnabled(true);
-            client.setStandardFlowEnabled(false);
-            client.setProtocol("openid-connect");
-            admin.realm(TEST_REALM).clients().create(client);
-
-            // 4. Create seed user
-            CredentialRepresentation cred = new CredentialRepresentation();
-            cred.setType(CredentialRepresentation.PASSWORD);
-            cred.setValue("password");
-            cred.setTemporary(false);
-
-            UserRepresentation user = new UserRepresentation();
-            user.setUsername("testuser");
-            user.setEmail("testuser@example.com");
-            user.setFirstName("Test");
-            user.setLastName("User");
-            user.setEnabled(true);
-            user.setEmailVerified(true);
-            user.setCredentials(List.of(cred));
-            admin.realm(TEST_REALM).users().create(user);
+            // 2. Create testuser with password for credential testing
+            // (JSON import doesn't properly set credentials, so we do it programmatically)
+            createTestUser(admin);
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to setup test realm from JSON export", e);
         }
+    }
+
+    private static void createTestUser(Keycloak admin) {
+        // Create user WITHOUT credentials first
+        UserRepresentation user = new UserRepresentation();
+        user.setUsername("testuser");
+        user.setEmail("testuser@example.com");
+        user.setFirstName("Test");
+        user.setLastName("User");
+        user.setEnabled(true);
+        user.setEmailVerified(true);
+
+        // Save user
+        var response = admin.realm(TEST_REALM).users().create(user);
+        String userId = response.getLocation().getPath().replaceAll(".*/([^/]+)$", "$1");
+
+        // Set password using password reset API (more reliable than credentials in user creation)
+        CredentialRepresentation passwordCred = new CredentialRepresentation();
+        passwordCred.setTemporary(false);
+        passwordCred.setType(CredentialRepresentation.PASSWORD);
+        passwordCred.setValue("password");
+
+        admin.realm(TEST_REALM).users().get(userId).resetPassword(passwordCred);
+    }
+
+    private static RealmRepresentation loadRealmFromJson() throws IOException {
+        ObjectMapper mapper = new ObjectMapper();
+        // Load from classpath (test resources)
+        ClassLoader classLoader = KeycloakContainerSupport.class.getClassLoader();
+        String json = new String(classLoader.getResourceAsStream("satset-go-realm-full.json").readAllBytes());
+        return mapper.readValue(json, RealmRepresentation.class);
     }
 
     protected static Keycloak masterAdminClient() {
