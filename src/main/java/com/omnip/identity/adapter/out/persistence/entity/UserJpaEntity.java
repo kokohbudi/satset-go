@@ -1,6 +1,6 @@
-package com.omnip.catalog.domain.model;
+package com.omnip.identity.adapter.out.persistence.entity;
 
-import com.omnip.catalog.domain.model.CategoryType;
+import com.omnip.shared.converter.StringListConverter;
 import jakarta.persistence.*;
 import lombok.Data;
 import org.hibernate.annotations.UuidGenerator;
@@ -11,47 +11,39 @@ import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 @Entity
 @EntityListeners(AuditingEntityListener.class)
 @Data
-public class Categories {
+public class UserJpaEntity {
     @Id
     @UuidGenerator
     @Column(name = "id", updatable = false, nullable = false, columnDefinition = "uuid")
     private UUID id;
-
-    @Column(unique = true, nullable = false, length = 50)
-    private String code;
-
-    @Column(nullable = false, length = 100)
-    private String name;
-
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 20)
-    private CategoryType categoryType;
-
-    private String iconUrl;
-
-    private boolean active;
-
-    private boolean deleted;
-
-    private int sortOrder;
-
+    private String email;
+    private String username;
+    private String fullname;
+    private String registrationChannel;
     @CreatedDate
     private LocalDateTime createdAt;
-
     @LastModifiedDate
     private LocalDateTime updatedAt;
-
-    @CreatedBy
-    private String createdBy;
-
     @LastModifiedBy
     private String updatedBy;
-
+    @CreatedBy
+    private String createdBy;
+    private boolean active;
+    private boolean deleted;
+    private String providerUserId;
     @Version
     private Long version;
+
+    @Column(name = "store_id", columnDefinition = "uuid")
+    private UUID storeId;
+
+    @Convert(converter = StringListConverter.class)
+    @Column(name = "roles", columnDefinition = "text")
+    private List<String> roles;
 }

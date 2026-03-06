@@ -1,7 +1,6 @@
 package com.omnip.onboarding.adapter.out.persistence;
 
-import com.omnip.onboarding.domain.model.Stores;
-import com.omnip.onboarding.domain.port.out.StoreRepositoryPort;
+import com.omnip.onboarding.adapter.out.persistence.entity.StoreJpaEntity;
 import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
@@ -13,13 +12,13 @@ import java.util.Optional;
 import java.util.UUID;
 
 @Repository
-public interface StoreJpaRepository extends JpaRepository<Stores, UUID>, StoreRepositoryPort {
+public interface StoreJpaRepository extends JpaRepository<StoreJpaEntity, UUID> {
 
-    boolean existsByReferralId(String referalId);
+    boolean existsByReferralId(String referralId);
 
-    Stores findByEmail(String email);
+    StoreJpaEntity findByEmail(String email);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
-    @Query("SELECT s FROM Stores s WHERE s.id = :id")
-    Optional<Stores> findByIdWithPessimisticLock(@Param("id") UUID id);
+    @Query("SELECT s FROM StoreJpaEntity s WHERE s.id = :id")
+    Optional<StoreJpaEntity> findByIdWithPessimisticLock(@Param("id") UUID id);
 }

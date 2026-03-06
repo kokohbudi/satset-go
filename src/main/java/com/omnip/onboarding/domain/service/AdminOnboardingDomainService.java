@@ -66,7 +66,9 @@ public class AdminOnboardingDomainService implements AdminOnboardingUseCase {
 
             if (uplineStoreId != null && !uplineStoreId.trim().isEmpty()) {
                 Stores upline = storeRepository.findById(UUID.fromString(uplineStoreId)).orElse(null);
-                store.setUpline(upline);
+                if (upline != null) {
+                    store.setUplineId(upline.getId());
+                }
             }
 
             store = storeRepository.save(store);

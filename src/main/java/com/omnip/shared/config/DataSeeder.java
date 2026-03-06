@@ -1,6 +1,6 @@
 package com.omnip.shared.config;
 
-import com.omnip.catalog.domain.model.Categories;
+import com.omnip.catalog.domain.model.Category;
 import com.omnip.catalog.domain.model.ProductDenomMeta;
 import com.omnip.catalog.domain.model.ProductDenoms;
 import com.omnip.catalog.domain.model.Products;
@@ -105,7 +105,7 @@ public class DataSeeder implements ApplicationRunner {
 
     // ========== PULSA ==========
     private void seedPulsa() {
-        Categories pulsa = createCategory("PULSA", "Pulsa", CategoryType.PREPAID, "/icons/pulsa.svg", 1);
+        Category pulsa = createCategory("PULSA", "Pulsa", CategoryType.PREPAID, "/icons/pulsa.svg", 1);
 
         // Telkomsel
         Products telkomsel = createProduct(pulsa, "TELKOMSEL", "Telkomsel", "Telkomsel", "Pulsa Telkomsel", "/icons/telkomsel.svg", 1);
@@ -141,7 +141,7 @@ public class DataSeeder implements ApplicationRunner {
 
     // ========== PAKET DATA ==========
     private void seedPaketData() {
-        Categories data = createCategory("DATA", "Paket Data", CategoryType.PREPAID, "/icons/data.svg", 2);
+        Category data = createCategory("DATA", "Paket Data", CategoryType.PREPAID, "/icons/data.svg", 2);
 
         // Telkomsel Data
         Products tselData = createProduct(data, "TSEL_DATA", "Telkomsel Data", "Telkomsel", "Paket Internet Telkomsel", "/icons/telkomsel.svg", 1);
@@ -170,7 +170,7 @@ public class DataSeeder implements ApplicationRunner {
 
     // ========== GAME ==========
     private void seedGame() {
-        Categories game = createCategory("GAME", "Voucher Game", CategoryType.PREPAID, "/icons/game.svg", 3);
+        Category game = createCategory("GAME", "Voucher Game", CategoryType.PREPAID, "/icons/game.svg", 3);
 
         // Mobile Legends
         Products ml = createProduct(game, "MOBILE_LEGEND", "Mobile Legends", "Moonton", "Diamond Mobile Legends", "/icons/ml.svg", 1);
@@ -190,12 +190,12 @@ public class DataSeeder implements ApplicationRunner {
 
     // ========== PLN POSTPAID ==========
     private void seedPlnPostpaid() {
-        Categories pln = createCategory("PLN_POSTPAID", "PLN Pascabayar", CategoryType.POSTPAID, "/icons/pln.svg", 4);
+        Category pln = createCategory("PLN_POSTPAID", "PLN Pascabayar", CategoryType.POSTPAID, "/icons/pln.svg", 4);
 
         Products plnPostpaid = createProduct(pln, "PLN_PASCABAYAR", "PLN Pascabayar", "PLN", "Pembayaran tagihan listrik PLN", "/icons/pln.svg", 1);
 
         ProductDenoms plnDenom = new ProductDenoms();
-        plnDenom.setProduct(plnPostpaid);
+        plnDenom.setProductId(plnPostpaid.getId());
         plnDenom.setCode("PLN_POSTPAID_BAYAR");
         plnDenom.setName("Bayar Tagihan PLN");
         plnDenom.setDenomType(DenomType.OPEN_AMOUNT);
@@ -212,7 +212,7 @@ public class DataSeeder implements ApplicationRunner {
         createMeta(plnDenom, "inquiry_label", "Masukkan ID Pelanggan PLN");
 
         // PLN Prepaid (Token Listrik)
-        Categories plnPrepaid = createCategory("PLN_PREPAID", "Token Listrik", CategoryType.PREPAID, "/icons/pln-token.svg", 5);
+        Category plnPrepaid = createCategory("PLN_PREPAID", "Token Listrik", CategoryType.PREPAID, "/icons/pln-token.svg", 5);
 
         Products plnToken = createProduct(plnPrepaid, "PLN_TOKEN", "Token Listrik PLN", "PLN", "Pembelian token listrik prabayar", "/icons/pln-token.svg", 1);
         createDenom(plnToken, "PLN_TOKEN_20K", "Token 20.000", DenomType.FIXED_DENOM, 20000, 22500, 20500, 2500, null, null, 1);
@@ -224,7 +224,7 @@ public class DataSeeder implements ApplicationRunner {
 
     // ========== E-WALLET ==========
     private void seedEwallet() {
-        Categories ewallet = createCategory("EWALLET", "E-Wallet", CategoryType.PREPAID, "/icons/ewallet.svg", 6);
+        Category ewallet = createCategory("EWALLET", "E-Wallet", CategoryType.PREPAID, "/icons/ewallet.svg", 6);
 
         // GoPay
         Products gopay = createProduct(ewallet, "GOPAY", "GoPay", "GoPay", "Top up saldo GoPay", "/icons/gopay.svg", 1);
@@ -247,9 +247,9 @@ public class DataSeeder implements ApplicationRunner {
 
     // ========== HELPER METHODS ==========
 
-    private Categories createCategory(String code, String name, CategoryType type, String iconUrl, int sortOrder) {
+    private Category createCategory(String code, String name, CategoryType type, String iconUrl, int sortOrder) {
         return categoryRepository.findByCode(code).orElseGet(() -> {
-            Categories category = new Categories();
+            Category category = new Category();
             category.setCode(code);
             category.setName(name);
             category.setCategoryType(type);
@@ -261,11 +261,11 @@ public class DataSeeder implements ApplicationRunner {
         });
     }
 
-    private Products createProduct(Categories category, String code, String name, String providerName,
+    private Products createProduct(Category category, String code, String name, String providerName,
                                    String description, String iconUrl, int sortOrder) {
         return productRepository.findByCode(code).orElseGet(() -> {
             Products product = new Products();
-            product.setCategory(category);
+            product.setCategoryId(category.getId());
             product.setCode(code);
             product.setName(name);
             product.setProviderName(providerName);
@@ -283,7 +283,7 @@ public class DataSeeder implements ApplicationRunner {
                                       Integer validityDays, Long quotaMb, int sortOrder) {
         return denomRepository.findByCode(code).orElseGet(() -> {
             ProductDenoms denom = new ProductDenoms();
-            denom.setProduct(product);
+            denom.setProductId(product.getId());
             denom.setCode(code);
             denom.setName(name);
             denom.setDenomType(denomType);
@@ -303,7 +303,7 @@ public class DataSeeder implements ApplicationRunner {
 
     private void createMeta(ProductDenoms denom, String key, String value) {
         ProductDenomMeta meta = new ProductDenomMeta();
-        meta.setProductDenom(denom);
+        meta.setProductDenomId(denom.getId());
         meta.setMetaKey(key);
         meta.setMetaValue(value);
         metaRepository.save(meta);

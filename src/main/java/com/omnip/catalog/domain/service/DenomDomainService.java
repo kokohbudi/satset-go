@@ -85,7 +85,7 @@ public class DenomDomainService implements BrowseDenomsUseCase, ManageDenomsUseC
             throw new BusinessException("DUPLICATE_CODE", "Denom code already exists: " + req.code());
         }
         ProductDenoms denom = new ProductDenoms();
-        denom.setProduct(product);
+        denom.setProductId(product.getId());
         denom.setCode(req.code().toUpperCase().trim());
         denom.setName(req.name());
         denom.setDenomType(req.denomType());

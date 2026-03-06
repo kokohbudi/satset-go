@@ -1,7 +1,7 @@
 package com.omnip.transaction.adapter.in.web;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.omnip.catalog.adapter.out.persistence.DenomJpaRepository;
+import com.omnip.catalog.adapter.out.persistence.DenomRepositoryAdapter;
 import com.omnip.catalog.domain.port.out.DenomRepositoryPort;
 import com.omnip.shared.model.DenomInfo;
 import com.omnip.identity.domain.port.out.KeycloakIdentityPort;
@@ -9,11 +9,10 @@ import com.omnip.onboarding.adapter.out.persistence.StoreJpaRepository;
 import com.omnip.onboarding.domain.port.out.KeycloakOrganizationPort;
 import com.omnip.shared.dto.UserDTO;
 import com.omnip.transaction.adapter.in.web.dto.PurchaseRequest;
-import com.omnip.transaction.adapter.out.persistence.StoreMutationJpaRepository;
-import com.omnip.transaction.adapter.out.persistence.TransactionJpaRepository;
-import com.omnip.transaction.adapter.out.persistence.WalletAccountJpaRepository;
 import com.omnip.transaction.domain.model.WalletAccount;
 import com.omnip.transaction.domain.port.out.WalletAccountPort;
+import com.omnip.transaction.domain.port.out.TransactionRepositoryPort;
+import com.omnip.transaction.domain.port.out.StoreMutationRepositoryPort;
 import com.omnip.transaction.domain.model.ProviderResponse;
 import com.omnip.transaction.domain.model.StoreMutations;
 import com.omnip.transaction.domain.model.TransactionStatus;
@@ -54,22 +53,21 @@ class PurchaseFlowIntegrationTest {
     private MockMvc mockMvc;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    // @MockitoBean on JPA repo types to cover all implemented interfaces (port + CrudRepository).
-    // This prevents Spring Data from creating real proxies and satisfies all injection points.
+    // Mock the port interfaces (adapters implement these)
     @MockitoBean
-    private TransactionJpaRepository transactionJpaRepo;
+    private TransactionRepositoryPort transactionRepository;
 
     @MockitoBean
     private StoreJpaRepository storeJpaRepo;
 
     @MockitoBean
-    private DenomJpaRepository denomJpaRepo;
+    private DenomRepositoryAdapter productDenomRepository;
 
     @MockitoBean
-    private StoreMutationJpaRepository mutationJpaRepo;
+    private StoreMutationRepositoryPort storeMutationRepository;
 
     @MockitoBean
-    private WalletAccountJpaRepository walletAccountJpaRepo;
+    private WalletAccountPort walletAccountPort;
 
     @MockitoBean
     private ProviderPort providerService;
@@ -83,12 +81,6 @@ class PurchaseFlowIntegrationTest {
     @MockitoBean
     private UserDTO userDTO;
 
-    // Port-typed aliases to avoid method ambiguity (JPA repos inherit conflicting
-    // signatures from CrudRepository and port interfaces). Assigned in setUp().
-    private TransactionRepositoryPort transactionRepository;
-    private DenomRepositoryPort productDenomRepository;
-    private StoreMutationRepositoryPort storeMutationRepository;
-    private WalletAccountPort walletAccountPort;
     private WalletAccount walletAccount;
 
     private UUID storeId;
@@ -101,12 +93,6 @@ class PurchaseFlowIntegrationTest {
                 .webAppContextSetup(context)
                 .apply(springSecurity())
                 .build();
-
-        // Assign port-typed aliases (same mock objects, narrower type avoids ambiguity)
-        transactionRepository = transactionJpaRepo;
-        productDenomRepository = denomJpaRepo;
-        storeMutationRepository = mutationJpaRepo;
-        walletAccountPort = walletAccountJpaRepo;
 
         storeId = UUID.randomUUID();
         denomId = UUID.randomUUID();

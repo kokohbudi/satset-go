@@ -1,6 +1,6 @@
 package com.omnip.catalog.domain.service;
 
-import com.omnip.catalog.domain.model.Categories;
+import com.omnip.catalog.domain.model.Category;
 import com.omnip.catalog.domain.model.CategoryType;
 import com.omnip.catalog.domain.port.in.CreateCategoryRequest;
 import com.omnip.catalog.domain.port.in.UpdateCategoryRequest;
@@ -33,12 +33,12 @@ class CategoryDomainServiceTest {
     private CategoryDomainService categoryService;
 
     private UUID categoryId;
-    private Categories existingCategory;
+    private Category existingCategory;
 
     @BeforeEach
     void setUp() {
         categoryId = UUID.randomUUID();
-        existingCategory = new Categories();
+        existingCategory = new Category();
         existingCategory.setId(categoryId);
         existingCategory.setCode("PULSA");
         existingCategory.setName("Pulsa");
@@ -55,7 +55,7 @@ class CategoryDomainServiceTest {
         when(categoryRepository.findByActiveTrueAndDeletedFalseOrderBySortOrder())
                 .thenReturn(List.of(existingCategory));
 
-        List<Categories> result = categoryService.findAll();
+        List<Category> result = categoryService.findAll();
 
         assertEquals(1, result.size());
         assertEquals("PULSA", result.get(0).getCode());
@@ -65,7 +65,7 @@ class CategoryDomainServiceTest {
     void findByCode_ActiveCategory_ReturnsOptional() {
         when(categoryRepository.findByCode("PULSA")).thenReturn(Optional.of(existingCategory));
 
-        Optional<Categories> result = categoryService.findByCode("PULSA");
+        Optional<Category> result = categoryService.findByCode("PULSA");
 
         assertTrue(result.isPresent());
         assertEquals("PULSA", result.get().getCode());
@@ -76,7 +76,7 @@ class CategoryDomainServiceTest {
         existingCategory.setActive(false);
         when(categoryRepository.findByCode("PULSA")).thenReturn(Optional.of(existingCategory));
 
-        Optional<Categories> result = categoryService.findByCode("PULSA");
+        Optional<Category> result = categoryService.findByCode("PULSA");
 
         assertTrue(result.isEmpty());
     }
@@ -93,7 +93,7 @@ class CategoryDomainServiceTest {
         when(categoryRepository.findByCategoryTypeAndActiveTrueAndDeletedFalseOrderBySortOrder(CategoryType.PREPAID))
                 .thenReturn(List.of(existingCategory));
 
-        List<Categories> result = categoryService.findByType(CategoryType.PREPAID);
+        List<Category> result = categoryService.findByType(CategoryType.PREPAID);
 
         assertEquals(1, result.size());
     }
@@ -102,7 +102,7 @@ class CategoryDomainServiceTest {
     void findAllForAdmin_ReturnsList() {
         when(categoryRepository.findAllByOrderBySortOrder()).thenReturn(List.of(existingCategory));
 
-        List<Categories> result = categoryService.findAllForAdmin();
+        List<Category> result = categoryService.findAllForAdmin();
 
         assertEquals(1, result.size());
     }
@@ -111,7 +111,7 @@ class CategoryDomainServiceTest {
     void findById_Found_ReturnsOptional() {
         when(categoryRepository.findById(categoryId)).thenReturn(Optional.of(existingCategory));
 
-        Optional<Categories> result = categoryService.findById(categoryId);
+        Optional<Category> result = categoryService.findById(categoryId);
 
         assertTrue(result.isPresent());
         assertEquals(categoryId, result.get().getId());
@@ -132,14 +132,14 @@ class CategoryDomainServiceTest {
         CreateCategoryRequest req = new CreateCategoryRequest(
                 "data", "Paket Data", CategoryType.PREPAID, null, true, 2);
         when(categoryRepository.findByCode("DATA")).thenReturn(Optional.empty());
-        when(categoryRepository.save(any(Categories.class))).thenAnswer(inv -> {
-            Categories cat = inv.getArgument(0);
+        when(categoryRepository.save(any(Category.class))).thenAnswer(inv -> {
+            Category cat = inv.getArgument(0);
             cat.setId(UUID.randomUUID());
             return cat;
         });
 
         // Act
-        Categories result = categoryService.create(req);
+        Category result = categoryService.create(req);
 
         // Assert
         assertNotNull(result.getId());
@@ -157,10 +157,10 @@ class CategoryDomainServiceTest {
         CreateCategoryRequest req = new CreateCategoryRequest(
                 "  game  ", "Game Voucher", CategoryType.PREPAID, null, true, 3);
         when(categoryRepository.findByCode("GAME")).thenReturn(Optional.empty());
-        when(categoryRepository.save(any(Categories.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(categoryRepository.save(any(Category.class))).thenAnswer(inv -> inv.getArgument(0));
 
         // Act
-        Categories result = categoryService.create(req);
+        Category result = categoryService.create(req);
 
         // Assert
         assertEquals("GAME", result.getCode());
@@ -189,10 +189,10 @@ class CategoryDomainServiceTest {
                 "PULSA_V2", "Pulsa Updated", CategoryType.POSTPAID, "icon.png", false, 5);
         when(categoryRepository.findById(categoryId)).thenReturn(Optional.of(existingCategory));
         when(categoryRepository.existsByCodeAndIdNot("PULSA_V2", categoryId)).thenReturn(false);
-        when(categoryRepository.save(any(Categories.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(categoryRepository.save(any(Category.class))).thenAnswer(inv -> inv.getArgument(0));
 
         // Act
-        Categories result = categoryService.update(categoryId, req);
+        Category result = categoryService.update(categoryId, req);
 
         // Assert
         assertEquals("PULSA_V2", result.getCode());
@@ -238,15 +238,15 @@ class CategoryDomainServiceTest {
     void softDelete_Success() {
         // Arrange
         when(categoryRepository.findById(categoryId)).thenReturn(Optional.of(existingCategory));
-        when(categoryRepository.save(any(Categories.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(categoryRepository.save(any(Category.class))).thenAnswer(inv -> inv.getArgument(0));
 
         // Act
         categoryService.softDelete(categoryId);
 
         // Assert
-        ArgumentCaptor<Categories> captor = ArgumentCaptor.forClass(Categories.class);
+        ArgumentCaptor<Category> captor = ArgumentCaptor.forClass(Category.class);
         verify(categoryRepository).save(captor.capture());
-        Categories saved = captor.getValue();
+        Category saved = captor.getValue();
         assertTrue(saved.isDeleted());
         assertFalse(saved.isActive());
     }

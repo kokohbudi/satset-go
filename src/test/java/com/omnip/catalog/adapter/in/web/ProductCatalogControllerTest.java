@@ -1,6 +1,6 @@
 package com.omnip.catalog.adapter.in.web;
 
-import com.omnip.catalog.domain.model.Categories;
+import com.omnip.catalog.domain.model.Category;
 import com.omnip.catalog.domain.model.CategoryType;
 import com.omnip.catalog.domain.model.ProductDenoms;
 import com.omnip.catalog.domain.model.Products;
@@ -40,10 +40,10 @@ class ProductCatalogControllerTest {
         mockMvc = MockMvcBuilders.standaloneSetup(controller).build();
     }
 
-    // ==================== Categories ====================
+    // ==================== Category ====================
 
     @Test
-    void getAllCategories_ReturnsOk_WithList() throws Exception {
+    void getAllCategory_ReturnsOk_WithList() throws Exception {
         when(browseCategoriesUseCase.findAll()).thenReturn(List.of(buildCategory("PULSA", "Pulsa")));
 
         mockMvc.perform(get("/api/categories"))
@@ -53,7 +53,7 @@ class ProductCatalogControllerTest {
     }
 
     @Test
-    void getCategoriesByType_ReturnsOk() throws Exception {
+    void getCategoryByType_ReturnsOk() throws Exception {
         when(browseCategoriesUseCase.findByType(CategoryType.PREPAID))
                 .thenReturn(List.of(buildCategory("PULSA", "Pulsa")));
 
@@ -142,8 +142,8 @@ class ProductCatalogControllerTest {
 
     // ==================== Helpers ====================
 
-    private Categories buildCategory(String code, String name) {
-        Categories cat = new Categories();
+    private Category buildCategory(String code, String name) {
+        Category cat = new Category();
         cat.setId(UUID.randomUUID());
         cat.setCode(code);
         cat.setName(name);

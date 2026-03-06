@@ -1,8 +1,6 @@
 package com.omnip.catalog.adapter.out.persistence;
 
-import com.omnip.catalog.domain.model.ProductDenoms;
-import com.omnip.catalog.domain.model.DenomType;
-import com.omnip.catalog.domain.port.out.DenomRepositoryPort;
+import com.omnip.catalog.adapter.out.persistence.entity.ProductDenomJpaEntity;
 import com.omnip.shared.model.DenomInfo;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -13,13 +11,13 @@ import java.util.Optional;
 import java.util.UUID;
 
 @Repository
-public interface DenomJpaRepository extends JpaRepository<ProductDenoms, UUID>, DenomRepositoryPort {
+public interface DenomJpaRepository extends JpaRepository<ProductDenomJpaEntity, UUID> {
 
-    Optional<ProductDenoms> findByCode(String code);
+    Optional<ProductDenomJpaEntity> findByCode(String code);
 
-    List<ProductDenoms> findByProductIdAndActiveTrueAndDeletedFalseOrderBySortOrder(UUID productId);
+    List<ProductDenomJpaEntity> findByProductIdAndActiveTrueAndDeletedFalseOrderBySortOrder(UUID productId);
 
-    List<ProductDenoms> findByProductIdOrderBySortOrder(UUID productId);
+    List<ProductDenomJpaEntity> findByProductIdOrderBySortOrder(UUID productId);
 
     boolean existsByCodeAndIdNot(String code, UUID id);
 
@@ -31,8 +29,8 @@ public interface DenomJpaRepository extends JpaRepository<ProductDenoms, UUID>, 
         SELECT new com.omnip.shared.model.DenomInfo(
             d.id, d.code, d.name, p.name, d.price, d.adminFee, d.active, d.deleted
         )
-        FROM ProductDenoms d
-        LEFT JOIN d.product p
+        FROM ProductDenomJpaEntity d
+        LEFT JOIN ProductJpaEntity p ON d.productId = p.id
         WHERE d.id = :id
         """)
     Optional<DenomInfo> findDenomInfoById(UUID id);

@@ -1,7 +1,7 @@
 package com.omnip.catalog.adapter.in.web;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.omnip.catalog.domain.model.Categories;
+import com.omnip.catalog.domain.model.Category;
 import com.omnip.catalog.domain.model.CategoryType;
 import com.omnip.catalog.domain.model.Products;
 import com.omnip.catalog.domain.port.in.ManageCategoriesUseCase;
@@ -42,11 +42,11 @@ class AdminCatalogControllerTest {
         mockMvc = MockMvcBuilders.standaloneSetup(controller).build();
     }
 
-    // ==================== Categories ====================
+    // ==================== Category ====================
 
     @Test
-    void listCategories_ReturnsOk_WithMappedDTOs() throws Exception {
-        Categories cat = buildCategory("PULSA", "Pulsa");
+    void listCategory_ReturnsOk_WithMappedDTOs() throws Exception {
+        Category cat = buildCategory("PULSA", "Pulsa");
 
         when(manageCategoriesUseCase.findAllForAdmin()).thenReturn(List.of(cat));
 
@@ -57,7 +57,7 @@ class AdminCatalogControllerTest {
     }
 
     @Test
-    void listCategories_EmptyList_ReturnsOkWithEmptyArray() throws Exception {
+    void listCategory_EmptyList_ReturnsOkWithEmptyArray() throws Exception {
         when(manageCategoriesUseCase.findAllForAdmin()).thenReturn(List.of());
 
         mockMvc.perform(get("/api/admin/catalog/categories"))
@@ -68,7 +68,7 @@ class AdminCatalogControllerTest {
     @Test
     void getCategory_Found_ReturnsOk() throws Exception {
         UUID id = UUID.randomUUID();
-        Categories cat = buildCategory("PULSA", "Pulsa");
+        Category cat = buildCategory("PULSA", "Pulsa");
         cat.setId(id);
 
         when(manageCategoriesUseCase.findById(id)).thenReturn(Optional.of(cat));
@@ -90,7 +90,7 @@ class AdminCatalogControllerTest {
 
     @Test
     void createCategory_ReturnsCreated() throws Exception {
-        Categories created = buildCategory("GAME", "Game");
+        Category created = buildCategory("GAME", "Game");
         when(manageCategoriesUseCase.create(any())).thenReturn(created);
 
         String body = """
@@ -107,7 +107,7 @@ class AdminCatalogControllerTest {
     @Test
     void updateCategory_ReturnsOk() throws Exception {
         UUID id = UUID.randomUUID();
-        Categories updated = buildCategory("GAME", "Game Updated");
+        Category updated = buildCategory("GAME", "Game Updated");
         updated.setId(id);
         when(manageCategoriesUseCase.update(any(), any())).thenReturn(updated);
 
@@ -152,13 +152,13 @@ class AdminCatalogControllerTest {
     }
 
     @Test
-    void listProducts_WithoutCategoryId_IteratesAllCategories() throws Exception {
+    void listProducts_WithoutCategoryId_IteratesAllCategory() throws Exception {
         UUID catId1 = UUID.randomUUID();
         UUID catId2 = UUID.randomUUID();
 
-        Categories cat1 = buildCategory("PULSA", "Pulsa");
+        Category cat1 = buildCategory("PULSA", "Pulsa");
         cat1.setId(catId1);
-        Categories cat2 = buildCategory("DATA", "Paket Data");
+        Category cat2 = buildCategory("DATA", "Paket Data");
         cat2.setId(catId2);
 
         when(manageCategoriesUseCase.findAllForAdmin()).thenReturn(List.of(cat1, cat2));
@@ -322,8 +322,8 @@ class AdminCatalogControllerTest {
 
     // ==================== Helpers ====================
 
-    private Categories buildCategory(String code, String name) {
-        Categories cat = new Categories();
+    private Category buildCategory(String code, String name) {
+        Category cat = new Category();
         cat.setId(UUID.randomUUID());
         cat.setCode(code);
         cat.setName(name);
@@ -333,7 +333,7 @@ class AdminCatalogControllerTest {
     }
 
     private Products buildProduct(String code, String name, UUID categoryId) {
-        Categories category = new Categories();
+        Category category = new Category();
         category.setId(categoryId);
         category.setCode("CAT");
         category.setName("Category");
@@ -342,7 +342,7 @@ class AdminCatalogControllerTest {
         product.setId(UUID.randomUUID());
         product.setCode(code);
         product.setName(name);
-        product.setCategory(category);
+        product.setCategoryId(categoryId);
         product.setActive(true);
         return product;
     }
@@ -359,7 +359,7 @@ class AdminCatalogControllerTest {
         denom.setName("Pulsa 10K");
         denom.setPrice(new java.math.BigDecimal("10000"));
         denom.setActive(true);
-        denom.setProduct(product);
+        denom.setProductId(productId);
         return denom;
     }
 }

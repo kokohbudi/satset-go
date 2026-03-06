@@ -1,6 +1,6 @@
 package com.omnip.catalog.adapter.in.web;
 
-import com.omnip.catalog.domain.model.Categories;
+import com.omnip.catalog.domain.model.Category;
 import com.omnip.catalog.domain.model.CategoryType;
 import com.omnip.catalog.domain.model.ProductDenoms;
 import com.omnip.catalog.domain.model.Products;
@@ -49,7 +49,7 @@ class AdminCatalogPageControllerTest {
     }
 
     @Test
-    void catalogRoot_RedirectsToCategories() throws Exception {
+    void catalogRoot_RedirectsToCategory() throws Exception {
         mockMvc.perform(get("/admin/catalog"))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/admin/catalog/categories"));
@@ -114,8 +114,8 @@ class AdminCatalogPageControllerTest {
 
     // ==================== helpers ====================
 
-    private Categories buildCategory() {
-        Categories c = new Categories();
+    private Category buildCategory() {
+        Category c = new Category();
         c.setId(UUID.randomUUID());
         c.setCode("PULSA");
         c.setName("Pulsa");
@@ -142,7 +142,7 @@ class AdminCatalogPageControllerTest {
         d.setActive(true);
         Products p = buildProduct();
         p.setId(productId);
-        d.setProduct(p);
+        d.setProductId(productId);
         return d;
     }
 }

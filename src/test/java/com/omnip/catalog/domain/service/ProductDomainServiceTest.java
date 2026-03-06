@@ -1,6 +1,6 @@
 package com.omnip.catalog.domain.service;
 
-import com.omnip.catalog.domain.model.Categories;
+import com.omnip.catalog.domain.model.Category;
 import com.omnip.catalog.domain.model.CategoryType;
 import com.omnip.catalog.domain.model.ProductDenoms;
 import com.omnip.catalog.domain.model.Products;
@@ -43,7 +43,7 @@ class ProductDomainServiceTest {
 
     private UUID categoryId;
     private UUID productId;
-    private Categories category;
+    private Category category;
     private Products existingProduct;
 
     @BeforeEach
@@ -51,7 +51,7 @@ class ProductDomainServiceTest {
         categoryId = UUID.randomUUID();
         productId = UUID.randomUUID();
 
-        category = new Categories();
+        category = new Category();
         category.setId(categoryId);
         category.setCode("PULSA");
         category.setName("Pulsa");
@@ -59,7 +59,7 @@ class ProductDomainServiceTest {
 
         existingProduct = new Products();
         existingProduct.setId(productId);
-        existingProduct.setCategory(category);
+        existingProduct.setCategoryId(categoryId);
         existingProduct.setCode("TELKOMSEL");
         existingProduct.setName("Telkomsel");
         existingProduct.setActive(true);
@@ -166,7 +166,7 @@ class ProductDomainServiceTest {
         assertNotNull(result.getId());
         assertEquals("XL", result.getCode()); // uppercased
         assertEquals("XL Axiata", result.getName());
-        assertEquals(category, result.getCategory());
+        assertEquals(categoryId, result.getCategoryId());
         assertTrue(result.isActive());
         assertFalse(result.isDeleted());
     }

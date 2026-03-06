@@ -57,7 +57,7 @@ class DenomDomainServiceTest {
 
         existingDenom = new ProductDenoms();
         existingDenom.setId(denomId);
-        existingDenom.setProduct(product);
+        existingDenom.setProductId(productId);
         existingDenom.setCode("TLKM5");
         existingDenom.setName("Telkomsel 5K");
         existingDenom.setDenomType(DenomType.FIXED_DENOM);
@@ -184,7 +184,7 @@ class DenomDomainServiceTest {
         assertEquals("Telkomsel 10K", result.getName());
         assertEquals(DenomType.FIXED_DENOM, result.getDenomType());
         assertEquals(new BigDecimal("10500"), result.getPrice());
-        assertEquals(product, result.getProduct());
+        assertEquals(productId, result.getProductId());
         assertTrue(result.isActive());
         assertFalse(result.isDeleted());
     }

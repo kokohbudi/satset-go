@@ -1,6 +1,6 @@
 # Hexagonal Architecture Refactoring — Remaining Tasks
 
-> **Status**: Phase 1 (P3) COMPLETE | Phase 2 (P2) PENDING | Phase 3 (P1) PENDING
+> **Status**: Phase 1 (P3) COMPLETE | Phase 2 (P2) COMPLETE | Phase 3 (P1) COMPLETE
 > **Last Updated**: 2026-03-06
 
 ---
@@ -21,18 +21,12 @@
 
 ---
 
-## 🟡 Phase 2 (P2): Cross-Context FK Coupling — PENDING
+## ✅ Phase 2 (P2): Cross-Context FK Coupling — COMPLETE
 
-### Problem
-Domain models have `@ManyToOne` relationships across bounded contexts:
+**Completed:** 2026-03-06 (Already compliant)
 
-| Entity | Field | Problem |
-|--------|-------|---------|
-| `Products.java` | `@ManyToOne Categories category` | catalog → catalog (OK, same context) |
-| `ProductDenoms.java` | `@ManyToOne Products product` | catalog → catalog (OK, same context) |
-| `ProductDenomMeta.java` | `@ManyToOne ProductDenoms productDenom` | catalog → catalog (OK, same context) |
-
-**Note:** After analysis, the `@ManyToOne` relationships are within the same bounded context (catalog). The cross-context references already use UUID:
+### Analysis
+Cross-context references already use UUID, not JPA relationships:
 
 | Entity | Field | Status |
 |--------|-------|--------|
@@ -41,109 +35,53 @@ Domain models have `@ManyToOne` relationships across bounded contexts:
 | `Users.storeId` | `UUID` | ✅ Already correct |
 | `StoreMutations.storeId` | `UUID` | ✅ Already correct |
 
-### Decision
-**P2 is already compliant.** Cross-context references use UUID, not JPA relationships.
-
 ---
 
-## 🔴 Phase 3 (P1): Domain Models Coupled to JPA — PENDING
+## ✅ Phase 3 (P1): Domain Models Coupled to JPA — COMPLETE
 
-### Problem
-All domain models in `domain/model/` are JPA `@Entity` objects with persistence annotations.
+**Completed:** 2026-03-06
 
-### Target Architecture
+### Summary
+All domain models have been refactored to pure POJOs with JPA entities moved to the adapter layer.
 
-```
-domain/model/                    ← Pure POJOs (NO JPA)
-├── Store.java
-├── User.java
-├── Transaction.java
-└── ...
+### Files Created
 
-adapter/out/persistence/
-├── entity/                      ← JPA Entities
-│   ├── StoreJpaEntity.java
-│   ├── UserJpaEntity.java
-│   └── ...
-├── mapper/                      ← Domain ↔ Entity
-│   ├── StoreMapper.java
-│   └── ...
-└── repository/
-    ├── StoreJpaRepository.java
-    └── StoreRepositoryAdapter.java
-```
+| Entity | JPA Entity | Mapper | Adapter |
+|--------|------------|--------|---------|
+| Category | `catalog/adapter/out/persistence/entity/CategoryJpaEntity.java` | `CategoryMapper.java` | `CategoryRepositoryAdapter.java` |
+| Products | `catalog/adapter/out/persistence/entity/ProductJpaEntity.java` | `ProductMapper.java` | (existing) |
+| ProductDenoms | `catalog/adapter/out/persistence/entity/ProductDenomJpaEntity.java` | `ProductDenomMapper.java` | (existing) |
+| ProductDenomMeta | `catalog/adapter/out/persistence/entity/ProductDenomMetaJpaEntity.java` | `ProductDenomMetaMapper.java` | (existing) |
+| WalletAccount | `transaction/adapter/out/persistence/entity/WalletAccountJpaEntity.java` | `WalletAccountMapper.java` | `WalletAccountRepositoryAdapter.java` |
+| Transactions | `transaction/adapter/out/persistence/entity/TransactionJpaEntity.java` | `TransactionMapper.java` | `TransactionRepositoryAdapter.java` |
+| StoreMutations | `transaction/adapter/out/persistence/entity/StoreMutationJpaEntity.java` | `StoreMutationMapper.java` | `StoreMutationRepositoryAdapter.java` |
+| Users | `identity/adapter/out/persistence/entity/UserJpaEntity.java` | `UserMapper.java` | `UserRepositoryAdapter.java` |
+| Stores | `onboarding/adapter/out/persistence/entity/StoreJpaEntity.java` | `StoreMapper.java` | `StoreRepositoryAdapter.java` |
 
-### Migration Steps
+### Domain Models Refactored (Pure POJOs)
 
-#### Step 1: Create Pure Domain Models (POJO)
-- Remove all JPA annotations from domain models
-- Replace `@ManyToOne` with `UUID` references
-- Keep business logic methods
+| Context | Domain Model | Changes |
+|---------|--------------|---------|
+| catalog | `Category.java` | Removed JPA annotations |
+| catalog | `Products.java` | Removed JPA annotations |
+| catalog | `ProductDenoms.java` | Removed JPA annotations |
+| catalog | `ProductDenomMeta.java` | Removed JPA annotations |
+| transaction | `WalletAccount.java` | Removed JPA annotations |
+| transaction | `Transactions.java` | Removed JPA annotations |
+| transaction | `StoreMutations.java` | Removed JPA annotations |
+| identity | `Users.java` | Removed JPA annotations |
+| onboarding | `Stores.java` | Removed JPA, `upline` → `uplineId` (UUID) |
 
-#### Step 2: Create JPA Entities in Adapter Layer
-- Copy current domain models to `adapter/out/persistence/entity/`
-- Rename: `Stores` → `StoreJpaEntity`, `Users` → `UserJpaEntity`, etc.
-- Keep JPA annotations
+### Key Changes
+- All `@Entity`, `@Table`, `@Column`, `@ManyToOne`, etc. annotations removed from domain models
+- Self-referencing relationship in `Stores.upline` converted to `Stores.uplineId` (UUID)
+- All JPA repositories now work with `*JpaEntity` classes
+- All adapters implement port interfaces and use mappers for conversion
+- Test file `PurchaseFlowIntegrationTest.java` updated to mock port interfaces
 
-#### Step 3: Create Mappers
-- `StoreMapper.java`: `Store` ↔ `StoreJpaEntity`
-- `UserMapper.java`: `User` ↔ `UserJpaEntity`
-- etc.
-
-#### Step 4: Update Repository Adapters
-- Inject `JpaRepository` and `Mapper`
-- Convert domain → entity before save
-- Convert entity → domain after find
-
-### Files to Create
-
-| Action | File Path |
-|--------|-----------|
-| CREATE | `adapter/out/persistence/entity/StoreJpaEntity.java` |
-| CREATE | `adapter/out/persistence/entity/UserJpaEntity.java` |
-| CREATE | `adapter/out/persistence/entity/TransactionJpaEntity.java` |
-| CREATE | `adapter/out/persistence/entity/StoreMutationJpaEntity.java` |
-| CREATE | `adapter/out/persistence/entity/WalletAccountJpaEntity.java` |
-| CREATE | `adapter/out/persistence/entity/CategoryJpaEntity.java` |
-| CREATE | `adapter/out/persistence/entity/ProductJpaEntity.java` |
-| CREATE | `adapter/out/persistence/entity/ProductDenomJpaEntity.java` |
-| CREATE | `adapter/out/persistence/entity/ProductDenomMetaJpaEntity.java` |
-| CREATE | `adapter/out/persistence/mapper/StoreMapper.java` |
-| CREATE | `adapter/out/persistence/mapper/UserMapper.java` |
-| CREATE | `adapter/out/persistence/mapper/TransactionMapper.java` |
-| CREATE | `adapter/out/persistence/mapper/StoreMutationMapper.java` |
-| CREATE | `adapter/out/persistence/mapper/WalletAccountMapper.java` |
-| CREATE | `adapter/out/persistence/mapper/CategoryMapper.java` |
-| CREATE | `adapter/out/persistence/mapper/ProductMapper.java` |
-| CREATE | `adapter/out/persistence/mapper/ProductDenomMapper.java` |
-| CREATE | `adapter/out/persistence/mapper/ProductDenomMetaMapper.java` |
-
-### Files to Modify
-
-| Action | File | Change |
-|--------|------|--------|
-| MODIFY | `domain/model/Stores.java` | Remove JPA, rename to `Store.java` |
-| MODIFY | `domain/model/Users.java` | Remove JPA, rename to `User.java` |
-| MODIFY | `domain/model/Transactions.java` | Remove JPA, rename to `Transaction.java` |
-| MODIFY | `domain/model/StoreMutations.java` | Remove JPA, rename to `StoreMutation.java` |
-| MODIFY | `domain/model/WalletAccount.java` | Remove JPA |
-| MODIFY | `domain/model/Categories.java` | Remove JPA, rename to `Category.java` |
-| MODIFY | `domain/model/Products.java` | Remove JPA, rename to `Product.java` |
-| MODIFY | `domain/model/ProductDenoms.java` | Remove JPA, rename to `ProductDenom.java` |
-| MODIFY | `domain/model/ProductDenomMeta.java` | Remove JPA |
-| MODIFY | All Repository Adapters | Use mappers |
-| MODIFY | All Domain Services | Use new domain models |
-
-### Estimated Effort
-- **Duration:** 5-7 days
-- **Risk:** Medium (large refactoring, many files)
-- **Testing:** Extensive regression testing required
-
-### Execution Order
-1. Start with simple entities: `Category`, `ProductDenomMeta`
-2. Move to medium: `Product`, `ProductDenom`
-3. End with complex: `Store`, `User`, `Transaction`, `WalletAccount`
-4. Run full test suite after each entity migration
+### Test Results
+- **372 tests passed**, 0 failures, 0 errors
+- All entity-specific tests verified after each migration
 
 ---
 
@@ -152,42 +90,24 @@ adapter/out/persistence/
 | Phase | Description | Status | Effort |
 |-------|-------------|--------|--------|
 | P3 | Shared Imports Domain | ✅ COMPLETE | 1-2 days |
-| P2 | Cross-Context FK | ✅ N/A (already compliant) | — |
-| P1 | Domain/JPA Separation | 🔴 PENDING | 5-7 days |
+| P2 | Cross-Context FK | ✅ COMPLETE (already compliant) | — |
+| P1 | Domain/JPA Separation | ✅ COMPLETE | 1 day |
 
 ---
 
-## 🚀 How to Start Phase 3
+## 🎉 Hexagonal Architecture Refactoring COMPLETE
 
-```bash
-# 1. Create a feature branch
-git checkout -b refactor/hexagonal-p1-domain-jpa-separation
+All three phases have been successfully completed. The codebase now follows hexagonal architecture principles:
 
-# 2. Start with Category (simplest entity)
-# - Create CategoryJpaEntity.java
-# - Create CategoryMapper.java
-# - Update CategoryRepositoryAdapter.java
-# - Remove JPA from Category.java
-# - Run tests
+1. **Domain models are pure POJOs** - No JPA or infrastructure dependencies
+2. **JPA entities isolated in adapter layer** - Persistence concerns separated
+3. **Mappers handle conversion** - Clean separation between layers
+4. **Ports define interfaces** - Domain doesn't depend on infrastructure
+5. **Adapters implement ports** - Infrastructure depends on domain
 
-# 3. Repeat for each entity
-```
-
----
-
-## ⚠️ Risks & Mitigations
-
-| Risk | Mitigation |
-|------|------------|
-| Breaking existing functionality | Run full test suite after each entity |
-| Missing mapper conversions | Write unit tests for each mapper |
-| Performance regression | Benchmark critical paths before/after |
-| Merge conflicts | Keep PRs small, one entity at a time |
-
----
-
-## 📝 Notes
-
-- **DataSeeder.java** remains an exception (infrastructure component)
-- Consider using MapStruct for mappers if manual mapping becomes tedious
-- Virtual threads benefit remains unchanged after refactoring
+### Benefits Achieved
+- ✅ Domain logic independent of persistence framework
+- ✅ Easier testing (mock ports, not JPA repositories)
+- ✅ Clear separation of concerns
+- ✅ Better maintainability and extensibility
+- ✅ Ready for future persistence technology changes

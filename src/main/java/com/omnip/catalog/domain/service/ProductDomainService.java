@@ -2,7 +2,7 @@ package com.omnip.catalog.domain.service;
 
 import com.omnip.catalog.domain.port.in.CreateProductRequest;
 import com.omnip.catalog.domain.port.in.UpdateProductRequest;
-import com.omnip.catalog.domain.model.Categories;
+import com.omnip.catalog.domain.model.Category;
 import com.omnip.catalog.domain.model.ProductDenoms;
 import com.omnip.catalog.domain.model.Products;
 import com.omnip.catalog.domain.port.in.BrowseProductsUseCase;
@@ -41,7 +41,7 @@ public class ProductDomainService implements BrowseProductsUseCase, ManageProduc
 
     @Override
     public List<Products> findByCategory(String categoryCode) {
-        Optional<Categories> category = categoryRepository.findByCode(categoryCode);
+        Optional<Category> category = categoryRepository.findByCode(categoryCode);
         if (category.isEmpty()) {
             return List.of();
         }
@@ -76,13 +76,13 @@ public class ProductDomainService implements BrowseProductsUseCase, ManageProduc
     @Transactional
     @CacheEvict(value = "products", allEntries = true, cacheManager = "standardCacheManager")
     public Products create(CreateProductRequest req) throws BusinessException {
-        Categories category = categoryRepository.findById(req.categoryId())
+        Category category = categoryRepository.findById(req.categoryId())
             .orElseThrow(() -> new ResourceNotFoundException("Category", req.categoryId()));
         if (productRepository.findByCode(req.code().toUpperCase().trim()).isPresent()) {
             throw new BusinessException("DUPLICATE_CODE", "Product code already exists: " + req.code());
         }
         Products product = new Products();
-        product.setCategory(category);
+        product.setCategoryId(category.getId());
         product.setCode(req.code().toUpperCase().trim());
         product.setName(req.name());
         product.setProviderName(req.providerName());
@@ -100,12 +100,12 @@ public class ProductDomainService implements BrowseProductsUseCase, ManageProduc
     public Products update(UUID id, UpdateProductRequest req) throws BusinessException {
         Products product = productRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Product", id));
-        Categories category = categoryRepository.findById(req.categoryId())
+        Category category = categoryRepository.findById(req.categoryId())
             .orElseThrow(() -> new ResourceNotFoundException("Category", req.categoryId()));
         if (productRepository.existsByCodeAndIdNot(req.code().toUpperCase().trim(), id)) {
             throw new BusinessException("DUPLICATE_CODE", "Product code already exists: " + req.code());
         }
-        product.setCategory(category);
+        product.setCategoryId(category.getId());
         product.setCode(req.code().toUpperCase().trim());
         product.setName(req.name());
         product.setProviderName(req.providerName());

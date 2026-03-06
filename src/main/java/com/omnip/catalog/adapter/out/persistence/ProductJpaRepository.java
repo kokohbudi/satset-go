@@ -1,7 +1,6 @@
 package com.omnip.catalog.adapter.out.persistence;
 
-import com.omnip.catalog.domain.model.Products;
-import com.omnip.catalog.domain.port.out.ProductRepositoryPort;
+import com.omnip.catalog.adapter.out.persistence.entity.ProductJpaEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -10,11 +9,15 @@ import java.util.Optional;
 import java.util.UUID;
 
 @Repository
-public interface ProductJpaRepository extends JpaRepository<Products, UUID>, ProductRepositoryPort {
+public interface ProductJpaRepository extends JpaRepository<ProductJpaEntity, UUID> {
 
-    Optional<Products> findByCode(String code);
+    Optional<ProductJpaEntity> findByCode(String code);
 
-    List<Products> findByCategoryIdAndActiveTrueAndDeletedFalseOrderBySortOrder(UUID categoryId);
+    List<ProductJpaEntity> findByCategoryIdAndActiveTrueAndDeletedFalseOrderBySortOrder(UUID categoryId);
 
-    List<Products> findByActiveTrueAndDeletedFalseOrderBySortOrder();
+    List<ProductJpaEntity> findByCategoryIdOrderBySortOrder(UUID categoryId);
+
+    List<ProductJpaEntity> findByActiveTrueAndDeletedFalseOrderBySortOrder();
+
+    boolean existsByCodeAndIdNot(String code, UUID id);
 }

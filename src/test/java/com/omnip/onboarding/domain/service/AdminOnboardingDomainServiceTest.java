@@ -102,7 +102,7 @@ class AdminOnboardingDomainServiceTest {
 
         ArgumentCaptor<Stores> storeCaptor = ArgumentCaptor.forClass(Stores.class);
         verify(storeRepository).save(storeCaptor.capture());
-        assertNull(storeCaptor.getValue().getUpline());
+        assertNull(storeCaptor.getValue().getUplineId());
         verify(storeRepository, never()).findById(any());
     }
 
@@ -118,7 +118,7 @@ class AdminOnboardingDomainServiceTest {
 
         ArgumentCaptor<Stores> storeCaptor = ArgumentCaptor.forClass(Stores.class);
         verify(storeRepository).save(storeCaptor.capture());
-        assertSame(uplineStore, storeCaptor.getValue().getUpline());
+        assertEquals(uplineId, storeCaptor.getValue().getUplineId());
     }
 
     @Test

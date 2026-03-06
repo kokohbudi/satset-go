@@ -1,7 +1,6 @@
 package com.omnip.transaction.adapter.out.persistence;
 
-import com.omnip.transaction.domain.model.WalletAccount;
-import com.omnip.transaction.domain.port.out.WalletAccountPort;
+import com.omnip.transaction.adapter.out.persistence.entity.WalletAccountJpaEntity;
 import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
@@ -13,11 +12,11 @@ import java.util.Optional;
 import java.util.UUID;
 
 @Repository
-public interface WalletAccountJpaRepository extends JpaRepository<WalletAccount, UUID>, WalletAccountPort {
+public interface WalletAccountJpaRepository extends JpaRepository<WalletAccountJpaEntity, UUID> {
 
-    Optional<WalletAccount> findByStoreId(UUID storeId);
+    Optional<WalletAccountJpaEntity> findByStoreId(UUID storeId);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
-    @Query("SELECT w FROM WalletAccount w WHERE w.storeId = :storeId")
-    Optional<WalletAccount> findByStoreIdWithLock(@Param("storeId") UUID storeId);
+    @Query("SELECT w FROM WalletAccountJpaEntity w WHERE w.storeId = :storeId")
+    Optional<WalletAccountJpaEntity> findByStoreIdWithLock(@Param("storeId") UUID storeId);
 }

@@ -1,7 +1,7 @@
 package com.omnip.catalog.adapter.in.web;
 
 import com.omnip.catalog.adapter.in.web.dto.*;
-import com.omnip.catalog.domain.model.Categories;
+import com.omnip.catalog.domain.model.Category;
 import com.omnip.catalog.domain.model.ProductDenoms;
 import com.omnip.catalog.domain.model.Products;
 import com.omnip.catalog.domain.port.in.CreateCategoryRequest;
@@ -65,7 +65,7 @@ public class AdminCatalogController {
     @PreAuthorize("hasRole('" + OmniConstants.PERM_MANAGE_CATEGORIES + "')")
     public ResponseEntity<?> createCategory(@Valid @RequestBody CreateCategoryRequest req)
             throws BusinessException {
-        Categories created = manageCategoriesUseCase.create(req);
+        Category created = manageCategoriesUseCase.create(req);
         return ResponseEntity.status(HttpStatus.CREATED).body(toCategoryDTO(created));
     }
 
@@ -73,7 +73,7 @@ public class AdminCatalogController {
     @PreAuthorize("hasRole('" + OmniConstants.PERM_MANAGE_CATEGORIES + "')")
     public ResponseEntity<?> updateCategory(@PathVariable UUID id,
             @Valid @RequestBody UpdateCategoryRequest req) throws BusinessException {
-        Categories updated = manageCategoriesUseCase.update(id, req);
+        Category updated = manageCategoriesUseCase.update(id, req);
         return ResponseEntity.ok(toCategoryDTO(updated));
     }
 
@@ -178,7 +178,7 @@ public class AdminCatalogController {
 
     // ==================== Mappers ====================
 
-    private CategoryDTO toCategoryDTO(Categories entity) {
+    private CategoryDTO toCategoryDTO(Category entity) {
         CategoryDTO dto = new CategoryDTO();
         dto.setId(entity.getId());
         dto.setCode(entity.getCode());
@@ -202,11 +202,7 @@ public class AdminCatalogController {
         dto.setSortOrder(entity.getSortOrder());
         dto.setActive(entity.isActive());
         dto.setDeleted(entity.isDeleted());
-        if (entity.getCategory() != null) {
-            dto.setCategoryId(entity.getCategory().getId());
-            dto.setCategoryCode(entity.getCategory().getCode());
-            dto.setCategoryName(entity.getCategory().getName());
-        }
+        dto.setCategoryId(entity.getCategoryId());
         return dto;
     }
 
@@ -229,11 +225,7 @@ public class AdminCatalogController {
         dto.setSortOrder(entity.getSortOrder());
         dto.setActive(entity.isActive());
         dto.setDeleted(entity.isDeleted());
-        if (entity.getProduct() != null) {
-            dto.setProductId(entity.getProduct().getId());
-            dto.setProductCode(entity.getProduct().getCode());
-            dto.setProductName(entity.getProduct().getName());
-        }
+        dto.setProductId(entity.getProductId());
         return dto;
     }
 }

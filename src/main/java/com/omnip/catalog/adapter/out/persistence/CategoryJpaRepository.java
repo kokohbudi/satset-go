@@ -1,8 +1,7 @@
 package com.omnip.catalog.adapter.out.persistence;
 
-import com.omnip.catalog.domain.model.Categories;
+import com.omnip.catalog.adapter.out.persistence.entity.CategoryJpaEntity;
 import com.omnip.catalog.domain.model.CategoryType;
-import com.omnip.catalog.domain.port.out.CategoryRepositoryPort;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -11,11 +10,15 @@ import java.util.Optional;
 import java.util.UUID;
 
 @Repository
-public interface CategoryJpaRepository extends JpaRepository<Categories, UUID>, CategoryRepositoryPort {
+public interface CategoryJpaRepository extends JpaRepository<CategoryJpaEntity, UUID> {
 
-    Optional<Categories> findByCode(String code);
+    Optional<CategoryJpaEntity> findByCode(String code);
 
-    List<Categories> findByCategoryTypeAndActiveTrueAndDeletedFalseOrderBySortOrder(CategoryType categoryType);
+    List<CategoryJpaEntity> findByCategoryTypeAndActiveTrueAndDeletedFalseOrderBySortOrder(CategoryType categoryType);
 
-    List<Categories> findByActiveTrueAndDeletedFalseOrderBySortOrder();
+    List<CategoryJpaEntity> findByActiveTrueAndDeletedFalseOrderBySortOrder();
+
+    List<CategoryJpaEntity> findAllByOrderBySortOrder();
+
+    boolean existsByCodeAndIdNot(String code, UUID id);
 }

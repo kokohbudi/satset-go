@@ -4,7 +4,7 @@ import com.omnip.catalog.adapter.in.web.dto.CategoryDTO;
 import com.omnip.catalog.adapter.in.web.dto.ProductDTO;
 import com.omnip.catalog.adapter.in.web.dto.ProductDenomDTO;
 import com.omnip.catalog.adapter.in.web.dto.ProductDenomMetaDTO;
-import com.omnip.catalog.domain.model.Categories;
+import com.omnip.catalog.domain.model.Category;
 import com.omnip.catalog.domain.model.CategoryType;
 import com.omnip.catalog.domain.model.ProductDenomMeta;
 import com.omnip.catalog.domain.model.ProductDenoms;
@@ -93,7 +93,7 @@ public class ProductCatalogController {
 
     // ==================== Mappers ====================
 
-    private CategoryDTO toCategoryDTO(Categories entity) {
+    private CategoryDTO toCategoryDTO(Category entity) {
         CategoryDTO dto = new CategoryDTO();
         dto.setId(entity.getId());
         dto.setCode(entity.getCode());
@@ -117,11 +117,7 @@ public class ProductCatalogController {
         dto.setSortOrder(entity.getSortOrder());
         dto.setActive(entity.isActive());
         dto.setDeleted(entity.isDeleted());
-        if (entity.getCategory() != null) {
-            dto.setCategoryId(entity.getCategory().getId());
-            dto.setCategoryCode(entity.getCategory().getCode());
-            dto.setCategoryName(entity.getCategory().getName());
-        }
+        dto.setCategoryId(entity.getCategoryId());
         return dto;
     }
 
@@ -144,11 +140,7 @@ public class ProductCatalogController {
         dto.setSortOrder(entity.getSortOrder());
         dto.setActive(entity.isActive());
         dto.setDeleted(entity.isDeleted());
-        if (entity.getProduct() != null) {
-            dto.setProductId(entity.getProduct().getId());
-            dto.setProductCode(entity.getProduct().getCode());
-            dto.setProductName(entity.getProduct().getName());
-        }
+        dto.setProductId(entity.getProductId());
         if (entity.getMetadata() != null) {
             dto.setMetadata(entity.getMetadata().stream().map(this::toMetaDTO).toList());
         }
