@@ -55,8 +55,13 @@ public class DataSeeder implements ApplicationRunner {
     @Override
     @Transactional
     public void run(ApplicationArguments args) {
+        seedCatalog();
+        seedWalletAccounts();
+    }
+
+    private void seedCatalog() {
         if (categoryRepository.count() > 0) {
-            log.info("Data already seeded, skipping...");
+            log.info("Catalog already seeded, skipping...");
             return;
         }
         log.info("Seeding product catalog data (idempotent)...");
@@ -73,8 +78,7 @@ public class DataSeeder implements ApplicationRunner {
      * Dipanggil terpisah dari catalog seeding karena butuh existing Stores data.
      * Idempotent: hanya buat WalletAccount jika belum ada untuk store tersebut.
      */
-    @Transactional
-    public void seedWalletAccounts() {
+    void seedWalletAccounts() {
         if (walletAccountPort.count() > 0) {
             log.info("WalletAccount already seeded, skipping...");
             return;
