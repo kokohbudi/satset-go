@@ -87,17 +87,4 @@ class KeycloakAdminClientServiceIT extends KeycloakContainerSupport {
                         "dupe2", "Dupe User 2", "dupe@example.com", "password123", "view_users"))
                 .isInstanceOf(BusinessException.class);
     }
-
-    // ==================== verifyUserPassword ====================
-
-    // TODO: Credential verification requires additional test setup (client credentials grant)
-    // @Test
-    // void verifyUserPassword_CorrectCredentials_ReturnsTrue() {
-    //     assertThat(service.verifyUserPassword("testuser@example.com", "password")).isTrue();
-    // }
-
-    // @Test
-    // void verifyUserPassword_WrongPassword_ReturnsFalse() {
-    //     assertThat(service.verifyUserPassword("testuser@example.com", "wrongpass")).isFalse();
-    // }
 }

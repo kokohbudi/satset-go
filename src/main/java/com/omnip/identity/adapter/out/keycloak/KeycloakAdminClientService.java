@@ -1018,32 +1018,4 @@ public class KeycloakAdminClientService implements KeycloakIdentityPort, Keycloa
                                 .searchByEmail(email, true); // exact match
                 return users != null && !users.isEmpty();
         }
-
-        @Override
-        public boolean verifyUserPassword(String email, String password) {
-                String tokenEndpoint = keycloakServerUrl + "/realms/" + realm + "/protocol/openid-connect/token";
-
-                org.springframework.web.client.RestTemplate restTemplate = new org.springframework.web.client.RestTemplate();
-                org.springframework.http.HttpHeaders headers = new org.springframework.http.HttpHeaders();
-                headers.setContentType(org.springframework.http.MediaType.APPLICATION_FORM_URLENCODED);
-
-                org.springframework.util.MultiValueMap<String, String> map = new org.springframework.util.LinkedMultiValueMap<>();
-                map.add("grant_type", "password");
-                map.add("client_id", clientId);
-                map.add("client_secret", keycloakClientSecret);
-                map.add("username", email);
-                map.add("password", password);
-
-                org.springframework.http.HttpEntity<org.springframework.util.MultiValueMap<String, String>> request = new org.springframework.http.HttpEntity<>(map, headers);
-
-                try {
-                        org.springframework.http.ResponseEntity<String> response = restTemplate.postForEntity(tokenEndpoint, request, String.class);
-                        return response.getStatusCode().is2xxSuccessful();
-                } catch (org.springframework.web.client.HttpClientErrorException.Unauthorized e) {
-                        return false;
-                } catch (Exception e) {
-                        log.error("Error verifying password with Keycloak", e);
-                        return false;
-                }
-        }
 }
