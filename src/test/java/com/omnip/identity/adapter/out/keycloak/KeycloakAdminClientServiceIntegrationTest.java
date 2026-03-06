@@ -83,16 +83,6 @@ class KeycloakAdminClientServiceIntegrationTest extends KeycloakContainerSupport
         }
 
         @Test
-        @DisplayName("getRootRoles should return only root roles (not children of composite)")
-        void getRootRoles_ReturnsOnlyRootRoles() {
-            // Act
-            List<KeycloakRoleDTO> rootRoles = keycloakAdminClientService.getRootRoles();
-
-            // Assert - should return root roles (e.g., backoffice-admin, backoffice-operator)
-            assertThat(rootRoles).isNotEmpty();
-        }
-
-        @Test
         @DisplayName("getRolesWithHierarchy should return roles with children populated")
         void getRolesWithHierarchy_ReturnsRolesWithChildren() {
             // Act

@@ -87,25 +87,6 @@ public class SecurityConfig {
         return http.build();
     }
 
-    // @Bean
-    // public SecurityFilterChain securityFilterChain(HttpSecurity http,
-    // JwtAuthenticationConverter jwtAuthenticationConverter,
-    // LogoutSuccessHandler logoutSuccessHandler) throws Exception {
-    // http
-    // .authorizeHttpRequests(auth -> auth
-    // .requestMatchers("/api/**").authenticated()
-    // .anyRequest().permitAll()
-    // )
-    // .oauth2ResourceServer(oauth2 -> oauth2
-    // .jwt(jwt -> jwt
-    // .jwtAuthenticationConverter(jwtAuthenticationConverter)
-    // )
-    // )
-    // // ... oauth2Login, exceptionHandling, logout, dll.
-    // ;
-    // return http.build();
-    // }
-
     @Bean
     public LogoutSuccessHandler oidcLogoutSuccessHandler(ClientRegistrationRepository clients) {
         OidcClientInitiatedLogoutSuccessHandler handler = new OidcClientInitiatedLogoutSuccessHandler(clients);

@@ -70,50 +70,6 @@ public class KeycloakAdminClientService implements KeycloakIdentityPort, Keycloa
         }
 
         /**
-         * Get root roles only - roles that are NOT children of any composite role.
-         * In new structure: root roles = groups (e.g., backoffice-admin,
-         * backoffice-operator)
-         * 
-         * @return List of KeycloakRoleDTO representing root roles (groups)
-         */
-        public List<KeycloakRoleDTO> getRootRoles() {
-                java.util.Set<String> systemRoles = java.util.Set.of(
-                                "offline_access", "uma_authorization", "default-roles-satset-go",
-                                "default-roles-omnip");
-
-                List<RoleRepresentation> allRoles = this.keycloak
-                                .realm(this.realm)
-                                .roles()
-                                .list();
-
-                // Collect all child role names from composite roles
-                java.util.Set<String> childRoleNames = new java.util.HashSet<>();
-                for (RoleRepresentation role : allRoles) {
-                        if (role.isComposite()) {
-                                try {
-                                        java.util.Set<RoleRepresentation> children = this.keycloak
-                                                        .realm(this.realm)
-                                                        .roles()
-                                                        .get(role.getName())
-                                                        .getRoleComposites();
-                                        for (RoleRepresentation child : children) {
-                                                childRoleNames.add(child.getName());
-                                        }
-                                } catch (Exception e) {
-                                        log.warn("Failed to fetch composites for role: {}", role.getName());
-                                }
-                        }
-                }
-
-                // Root roles = roles that are NOT children of any other role
-                return allRoles.stream()
-                                .filter(role -> !systemRoles.contains(role.getName()))
-                                .filter(role -> !childRoleNames.contains(role.getName()))
-                                .map(KeycloakRoleDTO::fromRoleRepresentation)
-                                .toList();
-        }
-
-        /**
          * Get ALL roles with hierarchy structure.
          * Composite roles will have their children array populated.
          * Non-composite roles will have empty children array.

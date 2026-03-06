@@ -62,9 +62,6 @@ spring:
           use_query_cache: false
   thymeleaf:
     cache: true
-omnip:
-  allowed-role:
-    change-password: "omnip-store-admin,omnip-app-admin"
 keycloak:
   realm: ${KEYCLOAK_REALM}
   base-server-url: ${KEYCLOAK_BASE_URL}

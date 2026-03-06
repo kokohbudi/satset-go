@@ -10,8 +10,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.UUID;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -20,41 +19,22 @@ class StoreDomainServiceTest {
     @Mock
     private StoreRepositoryPort storeRepository;
 
-    @Mock
-    private StoreHelper storeBusiness;
-
     @InjectMocks
     private StoreDomainService storeDomainService;
 
     @Test
-    void createNewStore_DelegatesToHelperThenRepository() {
+    void createNewStore_DelegatesToRepository() {
         Stores input = new Stores();
-        Stores prepared = new Stores();
         Stores saved = new Stores();
         saved.setId(UUID.randomUUID());
-
-        when(storeBusiness.prepareNewStore(input)).thenReturn(prepared);
-        when(storeRepository.save(prepared)).thenReturn(saved);
-
-        Stores result = storeDomainService.createNewStore(input);
-
-        assertSame(saved, result);
-        verify(storeBusiness).prepareNewStore(input);
-        verify(storeRepository).save(prepared);
-    }
-
-    @Test
-    void createNewStore_ReturnsRepositoryResult_NotHelper() {
-        Stores input = new Stores();
-        Stores prepared = new Stores();
-        Stores saved = new Stores();
         saved.setName("Saved Store");
 
-        when(storeBusiness.prepareNewStore(any())).thenReturn(prepared);
-        when(storeRepository.save(any())).thenReturn(saved);
+        when(storeRepository.save(input)).thenReturn(saved);
 
         Stores result = storeDomainService.createNewStore(input);
 
-        assertEquals("Saved Store", result.getName());
+        assertThat(result).isSameAs(saved);
+        assertThat(result.getName()).isEqualTo("Saved Store");
+        verify(storeRepository).save(input);
     }
 }
