@@ -56,12 +56,12 @@
 > **Risk**: Medium (DB migration `wallet_accounts`), zero functional change.
 > Design lengkap: `TechSpecs.md` → "Wallet Refactor — WR-series"
 
-- [ ] **WR-1**: Buat `WalletAccount.java` entity — `{ storeId (UUID), balance, version }`, table `wallet_accounts`
-- [ ] **WR-2**: Buat `WalletAccountPort.java` + `WalletAccountJpaRepository.java` — `findByStoreId`, `findByStoreIdWithLock` (pessimistic), `save`
-- [ ] **WR-3**: Buat `MutationResult.java` domain record — `{ mutationId, balanceAfter }` — clean return type untuk port
-- [ ] **WR-4**: Fix `StoreMutations.java` — hapus `@ManyToOne Stores store`, ganti `UUID storeId` + tambah idempotency `@UniqueConstraint`
-- [ ] **WR-5**: Fix `BalanceManagementUseCase.java` — return type `StoreMutations` → `MutationResult`
-- [ ] **WR-6**: Refactor `BalanceDomainService.java` — inject `WalletAccountPort` (ganti `StoreBalancePort`), update logic
+- [x] **WR-1**: Buat `WalletAccount.java` entity — `{ storeId (UUID), balance, version }`, table `wallet_accounts` ✅
+- [x] **WR-2**: Buat `WalletAccountPort.java` + `WalletAccountJpaRepository.java` — `findByStoreId`, `findByStoreIdWithLock` (pessimistic), `save` ✅
+- [x] **WR-3**: Buat `MutationResult.java` domain record — `{ mutationId, balanceAfter }` — clean return type untuk port ✅
+- [x] **WR-4**: Fix `StoreMutations.java` — hapus `@ManyToOne Stores store`, ganti `UUID storeId` + tambah idempotency `@UniqueConstraint` ✅
+- [x] **WR-5**: Fix `BalanceManagementUseCase.java` — return type `StoreMutations` → `MutationResult` ✅
+- [x] **WR-6**: Refactor `BalanceDomainService.java` — inject `WalletAccountPort` (ganti `StoreBalancePort`), update logic ✅
 - [ ] **WR-7**: Fix `TransactionDomainService.java` — inject `BalanceManagementUseCase` (port, bukan concrete), hapus `StoreBalancePort`
 - [ ] **WR-8**: `Stores.java` — `@Deprecated balance` field (nullable, bukan source of truth lagi)
 - [ ] **WR-9**: Delete `StoreBalancePort.java` — setelah verify zero consumer (`grep -r "StoreBalancePort"`)
@@ -445,7 +445,7 @@
 - **JPA Repository interfaces**: Expected 0% coverage (Spring Data JPA generates implementations at runtime, not compile-time)
 - **BUILD SUCCESS**: `mvn test` 320/320 pass ✅
 
-**Last Updated**: 2026-03-06 (Session 10 — C-2 Domain Model Decoupling)
+**Last Updated**: 2026-03-06 (Session 11 — WR-1..WR-6 Wallet Refactor)
 **Status**:
 - ✅ MVP Sprint COMPLETE
 - ✅ H-series (port boundary) DONE
@@ -456,7 +456,9 @@
 - ✅ Unit test coverage (repository-based, mocked ports) — **94% instruction**
 - ✅ KeycloakLoginEventListenerTest — 10 tests added (OIDC login flow, role extraction, user registration)
 - ✅ C-2 DONE — cross-context JPA FK decoupled → UUID references (339/339 tests pass)
+- ✅ WR-1..WR-6 DONE — WalletAccount entity, WalletAccountPort, MutationResult, BalanceDomainService refactored (349/349 tests pass)
 - ⏳ C-1 (separate JPA entity from domain model) — next step C-series
+- ⏳ WR-7..WR-12 — TransactionDomainService, Stores.balance deprecate, StoreBalancePort delete, DataSeeder, test fixes
 
 **2026-03-06** (August — C-2 Domain Model Decoupling COMPLETE! ✅):
 - **C-2 DONE** — All cross-context JPA `@ManyToOne` FK references replaced with plain `UUID` fields

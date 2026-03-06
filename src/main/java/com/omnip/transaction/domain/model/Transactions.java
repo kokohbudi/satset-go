@@ -28,7 +28,7 @@ public class Transactions {
     @Column(name = "product_denom_id", nullable = false, columnDefinition = "uuid")
     private UUID productDenomId;
 
-    @Column(nullable = false, length = 150)
+    @Column(nullable = true, length = 150)
     private String denomName;
 
     @Column(length = 100)

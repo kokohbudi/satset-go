@@ -5,17 +5,18 @@ import com.omnip.catalog.adapter.out.persistence.DenomJpaRepository;
 import com.omnip.catalog.domain.model.ProductDenoms;
 import com.omnip.catalog.domain.port.out.DenomRepositoryPort;
 import com.omnip.onboarding.adapter.out.persistence.StoreJpaRepository;
-import com.omnip.onboarding.domain.model.Stores;
 import com.omnip.shared.dto.UserDTO;
 import com.omnip.transaction.adapter.in.web.dto.PurchaseRequest;
 import com.omnip.transaction.adapter.out.persistence.StoreMutationJpaRepository;
 import com.omnip.transaction.adapter.out.persistence.TransactionJpaRepository;
+import com.omnip.transaction.adapter.out.persistence.WalletAccountJpaRepository;
+import com.omnip.transaction.domain.model.WalletAccount;
+import com.omnip.transaction.domain.port.out.WalletAccountPort;
 import com.omnip.transaction.domain.model.ProviderResponse;
 import com.omnip.transaction.domain.model.StoreMutations;
 import com.omnip.transaction.domain.model.TransactionStatus;
 import com.omnip.transaction.domain.model.Transactions;
 import com.omnip.transaction.domain.port.out.ProviderPort;
-import com.omnip.transaction.domain.port.out.StoreBalancePort;
 import com.omnip.transaction.domain.port.out.StoreMutationRepositoryPort;
 import com.omnip.transaction.domain.port.out.TransactionRepositoryPort;
 import org.junit.jupiter.api.BeforeEach;
@@ -66,6 +67,9 @@ class PurchaseFlowIntegrationTest {
     private StoreMutationJpaRepository mutationJpaRepo;
 
     @MockitoBean
+    private WalletAccountJpaRepository walletAccountJpaRepo;
+
+    @MockitoBean
     private ProviderPort providerService;
 
     @MockitoBean
@@ -74,13 +78,13 @@ class PurchaseFlowIntegrationTest {
     // Port-typed aliases to avoid method ambiguity (JPA repos inherit conflicting
     // signatures from CrudRepository and port interfaces). Assigned in setUp().
     private TransactionRepositoryPort transactionRepository;
-    private StoreBalancePort storeRepository;
     private DenomRepositoryPort productDenomRepository;
     private StoreMutationRepositoryPort storeMutationRepository;
+    private WalletAccountPort walletAccountPort;
+    private WalletAccount walletAccount;
 
     private UUID storeId;
     private UUID denomId;
-    private Stores store;
     private ProductDenoms denom;
 
     @BeforeEach
@@ -92,17 +96,12 @@ class PurchaseFlowIntegrationTest {
 
         // Assign port-typed aliases (same mock objects, narrower type avoids ambiguity)
         transactionRepository = transactionJpaRepo;
-        storeRepository = storeJpaRepo;
         productDenomRepository = denomJpaRepo;
         storeMutationRepository = mutationJpaRepo;
+        walletAccountPort = walletAccountJpaRepo;
 
         storeId = UUID.randomUUID();
         denomId = UUID.randomUUID();
-
-        // Setup store with sufficient balance
-        store = new Stores();
-        store.setId(storeId);
-        store.setBalance(new BigDecimal("100000.00"));
 
         // Setup product denom
         denom = new ProductDenoms();
@@ -114,13 +113,16 @@ class PurchaseFlowIntegrationTest {
         denom.setActive(true);
         denom.setDeleted(false);
 
+        // WalletAccount mock — BalanceDomainService uses WalletAccountPort for balance operations
+        walletAccount = new WalletAccount(storeId, new BigDecimal("100000.00"));
+        walletAccount.setId(UUID.randomUUID());
+        when(walletAccountPort.findByStoreIdWithLock(storeId)).thenReturn(Optional.of(walletAccount));
+        when(walletAccountPort.findByStoreId(storeId)).thenReturn(Optional.of(walletAccount));
+        when(walletAccountPort.save(any(WalletAccount.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
         // UserDTO provides store context to controller
         when(userDTO.getStoreId()).thenReturn(storeId);
 
-        // Store lookup
-        when(storeRepository.findById(storeId)).thenReturn(Optional.of(store));
-        when(storeRepository.findByIdWithPessimisticLock(storeId)).thenReturn(Optional.of(store));
-        when(storeRepository.save(any(Stores.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         // Denom lookup
         when(productDenomRepository.findById(denomId)).thenReturn(Optional.of(denom));
@@ -181,9 +183,8 @@ class PurchaseFlowIntegrationTest {
 
     @Test
     void whenPurchase_withInsufficientBalance_thenReturn422AndProviderNotCalled() throws Exception {
-        // Store hanya punya 5000, harga denom 10000
-        store.setBalance(new BigDecimal("5000.00"));
-        when(storeRepository.findByIdWithPessimisticLock(storeId)).thenReturn(Optional.of(store));
+        // WalletAccount hanya punya 5000, harga denom 10000
+        walletAccount.setBalance(new BigDecimal("5000.00"));
 
         PurchaseRequest request = new PurchaseRequest(denomId, "081234567890");
 
@@ -222,7 +223,7 @@ class PurchaseFlowIntegrationTest {
         verify(providerService, times(1))
                 .sendTransaction(eq("081234567890"), eq("PULSA10"), eq(new BigDecimal("10000.00")));
 
-        // BalanceDomainService: findByIdWithPessimisticLock dipanggil 2x (deduct + refund)
-        verify(storeRepository, atLeast(2)).findByIdWithPessimisticLock(storeId);
+        // BalanceDomainService.deductBalance + addBalance each call findByStoreIdWithLock
+        verify(walletAccountPort, atLeast(2)).findByStoreIdWithLock(storeId);
     }
 }

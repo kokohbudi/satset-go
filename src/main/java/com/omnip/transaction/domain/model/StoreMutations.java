@@ -1,7 +1,5 @@
 package com.omnip.transaction.domain.model;
 
-import com.omnip.transaction.domain.model.MutationReferenceType;
-import com.omnip.transaction.domain.model.MutationType;
 import jakarta.persistence.*;
 import lombok.Data;
 import org.hibernate.annotations.UuidGenerator;
@@ -13,6 +11,13 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
+@Table(
+    name = "store_mutations",
+    uniqueConstraints = @UniqueConstraint(
+        name = "uc_storemutation_storeid_referenceid",
+        columnNames = {"store_id", "reference_id"}
+    )
+)
 @EntityListeners(AuditingEntityListener.class)
 @Data
 public class StoreMutations {

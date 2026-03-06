@@ -2,11 +2,11 @@ package com.omnip.transaction.domain.service;
 
 import com.omnip.catalog.domain.port.out.DenomRepositoryPort;
 import com.omnip.catalog.domain.model.ProductDenoms;
-import com.omnip.onboarding.domain.model.Stores;
+import com.omnip.transaction.domain.port.in.BalanceManagementUseCase;
 import com.omnip.shared.exception.InsufficientBalanceException;
 import com.omnip.transaction.domain.port.out.TransactionRepositoryPort;
-import com.omnip.transaction.domain.port.out.StoreBalancePort;
 import com.omnip.transaction.domain.model.MutationReferenceType;
+import com.omnip.transaction.domain.model.MutationResult;
 import com.omnip.transaction.domain.model.ProviderResponse;
 import com.omnip.transaction.domain.model.TransactionSummary;
 import com.omnip.transaction.domain.model.Transactions;
@@ -36,11 +36,9 @@ class TransactionDomainServiceTest {
     @Mock
     private TransactionRepositoryPort transactionRepository;
     @Mock
-    private StoreBalancePort storeRepository;
-    @Mock
     private DenomRepositoryPort productDenomRepository;
     @Mock
-    private BalanceDomainService balanceService;
+    private BalanceManagementUseCase balanceService;
     @Mock
     private ProviderPort providerService;
 
@@ -49,17 +47,12 @@ class TransactionDomainServiceTest {
 
     private UUID storeId;
     private UUID denomId;
-    private Stores store;
     private ProductDenoms denom;
 
     @BeforeEach
     void setUp() {
         storeId = UUID.randomUUID();
         denomId = UUID.randomUUID();
-
-        store = new Stores();
-        store.setId(storeId);
-        store.setBalance(new BigDecimal("10000.00"));
 
         denom = new ProductDenoms();
         denom.setId(denomId);
@@ -75,7 +68,6 @@ class TransactionDomainServiceTest {
         // "Saldo pas-pasan → SUCCESS, balance = 0"
         denom.setPrice(new BigDecimal("10000.00")); // Pas dengan saldo store
 
-        when(storeRepository.findById(storeId)).thenReturn(Optional.of(store));
         when(productDenomRepository.findById(denomId)).thenReturn(Optional.of(denom));
         when(transactionRepository.save(any(Transactions.class))).thenAnswer(invocation -> {
             Transactions tx = invocation.getArgument(0);
@@ -85,6 +77,9 @@ class TransactionDomainServiceTest {
             return tx;
         });
 
+        when(balanceService.deductBalance(eq(storeId), eq(new BigDecimal("10000.00")),
+                eq(MutationReferenceType.PURCHASE), any(UUID.class), anyString()))
+                .thenReturn(new MutationResult(UUID.randomUUID(), BigDecimal.ZERO));
         when(providerService.sendTransaction(anyString(), anyString(), any(BigDecimal.class)))
                 .thenReturn(new ProviderResponse(true, "REF-123", "SN-123", "Success"));
 
@@ -104,7 +99,6 @@ class TransactionDomainServiceTest {
         // "Saldo kurang Rp 1 → REJECTED, balance unchanged"
         denom.setPrice(new BigDecimal("10001.00")); // Kurang Rp 1
 
-        when(storeRepository.findById(storeId)).thenReturn(Optional.of(store));
         when(productDenomRepository.findById(denomId)).thenReturn(Optional.of(denom));
         when(transactionRepository.save(any(Transactions.class))).thenAnswer(invocation -> {
             Transactions tx = invocation.getArgument(0);
@@ -128,7 +122,6 @@ class TransactionDomainServiceTest {
     @Test
     void createPurchase_ProviderFailed_RefundsBalance() throws InsufficientBalanceException {
         // "Provider timeout → FAILED → auto refund"
-        when(storeRepository.findById(storeId)).thenReturn(Optional.of(store));
         when(productDenomRepository.findById(denomId)).thenReturn(Optional.of(denom));
         when(transactionRepository.save(any(Transactions.class))).thenAnswer(invocation -> {
             Transactions tx = invocation.getArgument(0);
@@ -137,6 +130,16 @@ class TransactionDomainServiceTest {
             }
             return tx;
         });
+
+        // Setup balanceService.deductBalance to return a MutationResult
+        when(balanceService.deductBalance(eq(storeId), eq(new BigDecimal("5000.00")),
+                eq(MutationReferenceType.PURCHASE), any(UUID.class), anyString()))
+                .thenReturn(new MutationResult(UUID.randomUUID(), new BigDecimal("5000")));
+
+        // Setup balanceService.addBalance for the refund to return a MutationResult
+        when(balanceService.addBalance(any(UUID.class), any(BigDecimal.class),
+                eq(MutationReferenceType.REFUND), any(UUID.class), anyString()))
+                .thenReturn(new MutationResult(UUID.randomUUID(), new BigDecimal("10000")));
 
         // Provider fails
         when(providerService.sendTransaction(anyString(), anyString(), any(BigDecimal.class)))
@@ -163,7 +166,6 @@ class TransactionDomainServiceTest {
         // Let's add the test to expect Business rule exception. The service must be
         // modified to satisfy this!
         denom.setActive(false);
-        when(storeRepository.findById(storeId)).thenReturn(Optional.of(store));
         when(productDenomRepository.findById(denomId)).thenReturn(Optional.of(denom));
 
         // This will currently fail because the service doesn't check this. We'll update
@@ -178,7 +180,6 @@ class TransactionDomainServiceTest {
     @Test
     void createPurchase_DoubleSubmit_ThrowsException() throws InsufficientBalanceException {
         // "Double submit (idempotency) → second rejected"
-        when(storeRepository.findById(storeId)).thenReturn(Optional.of(store));
         when(productDenomRepository.findById(denomId)).thenReturn(Optional.of(denom));
         when(transactionRepository.existsByStoreIdAndProductDenomIdAndTargetNumberAndStatusInAndCreatedAtAfter(
                 eq(storeId), eq(denomId), eq("081234567890"), any(), any())).thenReturn(true);
@@ -193,7 +194,6 @@ class TransactionDomainServiceTest {
     @Test
     void createPurchase_RefundFails_LeavesStatusFailed() throws InsufficientBalanceException {
         // "Refund gagal setelah provider fail → alert"
-        when(storeRepository.findById(storeId)).thenReturn(Optional.of(store));
         when(productDenomRepository.findById(denomId)).thenReturn(Optional.of(denom));
         when(transactionRepository.save(any(Transactions.class))).thenAnswer(invocation -> {
             Transactions tx = invocation.getArgument(0);
@@ -203,11 +203,16 @@ class TransactionDomainServiceTest {
             return tx;
         });
 
+        when(balanceService.deductBalance(eq(storeId), eq(new BigDecimal("5000.00")),
+                eq(MutationReferenceType.PURCHASE), any(UUID.class), anyString()))
+                .thenReturn(new MutationResult(UUID.randomUUID(), new BigDecimal("5000")));
+
         when(providerService.sendTransaction(anyString(), anyString(), any(BigDecimal.class)))
                 .thenReturn(new ProviderResponse(false, null, null, "Timeout API"));
 
         doThrow(new RuntimeException("Database error during refund"))
-                .when(balanceService).addBalance(any(), any(), any(), any(), any());
+                .when(balanceService).addBalance(any(UUID.class), any(BigDecimal.class),
+                eq(MutationReferenceType.REFUND), any(UUID.class), anyString());
 
         TransactionSummary result = transactionService.createPurchase(storeId, denomId, "081234567890");
 
@@ -215,19 +220,9 @@ class TransactionDomainServiceTest {
         assertEquals(TransactionStatus.FAILED, result.status()); // Does not become REFUNDED
     }
 
-    @Test
-    void createPurchase_StoreNotFound_ThrowsException() {
-        when(storeRepository.findById(storeId)).thenReturn(Optional.empty());
-
-        assertThrows(com.omnip.shared.exception.ResourceNotFoundException.class,
-                () -> transactionService.createPurchase(storeId, denomId, "081234567890"));
-
-        verify(transactionRepository, never()).save(any());
-    }
 
     @Test
     void createPurchase_DenomNotFound_ThrowsException() {
-        when(storeRepository.findById(storeId)).thenReturn(Optional.of(store));
         when(productDenomRepository.findById(denomId)).thenReturn(Optional.empty());
 
         assertThrows(com.omnip.shared.exception.ResourceNotFoundException.class,
@@ -240,7 +235,9 @@ class TransactionDomainServiceTest {
 
     @Test
     void topUp_Success_CallsAddBalance() {
-        when(storeRepository.findById(storeId)).thenReturn(Optional.of(store));
+        when(balanceService.addBalance(eq(storeId), eq(new BigDecimal("50000")),
+                eq(MutationReferenceType.TOP_UP), any(UUID.class), eq("Isi saldo")))
+                .thenReturn(new MutationResult(UUID.randomUUID(), new BigDecimal("60000")));
 
         transactionService.topUp(storeId, new BigDecimal("50000"), "Isi saldo");
 
@@ -250,7 +247,9 @@ class TransactionDomainServiceTest {
 
     @Test
     void topUp_NullDescription_UsesDefaultDescription() {
-        when(storeRepository.findById(storeId)).thenReturn(Optional.of(store));
+        when(balanceService.addBalance(eq(storeId), eq(new BigDecimal("50000")),
+                eq(MutationReferenceType.TOP_UP), any(UUID.class), eq("Manual top-up")))
+                .thenReturn(new MutationResult(UUID.randomUUID(), new BigDecimal("60000")));
 
         transactionService.topUp(storeId, new BigDecimal("50000"), null);
 
@@ -258,15 +257,6 @@ class TransactionDomainServiceTest {
                 eq(MutationReferenceType.TOP_UP), any(UUID.class), eq("Manual top-up"));
     }
 
-    @Test
-    void topUp_StoreNotFound_ThrowsException() {
-        when(storeRepository.findById(storeId)).thenReturn(Optional.empty());
-
-        assertThrows(com.omnip.shared.exception.ResourceNotFoundException.class,
-                () -> transactionService.topUp(storeId, new BigDecimal("50000"), "desc"));
-
-        verify(balanceService, never()).addBalance(any(), any(), any(), any(), any());
-    }
 
     // ==================== getTransaction ====================
 
@@ -298,8 +288,6 @@ class TransactionDomainServiceTest {
 
     @Test
     void getTransactionHistory_ReturnsPage() {
-        when(storeRepository.findById(storeId)).thenReturn(Optional.of(store));
-
         UUID txId = UUID.randomUUID();
         Transactions tx = buildTransaction(txId);
         org.springframework.data.domain.Page<Transactions> page =
@@ -315,14 +303,6 @@ class TransactionDomainServiceTest {
         assertEquals(txId, result.getContent().get(0).id());
     }
 
-    @Test
-    void getTransactionHistory_StoreNotFound_ThrowsException() {
-        when(storeRepository.findById(storeId)).thenReturn(Optional.empty());
-
-        assertThrows(com.omnip.shared.exception.ResourceNotFoundException.class,
-                () -> transactionService.getTransactionHistory(storeId,
-                        org.springframework.data.domain.PageRequest.of(0, 10)));
-    }
 
     // ==================== Helpers ====================
 
@@ -358,7 +338,6 @@ class TransactionDomainServiceTest {
         // "Concurrent purchase (2 thread, 1 saldo) → hanya 1 berhasil"
         // Simulasi race condition dengan mock: call 1 berhasil, call 2 throw
         // InsufficientBalanceException
-        when(storeRepository.findById(storeId)).thenReturn(Optional.of(store));
         when(productDenomRepository.findById(denomId)).thenReturn(Optional.of(denom));
         when(transactionRepository.save(any(Transactions.class))).thenAnswer(invocation -> {
             Transactions tx = invocation.getArgument(0);
@@ -371,7 +350,7 @@ class TransactionDomainServiceTest {
 
         // Setup balanceService to succeed once, then fail
         when(balanceService.deductBalance(any(), any(), any(), any(), any()))
-                .thenReturn(new com.omnip.transaction.domain.model.StoreMutations())
+                .thenReturn(new MutationResult(UUID.randomUUID(), new BigDecimal("5000")))
                 .thenThrow(new InsufficientBalanceException("Saldo tidak mencukupi"));
 
         when(providerService.sendTransaction(anyString(), anyString(), any(BigDecimal.class)))

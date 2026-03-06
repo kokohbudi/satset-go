@@ -2,7 +2,7 @@ package com.omnip.transaction.domain.service;
 
 import com.omnip.transaction.domain.model.ProviderResponse;
 import com.omnip.catalog.domain.model.ProductDenoms;
-import com.omnip.onboarding.domain.model.Stores;
+import com.omnip.transaction.domain.port.in.BalanceManagementUseCase;
 import com.omnip.transaction.domain.port.in.PurchaseUseCase;
 import com.omnip.transaction.domain.port.in.TopUpUseCase;
 import com.omnip.transaction.domain.port.in.TransactionQueryUseCase;
@@ -14,7 +14,6 @@ import com.omnip.transaction.domain.model.TransactionSummary;
 import com.omnip.shared.exception.InsufficientBalanceException;
 import com.omnip.shared.exception.ResourceNotFoundException;
 import com.omnip.catalog.domain.port.out.DenomRepositoryPort;
-import com.omnip.transaction.domain.port.out.StoreBalancePort;
 import com.omnip.transaction.domain.port.out.TransactionRepositoryPort;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -30,18 +29,15 @@ import java.util.UUID;
 public class TransactionDomainService implements PurchaseUseCase, TopUpUseCase, TransactionQueryUseCase {
 
         private final TransactionRepositoryPort transactionRepository;
-        private final StoreBalancePort storeRepository;
         private final DenomRepositoryPort productDenomRepository;
-        private final BalanceDomainService balanceService;
+        private final BalanceManagementUseCase balanceService;
         private final ProviderPort providerService;
 
         public TransactionDomainService(TransactionRepositoryPort transactionRepository,
-                        StoreBalancePort storeRepository,
                         DenomRepositoryPort productDenomRepository,
-                        BalanceDomainService balanceService,
+                        BalanceManagementUseCase balanceService,
                         ProviderPort providerService) {
                 this.transactionRepository = transactionRepository;
-                this.storeRepository = storeRepository;
                 this.productDenomRepository = productDenomRepository;
                 this.balanceService = balanceService;
                 this.providerService = providerService;
@@ -51,9 +47,6 @@ public class TransactionDomainService implements PurchaseUseCase, TopUpUseCase, 
         @Transactional
         public TransactionSummary createPurchase(UUID storeId, UUID denomId, String targetNumber)
                         throws InsufficientBalanceException {
-
-                Stores store = storeRepository.findById(storeId)
-                                .orElseThrow(() -> new ResourceNotFoundException("Store", storeId));
 
                 ProductDenoms denom = productDenomRepository.findById(denomId)
                                 .orElseThrow(() -> new ResourceNotFoundException("ProductDenom", denomId));
@@ -148,9 +141,6 @@ public class TransactionDomainService implements PurchaseUseCase, TopUpUseCase, 
         @Override
         @Transactional
         public void topUp(UUID storeId, BigDecimal amount, String description) {
-                storeRepository.findById(storeId)
-                                .orElseThrow(() -> new ResourceNotFoundException("Store", storeId));
-
                 UUID topUpId = UUID.randomUUID();
 
                 balanceService.addBalance(storeId, amount,
@@ -171,8 +161,6 @@ public class TransactionDomainService implements PurchaseUseCase, TopUpUseCase, 
         @Override
         @Transactional(readOnly = true)
         public Page<TransactionSummary> getTransactionHistory(UUID storeId, Pageable pageable) {
-                storeRepository.findById(storeId)
-                                .orElseThrow(() -> new ResourceNotFoundException("Store", storeId));
                 return transactionRepository.findByStoreIdWithDetails(storeId, pageable)
                                 .map(this::toSummary);
         }
