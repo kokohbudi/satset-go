@@ -173,4 +173,59 @@ my-mcp-server/
 
 ---
 
+## 11. Project MCP Configuration
+
+This project uses the following MCP servers:
+
+| Server | Type | Purpose |
+|--------|------|---------|
+| `postgres` | stdio | PostgreSQL database connection |
+| `keycloak` | stdio | Keycloak identity management |
+| `google-tasks` | stdio | Google Tasks integration |
+
+### Configuration Location
+
+```
+.mcp.json                          # Main config file
+.agent/skills/mcp-builder/references/  # Server templates
+.agent/skills/mcp-builder/scripts/     # Validation scripts
+```
+
+### Environment Variables Setup
+
+The configuration uses environment variables for sensitive information. Add these to your `.zshrc` or equivalent shell configuration file:
+
+```bash
+# Database configuration
+export DATABASE_URL="your_postgresql_connection_string_here"
+
+# Keycloak configuration
+export KEYCLOAK_URL="your_keycloak_url_here"
+export KEYCLOAK_ADMIN="your_admin_username_here"
+export KEYCLOAK_ADMIN_PASSWORD="your_admin_password_here"
+export KEYCLOAK_REALM="your_realm_name_here"
+
+# Google Tasks configuration
+export GOOGLE_CLIENT_ID="your_google_client_id_here"
+export GOOGLE_CLIENT_SECRET="your_google_client_secret_here"
+export OAUTH_PORT="your_oauth_port_here"
+```
+
+After adding these variables, reload your shell configuration:
+```bash
+source ~/.zshrc
+```
+
+### Validation
+
+```bash
+# Validate MCP configuration
+python .agent/skills/mcp-builder/scripts/validate-mcp.py .mcp.json
+
+# Generate config from references
+bash .agent/skills/mcp-builder/scripts/generate-mcp.sh
+```
+
+---
+
 > **Remember:** MCP tools should be simple, focused, and well-documented. The AI relies on descriptions to use them correctly.

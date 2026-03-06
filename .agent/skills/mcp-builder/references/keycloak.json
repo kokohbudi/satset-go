@@ -1,0 +1,14 @@
+{
+  "name": "keycloak",
+  "type": "stdio",
+  "command": "node",
+  "args": [
+    "/Users/kokohbudi/myProjects/mcp-keycloak/index.js"
+  ],
+  "env": {
+    "KEYCLOAK_URL": "${KEYCLOAK_URL}",
+    "KEYCLOAK_ADMIN": "${KEYCLOAK_ADMIN}",
+    "KEYCLOAK_ADMIN_PASSWORD": "${KEYCLOAK_ADMIN_PASSWORD}",
+    "KEYCLOAK_REALM": "${KEYCLOAK_REALM}"
+  }
+}
