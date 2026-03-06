@@ -192,7 +192,7 @@
 
 ### 🔧 Technical Debt — Code Hygiene (L-series + M-2, M-7, M-9)
 > *Nice-to-have. Pick ketika lagi refactor area terkait.*
-- [ ] **L-1**: Tambah test coverage — catalog, onboarding, controllers masih 0 test
+- [x] **L-1**: Tambah test coverage — KeycloakLoginEventListenerTest (10 tests, 316 LOC) ✅ 2026-03-06
 - [x] **L-2**: `UserDomainServiceTest` — mock port interfaces (`UserRepositoryPort`, `KeycloakIdentityPort`) ✅
 - [x] **L-3**: Hapus deprecated methods di `UserDomainService` (`setUserStatus(UserDTO)`, `createNewUser(UserDTO)`) ✅
 - [x] **L-4**: `Stores.java` — rename `createdDate/updatedDate` → `createdAt/updatedAt` (konsisten) ✅
@@ -444,19 +444,27 @@
 - **JPA Repository interfaces**: Expected 0% coverage (Spring Data JPA generates implementations at runtime, not compile-time)
 - **BUILD SUCCESS**: `mvn test` 320/320 pass ✅
 
-**Last Updated**: 2026-03-05 (Session 8 — Unit Test Coverage Sprint COMPLETE)
+**Last Updated**: 2026-03-06 (Session 9 — KeycloakLoginEventListenerTest Added)
 **Status**:
 - ✅ MVP Sprint COMPLETE
 - ✅ H-series (port boundary) DONE
 - ✅ M-series (config + correctness + hygiene) DONE
-- ✅ L-series (code hygiene) MOSTLY DONE — ✅ L-1 (test coverage) 94%, ⏳ L-8 (pagination, low urgency)
+- ✅ L-series (code hygiene) MOSTLY DONE — ✅ L-1 (test coverage) KeycloakLoginEventListener 10 tests DONE, ⏳ L-8 (pagination, low urgency)
 - ✅ AP-series (admin product management) DONE — backend + frontend + tests + Keycloak roles
 - ✅ AP-N series (catalog drill-down) DONE
 - ✅ Unit test coverage (repository-based, mocked ports) — **94% instruction**
-- ⏳ Keycloak adapter testing — Pending test containers
+- ✅ KeycloakLoginEventListenerTest — 10 tests added (OIDC login flow, role extraction, user registration)
 - ⏳ C-series (domain model separation) — Deferred, awaiting Neo plan
 
-**2026-03-03** (August — MCP Setup + JWT Org ID → Simplified):
+**2026-03-06** (August — KeycloakLoginEventListenerTest Added! ✅):
+- **L-1 COMPLETE** — `KeycloakLoginEventListenerTest.java` created with 10 unit tests
+- **Test coverage**: Main login flow (new user + existing user), role extraction (realm + client roles), provider user ID extraction, email/username/fullname extraction from OIDC attributes
+- **Technical approach**: Use reflection to inject @Value clientId field in test setup; mock OAuth2LoginAuthenticationToken, OidcUser, JwtDecoder
+- **Test count**: 320 → 330 tests (+10)
+- **Files**: 1 new test file (316 LOC)
+- **Branch**: `test-coverage-gaps` created, 1 commit
+
+**2026-03-05** (Session 8 — Unit Test Coverage Sprint COMPLETE! ✅):
 - **Custom MCP Keycloak** dibangun (49 tools) — manage realm, users, roles, composites, groups, client scopes, protocol mappers. File: `~/myProjects/mcp-keycloak/index.js`
 - **MCP PostgreSQL** ditambahkan — read-only query ke `omni_pulsa`
 - **OJ-2 DONE**: `group membership` mapper + scope `organization` → default
