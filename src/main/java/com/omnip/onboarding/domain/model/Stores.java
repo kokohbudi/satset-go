@@ -27,8 +27,13 @@ public class Stores {
     private String email;
     private String phone;
 
-    // Locking strategy: pessimistic lock (SELECT FOR UPDATE) in BalanceDomainService
-    // for financial operations; @Version for general entity concurrency control.
+    /**
+     * @deprecated Since WR-8. Balance sekarang disimpan di WalletAccount entity.
+     *             Field ini hanya untuk backward compatibility dan akan dihapus di versi mendatang.
+     *             Source of truth: transaction.domain.model.WalletAccount.balance
+     * @see com.omnip.transaction.domain.model.WalletAccount
+     */
+    @Deprecated(since = "WR-8", forRemoval = true)
     @Column(precision = 15, scale = 2)
     private BigDecimal balance = BigDecimal.ZERO;
 

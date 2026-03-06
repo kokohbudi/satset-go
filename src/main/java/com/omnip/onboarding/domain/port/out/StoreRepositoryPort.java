@@ -2,6 +2,7 @@ package com.omnip.onboarding.domain.port.out;
 
 import com.omnip.onboarding.domain.model.Stores;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -17,4 +18,6 @@ public interface StoreRepositoryPort {
     Stores save(Stores store);
 
     Stores findByEmail(String email);
+
+    List<Stores> findAll();
 }
