@@ -1,0 +1,11 @@
+{
+  "name": "google-tasks",
+  "type": "stdio",
+  "command": "npx",
+  "args": ["-y", "mcp-googletasks-vrob"],
+  "env": {
+    "GOOGLE_CLIENT_ID": "828389220268-2m79br4f10bqdoe9t2jc9m39o16org2i.apps.googleusercontent.com",
+    "GOOGLE_CLIENT_SECRET": "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",
+    "OAUTH_PORT": "3000"
+  }
+}
