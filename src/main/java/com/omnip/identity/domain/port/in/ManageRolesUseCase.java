@@ -1,6 +1,6 @@
 package com.omnip.identity.domain.port.in;
 
-import com.omnip.identity.adapter.in.web.dto.KeycloakRoleDTO;
+import com.omnip.identity.domain.model.KeycloakRole;
 import com.omnip.shared.exception.BusinessException;
 
 import java.util.List;
@@ -8,15 +8,14 @@ import java.util.Map;
 
 /**
  * Input port for managing roles and role-group assignments.
- * TODO: Replace KeycloakRoleDTO with domain model when available.
  */
 public interface ManageRolesUseCase {
 
-    List<KeycloakRoleDTO> getRoles();
+    List<KeycloakRole> getRoles();
 
-    List<KeycloakRoleDTO> getRolesByScope(String scope);
+    List<KeycloakRole> getRolesByScope(String scope);
 
-    List<KeycloakRoleDTO> getRolesByGroup(String groupId) throws BusinessException;
+    List<KeycloakRole> getRolesByGroup(String groupId) throws BusinessException;
 
     Map<String, String> assignRoleToGroup(String groupId, String roleName) throws BusinessException;
 
@@ -26,5 +25,5 @@ public interface ManageRolesUseCase {
 
     void unassignRoleFromUser(String userId, String roleName) throws BusinessException;
 
-    List<KeycloakRoleDTO> getRolesForDropdown();
+    List<KeycloakRole> getRolesForDropdown();
 }

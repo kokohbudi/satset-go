@@ -1,8 +1,8 @@
 package com.omnip.identity.adapter.out.keycloak;
 
 import com.omnip.identity.adapter.out.keycloak.KeycloakHelper;
-import com.omnip.identity.adapter.in.web.dto.KeycloakGroupDTO;
-import com.omnip.identity.adapter.in.web.dto.KeycloakRoleDTO;
+import com.omnip.identity.domain.model.KeycloakGroup;
+import com.omnip.identity.domain.model.KeycloakRole;
 import com.omnip.identity.domain.model.GroupMemberInfo;
 import com.omnip.identity.domain.port.out.KeycloakIdentityPort;
 import com.omnip.onboarding.domain.port.out.KeycloakOrganizationPort;
@@ -54,7 +54,7 @@ public class KeycloakAdminClientService implements KeycloakIdentityPort, Keycloa
          * CACHED: 5 minutes TTL untuk menghindari repeated API calls.
          */
         @Cacheable(value = "allRoles", cacheManager = "fastCacheManager")
-        public List<KeycloakRoleDTO> getRoles() {
+        public List<KeycloakRole> getRoles() {
                 log.debug("Fetching all realm roles from Keycloak (cache miss)");
                 java.util.Set<String> systemRoles = java.util.Set.of(
                                 "offline_access", "uma_authorization", "default-roles-satset-go",
@@ -65,7 +65,7 @@ public class KeycloakAdminClientService implements KeycloakIdentityPort, Keycloa
                                 .list()
                                 .stream()
                                 .filter(role -> !systemRoles.contains(role.getName()))
-                                .map(KeycloakRoleDTO::fromRoleRepresentation)
+                                .map(KeycloakRole::fromRoleRepresentation)
                                 .toList();
         }
 
@@ -76,10 +76,10 @@ public class KeycloakAdminClientService implements KeycloakIdentityPort, Keycloa
          * Used for dropdown display with visual hierarchy.
          * CACHED: 5 minutes TTL untuk menghindari repeated API calls.
          *
-         * @return List of KeycloakRoleDTO with hierarchy info
+         * @return List of KeycloakRole with hierarchy info
          */
         @Cacheable(value = "rolesHierarchy", cacheManager = "fastCacheManager")
-        public List<KeycloakRoleDTO> getRolesWithHierarchy() {
+        public List<KeycloakRole> getRolesWithHierarchy() {
                 log.debug("Fetching roles with hierarchy from Keycloak (cache miss)");
                 java.util.Set<String> systemRoles = java.util.Set.of(
                                 "offline_access", "uma_authorization", "default-roles-satset-go",
@@ -91,7 +91,7 @@ public class KeycloakAdminClientService implements KeycloakIdentityPort, Keycloa
                                 .list();
 
                 // Build a map of role name -> DTO with children populated
-                java.util.Map<String, KeycloakRoleDTO> roleMap = new java.util.LinkedHashMap<>();
+                java.util.Map<String, KeycloakRole> roleMap = new java.util.LinkedHashMap<>();
                 java.util.Set<String> childRoleNames = new java.util.HashSet<>();
 
                 // First pass: create DTOs and collect composite children
@@ -100,7 +100,7 @@ public class KeycloakAdminClientService implements KeycloakIdentityPort, Keycloa
                                 continue;
                         }
 
-                        KeycloakRoleDTO dto = getCachedRoleWithAttributes(role.getName());
+                        KeycloakRole dto = getCachedRoleWithAttributes(role.getName());
                         dto.setChildren(new java.util.ArrayList<>());
 
                         if (role.isComposite()) {
@@ -112,7 +112,7 @@ public class KeycloakAdminClientService implements KeycloakIdentityPort, Keycloa
                                                         .getRoleComposites();
                                         for (RoleRepresentation child : children) {
                                                 if (!systemRoles.contains(child.getName())) {
-                                                        KeycloakRoleDTO childDto = getCachedRoleWithAttributes(
+                                                        KeycloakRole childDto = getCachedRoleWithAttributes(
                                                                         child.getName());
                                                         childDto.setChildren(new java.util.ArrayList<>());
                                                         dto.getChildren().add(childDto);
@@ -161,9 +161,9 @@ public class KeycloakAdminClientService implements KeycloakIdentityPort, Keycloa
          * Contoh: scope=backoffice, scope=customer, scope=shared
          *
          * @param scope Nilai scope untuk filter (e.g., "backoffice", "customer")
-         * @return List of KeycloakRoleDTO yang memiliki scope tersebut
+         * @return List of KeycloakRole yang memiliki scope tersebut
          */
-        public List<KeycloakRoleDTO> getRolesByScope(String scope) {
+        public List<KeycloakRole> getRolesByScope(String scope) {
                 java.util.Set<String> systemRoles = java.util.Set.of(
                                 "offline_access", "uma_authorization", "default-roles-satset-go",
                                 "default-roles-omnip");
@@ -189,14 +189,14 @@ public class KeycloakAdminClientService implements KeycloakIdentityPort, Keycloa
          * Cache key adalah roleName, TTL mengikuti fastCacheManager config.
          *
          * @param roleName Nama role yang akan di-fetch
-         * @return KeycloakRoleDTO dengan attributes lengkap
+         * @return KeycloakRole dengan attributes lengkap
          */
         /**
          * Mendapatkan full REALM role representation dengan attributes (cached).
          * Updated for new structure: roles are now realm-level.
          */
         @Cacheable(value = "keycloakRoles", key = "#roleName", cacheManager = "fastCacheManager")
-        public KeycloakRoleDTO getCachedRoleWithAttributes(String roleName) {
+        public KeycloakRole getCachedRoleWithAttributes(String roleName) {
                 log.debug("Fetching realm role details from Keycloak for: {}", roleName);
                 try {
                         RoleRepresentation fullRole = this.keycloak
@@ -204,10 +204,10 @@ public class KeycloakAdminClientService implements KeycloakIdentityPort, Keycloa
                                         .roles()
                                         .get(roleName)
                                         .toRepresentation();
-                        return KeycloakRoleDTO.fromRoleRepresentation(fullRole);
+                        return KeycloakRole.fromRoleRepresentation(fullRole);
                 } catch (Exception e) {
                         log.warn("Failed to fetch realm role details for: {}", roleName, e);
-                        return KeycloakRoleDTO.builder().name(roleName).build();
+                        return KeycloakRole.builder().name(roleName).build();
                 }
         }
 
@@ -215,17 +215,17 @@ public class KeycloakAdminClientService implements KeycloakIdentityPort, Keycloa
          * Mendapatkan semua groups dari Keycloak (cached).
          * Cache TTL: 5 menit (fastCacheManager).
          *
-         * @return List of KeycloakGroupDTO
+         * @return List of KeycloakGroup
          */
         @Cacheable(value = "keycloakGroups", cacheManager = "fastCacheManager")
-        public List<KeycloakGroupDTO> getGroups() {
+        public List<KeycloakGroup> getGroups() {
                 log.debug("Fetching groups from Keycloak (cache miss)");
                 return this.keycloak
                                 .realm(this.realm)
                                 .groups()
                                 .groups()
                                 .stream()
-                                .map(KeycloakGroupDTO::fromGroupRepresentation)
+                                .map(KeycloakGroup::fromGroupRepresentation)
                                 .toList();
         }
 
@@ -233,9 +233,9 @@ public class KeycloakAdminClientService implements KeycloakIdentityPort, Keycloa
          * Mendapatkan client roles yang di-assign ke suatu group
          *
          * @param groupId ID dari group
-         * @return List of KeycloakRoleDTO
+         * @return List of KeycloakRole
          */
-        public List<KeycloakRoleDTO> getRolesByGroup(String groupId) throws BusinessException {
+        public List<KeycloakRole> getRolesByGroup(String groupId) throws BusinessException {
                 // Cari client resource untuk mendapatkan client ID
                 ClientResource clientResource = this.keycloak
                                 .realm(this.realm)
@@ -258,7 +258,7 @@ public class KeycloakAdminClientService implements KeycloakIdentityPort, Keycloa
                                 .clientLevel(clientResource.toRepresentation().getId())
                                 .listEffective()
                                 .stream()
-                                .map(KeycloakRoleDTO::fromRoleRepresentation)
+                                .map(KeycloakRole::fromRoleRepresentation)
                                 .toList();
         }
 
@@ -309,7 +309,7 @@ public class KeycloakAdminClientService implements KeycloakIdentityPort, Keycloa
                 try (var executor = java.util.concurrent.Executors.newVirtualThreadPerTaskExecutor()) {
                         users.forEach(user -> executor.submit(() -> {
                                 try {
-                                        List<KeycloakRoleDTO> roles = getAllEffectiveRolesFlat(
+                                        List<KeycloakRole> roles = getAllEffectiveRolesFlat(
                                                         user.getProviderUserId());
                                         user.setRoleDetails(roles);
                                 } catch (Exception e) {
@@ -574,16 +574,16 @@ public class KeycloakAdminClientService implements KeycloakIdentityPort, Keycloa
          * Mendapatkan groups yang dimiliki user
          *
          * @param userId ID dari user di Keycloak
-         * @return List of KeycloakGroupDTO
+         * @return List of KeycloakGroup
          */
-        public List<KeycloakGroupDTO> getUserGroups(String userId) {
+        public List<KeycloakGroup> getUserGroups(String userId) {
                 return this.keycloak
                                 .realm(this.realm)
                                 .users()
                                 .get(userId)
                                 .groups()
                                 .stream()
-                                .map(KeycloakGroupDTO::fromGroupRepresentation)
+                                .map(KeycloakGroup::fromGroupRepresentation)
                                 .toList();
         }
 
@@ -594,7 +594,7 @@ public class KeycloakAdminClientService implements KeycloakIdentityPort, Keycloa
          * @param userIds List of user IDs
          * @return Map of userId to their groups
          */
-        public java.util.Map<String, List<KeycloakGroupDTO>> getUserGroupsBatch(List<String> userIds) {
+        public java.util.Map<String, List<KeycloakGroup>> getUserGroupsBatch(List<String> userIds) {
                 log.debug("Batch fetching groups for {} users", userIds.size());
                 return userIds.parallelStream()
                                 .collect(java.util.stream.Collectors.toMap(
@@ -660,10 +660,10 @@ public class KeycloakAdminClientService implements KeycloakIdentityPort, Keycloa
          * Uses GroupResource.getSubGroups() for Keycloak 23+ compatibility.
          * Cache TTL: 5 menit (fastCacheManager).
          *
-         * @return List of KeycloakGroupDTO dengan subGroups populated
+         * @return List of KeycloakGroup dengan subGroups populated
          */
         @Cacheable(value = "groupsHierarchy", cacheManager = "fastCacheManager")
-        public List<KeycloakGroupDTO> getGroupsHierarchy() {
+        public List<KeycloakGroup> getGroupsHierarchy() {
                 log.debug("Fetching groups hierarchy from Keycloak (cache miss)");
                 // Get top-level groups first
                 List<GroupRepresentation> topLevelGroups = this.keycloak
@@ -682,7 +682,7 @@ public class KeycloakAdminClientService implements KeycloakIdentityPort, Keycloa
          * Required for Keycloak 23+ where toRepresentation() no longer includes
          * subGroups
          */
-        private KeycloakGroupDTO buildGroupHierarchy(String groupId, String parentId) {
+        private KeycloakGroup buildGroupHierarchy(String groupId, String parentId) {
                 // Fetch group details
                 GroupRepresentation group = this.keycloak
                                 .realm(this.realm)
@@ -691,7 +691,7 @@ public class KeycloakAdminClientService implements KeycloakIdentityPort, Keycloa
                                 .toRepresentation();
 
                 // Build DTO
-                KeycloakGroupDTO dto = KeycloakGroupDTO.builder()
+                KeycloakGroup dto = KeycloakGroup.builder()
                                 .id(group.getId())
                                 .name(group.getName())
                                 .path(group.getPath())
@@ -718,9 +718,9 @@ public class KeycloakAdminClientService implements KeycloakIdentityPort, Keycloa
          * Mendapatkan subgroups dari suatu parent group
          *
          * @param parentPath Path dari parent group (e.g., "/backoffice")
-         * @return List of KeycloakGroupDTO (flat list of subgroups only)
+         * @return List of KeycloakGroup (flat list of subgroups only)
          */
-        public List<KeycloakGroupDTO> getSubGroups(String parentPath) {
+        public List<KeycloakGroup> getSubGroups(String parentPath) {
                 return this.keycloak
                                 .realm(this.realm)
                                 .groups()
@@ -729,7 +729,7 @@ public class KeycloakAdminClientService implements KeycloakIdentityPort, Keycloa
                                 .filter(group -> parentPath.equals(group.getPath()))
                                 .findFirst()
                                 .map(parent -> parent.getSubGroups().stream()
-                                                .map(KeycloakGroupDTO::fromGroupRepresentation)
+                                                .map(KeycloakGroup::fromGroupRepresentation)
                                                 .toList())
                                 .orElse(List.of());
         }
@@ -747,10 +747,10 @@ public class KeycloakAdminClientService implements KeycloakIdentityPort, Keycloa
          * create_users]
          *
          * @param userId ID dari user di Keycloak
-         * @return List of KeycloakRoleDTO (directly assigned roles only, excluding
+         * @return List of KeycloakRole (directly assigned roles only, excluding
          *         system roles)
          */
-        public List<KeycloakRoleDTO> getAllEffectiveRolesFlat(String userId) {
+        public List<KeycloakRole> getAllEffectiveRolesFlat(String userId) {
                 java.util.Set<String> systemRoles = java.util.Set.of(
                                 "offline_access", "uma_authorization", "default-roles-satset-go",
                                 "default-roles-omnip");
@@ -784,10 +784,10 @@ public class KeycloakAdminClientService implements KeycloakIdentityPort, Keycloa
          * DO NOT use this for flat role listing - use getAllEffectiveRolesFlat instead.
          *
          * @param userId ID dari user di Keycloak
-         * @return List of KeycloakRoleDTO with hierarchy (root roles only, children
+         * @return List of KeycloakRole with hierarchy (root roles only, children
          *         nested)
          */
-        public List<KeycloakRoleDTO> getMenuRoles(String userId) throws BusinessException {
+        public List<KeycloakRole> getMenuRoles(String userId) throws BusinessException {
                 // Get ALL realm level roles assigned/effective to user
                 List<RoleRepresentation> allUserRoles = this.keycloak
                                 .realm(this.realm)
@@ -804,13 +804,13 @@ public class KeycloakAdminClientService implements KeycloakIdentityPort, Keycloa
 
                 // Fetch FULL role representation (with attributes) using CACHED method
                 // listEffective() does not include attributes!
-                java.util.Map<String, KeycloakRoleDTO> dtoMap = new java.util.HashMap<>();
+                java.util.Map<String, KeycloakRole> dtoMap = new java.util.HashMap<>();
                 for (RoleRepresentation role : allUserRoles) {
                         if (systemRoles.contains(role.getName())) {
                                 continue; // Skip system roles
                         }
                         // Use cached method to get full role with attributes
-                        KeycloakRoleDTO fullRole = getCachedRoleWithAttributes(role.getName());
+                        KeycloakRole fullRole = getCachedRoleWithAttributes(role.getName());
                         // Ensure children list is initialized
                         if (fullRole.getChildren() == null) {
                                 fullRole.setChildren(new java.util.ArrayList<>());
@@ -821,7 +821,7 @@ public class KeycloakAdminClientService implements KeycloakIdentityPort, Keycloa
                 // Build hierarchy for composite roles
                 java.util.Set<String> childRoleNames = new java.util.HashSet<>();
 
-                for (KeycloakRoleDTO parentDto : dtoMap.values()) {
+                for (KeycloakRole parentDto : dtoMap.values()) {
                         if (Boolean.TRUE.equals(parentDto.getComposite())) {
                                 try {
                                         // Fetch children of this composite role
@@ -836,7 +836,7 @@ public class KeycloakAdminClientService implements KeycloakIdentityPort, Keycloa
                                                         continue;
                                                 }
                                                 // Fetch full child role WITH attributes (recursively)
-                                                KeycloakRoleDTO childDto = getCachedRoleWithAttributes(child.getName());
+                                                KeycloakRole childDto = getCachedRoleWithAttributes(child.getName());
                                                 if (childDto.getChildren() == null) {
                                                         childDto.setChildren(new java.util.ArrayList<>());
                                                 }

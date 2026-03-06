@@ -1,7 +1,7 @@
 package com.omnip.transaction.domain.service;
 
 import com.omnip.catalog.domain.port.out.DenomRepositoryPort;
-import com.omnip.catalog.domain.model.ProductDenoms;
+import com.omnip.shared.model.DenomInfo;
 import com.omnip.transaction.domain.port.in.BalanceManagementUseCase;
 import com.omnip.shared.exception.InsufficientBalanceException;
 import com.omnip.transaction.domain.port.out.TransactionRepositoryPort;
@@ -36,7 +36,7 @@ class TransactionDomainServiceTest {
     @Mock
     private TransactionRepositoryPort transactionRepository;
     @Mock
-    private DenomRepositoryPort productDenomRepository;
+    private DenomRepositoryPort denomRepository;
     @Mock
     private BalanceManagementUseCase balanceService;
     @Mock
@@ -47,28 +47,34 @@ class TransactionDomainServiceTest {
 
     private UUID storeId;
     private UUID denomId;
-    private ProductDenoms denom;
+    private DenomInfo denom;
 
     @BeforeEach
     void setUp() {
         storeId = UUID.randomUUID();
         denomId = UUID.randomUUID();
 
-        denom = new ProductDenoms();
-        denom.setId(denomId);
-        denom.setCode("TLKM5");
-        denom.setName("Telkomsel 5K");
-        denom.setPrice(new BigDecimal("5000.00"));
-        denom.setAdminFee(BigDecimal.ZERO);
-        denom.setActive(true);
+        denom = new DenomInfo(
+            denomId,
+            "TLKM5",
+            "Telkomsel 5K",
+            "Telkomsel",
+            new BigDecimal("5000.00"),
+            BigDecimal.ZERO,
+            true,
+            false
+        );
     }
 
     @Test
     void createPurchase_Success_WhenBalanceIsExact() throws InsufficientBalanceException {
         // "Saldo pas-pasan → SUCCESS, balance = 0"
-        denom.setPrice(new BigDecimal("10000.00")); // Pas dengan saldo store
+        DenomInfo expensiveDenom = new DenomInfo(
+            denomId, "TLKM10", "Telkomsel 10K", "Telkomsel",
+            new BigDecimal("10000.00"), BigDecimal.ZERO, true, false
+        );
 
-        when(productDenomRepository.findById(denomId)).thenReturn(Optional.of(denom));
+        when(denomRepository.findDenomInfoById(denomId)).thenReturn(Optional.of(expensiveDenom));
         when(transactionRepository.save(any(Transactions.class))).thenAnswer(invocation -> {
             Transactions tx = invocation.getArgument(0);
             if (tx.getId() == null) {
@@ -91,15 +97,18 @@ class TransactionDomainServiceTest {
 
         verify(balanceService, times(1)).deductBalance(eq(storeId), eq(new BigDecimal("10000.00")),
                 eq(MutationReferenceType.PURCHASE), any(UUID.class), anyString());
-        verify(providerService, times(1)).sendTransaction("081234567890", "TLKM5", new BigDecimal("10000.00"));
+        verify(providerService, times(1)).sendTransaction("081234567890", "TLKM10", new BigDecimal("10000.00"));
     }
 
     @Test
     void createPurchase_ThrowsException_WhenBalanceInsufficient() throws InsufficientBalanceException {
         // "Saldo kurang Rp 1 → REJECTED, balance unchanged"
-        denom.setPrice(new BigDecimal("10001.00")); // Kurang Rp 1
+        DenomInfo expensiveDenom = new DenomInfo(
+            denomId, "TLKM10", "Telkomsel 10K", "Telkomsel",
+            new BigDecimal("10001.00"), BigDecimal.ZERO, true, false
+        );
 
-        when(productDenomRepository.findById(denomId)).thenReturn(Optional.of(denom));
+        when(denomRepository.findDenomInfoById(denomId)).thenReturn(Optional.of(expensiveDenom));
         when(transactionRepository.save(any(Transactions.class))).thenAnswer(invocation -> {
             Transactions tx = invocation.getArgument(0);
             if (tx.getId() == null) {
@@ -122,7 +131,7 @@ class TransactionDomainServiceTest {
     @Test
     void createPurchase_ProviderFailed_RefundsBalance() throws InsufficientBalanceException {
         // "Provider timeout → FAILED → auto refund"
-        when(productDenomRepository.findById(denomId)).thenReturn(Optional.of(denom));
+        when(denomRepository.findDenomInfoById(denomId)).thenReturn(Optional.of(denom));
         when(transactionRepository.save(any(Transactions.class))).thenAnswer(invocation -> {
             Transactions tx = invocation.getArgument(0);
             if (tx.getId() == null) {
@@ -162,14 +171,12 @@ class TransactionDomainServiceTest {
     @Test
     void createPurchase_DenomInactive_ThrowsException() throws InsufficientBalanceException {
         // "Purchase denom inactive/deleted → REJECTED"
-        // Wait, the code doesn't check if denom is active right now.
-        // Let's add the test to expect Business rule exception. The service must be
-        // modified to satisfy this!
-        denom.setActive(false);
-        when(productDenomRepository.findById(denomId)).thenReturn(Optional.of(denom));
+        DenomInfo inactiveDenom = new DenomInfo(
+            denomId, "TLKM5", "Telkomsel 5K", "Telkomsel",
+            new BigDecimal("5000.00"), BigDecimal.ZERO, false, false
+        );
+        when(denomRepository.findDenomInfoById(denomId)).thenReturn(Optional.of(inactiveDenom));
 
-        // This will currently fail because the service doesn't check this. We'll update
-        // code soon.
         assertThrows(IllegalArgumentException.class,
                 () -> transactionService.createPurchase(storeId, denomId, "081234567890"));
 
@@ -180,7 +187,7 @@ class TransactionDomainServiceTest {
     @Test
     void createPurchase_DoubleSubmit_ThrowsException() throws InsufficientBalanceException {
         // "Double submit (idempotency) → second rejected"
-        when(productDenomRepository.findById(denomId)).thenReturn(Optional.of(denom));
+        when(denomRepository.findDenomInfoById(denomId)).thenReturn(Optional.of(denom));
         when(transactionRepository.existsByStoreIdAndProductDenomIdAndTargetNumberAndStatusInAndCreatedAtAfter(
                 eq(storeId), eq(denomId), eq("081234567890"), any(), any())).thenReturn(true);
 
@@ -194,7 +201,7 @@ class TransactionDomainServiceTest {
     @Test
     void createPurchase_RefundFails_LeavesStatusFailed() throws InsufficientBalanceException {
         // "Refund gagal setelah provider fail → alert"
-        when(productDenomRepository.findById(denomId)).thenReturn(Optional.of(denom));
+        when(denomRepository.findDenomInfoById(denomId)).thenReturn(Optional.of(denom));
         when(transactionRepository.save(any(Transactions.class))).thenAnswer(invocation -> {
             Transactions tx = invocation.getArgument(0);
             if (tx.getId() == null) {
@@ -223,7 +230,7 @@ class TransactionDomainServiceTest {
 
     @Test
     void createPurchase_DenomNotFound_ThrowsException() {
-        when(productDenomRepository.findById(denomId)).thenReturn(Optional.empty());
+        when(denomRepository.findDenomInfoById(denomId)).thenReturn(Optional.empty());
 
         assertThrows(com.omnip.shared.exception.ResourceNotFoundException.class,
                 () -> transactionService.createPurchase(storeId, denomId, "081234567890"));
@@ -307,18 +314,6 @@ class TransactionDomainServiceTest {
     // ==================== Helpers ====================
 
     private Transactions buildTransaction(UUID txId) {
-        com.omnip.catalog.domain.model.Products product = new com.omnip.catalog.domain.model.Products();
-        product.setId(UUID.randomUUID());
-        product.setName("Telkomsel");
-
-        ProductDenoms d = new ProductDenoms();
-        d.setId(denomId);
-        d.setCode("TLKM5");
-        d.setName("Telkomsel 5K");
-        d.setPrice(new BigDecimal("5000.00"));
-        d.setAdminFee(BigDecimal.ZERO);
-        d.setProduct(product);
-
         Transactions tx = new Transactions();
         tx.setId(txId);
         tx.setStoreId(storeId);
@@ -338,7 +333,7 @@ class TransactionDomainServiceTest {
         // "Concurrent purchase (2 thread, 1 saldo) → hanya 1 berhasil"
         // Simulasi race condition dengan mock: call 1 berhasil, call 2 throw
         // InsufficientBalanceException
-        when(productDenomRepository.findById(denomId)).thenReturn(Optional.of(denom));
+        when(denomRepository.findDenomInfoById(denomId)).thenReturn(Optional.of(denom));
         when(transactionRepository.save(any(Transactions.class))).thenAnswer(invocation -> {
             Transactions tx = invocation.getArgument(0);
             if (tx.getId() == null) {

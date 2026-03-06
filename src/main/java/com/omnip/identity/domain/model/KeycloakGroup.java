@@ -1,4 +1,4 @@
-package com.omnip.identity.adapter.in.web.dto;
+package com.omnip.identity.domain.model;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -10,14 +10,17 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * DTO untuk representasi Group dari Keycloak.
+ * Domain model untuk representasi Group dari Keycloak.
  * Mendukung hierarchical groups dengan parent/child relationship.
+ * 
+ * Dipindahkan dari adapter/in/web/dto untuk memenuhi hexagonal architecture:
+ * Domain layer tidak boleh bergantung ke adapter layer.
  */
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class KeycloakGroupDTO {
+public class KeycloakGroup {
 
     /**
      * ID unik dari group di Keycloak
@@ -43,17 +46,17 @@ public class KeycloakGroupDTO {
      * Child groups (subgroups)
      */
     @Builder.Default
-    private List<KeycloakGroupDTO> subGroups = new ArrayList<>();
+    private List<KeycloakGroup> subGroups = new ArrayList<>();
 
     /**
-     * Factory method untuk membuat KeycloakGroupDTO dari GroupRepresentation
+     * Factory method untuk membuat KeycloakGroup dari GroupRepresentation
      * Keycloak (tanpa subgroups - flat mode)
      *
      * @param groupRep GroupRepresentation dari Keycloak
-     * @return KeycloakGroupDTO
+     * @return KeycloakGroup
      */
-    public static KeycloakGroupDTO fromGroupRepresentation(GroupRepresentation groupRep) {
-        return KeycloakGroupDTO.builder()
+    public static KeycloakGroup fromGroupRepresentation(GroupRepresentation groupRep) {
+        return KeycloakGroup.builder()
                 .id(groupRep.getId())
                 .name(groupRep.getName())
                 .path(groupRep.getPath())
@@ -61,14 +64,14 @@ public class KeycloakGroupDTO {
     }
 
     /**
-     * Factory method untuk membuat KeycloakGroupDTO dengan hierarchy (recursive)
+     * Factory method untuk membuat KeycloakGroup dengan hierarchy (recursive)
      *
      * @param groupRep GroupRepresentation dari Keycloak
      * @param parentId ID dari parent group (null untuk top-level)
-     * @return KeycloakGroupDTO dengan subGroups populated
+     * @return KeycloakGroup dengan subGroups populated
      */
-    public static KeycloakGroupDTO fromGroupRepresentationWithHierarchy(GroupRepresentation groupRep, String parentId) {
-        KeycloakGroupDTO dto = KeycloakGroupDTO.builder()
+    public static KeycloakGroup fromGroupRepresentationWithHierarchy(GroupRepresentation groupRep, String parentId) {
+        KeycloakGroup dto = KeycloakGroup.builder()
                 .id(groupRep.getId())
                 .name(groupRep.getName())
                 .path(groupRep.getPath())

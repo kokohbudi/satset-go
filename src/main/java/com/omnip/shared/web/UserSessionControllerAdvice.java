@@ -1,7 +1,7 @@
 package com.omnip.shared.web;
 
 import com.omnip.shared.dto.UserDTO;
-import com.omnip.identity.adapter.in.web.dto.KeycloakRoleDTO;
+import com.omnip.identity.domain.model.KeycloakRole;
 import com.omnip.identity.domain.port.out.KeycloakIdentityPort;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.Authentication;
@@ -36,7 +36,7 @@ public class UserSessionControllerAdvice {
         if (auth != null && auth.isAuthenticated() && !"anonymousUser".equals(auth.getPrincipal())) {
             // Check if roles are already cached in session
             @SuppressWarnings("unchecked")
-            List<KeycloakRoleDTO> cachedRoles = (List<KeycloakRoleDTO>) session.getAttribute("userRoles");
+            List<KeycloakRole> cachedRoles = (List<KeycloakRole>) session.getAttribute("userRoles");
             if (cachedRoles != null) {
                 model.addAttribute("userRoles", cachedRoles);
                 return;
@@ -51,7 +51,7 @@ public class UserSessionControllerAdvice {
 
             if (userId != null) {
                 try {
-                    List<KeycloakRoleDTO> roles = keycloakIdentityPort.getMenuRoles(userId);
+                    List<KeycloakRole> roles = keycloakIdentityPort.getMenuRoles(userId);
                     session.setAttribute("userRoles", roles);
                     model.addAttribute("userRoles", roles);
                 } catch (Exception e) {

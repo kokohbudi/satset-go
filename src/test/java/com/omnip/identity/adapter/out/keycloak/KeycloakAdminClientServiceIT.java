@@ -1,6 +1,6 @@
 package com.omnip.identity.adapter.out.keycloak;
 
-import com.omnip.identity.adapter.in.web.dto.KeycloakRoleDTO;
+import com.omnip.identity.domain.model.KeycloakRole;
 import com.omnip.shared.dto.UserDTO;
 import com.omnip.shared.exception.BusinessException;
 import com.omnip.shared.testcontainers.KeycloakContainerSupport;
@@ -34,10 +34,10 @@ class KeycloakAdminClientServiceIT extends KeycloakContainerSupport {
 
     @Test
     void getRoles_ReturnsRealmRoles_ExcludingSystemRoles() {
-        List<KeycloakRoleDTO> roles = service.getRoles();
+        List<KeycloakRole> roles = service.getRoles();
 
         assertThat(roles).isNotEmpty();
-        assertThat(roles).extracting(KeycloakRoleDTO::getName)
+        assertThat(roles).extracting(KeycloakRole::getName)
                 .contains("view_users", "manage_users", "view_catalog", "manage_catalog")
                 // roles dari setupTestRealm() yang mirrors production
                 .doesNotContain("offline_access", "uma_authorization");

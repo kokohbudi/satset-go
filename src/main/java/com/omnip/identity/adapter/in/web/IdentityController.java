@@ -1,7 +1,7 @@
 package com.omnip.identity.adapter.in.web;
 
-import com.omnip.identity.adapter.in.web.dto.KeycloakGroupDTO;
-import com.omnip.identity.adapter.in.web.dto.KeycloakRoleDTO;
+import com.omnip.identity.domain.model.KeycloakGroup;
+import com.omnip.identity.domain.model.KeycloakRole;
 import com.omnip.shared.dto.UserDTO;
 import com.omnip.identity.adapter.in.web.dto.CreateUserRequest;
 import com.omnip.shared.constant.OmniConstants;
@@ -45,26 +45,26 @@ public class IdentityController {
 
     @GetMapping("/groups")
     @PreAuthorize("hasRole('" + OmniConstants.PERM_MANAGE_ROLES + "')")
-    public ResponseEntity<List<KeycloakGroupDTO>> getGroups() {
+    public ResponseEntity<List<KeycloakGroup>> getGroups() {
         return ResponseEntity.ok(manageGroupsUseCase.getGroups());
     }
 
     @GetMapping("/roles")
     @PreAuthorize("hasRole('" + OmniConstants.PERM_MANAGE_ROLES + "')")
-    public ResponseEntity<List<KeycloakRoleDTO>> getClientRoles() {
+    public ResponseEntity<List<KeycloakRole>> getClientRoles() {
         return ResponseEntity.ok(manageRolesUseCase.getRoles());
     }
 
     @GetMapping("/roles/scope/{scope}")
     @PreAuthorize("hasRole('" + OmniConstants.PERM_MANAGE_ROLES + "')")
-    public ResponseEntity<List<KeycloakRoleDTO>> getRolesByScope(
+    public ResponseEntity<List<KeycloakRole>> getRolesByScope(
             @PathVariable String scope) {
         return ResponseEntity.ok(manageRolesUseCase.getRolesByScope(scope));
     }
 
     @GetMapping("/groups/{groupId}/roles")
     @PreAuthorize("hasRole('" + OmniConstants.PERM_MANAGE_ROLES + "')")
-    public ResponseEntity<List<KeycloakRoleDTO>> getRolesByGroup(
+    public ResponseEntity<List<KeycloakRole>> getRolesByGroup(
             @PathVariable String groupId) throws BusinessException {
         return ResponseEntity.ok(manageRolesUseCase.getRolesByGroup(groupId));
     }
@@ -146,7 +146,7 @@ public class IdentityController {
 
     @GetMapping("/users/{userId}/groups")
     @PreAuthorize("hasRole('" + OmniConstants.PERM_MANAGE_USERS + "')")
-    public ResponseEntity<List<KeycloakGroupDTO>> getUserGroups(
+    public ResponseEntity<List<KeycloakGroup>> getUserGroups(
             @PathVariable String userId) {
         return ResponseEntity.ok(manageGroupsUseCase.getUserGroups(userId));
     }
@@ -161,13 +161,13 @@ public class IdentityController {
 
     @GetMapping("/groups/hierarchy")
     @PreAuthorize("hasRole('" + OmniConstants.PERM_MANAGE_ROLES + "')")
-    public ResponseEntity<List<KeycloakGroupDTO>> getGroupsHierarchy() {
+    public ResponseEntity<List<KeycloakGroup>> getGroupsHierarchy() {
         return ResponseEntity.ok(manageGroupsUseCase.getGroupsHierarchy());
     }
 
     @GetMapping("/groups/subgroups")
     @PreAuthorize("hasRole('" + OmniConstants.PERM_MANAGE_ROLES + "')")
-    public ResponseEntity<List<KeycloakGroupDTO>> getSubGroups(
+    public ResponseEntity<List<KeycloakGroup>> getSubGroups(
             @RequestParam String parentPath) {
         return ResponseEntity.ok(manageGroupsUseCase.getSubGroups(parentPath));
     }

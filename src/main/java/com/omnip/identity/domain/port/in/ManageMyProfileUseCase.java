@@ -1,7 +1,7 @@
 package com.omnip.identity.domain.port.in;
 
-import com.omnip.identity.adapter.in.web.dto.ChangeMyPasswordRequestDTO;
+import com.omnip.identity.domain.model.ChangeMyPasswordRequest;
 
 public interface ManageMyProfileUseCase {
-    void changeMyPassword(String providerUserId, String email, ChangeMyPasswordRequestDTO requestDTO);
+    void changeMyPassword(String providerUserId, String email, ChangeMyPasswordRequest request);
 }

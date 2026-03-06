@@ -1,8 +1,8 @@
 package com.omnip.identity.domain.service;
 
-import com.omnip.identity.adapter.in.web.dto.KeycloakGroupDTO;
+import com.omnip.identity.domain.model.KeycloakGroup;
 import com.omnip.identity.domain.port.out.KeycloakIdentityPort;
-import com.omnip.identity.adapter.in.web.dto.KeycloakRoleDTO;
+import com.omnip.identity.domain.model.KeycloakRole;
 import com.omnip.identity.domain.port.in.ChangePasswordUseCase;
 import com.omnip.identity.domain.port.in.ManageBackofficeUsersUseCase;
 import com.omnip.identity.domain.port.in.ManageGroupsUseCase;
@@ -42,7 +42,7 @@ public class IdentityDomainService implements ManageGroupsUseCase, ManageRolesUs
     /**
      * Mendapatkan semua groups dari Keycloak.
      */
-    public List<KeycloakGroupDTO> getGroups() {
+    public List<KeycloakGroup> getGroups() {
         return keycloakAdminClientService.getGroups();
     }
 
@@ -56,7 +56,7 @@ public class IdentityDomainService implements ManageGroupsUseCase, ManageRolesUs
     /**
      * Mendapatkan semua client roles dari Keycloak.
      */
-    public List<KeycloakRoleDTO> getRoles() {
+    public List<KeycloakRole> getRoles() {
         return keycloakAdminClientService.getRoles();
     }
 
@@ -67,14 +67,14 @@ public class IdentityDomainService implements ManageGroupsUseCase, ManageRolesUs
      *
      * @param scope Nilai scope untuk filter
      */
-    public List<KeycloakRoleDTO> getRolesByScope(String scope) {
+    public List<KeycloakRole> getRolesByScope(String scope) {
         return keycloakAdminClientService.getRolesByScope(scope);
     }
 
     /**
      * Mendapatkan roles yang di-assign ke suatu group.
      */
-    public List<KeycloakRoleDTO> getRolesByGroup(String groupId) throws BusinessException {
+    public List<KeycloakRole> getRolesByGroup(String groupId) throws BusinessException {
         return keycloakAdminClientService.getRolesByGroup(groupId);
     }
 
@@ -285,7 +285,7 @@ public class IdentityDomainService implements ManageGroupsUseCase, ManageRolesUs
      *
      * @param userId Provider user ID dari Keycloak
      */
-    public List<KeycloakGroupDTO> getUserGroups(String userId) {
+    public List<KeycloakGroup> getUserGroups(String userId) {
         return keycloakAdminClientService.getUserGroups(userId);
     }
 
@@ -320,7 +320,7 @@ public class IdentityDomainService implements ManageGroupsUseCase, ManageRolesUs
     /**
      * Mendapatkan groups dengan hierarchy (parent-child).
      */
-    public List<KeycloakGroupDTO> getGroupsHierarchy() {
+    public List<KeycloakGroup> getGroupsHierarchy() {
         return keycloakAdminClientService.getGroupsHierarchy();
     }
 
@@ -329,7 +329,7 @@ public class IdentityDomainService implements ManageGroupsUseCase, ManageRolesUs
      *
      * @param parentPath Path dari parent group (e.g., "/backoffice")
      */
-    public List<KeycloakGroupDTO> getSubGroups(String parentPath) {
+    public List<KeycloakGroup> getSubGroups(String parentPath) {
         return keycloakAdminClientService.getSubGroups(parentPath);
     }
 
@@ -389,15 +389,15 @@ public class IdentityDomainService implements ManageGroupsUseCase, ManageRolesUs
      * Returns ALL realm roles (for granular filtering by any role).
      * Used for SSR initial data population.
      *
-     * @return List of KeycloakGroupDTO (using same DTO for compatibility, populated
+     * @return List of KeycloakGroup (using same DTO for compatibility, populated
      *         from roles)
      */
-    public List<KeycloakGroupDTO> getBackofficeSubGroups() {
+    public List<KeycloakGroup> getBackofficeSubGroups() {
         // Get ALL roles for dropdown (not just root roles)
-        List<KeycloakRoleDTO> allRoles = keycloakAdminClientService.getRoles();
+        List<KeycloakRole> allRoles = keycloakAdminClientService.getRoles();
 
         return allRoles.stream()
-                .map(role -> KeycloakGroupDTO.builder()
+                .map(role -> KeycloakGroup.builder()
                         .id(role.getId())
                         .name(role.getName())
                         .path("/" + role.getName())
@@ -409,9 +409,9 @@ public class IdentityDomainService implements ManageGroupsUseCase, ManageRolesUs
      * Get roles with hierarchy for dropdown display.
      * Composite roles will have their children populated.
      *
-     * @return List of KeycloakRoleDTO with hierarchy
+     * @return List of KeycloakRole with hierarchy
      */
-    public List<KeycloakRoleDTO> getRolesForDropdown() {
+    public List<KeycloakRole> getRolesForDropdown() {
         return keycloakAdminClientService.getRolesWithHierarchy();
     }
 }

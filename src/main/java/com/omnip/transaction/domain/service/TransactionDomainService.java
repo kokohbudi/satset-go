@@ -1,7 +1,7 @@
 package com.omnip.transaction.domain.service;
 
 import com.omnip.transaction.domain.model.ProviderResponse;
-import com.omnip.catalog.domain.model.ProductDenoms;
+import com.omnip.shared.model.DenomInfo;
 import com.omnip.transaction.domain.port.in.BalanceManagementUseCase;
 import com.omnip.transaction.domain.port.in.PurchaseUseCase;
 import com.omnip.transaction.domain.port.in.TopUpUseCase;
@@ -29,16 +29,16 @@ import java.util.UUID;
 public class TransactionDomainService implements PurchaseUseCase, TopUpUseCase, TransactionQueryUseCase {
 
         private final TransactionRepositoryPort transactionRepository;
-        private final DenomRepositoryPort productDenomRepository;
+        private final DenomRepositoryPort denomRepository;
         private final BalanceManagementUseCase balanceService;
         private final ProviderPort providerService;
 
         public TransactionDomainService(TransactionRepositoryPort transactionRepository,
-                        DenomRepositoryPort productDenomRepository,
+                        DenomRepositoryPort denomRepository,
                         BalanceManagementUseCase balanceService,
                         ProviderPort providerService) {
                 this.transactionRepository = transactionRepository;
-                this.productDenomRepository = productDenomRepository;
+                this.denomRepository = denomRepository;
                 this.balanceService = balanceService;
                 this.providerService = providerService;
         }
@@ -48,16 +48,17 @@ public class TransactionDomainService implements PurchaseUseCase, TopUpUseCase, 
         public TransactionSummary createPurchase(UUID storeId, UUID denomId, String targetNumber)
                         throws InsufficientBalanceException {
 
-                ProductDenoms denom = productDenomRepository.findById(denomId)
+                // Use DenomInfo (shared kernel) instead of ProductDenoms (catalog domain entity)
+                DenomInfo denom = denomRepository.findDenomInfoById(denomId)
                                 .orElseThrow(() -> new ResourceNotFoundException("ProductDenom", denomId));
 
-                if (!denom.isActive() || denom.isDeleted()) {
+                if (!denom.isAvailable()) {
                         throw new IllegalArgumentException("Product nominal is not active or has been deleted.");
                 }
 
-                BigDecimal price = denom.getPrice();
-                BigDecimal adminFee = denom.getAdminFee() != null ? denom.getAdminFee() : BigDecimal.ZERO;
-                BigDecimal total = price.add(adminFee);
+                BigDecimal price = denom.price();
+                BigDecimal adminFee = denom.adminFee() != null ? denom.adminFee() : BigDecimal.ZERO;
+                BigDecimal total = denom.total();
 
                 // 0. Double submit protection (Idempotency check)
                 java.time.LocalDateTime oneMinuteAgo = java.time.LocalDateTime.now().minusMinutes(1);
@@ -73,14 +74,12 @@ public class TransactionDomainService implements PurchaseUseCase, TopUpUseCase, 
                                         "Harap tunggu 1 menit sebelum melakukan transaksi ke nomor yang sama.");
                 }
 
-                String productName = denom.getProduct() != null ? denom.getProduct().getName() : null;
-
                 // 1. Create transaction (PENDING)
                 Transactions transaction = new Transactions();
                 transaction.setStoreId(storeId);
                 transaction.setProductDenomId(denomId);
-                transaction.setDenomName(denom.getName());
-                transaction.setProductName(productName);
+                transaction.setDenomName(denom.name());
+                transaction.setProductName(denom.productName());
                 transaction.setTargetNumber(targetNumber);
                 transaction.setPrice(price);
                 transaction.setAdminFee(adminFee);
@@ -89,12 +88,12 @@ public class TransactionDomainService implements PurchaseUseCase, TopUpUseCase, 
                 transaction = transactionRepository.save(transaction);
 
                 log.info("Transaction created: id={} store={} denom={} total={}",
-                                transaction.getId(), storeId, denom.getCode(), total);
+                                transaction.getId(), storeId, denom.code(), total);
 
                 // 2. Deduct balance
                 balanceService.deductBalance(storeId, total,
                                 MutationReferenceType.PURCHASE, transaction.getId(),
-                                "Pembelian " + denom.getName() + " ke " + targetNumber);
+                                "Pembelian " + denom.name() + " ke " + targetNumber);
 
                 // 3. Update status to PROCESSING
                 transaction.setStatus(TransactionStatus.PROCESSING);
@@ -102,7 +101,7 @@ public class TransactionDomainService implements PurchaseUseCase, TopUpUseCase, 
 
                 // 4. Send to provider
                 ProviderResponse response = providerService.sendTransaction(
-                                targetNumber, denom.getCode(), total);
+                                targetNumber, denom.code(), total);
 
                 if (response.success()) {
                         // 5a. SUCCESS
@@ -121,7 +120,7 @@ public class TransactionDomainService implements PurchaseUseCase, TopUpUseCase, 
                         try {
                                 balanceService.addBalance(storeId, total,
                                                 MutationReferenceType.REFUND, transaction.getId(),
-                                                "Refund " + denom.getName() + " - " + response.message());
+                                                "Refund " + denom.name() + " - " + response.message());
 
                                 transaction.setStatus(TransactionStatus.REFUNDED);
                                 transaction = transactionRepository.save(transaction);

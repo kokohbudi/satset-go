@@ -1,6 +1,6 @@
 package com.omnip.identity.domain.service;
 
-import com.omnip.identity.adapter.in.web.dto.KeycloakRoleDTO;
+import com.omnip.identity.domain.model.KeycloakRole;
 import com.omnip.identity.domain.model.GroupMemberInfo;
 import com.omnip.identity.domain.port.out.KeycloakIdentityPort;
 import com.omnip.shared.dto.UserDTO;
@@ -156,10 +156,10 @@ class IdentityDomainServiceTest {
     @Test
     void getBackofficeUsers_WithRoleFilter_ReturnsOnlyMatchingUsers() {
         UserDTO userWithRole = new UserDTO();
-        userWithRole.setRoleDetails(List.of(KeycloakRoleDTO.builder().name("manage_users").build()));
+        userWithRole.setRoleDetails(List.of(KeycloakRole.builder().name("manage_users").build()));
 
         UserDTO userWithoutRole = new UserDTO();
-        userWithoutRole.setRoleDetails(List.of(KeycloakRoleDTO.builder().name("other_role").build()));
+        userWithoutRole.setRoleDetails(List.of(KeycloakRole.builder().name("other_role").build()));
 
         when(keycloakPort.getUsersWithRolesBatch(100)).thenReturn(List.of(userWithRole, userWithoutRole));
         when(keycloakPort.getCompositeRoleChildNames("manage_users")).thenReturn(Set.of());
@@ -230,10 +230,10 @@ class IdentityDomainServiceTest {
 
     @Test
     void getRoles_DelegatesToPort() {
-        List<KeycloakRoleDTO> roles = List.of(KeycloakRoleDTO.builder().name("manage_users").build());
+        List<KeycloakRole> roles = List.of(KeycloakRole.builder().name("manage_users").build());
         when(keycloakPort.getRoles()).thenReturn(roles);
 
-        List<KeycloakRoleDTO> result = service.getRoles();
+        List<KeycloakRole> result = service.getRoles();
 
         assertEquals(1, result.size());
     }
@@ -242,7 +242,7 @@ class IdentityDomainServiceTest {
     void getRolesByScope_DelegatesToPort() {
         when(keycloakPort.getRolesByScope("backoffice")).thenReturn(List.of());
 
-        List<KeycloakRoleDTO> result = service.getRolesByScope("backoffice");
+        List<KeycloakRole> result = service.getRolesByScope("backoffice");
 
         assertTrue(result.isEmpty());
         verify(keycloakPort).getRolesByScope("backoffice");
@@ -348,8 +348,8 @@ class IdentityDomainServiceTest {
 
     @Test
     void getBackofficeSubGroups_MapsRolesToGroupDTO() {
-        List<KeycloakRoleDTO> roles = List.of(
-                KeycloakRoleDTO.builder().id("r-1").name("manage_users").build());
+        List<KeycloakRole> roles = List.of(
+                KeycloakRole.builder().id("r-1").name("manage_users").build());
         when(keycloakPort.getRoles()).thenReturn(roles);
 
         var result = service.getBackofficeSubGroups();

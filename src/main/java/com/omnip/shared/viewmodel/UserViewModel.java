@@ -1,6 +1,6 @@
 package com.omnip.shared.viewmodel;
 
-import com.omnip.identity.adapter.in.web.dto.KeycloakRoleDTO;
+import com.omnip.identity.domain.model.KeycloakRole;
 import com.omnip.shared.dto.UserDTO;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -54,7 +54,7 @@ public class UserViewModel extends UserDTO {
         this.displayRoles = Optional.ofNullable(user.getRoleDetails())
                 .orElse(Collections.emptyList())
                 .stream()
-                .map(KeycloakRoleDTO::getName) // Or getDisplay_name if available in attributes
+                .map(KeycloakRole::getName) // Or getDisplay_name if available in attributes
                 .toList();
     }
 

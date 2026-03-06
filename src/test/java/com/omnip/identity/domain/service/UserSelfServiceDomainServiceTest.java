@@ -1,6 +1,6 @@
 package com.omnip.identity.domain.service;
 
-import com.omnip.identity.adapter.in.web.dto.ChangeMyPasswordRequestDTO;
+import com.omnip.identity.domain.model.ChangeMyPasswordRequest;
 import com.omnip.identity.domain.port.out.KeycloakIdentityPort;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -26,7 +26,7 @@ class UserSelfServiceDomainServiceTest {
 
     @Test
     void changeMyPassword_ValidatesPasswordsMatch() {
-        ChangeMyPasswordRequestDTO req = new ChangeMyPasswordRequestDTO();
+        ChangeMyPasswordRequest req = new ChangeMyPasswordRequest();
         req.setNewPassword("newPass123");
         req.setConfirmPassword("mismatchPass");
 
@@ -38,7 +38,7 @@ class UserSelfServiceDomainServiceTest {
 
     @Test
     void changeMyPassword_Success() {
-        ChangeMyPasswordRequestDTO req = new ChangeMyPasswordRequestDTO();
+        ChangeMyPasswordRequest req = new ChangeMyPasswordRequest();
         req.setNewPassword("newPass123");
         req.setConfirmPassword("newPass123");
 

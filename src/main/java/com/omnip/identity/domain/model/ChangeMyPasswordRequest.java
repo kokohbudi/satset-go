@@ -1,4 +1,4 @@
-package com.omnip.identity.adapter.in.web.dto;
+package com.omnip.identity.domain.model;
 
 import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotBlank;
@@ -6,15 +6,18 @@ import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 /**
- * DTO for the "change my password" request.
+ * Domain model for the "change my password" request.
  *
  * <p>Carries the desired new password ({@code newPassword}) together with a confirmation copy
  * ({@code confirmPassword}). A class-level cross-field validation ensures that
  * {@code newPassword} and {@code confirmPassword} are identical before the request
  * is processed by the domain service.
+ * 
+ * <p>Dipindahkan dari adapter/in/web/dto untuk memenuhi hexagonal architecture:
+ * Domain layer tidak boleh bergantung ke adapter layer.
  */
 @Data
-public class ChangeMyPasswordRequestDTO {
+public class ChangeMyPasswordRequest {
 
     @NotBlank(message = "Password baru wajib diisi")
     @Size(min = 8, max = 128, message = "Password baru harus antara 8 sampai 128 karakter")
@@ -28,13 +31,10 @@ public class ChangeMyPasswordRequestDTO {
      * Cross-field validation: returns {@code true} when {@code newPassword} and
      * {@code confirmPassword} are both non-null and equal to each other.
      *
-     * @return {@code true} if the two password fields match
+     * @return {@code true} if the passwords match
      */
     @AssertTrue(message = "Password baru dan konfirmasi password harus sama")
-    public boolean isPasswordsMatching() {
-        if (newPassword == null || confirmPassword == null) {
-            return false;
-        }
-        return newPassword.equals(confirmPassword);
+    public boolean isPasswordMatch() {
+        return newPassword != null && newPassword.equals(confirmPassword);
     }
 }

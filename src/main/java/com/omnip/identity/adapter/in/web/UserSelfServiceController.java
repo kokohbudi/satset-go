@@ -1,6 +1,6 @@
 package com.omnip.identity.adapter.in.web;
 
-import com.omnip.identity.adapter.in.web.dto.ChangeMyPasswordRequestDTO;
+import com.omnip.identity.domain.model.ChangeMyPasswordRequest;
 import com.omnip.identity.domain.port.in.ManageMyProfileUseCase;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -25,7 +25,7 @@ public class UserSelfServiceController {
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<Map<String, String>> changePassword(
             @AuthenticationPrincipal Object principal,
-            @Valid @RequestBody ChangeMyPasswordRequestDTO requestDTO) {
+            @Valid @RequestBody ChangeMyPasswordRequest request) {
 
         String providerUserId;
         String email;
@@ -41,7 +41,7 @@ public class UserSelfServiceController {
         }
 
         try {
-            manageMyProfileUseCase.changeMyPassword(providerUserId, email, requestDTO);
+            manageMyProfileUseCase.changeMyPassword(providerUserId, email, request);
             return ResponseEntity.ok(Map.of("message", "Password berhasil diubah"));
         } catch (IllegalArgumentException e) {
             log.warn("Password change validation failed: {}", e.getMessage());

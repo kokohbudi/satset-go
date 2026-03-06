@@ -1,6 +1,6 @@
 package com.omnip.shared.web;
 
-import com.omnip.identity.adapter.in.web.dto.KeycloakRoleDTO;
+import com.omnip.identity.domain.model.KeycloakRole;
 import com.omnip.identity.domain.port.out.KeycloakIdentityPort;
 import com.omnip.shared.dto.UserDTO;
 import org.junit.jupiter.api.AfterEach;
@@ -78,7 +78,7 @@ class UserSessionControllerAdviceTest {
     @Test
     void addAttributes_JwtAuth_FetchesRolesAndCachesInSession() throws Exception {
         setJwtAuth("kc-uuid");
-        List<KeycloakRoleDTO> roles = List.of(KeycloakRoleDTO.builder().name("manage_users").build());
+        List<KeycloakRole> roles = List.of(KeycloakRole.builder().name("manage_users").build());
         when(keycloakIdentityPort.getMenuRoles("kc-uuid")).thenReturn(roles);
 
         UserSessionControllerAdvice advice = new UserSessionControllerAdvice(userDTO, keycloakIdentityPort);
@@ -94,7 +94,7 @@ class UserSessionControllerAdviceTest {
     @Test
     void addAttributes_RolesCachedInSession_SkipsKeycloakCall() throws Exception {
         setJwtAuth("kc-uuid");
-        List<KeycloakRoleDTO> cached = List.of(KeycloakRoleDTO.builder().name("view_users").build());
+        List<KeycloakRole> cached = List.of(KeycloakRole.builder().name("view_users").build());
         MockHttpSession session = new MockHttpSession();
         session.setAttribute("userRoles", cached);
 

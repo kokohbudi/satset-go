@@ -1,6 +1,6 @@
 package com.omnip.identity.domain.service;
 
-import com.omnip.identity.adapter.in.web.dto.ChangeMyPasswordRequestDTO;
+import com.omnip.identity.domain.model.ChangeMyPasswordRequest;
 import com.omnip.identity.domain.port.in.ManageMyProfileUseCase;
 import com.omnip.identity.domain.port.out.KeycloakIdentityPort;
 import lombok.RequiredArgsConstructor;
@@ -15,14 +15,14 @@ public class UserSelfServiceDomainService implements ManageMyProfileUseCase {
     private final KeycloakIdentityPort keycloakPort;
 
     @Override
-    public void changeMyPassword(String providerUserId, String email, ChangeMyPasswordRequestDTO requestDTO) {
-        if (!requestDTO.getNewPassword().equals(requestDTO.getConfirmPassword())) {
+    public void changeMyPassword(String providerUserId, String email, ChangeMyPasswordRequest request) {
+        if (!request.isPasswordMatch()) {
             throw new IllegalArgumentException("Password baru dan konfirmasi tidak cocok");
         }
 
         // Old password verification is skipped as the user is already authenticated via UI session
 
-        keycloakPort.changeUserPassword(providerUserId, requestDTO.getNewPassword());
+        keycloakPort.changeUserPassword(providerUserId, request.getNewPassword());
         log.info("User {} successfully changed their password", email);
     }
 }

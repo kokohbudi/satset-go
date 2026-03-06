@@ -1,4 +1,4 @@
-package com.omnip.identity.adapter.in.web.dto;
+package com.omnip.identity.domain.model;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -10,15 +10,17 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * DTO untuk representasi Role dari Keycloak.
- * Digunakan untuk response API yang mengembalikan roles dari Keycloak Admin
- * Client.
+ * Domain model untuk representasi Role dari Keycloak.
+ * Digunakan untuk response API yang mengembalikan roles dari Keycloak Admin Client.
+ * 
+ * Dipindahkan dari adapter/in/web/dto untuk memenuhi hexagonal architecture:
+ * Domain layer tidak boleh bergantung ke adapter layer.
  */
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class KeycloakRoleDTO {
+public class KeycloakRole {
 
         /**
          * ID unik dari role di Keycloak
@@ -59,16 +61,16 @@ public class KeycloakRoleDTO {
          * List of child roles (if composite)
          */
         @Builder.Default
-        private List<KeycloakRoleDTO> children = new java.util.ArrayList<>();
+        private List<KeycloakRole> children = new java.util.ArrayList<>();
 
         /**
-         * Factory method untuk membuat KeycloakRoleDTO dari RoleRepresentation Keycloak
+         * Factory method untuk membuat KeycloakRole dari RoleRepresentation Keycloak
          *
          * @param roleRep RoleRepresentation dari Keycloak
-         * @return KeycloakRoleDTO
+         * @return KeycloakRole
          */
-        public static KeycloakRoleDTO fromRoleRepresentation(RoleRepresentation roleRep) {
-                return KeycloakRoleDTO.builder()
+        public static KeycloakRole fromRoleRepresentation(RoleRepresentation roleRep) {
+                return KeycloakRole.builder()
                                 .id(roleRep.getId())
                                 .name(roleRep.getName())
                                 .description(roleRep.getDescription())

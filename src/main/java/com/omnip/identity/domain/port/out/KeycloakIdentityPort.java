@@ -1,45 +1,43 @@
 package com.omnip.identity.domain.port.out;
 
-import com.omnip.identity.adapter.in.web.dto.KeycloakGroupDTO;
-import com.omnip.identity.adapter.in.web.dto.KeycloakRoleDTO;
+import com.omnip.identity.domain.model.KeycloakGroup;
+import com.omnip.identity.domain.model.KeycloakRole;
 import com.omnip.identity.domain.model.GroupMemberInfo;
 import com.omnip.shared.dto.UserDTO;
 import com.omnip.shared.exception.BusinessException;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 /**
  * Output port for identity provider operations (Keycloak).
  * Abstracts all Keycloak Admin Client interactions.
- * TODO: Replace adapter DTOs with domain models when available.
  */
 public interface KeycloakIdentityPort {
 
     // ==================== Groups ====================
 
-    List<KeycloakGroupDTO> getGroups();
+    List<KeycloakGroup> getGroups();
 
-    List<KeycloakGroupDTO> getGroupsHierarchy();
+    List<KeycloakGroup> getGroupsHierarchy();
 
-    List<KeycloakGroupDTO> getSubGroups(String parentPath);
+    List<KeycloakGroup> getSubGroups(String parentPath);
 
     void assignUserToGroup(String userId, String groupId);
 
     void removeUserFromGroup(String userId, String groupId);
 
-    List<KeycloakGroupDTO> getUserGroups(String userId);
+    List<KeycloakGroup> getUserGroups(String userId);
 
     List<GroupMemberInfo> getGroupMembers(String groupId, boolean recursive);
 
     // ==================== Roles ====================
 
-    List<KeycloakRoleDTO> getRoles();
+    List<KeycloakRole> getRoles();
 
-    List<KeycloakRoleDTO> getRolesByScope(String scope);
+    List<KeycloakRole> getRolesByScope(String scope);
 
-    List<KeycloakRoleDTO> getRolesByGroup(String groupId) throws BusinessException;
+    List<KeycloakRole> getRolesByGroup(String groupId) throws BusinessException;
 
     void assignRoleToGroup(String groupId, String roleName) throws BusinessException;
 
@@ -49,9 +47,9 @@ public interface KeycloakIdentityPort {
 
     void unassignRoleFromUser(String userId, String roleName) throws BusinessException;
 
-    KeycloakRoleDTO getCachedRoleWithAttributes(String roleName);
+    KeycloakRole getCachedRoleWithAttributes(String roleName);
 
-    List<KeycloakRoleDTO> getRolesWithHierarchy();
+    List<KeycloakRole> getRolesWithHierarchy();
 
     Set<String> getCompositeRoleChildNames(String compositeRoleName);
 
@@ -82,5 +80,5 @@ public interface KeycloakIdentityPort {
 
     // ==================== Menu/UI ====================
 
-    List<KeycloakRoleDTO> getMenuRoles(String userId) throws BusinessException;
+    List<KeycloakRole> getMenuRoles(String userId) throws BusinessException;
 }

@@ -1,7 +1,7 @@
 package com.omnip.identity.adapter.out.keycloak;
 
-import com.omnip.identity.adapter.in.web.dto.KeycloakGroupDTO;
-import com.omnip.identity.adapter.in.web.dto.KeycloakRoleDTO;
+import com.omnip.identity.domain.model.KeycloakGroup;
+import com.omnip.identity.domain.model.KeycloakRole;
 import com.omnip.identity.domain.model.GroupMemberInfo;
 import com.omnip.shared.exception.BusinessException;
 import com.omnip.shared.testcontainers.KeycloakContainerSupport;
@@ -75,7 +75,7 @@ class KeycloakAdminClientServiceIntegrationTest extends KeycloakContainerSupport
         @DisplayName("getRoles should return all non-system roles")
         void getRoles_ReturnsAllNonSystemRoles() {
             // Act
-            List<KeycloakRoleDTO> roles = keycloakAdminClientService.getRoles();
+            List<KeycloakRole> roles = keycloakAdminClientService.getRoles();
 
             // Assert
             assertThat(roles).isNotEmpty();
@@ -86,7 +86,7 @@ class KeycloakAdminClientServiceIntegrationTest extends KeycloakContainerSupport
         @DisplayName("getRolesWithHierarchy should return roles with children populated")
         void getRolesWithHierarchy_ReturnsRolesWithChildren() {
             // Act
-            List<KeycloakRoleDTO> rolesWithHierarchy = keycloakAdminClientService.getRolesWithHierarchy();
+            List<KeycloakRole> rolesWithHierarchy = keycloakAdminClientService.getRolesWithHierarchy();
 
             // Assert
             assertThat(rolesWithHierarchy).isNotEmpty();
@@ -102,7 +102,7 @@ class KeycloakAdminClientServiceIntegrationTest extends KeycloakContainerSupport
             admin.realm(TEST_REALM).roles().get("view_users").update(role);
 
             // Act
-            List<KeycloakRoleDTO> backofficeRoles = keycloakAdminClientService.getRolesByScope("backoffice");
+            List<KeycloakRole> backofficeRoles = keycloakAdminClientService.getRolesByScope("backoffice");
 
             // Assert
             assertThat(backofficeRoles).isNotEmpty();
@@ -194,7 +194,7 @@ class KeycloakAdminClientServiceIntegrationTest extends KeycloakContainerSupport
             String userId = admin.realm(TEST_REALM).users().search("testuser", 0, 1).get(0).getId();
 
             // Act
-            List<KeycloakGroupDTO> userGroups = keycloakAdminClientService.getUserGroups(userId);
+            List<KeycloakGroup> userGroups = keycloakAdminClientService.getUserGroups(userId);
 
             // Assert
             assertThat(userGroups).isNotNull();
@@ -229,7 +229,7 @@ class KeycloakAdminClientServiceIntegrationTest extends KeycloakContainerSupport
         @DisplayName("getGroups should return all groups")
         void getGroups_ReturnsAllGroups() {
             // Act
-            List<KeycloakGroupDTO> groups = keycloakAdminClientService.getGroups();
+            List<KeycloakGroup> groups = keycloakAdminClientService.getGroups();
 
             // Assert
             assertThat(groups).isNotNull();
@@ -239,7 +239,7 @@ class KeycloakAdminClientServiceIntegrationTest extends KeycloakContainerSupport
         @DisplayName("getGroupsHierarchy should return groups with subgroups")
         void getGroupsHierarchy_ReturnsGroupsWithSubGroups() {
             // Act
-            List<KeycloakGroupDTO> groupsHierarchy = keycloakAdminClientService.getGroupsHierarchy();
+            List<KeycloakGroup> groupsHierarchy = keycloakAdminClientService.getGroupsHierarchy();
 
             // Assert
             assertThat(groupsHierarchy).isNotNull();
