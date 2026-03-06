@@ -2,7 +2,6 @@ package com.omnip.shared.listener;
 
 import com.omnip.shared.constant.OmniConstants;
 import com.omnip.shared.dto.UserDTO;
-import com.omnip.identity.domain.model.Users;
 import com.omnip.onboarding.domain.service.RegistrationDomainService;
 import com.omnip.identity.domain.service.UserDomainService;
 import jakarta.servlet.http.HttpServletRequest;
@@ -24,6 +23,10 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Listener for Keycloak authentication success events.
+ * Uses domain services through ports to avoid direct domain model coupling.
+ */
 @Component
 public class KeycloakLoginEventListener {
     private final JwtDecoder jwtDecoder;
@@ -55,14 +58,14 @@ public class KeycloakLoginEventListener {
             String fullName = this.extractFullName(oauth2User);
             Jwt jwt = this.jwtDecoder.decode(authentication.getAccessToken().getTokenValue());
             String providerUserId = this.extractProviderUserId(jwt);
-            Users user;
             this.extractRolesFromJwt(jwt);
             if (email != null) {
                 logger.info("Processing Keycloak login for user: {}", email);
                 boolean isEmailRegistered = this.registrationService.isEmailRegistered(email);
-                List roles;
+                List<String> roles;
+                UserDTO user;
                 if (isEmailRegistered) {
-                    user = this.userManagementService.findByEmail(email);
+                    user = this.userManagementService.findByEmailDTO(email);
                     email = user.getEmail();
                     username = user.getUsername();
                     fullName = user.getFullname();
@@ -70,16 +73,15 @@ public class KeycloakLoginEventListener {
                     roles = this.extractRolesFromJwt(jwt);
                 } else {
                     roles = this.extractRolesFromJwt(jwt);
-                    Users newUser = new Users();
+                    // Create new user via domain service
+                    UserDTO newUser = new UserDTO();
                     newUser.setEmail(email);
                     newUser.setUsername(username);
                     newUser.setFullname(fullName);
                     newUser.setRoles(roles);
-                    newUser.setRegistrationChannel(OmniConstants.REGISTRATION_CHANNEL_KEYCLOAK);
                     newUser.setProviderUserId(providerUserId);
                     newUser.setActive(true);
-                    newUser.setDeleted(false);
-                    user = this.userManagementService.createNewUser(newUser);
+                    user = this.userManagementService.createNewUserDTO(newUser);
                 }
                 ServletRequestAttributes attrs = (ServletRequestAttributes) org.springframework.web.context.request.RequestContextHolder
                         .getRequestAttributes();

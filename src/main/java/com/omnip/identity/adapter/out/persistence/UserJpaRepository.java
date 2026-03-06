@@ -3,6 +3,7 @@ package com.omnip.identity.adapter.out.persistence;
 import com.omnip.identity.domain.model.Users;
 import com.omnip.identity.domain.port.out.UserRepositoryPort;
 import com.omnip.onboarding.domain.port.out.OnboardingUserPort;
+import com.omnip.shared.dto.UserDTO;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -28,6 +29,46 @@ public interface UserJpaRepository extends JpaRepository<Users, UUID>, UserRepos
      * @return Objek Users jika ditemukan, null jika tidak ditemukan
      */
     Users findByEmail(String email);
+
+    /**
+     * Mencari pengguna berdasarkan alamat email dan mengembalikan sebagai UserDTO.
+     * Method ini digunakan oleh shared layer untuk menghindari coupling ke domain model.
+     * Implementasi default menggunakan findByEmail() dan konversi ke DTO.
+     *
+     * @param email Alamat email pengguna yang dicari
+     * @return UserDTO jika ditemukan, null jika tidak ditemukan
+     */
+    default UserDTO findByEmailDTO(String email) {
+        Users user = findByEmail(email);
+        if (user == null) {
+            return null;
+        }
+        UserDTO dto = new UserDTO();
+        dto.setEmail(user.getEmail());
+        dto.setUsername(user.getUsername());
+        dto.setFullname(user.getFullname());
+        dto.setStoreId(user.getStoreId());
+        dto.setRoles(user.getRoles());
+        dto.setProviderUserId(user.getProviderUserId());
+        dto.setActive(user.isActive());
+        return dto;
+    }
+
+    /**
+     * Mencari store ID berdasarkan provider user ID.
+     * Method ini digunakan oleh shared layer untuk menghindari coupling ke domain model.
+     * Implementasi default menggunakan findByProviderUserId() dan mengekstrak storeId.
+     *
+     * @param providerUserId ID pengguna dari provider autentikasi (Keycloak)
+     * @return Store UUID jika ditemukan dan user memiliki store, null jika tidak
+     */
+    default UUID findStoreIdByProviderUserId(String providerUserId) {
+        Users user = findByProviderUserId(providerUserId);
+        if (user == null) {
+            return null;
+        }
+        return user.getStoreId();
+    }
 
     /**
      * Mencari daftar pengguna berdasarkan email dan store ID.

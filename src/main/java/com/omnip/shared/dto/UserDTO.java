@@ -1,14 +1,18 @@
 package com.omnip.shared.dto;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.omnip.identity.domain.model.KeycloakRole;
-import com.omnip.identity.domain.model.KeycloakGroup;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * Shared DTO for user session data.
+ * Independent from domain layer - uses RoleInfo and GroupInfo instead of domain models.
+ * 
+ * This breaks the dependency from shared layer to identity.domain.model package.
+ */
 @EqualsAndHashCode(callSuper = true)
 @JsonIgnoreProperties({
         "targetSource", "advisors", "targetClass", "frozen", "exposeProxy", "preFiltered",
@@ -23,13 +27,16 @@ public class UserDTO extends BaseDTO {
     private List<String> roles;
     /**
      * Full role details with attributes for UI display.
-     * This is populated when enriching user data.
+     * Uses shared RoleInfo instead of domain KeycloakRole.
      */
-    private List<KeycloakRole> roleDetails;
+    private List<RoleInfo> roleDetails;
     private String providerUserId;
     private String password;
     private UUID storeId;
     private boolean active;
-    private List<KeycloakGroup> groups;
-
+    /**
+     * Groups the user belongs to.
+     * Uses shared GroupInfo instead of domain KeycloakGroup.
+     */
+    private List<GroupInfo> groups;
 }

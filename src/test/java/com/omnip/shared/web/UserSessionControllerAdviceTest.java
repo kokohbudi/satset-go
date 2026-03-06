@@ -1,7 +1,7 @@
 package com.omnip.shared.web;
 
-import com.omnip.identity.domain.model.KeycloakRole;
 import com.omnip.identity.domain.port.out.KeycloakIdentityPort;
+import com.omnip.shared.dto.RoleInfo;
 import com.omnip.shared.dto.UserDTO;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -57,7 +57,7 @@ class UserSessionControllerAdviceTest {
         assertSame(userDTO, model.getAttribute("user"));
         assertEquals("/dashboard", model.getAttribute("currentPath"));
         assertNull(model.getAttribute("userRoles"));
-        verify(keycloakIdentityPort, never()).getMenuRoles(anyString());
+        verify(keycloakIdentityPort, never()).getMenuRoleInfos(anyString());
     }
 
     @Test
@@ -70,7 +70,7 @@ class UserSessionControllerAdviceTest {
 
         advice.addAttributes(model, session, new MockHttpServletRequest());
 
-        verify(keycloakIdentityPort, never()).getMenuRoles(anyString());
+        verify(keycloakIdentityPort, never()).getMenuRoleInfos(anyString());
     }
 
     // ==================== JWT principal ====================
@@ -78,8 +78,8 @@ class UserSessionControllerAdviceTest {
     @Test
     void addAttributes_JwtAuth_FetchesRolesAndCachesInSession() throws Exception {
         setJwtAuth("kc-uuid");
-        List<KeycloakRole> roles = List.of(KeycloakRole.builder().name("manage_users").build());
-        when(keycloakIdentityPort.getMenuRoles("kc-uuid")).thenReturn(roles);
+        List<RoleInfo> roles = List.of(RoleInfo.builder().name("manage_users").build());
+        when(keycloakIdentityPort.getMenuRoleInfos("kc-uuid")).thenReturn(roles);
 
         UserSessionControllerAdvice advice = new UserSessionControllerAdvice(userDTO, keycloakIdentityPort);
         Model model = new ExtendedModelMap();
@@ -94,7 +94,7 @@ class UserSessionControllerAdviceTest {
     @Test
     void addAttributes_RolesCachedInSession_SkipsKeycloakCall() throws Exception {
         setJwtAuth("kc-uuid");
-        List<KeycloakRole> cached = List.of(KeycloakRole.builder().name("view_users").build());
+        List<RoleInfo> cached = List.of(RoleInfo.builder().name("view_users").build());
         MockHttpSession session = new MockHttpSession();
         session.setAttribute("userRoles", cached);
 
@@ -104,13 +104,13 @@ class UserSessionControllerAdviceTest {
         advice.addAttributes(model, session, new MockHttpServletRequest());
 
         assertEquals(cached, model.getAttribute("userRoles"));
-        verify(keycloakIdentityPort, never()).getMenuRoles(anyString());
+        verify(keycloakIdentityPort, never()).getMenuRoleInfos(anyString());
     }
 
     @Test
     void addAttributes_KeycloakThrows_DoesNotCrash() throws Exception {
         setJwtAuth("kc-uuid");
-        when(keycloakIdentityPort.getMenuRoles("kc-uuid")).thenThrow(new RuntimeException("KC error"));
+        when(keycloakIdentityPort.getMenuRoleInfos("kc-uuid")).thenThrow(new RuntimeException("KC error"));
 
         UserSessionControllerAdvice advice = new UserSessionControllerAdvice(userDTO, keycloakIdentityPort);
         Model model = new ExtendedModelMap();

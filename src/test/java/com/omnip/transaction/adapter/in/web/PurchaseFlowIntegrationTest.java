@@ -2,9 +2,11 @@ package com.omnip.transaction.adapter.in.web;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.omnip.catalog.adapter.out.persistence.DenomJpaRepository;
-import com.omnip.catalog.domain.model.ProductDenoms;
 import com.omnip.catalog.domain.port.out.DenomRepositoryPort;
+import com.omnip.shared.model.DenomInfo;
+import com.omnip.identity.domain.port.out.KeycloakIdentityPort;
 import com.omnip.onboarding.adapter.out.persistence.StoreJpaRepository;
+import com.omnip.onboarding.domain.port.out.KeycloakOrganizationPort;
 import com.omnip.shared.dto.UserDTO;
 import com.omnip.transaction.adapter.in.web.dto.PurchaseRequest;
 import com.omnip.transaction.adapter.out.persistence.StoreMutationJpaRepository;
@@ -43,7 +45,7 @@ import static org.springframework.security.test.web.servlet.setup.SecurityMockMv
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@SpringBootTest
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.MOCK)
 class PurchaseFlowIntegrationTest {
 
     @Autowired
@@ -73,6 +75,12 @@ class PurchaseFlowIntegrationTest {
     private ProviderPort providerService;
 
     @MockitoBean
+    private KeycloakIdentityPort keycloakIdentityPort;
+
+    @MockitoBean
+    private KeycloakOrganizationPort keycloakOrganizationPort;
+
+    @MockitoBean
     private UserDTO userDTO;
 
     // Port-typed aliases to avoid method ambiguity (JPA repos inherit conflicting
@@ -85,7 +93,7 @@ class PurchaseFlowIntegrationTest {
 
     private UUID storeId;
     private UUID denomId;
-    private ProductDenoms denom;
+    private DenomInfo denomInfo;
 
     @BeforeEach
     void setUp() {
@@ -103,15 +111,9 @@ class PurchaseFlowIntegrationTest {
         storeId = UUID.randomUUID();
         denomId = UUID.randomUUID();
 
-        // Setup product denom
-        denom = new ProductDenoms();
-        denom.setId(denomId);
-        denom.setCode("PULSA10");
-        denom.setName("Telkomsel 10K");
-        denom.setPrice(new BigDecimal("10000.00"));
-        denom.setAdminFee(BigDecimal.ZERO);
-        denom.setActive(true);
-        denom.setDeleted(false);
+        // Setup denom info (shared kernel value object used by TransactionDomainService)
+        denomInfo = new DenomInfo(denomId, "PULSA10", "Telkomsel 10K", "Telkomsel",
+                new BigDecimal("10000.00"), BigDecimal.ZERO, true, false);
 
         // WalletAccount mock — BalanceDomainService uses WalletAccountPort for balance operations
         walletAccount = new WalletAccount(storeId, new BigDecimal("100000.00"));
@@ -124,8 +126,8 @@ class PurchaseFlowIntegrationTest {
         when(userDTO.getStoreId()).thenReturn(storeId);
 
 
-        // Denom lookup
-        when(productDenomRepository.findById(denomId)).thenReturn(Optional.of(denom));
+        // Denom lookup (service uses findDenomInfoById, not findById)
+        when(productDenomRepository.findDenomInfoById(denomId)).thenReturn(Optional.of(denomInfo));
 
         // Idempotency check: no duplicate
         when(transactionRepository

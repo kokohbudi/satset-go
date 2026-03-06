@@ -3,6 +3,8 @@ package com.omnip.identity.domain.port.out;
 import com.omnip.identity.domain.model.KeycloakGroup;
 import com.omnip.identity.domain.model.KeycloakRole;
 import com.omnip.identity.domain.model.GroupMemberInfo;
+import com.omnip.shared.dto.GroupInfo;
+import com.omnip.shared.dto.RoleInfo;
 import com.omnip.shared.dto.UserDTO;
 import com.omnip.shared.exception.BusinessException;
 
@@ -12,6 +14,9 @@ import java.util.Set;
 /**
  * Output port for identity provider operations (Keycloak).
  * Abstracts all Keycloak Admin Client interactions.
+ * 
+ * Note: Methods returning RoleInfo/GroupInfo are provided for shared layer
+ * consumption to avoid coupling shared layer to domain models.
  */
 public interface KeycloakIdentityPort {
 
@@ -81,4 +86,20 @@ public interface KeycloakIdentityPort {
     // ==================== Menu/UI ====================
 
     List<KeycloakRole> getMenuRoles(String userId) throws BusinessException;
+
+    // ==================== Shared DTO Methods ====================
+    // These methods return shared DTOs for use by shared layer components
+    // to avoid coupling shared layer to domain models.
+
+    /**
+     * Get menu roles for a user as shared DTOs.
+     * Use this method from shared layer components.
+     */
+    List<RoleInfo> getMenuRoleInfos(String userId) throws BusinessException;
+
+    /**
+     * Get user groups as shared DTOs.
+     * Use this method from shared layer components.
+     */
+    List<GroupInfo> getUserGroupInfos(String userId) throws BusinessException;
 }

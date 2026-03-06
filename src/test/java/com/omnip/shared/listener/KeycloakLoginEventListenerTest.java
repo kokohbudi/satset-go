@@ -2,7 +2,6 @@ package com.omnip.shared.listener;
 
 import com.omnip.shared.constant.OmniConstants;
 import com.omnip.shared.dto.UserDTO;
-import com.omnip.identity.domain.model.Users;
 import com.omnip.onboarding.domain.service.RegistrationDomainService;
 import com.omnip.identity.domain.service.UserDomainService;
 import org.junit.jupiter.api.BeforeEach;
@@ -98,35 +97,29 @@ class KeycloakLoginEventListenerTest {
 
         when(registrationDomainService.isEmailRegistered(email)).thenReturn(false);
 
-        Users newUser = new Users();
-        newUser.setEmail(email);
-        newUser.setUsername(username);
-        newUser.setFullname(fullName);
-        newUser.setProviderUserId(providerUserId);
-        newUser.setActive(true);
-        newUser.setDeleted(false);
+        UserDTO newUserDTO = new UserDTO();
+        newUserDTO.setEmail(email);
+        newUserDTO.setUsername(username);
+        newUserDTO.setFullname(fullName);
+        newUserDTO.setProviderUserId(providerUserId);
+        newUserDTO.setActive(true);
 
-        when(userDomainService.createNewUser(any(Users.class))).thenReturn(newUser);
+        when(userDomainService.createNewUserDTO(any(UserDTO.class))).thenReturn(newUserDTO);
 
         // Act
         AuthenticationSuccessEvent event = new AuthenticationSuccessEvent(authenticationToken);
         listener.onAuthenticationSuccess(event);
 
         // Assert
-        ArgumentCaptor<Users> userCaptor = ArgumentCaptor.forClass(Users.class);
-        verify(userDomainService).createNewUser(userCaptor.capture());
+        ArgumentCaptor<UserDTO> userCaptor = ArgumentCaptor.forClass(UserDTO.class);
+        verify(userDomainService).createNewUserDTO(userCaptor.capture());
 
-        Users capturedUser = userCaptor.getValue();
+        UserDTO capturedUser = userCaptor.getValue();
         assertThat(capturedUser.getEmail()).isEqualTo(email);
         assertThat(capturedUser.getUsername()).isEqualTo(username);
         assertThat(capturedUser.getFullname()).isEqualTo(fullName);
-        // ProviderUserId is extracted from JWT and set on the newUser before calling createNewUser
-        // The newUser object we create in test already has providerUserId set
-        // Note: We're checking the captured argument, not the return value
         assertThat(capturedUser.getProviderUserId()).isEqualTo(providerUserId);
-        assertThat(capturedUser.getRegistrationChannel()).isEqualTo(OmniConstants.REGISTRATION_CHANNEL_KEYCLOAK);
         assertThat(capturedUser.isActive()).isTrue();
-        assertThat(capturedUser.isDeleted()).isFalse();
 
         // Verify session attribute
         UserDTO userDTO = (UserDTO) session.getAttribute(OmniConstants.SESSION_USER_DTO);
@@ -147,21 +140,21 @@ class KeycloakLoginEventListenerTest {
         setupJwt(providerUserId, List.of());
         when(registrationDomainService.isEmailRegistered(email)).thenReturn(true);
 
-        Users existingUser = new Users();
-        existingUser.setEmail(email);
-        existingUser.setUsername(username);
-        existingUser.setFullname(fullName);
-        existingUser.setProviderUserId(providerUserId);
+        UserDTO existingUserDTO = new UserDTO();
+        existingUserDTO.setEmail(email);
+        existingUserDTO.setUsername(username);
+        existingUserDTO.setFullname(fullName);
+        existingUserDTO.setProviderUserId(providerUserId);
 
-        when(userDomainService.findByEmail(email)).thenReturn(existingUser);
+        when(userDomainService.findByEmailDTO(email)).thenReturn(existingUserDTO);
 
         // Act
         AuthenticationSuccessEvent event = new AuthenticationSuccessEvent(authenticationToken);
         listener.onAuthenticationSuccess(event);
 
         // Assert
-        verify(userDomainService, never()).createNewUser(any(Users.class));
-        verify(userDomainService).findByEmail(email);
+        verify(userDomainService, never()).createNewUserDTO(any(UserDTO.class));
+        verify(userDomainService).findByEmailDTO(email);
 
         UserDTO userDTO = (UserDTO) session.getAttribute(OmniConstants.SESSION_USER_DTO);
         assertThat(userDTO).isNotNull();
@@ -183,8 +176,8 @@ class KeycloakLoginEventListenerTest {
         listener.onAuthenticationSuccess(event);
 
         // Assert
-        verify(userDomainService, never()).createNewUser(any(Users.class));
-        verify(userDomainService, never()).findByEmail(anyString());
+        verify(userDomainService, never()).createNewUserDTO(any(UserDTO.class));
+        verify(userDomainService, never()).findByEmailDTO(anyString());
         assertThat(session.getAttribute(OmniConstants.SESSION_USER_DTO)).isNull();
     }
 

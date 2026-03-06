@@ -49,6 +49,17 @@ public class UserDomainService implements UserQueryUseCase {
     }
 
     /**
+     * Mencari pengguna berdasarkan alamat email dan mengembalikan sebagai UserDTO.
+     * Method ini digunakan oleh shared layer untuk menghindari coupling ke domain model.
+     *
+     * @param email Alamat email pengguna
+     * @return UserDTO jika ditemukan, null jika tidak
+     */
+    public UserDTO findByEmailDTO(String email) {
+        return this.usersRepository.findByEmailDTO(email);
+    }
+
+    /**
      * Mencari pengguna berdasarkan provider user ID.
      *
      * @param providerUserId ID pengguna dari provider autentikasi
@@ -103,6 +114,36 @@ public class UserDomainService implements UserQueryUseCase {
      */
     public Users createNewUser(Users user) {
         return this.usersRepository.save(user);
+    }
+
+    /**
+     * Menyimpan pengguna baru ke database dari UserDTO.
+     * Method ini digunakan oleh shared layer untuk menghindari coupling ke domain model.
+     *
+     * @param userDTO DTO yang berisi data pengguna baru
+     * @return UserDTO dengan data pengguna yang telah disimpan
+     */
+    public UserDTO createNewUserDTO(UserDTO userDTO) {
+        Users user = new Users();
+        user.setEmail(userDTO.getEmail());
+        user.setUsername(userDTO.getUsername());
+        user.setFullname(userDTO.getFullname());
+        user.setRoles(userDTO.getRoles());
+        user.setProviderUserId(userDTO.getProviderUserId());
+        user.setRegistrationChannel(com.omnip.shared.constant.OmniConstants.REGISTRATION_CHANNEL_KEYCLOAK);
+        user.setActive(true);
+        user.setDeleted(false);
+        Users savedUser = this.usersRepository.save(user);
+        
+        UserDTO result = new UserDTO();
+        result.setEmail(savedUser.getEmail());
+        result.setUsername(savedUser.getUsername());
+        result.setFullname(savedUser.getFullname());
+        result.setRoles(savedUser.getRoles());
+        result.setProviderUserId(savedUser.getProviderUserId());
+        result.setStoreId(savedUser.getStoreId());
+        result.setActive(savedUser.isActive());
+        return result;
     }
 
     /**

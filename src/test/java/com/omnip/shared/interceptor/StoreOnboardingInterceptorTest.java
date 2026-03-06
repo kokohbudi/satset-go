@@ -1,8 +1,6 @@
 package com.omnip.shared.interceptor;
 
-import com.omnip.identity.domain.model.Users;
 import com.omnip.identity.domain.port.out.UserRepositoryPort;
-import com.omnip.onboarding.domain.model.Stores;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -54,7 +52,7 @@ class StoreOnboardingInterceptorTest {
         boolean result = interceptor.preHandle(request, response, new Object());
 
         assertTrue(result);
-        verify(usersRepository, never()).findByProviderUserId(anyString());
+        verify(usersRepository, never()).findStoreIdByProviderUserId(anyString());
     }
 
     @Test
@@ -74,9 +72,7 @@ class StoreOnboardingInterceptorTest {
     @Test
     void preHandle_UserWithoutStore_NotBackoffice_RedirectsToOnboarding() throws Exception {
         setJwtAuth("kc-uuid");
-        Users userNoStore = new Users();
-        userNoStore.setStoreId(null);
-        when(usersRepository.findByProviderUserId("kc-uuid")).thenReturn(userNoStore);
+        when(usersRepository.findStoreIdByProviderUserId("kc-uuid")).thenReturn(null);
 
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setRequestURI("/dashboard");
@@ -93,9 +89,7 @@ class StoreOnboardingInterceptorTest {
     @Test
     void preHandle_UserWithStore_ReturnsTrue() throws Exception {
         setJwtAuth("kc-uuid");
-        Users user = new Users();
-        user.setStoreId(UUID.randomUUID());
-        when(usersRepository.findByProviderUserId("kc-uuid")).thenReturn(user);
+        when(usersRepository.findStoreIdByProviderUserId("kc-uuid")).thenReturn(UUID.randomUUID());
 
         MockHttpServletRequest request = new MockHttpServletRequest();
         MockHttpServletResponse response = new MockHttpServletResponse();
@@ -117,7 +111,7 @@ class StoreOnboardingInterceptorTest {
         boolean result = interceptor.preHandle(request, response, new Object());
 
         assertTrue(result);
-        verify(usersRepository, never()).findByProviderUserId(anyString());
+        verify(usersRepository, never()).findStoreIdByProviderUserId(anyString());
     }
 
     @Test

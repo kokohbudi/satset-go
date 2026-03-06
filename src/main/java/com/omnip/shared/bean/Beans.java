@@ -3,7 +3,6 @@ package com.omnip.shared.bean;
 import com.omnip.shared.config.AuditorAwareImpl;
 import com.omnip.shared.constant.OmniConstants;
 import com.omnip.shared.dto.UserDTO;
-import com.omnip.identity.domain.model.Users;
 import com.omnip.identity.domain.port.out.UserRepositoryPort;
 import jakarta.servlet.http.HttpServletRequest;
 import org.keycloak.admin.client.Keycloak;
@@ -19,6 +18,10 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.web.context.WebApplicationContext;
 
+/**
+ * Configuration beans for shared components.
+ * Uses ports instead of domain models to avoid coupling shared layer to domain.
+ */
 @Configuration
 @EnableJpaAuditing(auditorAwareRef = "auditorProvider")
 
@@ -57,14 +60,17 @@ public class Beans {
             String token = auth.substring(7);
             Jwt jwt = this.jwtDecoder.decode(token);
             String email = (String) jwt.getClaims().get("email");
-            Users user = this.usersRepository.findByEmail(email);
-            String providerUserId = jwt.getClaimAsString("sub");
-            dto.setProviderUserId(providerUserId);
-            dto.setUsername(user.getUsername());
-            dto.setEmail(email);
-            dto.setStoreId(user.getStoreId());
-            dto.setFullname(user.getFullname());
-            dto.setRoles(user.getRoles());
+            // Use port method that returns UserDTO instead of domain model
+            UserDTO userFromDb = this.usersRepository.findByEmailDTO(email);
+            if (userFromDb != null) {
+                String providerUserId = jwt.getClaimAsString("sub");
+                dto.setProviderUserId(providerUserId);
+                dto.setUsername(userFromDb.getUsername());
+                dto.setEmail(email);
+                dto.setStoreId(userFromDb.getStoreId());
+                dto.setFullname(userFromDb.getFullname());
+                dto.setRoles(userFromDb.getRoles());
+            }
         } else if (this.session != null) {
             UserDTO userDTO = (UserDTO) this.session.getSession().getAttribute(OmniConstants.SESSION_USER_DTO);
             if (userDTO != null) {

@@ -20,10 +20,11 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class KeycloakAdminClientServiceIT extends KeycloakContainerSupport {
 
     private KeycloakAdminClientService service;
+    private final IdentityMapper identityMapper = new IdentityMapper();
 
     @BeforeEach
     void setUp() {
-        service = new KeycloakAdminClientService(testRealmAdminClient(), new KeycloakHelper());
+        service = new KeycloakAdminClientService(testRealmAdminClient(), new KeycloakHelper(), identityMapper);
         ReflectionTestUtils.setField(service, "realm", TEST_REALM);
         ReflectionTestUtils.setField(service, "keycloakServerUrl", KEYCLOAK.getAuthServerUrl());
         ReflectionTestUtils.setField(service, "clientId", TEST_CLIENT_ID);

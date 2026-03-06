@@ -1,6 +1,5 @@
 package com.omnip.shared.interceptor;
 
-import com.omnip.identity.domain.model.Users;
 import com.omnip.identity.domain.port.out.UserRepositoryPort;
 import com.omnip.shared.constant.OmniConstants;
 import jakarta.servlet.http.HttpServletRequest;
@@ -13,6 +12,13 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
 
+import java.util.UUID;
+
+/**
+ * Interceptor for checking if user has completed store onboarding.
+ * Uses port methods that return DTOs instead of domain models
+ * to avoid coupling shared layer to identity.domain.model package.
+ */
 @Component
 @Slf4j
 public class StoreOnboardingInterceptor implements HandlerInterceptor {
@@ -45,9 +51,10 @@ public class StoreOnboardingInterceptor implements HandlerInterceptor {
 
         if (hasStore == null) {
             log.debug("Session 'hasStore' is null. Querying database for user: {}", providerUserId);
-            Users user = usersRepository.findByProviderUserId(providerUserId);
+            // Use port method that returns UUID directly instead of domain model
+            UUID storeId = usersRepository.findStoreIdByProviderUserId(providerUserId);
 
-            if (user != null && user.getStoreId() != null) {
+            if (storeId != null) {
                 hasStore = true;
                 log.debug("User {} has a store. Setting session hasStore=true", providerUserId);
             } else {

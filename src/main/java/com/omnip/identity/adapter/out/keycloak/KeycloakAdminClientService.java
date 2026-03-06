@@ -6,6 +6,8 @@ import com.omnip.identity.domain.model.KeycloakRole;
 import com.omnip.identity.domain.model.GroupMemberInfo;
 import com.omnip.identity.domain.port.out.KeycloakIdentityPort;
 import com.omnip.onboarding.domain.port.out.KeycloakOrganizationPort;
+import com.omnip.shared.dto.GroupInfo;
+import com.omnip.shared.dto.RoleInfo;
 import com.omnip.shared.dto.UserDTO;
 import com.omnip.shared.exception.BusinessException;
 import jakarta.ws.rs.core.Response;
@@ -30,6 +32,7 @@ import java.util.List;
 public class KeycloakAdminClientService implements KeycloakIdentityPort, KeycloakOrganizationPort {
         private final Keycloak keycloak;
         private final KeycloakHelper keycloakAdminClientBusiness;
+        private final IdentityMapper identityMapper;
 
         @Value("${keycloak.base-server-url}")
         private String keycloakServerUrl;
@@ -43,9 +46,10 @@ public class KeycloakAdminClientService implements KeycloakIdentityPort, Keycloa
         @Value("${keycloak.client-secret}")
         private String keycloakClientSecret;
 
-        public KeycloakAdminClientService(Keycloak keycloak, KeycloakHelper keycloakAdminClientBusiness) {
+        public KeycloakAdminClientService(Keycloak keycloak, KeycloakHelper keycloakAdminClientBusiness, IdentityMapper identityMapper) {
                 this.keycloak = keycloak;
                 this.keycloakAdminClientBusiness = keycloakAdminClientBusiness;
+                this.identityMapper = identityMapper;
         }
 
         /**
@@ -311,7 +315,8 @@ public class KeycloakAdminClientService implements KeycloakIdentityPort, Keycloa
                                 try {
                                         List<KeycloakRole> roles = getAllEffectiveRolesFlat(
                                                         user.getProviderUserId());
-                                        user.setRoleDetails(roles);
+                                        // Convert to RoleInfo for shared DTO
+                                        user.setRoleDetails(identityMapper.toRoleInfoList(roles));
                                 } catch (Exception e) {
                                         log.warn("Failed to fetch roles for user: {}", user.getEmail());
                                         user.setRoleDetails(List.of());
@@ -973,5 +978,33 @@ public class KeycloakAdminClientService implements KeycloakIdentityPort, Keycloa
                                 .users()
                                 .searchByEmail(email, true); // exact match
                 return users != null && !users.isEmpty();
+        }
+
+        // ==================== Shared DTO Methods ====================
+        // These methods return shared DTOs for use by shared layer components
+        // to avoid coupling shared layer to domain models.
+
+        /**
+         * Get menu roles for a user as shared DTOs.
+         * Delegates to getMenuRoles() and converts to RoleInfo.
+         *
+         * @param userId Keycloak user ID
+         * @return List of RoleInfo for sidebar menu display
+         */
+        public List<RoleInfo> getMenuRoleInfos(String userId) throws BusinessException {
+                List<KeycloakRole> roles = getMenuRoles(userId);
+                return identityMapper.toRoleInfoList(roles);
+        }
+
+        /**
+         * Get user groups as shared DTOs.
+         * Delegates to getUserGroups() and converts to GroupInfo.
+         *
+         * @param userId Keycloak user ID
+         * @return List of GroupInfo
+         */
+        public List<GroupInfo> getUserGroupInfos(String userId) throws BusinessException {
+                List<KeycloakGroup> groups = getUserGroups(userId);
+                return identityMapper.toGroupInfoList(groups);
         }
 }

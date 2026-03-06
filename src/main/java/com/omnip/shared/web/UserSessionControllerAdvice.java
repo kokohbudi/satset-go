@@ -1,7 +1,7 @@
 package com.omnip.shared.web;
 
 import com.omnip.shared.dto.UserDTO;
-import com.omnip.identity.domain.model.KeycloakRole;
+import com.omnip.shared.dto.RoleInfo;
 import com.omnip.identity.domain.port.out.KeycloakIdentityPort;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.Authentication;
@@ -15,6 +15,11 @@ import org.springframework.web.bind.annotation.ModelAttribute;
 
 import java.util.List;
 
+/**
+ * Controller advice for adding user session attributes to all controllers.
+ * Uses shared DTOs (RoleInfo) instead of domain models to avoid coupling
+ * shared layer to identity.domain.model package.
+ */
 @Slf4j
 @ControllerAdvice(annotations = Controller.class)
 public class UserSessionControllerAdvice {
@@ -36,7 +41,7 @@ public class UserSessionControllerAdvice {
         if (auth != null && auth.isAuthenticated() && !"anonymousUser".equals(auth.getPrincipal())) {
             // Check if roles are already cached in session
             @SuppressWarnings("unchecked")
-            List<KeycloakRole> cachedRoles = (List<KeycloakRole>) session.getAttribute("userRoles");
+            List<RoleInfo> cachedRoles = (List<RoleInfo>) session.getAttribute("userRoles");
             if (cachedRoles != null) {
                 model.addAttribute("userRoles", cachedRoles);
                 return;
@@ -51,7 +56,8 @@ public class UserSessionControllerAdvice {
 
             if (userId != null) {
                 try {
-                    List<KeycloakRole> roles = keycloakIdentityPort.getMenuRoles(userId);
+                    // Use the new method that returns shared DTOs
+                    List<RoleInfo> roles = keycloakIdentityPort.getMenuRoleInfos(userId);
                     session.setAttribute("userRoles", roles);
                     model.addAttribute("userRoles", roles);
                 } catch (Exception e) {

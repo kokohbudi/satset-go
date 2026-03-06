@@ -30,6 +30,7 @@ class KeycloakAdminClientServiceIntegrationTest extends KeycloakContainerSupport
 
     private KeycloakAdminClientService keycloakAdminClientService;
     private KeycloakHelper keycloakHelper;
+    private final IdentityMapper identityMapper = new IdentityMapper();
 
     private static final String TEST_REALM = "satset-go";
     private static final String TEST_CLIENT_ID = "satsetgo-client";
@@ -49,7 +50,7 @@ class KeycloakAdminClientServiceIntegrationTest extends KeycloakContainerSupport
         keycloakHelper = new KeycloakHelper();
 
         // Create service instance
-        keycloakAdminClientService = new KeycloakAdminClientService(keycloak, keycloakHelper);
+        keycloakAdminClientService = new KeycloakAdminClientService(keycloak, keycloakHelper, identityMapper);
 
         // Inject test realm via reflection
         try {

@@ -156,10 +156,10 @@ class IdentityDomainServiceTest {
     @Test
     void getBackofficeUsers_WithRoleFilter_ReturnsOnlyMatchingUsers() {
         UserDTO userWithRole = new UserDTO();
-        userWithRole.setRoleDetails(List.of(KeycloakRole.builder().name("manage_users").build()));
+        userWithRole.setRoleDetails(List.of(com.omnip.shared.dto.RoleInfo.builder().name("manage_users").build()));
 
         UserDTO userWithoutRole = new UserDTO();
-        userWithoutRole.setRoleDetails(List.of(KeycloakRole.builder().name("other_role").build()));
+        userWithoutRole.setRoleDetails(List.of(com.omnip.shared.dto.RoleInfo.builder().name("other_role").build()));
 
         when(keycloakPort.getUsersWithRolesBatch(100)).thenReturn(List.of(userWithRole, userWithoutRole));
         when(keycloakPort.getCompositeRoleChildNames("manage_users")).thenReturn(Set.of());

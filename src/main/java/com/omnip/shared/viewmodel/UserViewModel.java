@@ -1,6 +1,6 @@
 package com.omnip.shared.viewmodel;
 
-import com.omnip.identity.domain.model.KeycloakRole;
+import com.omnip.shared.dto.RoleInfo;
 import com.omnip.shared.dto.UserDTO;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -13,6 +13,8 @@ import java.util.Optional;
  * ViewModel for displaying User data in Thymeleaf templates.
  * Contains pre-formatted fields to reduce logic in templates.
  * Implements "Fat Controller, Thin Template" pattern.
+ * 
+ * Uses shared RoleInfo instead of domain KeycloakRole.
  */
 @Data
 @EqualsAndHashCode(callSuper = true)
@@ -54,7 +56,7 @@ public class UserViewModel extends UserDTO {
         this.displayRoles = Optional.ofNullable(user.getRoleDetails())
                 .orElse(Collections.emptyList())
                 .stream()
-                .map(KeycloakRole::getName) // Or getDisplay_name if available in attributes
+                .map(RoleInfo::getName)
                 .toList();
     }
 
