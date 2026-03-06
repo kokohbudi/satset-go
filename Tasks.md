@@ -187,8 +187,9 @@
 ### 🏗️ Technical Debt — Domain Model Separation (C-1, C-2) 🔴 EPIC
 > *MASSIVE refactor. Butuh dedicated plan dari Neo sebelum eksekusi.*
 > *Jangan dikerjakan ad-hoc. Scope: multi-session, high risk.*
+> *C-2 selesai 2026-03-06 (dikerjakan oleh Qwen, diverifikasi Claude). 339/339 tests pass.*
 - [ ] **C-1**: Separate domain models dari JPA `@Entity` — buat pure domain class + JPA entity + mapper per bounded context
-- [ ] **C-2**: Decouple cross-context JPA FK (`Transactions→Stores`, `Users→Stores`, `Transactions→ProductDenoms`) → UUID-based references
+- [x] **C-2**: Decouple cross-context JPA FK (`Transactions→Stores`, `Users→Stores`, `Transactions→ProductDenoms`) → UUID-based references ✅
 
 ### 🔧 Technical Debt — Code Hygiene (L-series + M-2, M-7, M-9)
 > *Nice-to-have. Pick ketika lagi refactor area terkait.*
@@ -444,7 +445,7 @@
 - **JPA Repository interfaces**: Expected 0% coverage (Spring Data JPA generates implementations at runtime, not compile-time)
 - **BUILD SUCCESS**: `mvn test` 320/320 pass ✅
 
-**Last Updated**: 2026-03-06 (Session 9 — KeycloakLoginEventListenerTest Added)
+**Last Updated**: 2026-03-06 (Session 10 — C-2 Domain Model Decoupling)
 **Status**:
 - ✅ MVP Sprint COMPLETE
 - ✅ H-series (port boundary) DONE
@@ -454,7 +455,18 @@
 - ✅ AP-N series (catalog drill-down) DONE
 - ✅ Unit test coverage (repository-based, mocked ports) — **94% instruction**
 - ✅ KeycloakLoginEventListenerTest — 10 tests added (OIDC login flow, role extraction, user registration)
-- ⏳ C-series (domain model separation) — Deferred, awaiting Neo plan
+- ✅ C-2 DONE — cross-context JPA FK decoupled → UUID references (339/339 tests pass)
+- ⏳ C-1 (separate JPA entity from domain model) — next step C-series
+
+**2026-03-06** (August — C-2 Domain Model Decoupling COMPLETE! ✅):
+- **C-2 DONE** — All cross-context JPA `@ManyToOne` FK references replaced with plain `UUID` fields
+- 3 entities cleaned: `Transactions` (removed `Stores` + `ProductDenoms` FK), `StoreMutations` (removed `Stores` FK), `Users` (removed `Stores` FK)
+- Snapshot fields `denomName` + `productName` added to `Transactions` — correct DDD: transaction records what was purchased at creation time
+- 14 main files updated, all consumers migrated (`getStores()` → `getStoreId()`, `setStores()` → `setStoreId()`)
+- JPQL queries in `TransactionJpaRepository` + `UserJpaRepository` updated (no more cross-context JOIN FETCH)
+- **Build**: `mvn test` → **339/339 PASS**, BUILD SUCCESS
+- **Executed by**: Qwen (code agent), **Verified by**: Claude
+- **Unlocks**: WR-series (WR-4 already covered), C-1 can now proceed with cleaner entity boundaries
 
 **2026-03-06** (August — KeycloakLoginEventListenerTest Added! ✅):
 - **L-1 COMPLETE** — `KeycloakLoginEventListenerTest.java` created with 10 unit tests

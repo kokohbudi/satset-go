@@ -1,7 +1,6 @@
 package com.omnip.identity.domain.model;
 
 import com.omnip.shared.converter.StringListConverter;
-import com.omnip.onboarding.domain.model.Stores;
 import jakarta.persistence.*;
 import lombok.Data;
 import org.hibernate.annotations.UuidGenerator;
@@ -41,9 +40,8 @@ public class Users {
     @Version
     private Long version;
 
-    @ManyToOne
-    @JoinColumn(name = "store_id")
-    private Stores stores;
+    @Column(name = "store_id", columnDefinition = "uuid")
+    private UUID storeId;
 
     @Convert(converter = StringListConverter.class)
     @Column(name = "roles", columnDefinition = "text")

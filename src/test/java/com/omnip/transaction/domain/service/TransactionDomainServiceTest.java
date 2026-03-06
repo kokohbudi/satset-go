@@ -341,8 +341,10 @@ class TransactionDomainServiceTest {
 
         Transactions tx = new Transactions();
         tx.setId(txId);
-        tx.setStore(store);
-        tx.setProductDenom(d);
+        tx.setStoreId(storeId);
+        tx.setProductDenomId(denomId);
+        tx.setDenomName("Telkomsel 5K");
+        tx.setProductName("Telkomsel");
         tx.setTargetNumber("081234567890");
         tx.setPrice(new BigDecimal("5000.00"));
         tx.setAdminFee(BigDecimal.ZERO);

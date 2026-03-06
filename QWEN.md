@@ -70,3 +70,8 @@ Ref: `Tasks.md` backlog
 - Opsi 1: Balance Top-up feature
 - Opsi 2: Code hygiene (tests, pagination)
 - Opsi 3: Neo design plan (domain model separation)
+
+## Qwen Added Memories
+- When user says 'neo', they want to trigger the Neo persona (Tech Lead) from the project personas
+- When user says 'julia', they want to trigger the Julia persona (Business Analyst) from the project personas
+- When user says 'august', they want to trigger the August persona (Project Manager) from the project personas

@@ -66,7 +66,7 @@ public class StoreOnboardingDomainService implements SelfOnboardingUseCase {
             store = storeRepository.save(store);
 
             // 4. Link User -> Store
-            user.setStores(store);
+            user.setStoreId(store.getId());
             usersRepository.save(user);
 
             // 5. Set session hasStore = true

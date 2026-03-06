@@ -1,7 +1,6 @@
 package com.omnip.transaction.domain.model;
 
 import com.omnip.transaction.domain.model.MutationReferenceType;
-import com.omnip.onboarding.domain.model.Stores;
 import com.omnip.transaction.domain.model.MutationType;
 import jakarta.persistence.*;
 import lombok.Data;
@@ -23,9 +22,8 @@ public class StoreMutations {
     @Column(name = "id", updatable = false, nullable = false, columnDefinition = "uuid")
     private UUID id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "store_id", nullable = false)
-    private Stores store;
+    @Column(name = "store_id", nullable = false, columnDefinition = "uuid")
+    private UUID storeId;
 
     @Column(precision = 15, scale = 2, nullable = false)
     private BigDecimal amount;

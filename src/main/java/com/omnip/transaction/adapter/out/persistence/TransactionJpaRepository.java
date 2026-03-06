@@ -15,17 +15,10 @@ import java.util.UUID;
 @Repository
 public interface TransactionJpaRepository extends JpaRepository<Transactions, UUID>, TransactionRepositoryPort {
 
-        @Query(value = "SELECT t FROM Transactions t " +
-                        "JOIN FETCH t.productDenom pd " +
-                        "JOIN FETCH pd.product " +
-                        "WHERE t.store.id = :storeId " +
-                        "ORDER BY t.createdAt DESC", countQuery = "SELECT COUNT(t) FROM Transactions t WHERE t.store.id = :storeId")
+        @Query("SELECT t FROM Transactions t WHERE t.storeId = :storeId ORDER BY t.createdAt DESC")
         Page<Transactions> findByStoreIdWithDetails(@Param("storeId") UUID storeId, Pageable pageable);
 
-        @Query("SELECT t FROM Transactions t " +
-                        "JOIN FETCH t.productDenom pd " +
-                        "JOIN FETCH pd.product " +
-                        "WHERE t.id = :id AND t.store.id = :storeId")
+        @Query("SELECT t FROM Transactions t WHERE t.id = :id AND t.storeId = :storeId")
         Optional<Transactions> findByIdAndStoreIdWithDetails(@Param("id") UUID id, @Param("storeId") UUID storeId);
 
         boolean existsByStoreIdAndProductDenomIdAndTargetNumberAndStatusInAndCreatedAtAfter(

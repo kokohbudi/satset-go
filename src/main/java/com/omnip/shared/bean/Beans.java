@@ -62,7 +62,7 @@ public class Beans {
             dto.setProviderUserId(providerUserId);
             dto.setUsername(user.getUsername());
             dto.setEmail(email);
-            dto.setStoreId(user.getStores() != null ? user.getStores().getId() : null);
+            dto.setStoreId(user.getStoreId());
             dto.setFullname(user.getFullname());
             dto.setRoles(user.getRoles());
         } else if (this.session != null) {

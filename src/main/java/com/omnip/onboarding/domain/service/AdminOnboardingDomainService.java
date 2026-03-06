@@ -85,7 +85,7 @@ public class AdminOnboardingDomainService implements AdminOnboardingUseCase {
             }
 
             // Link User -> Store
-            user.setStores(store);
+            user.setStoreId(store.getId());
             usersRepository.save(user);
 
             log.info("Successfully admin-onboarded reseller '{}' for store '{}'", username, orgName);

@@ -122,9 +122,7 @@ public class UserManagementHelper {
         user.setFullname(reqUserDTO.getFullname());
         user.setRoles(reqUserDTO.getRoles());
         if (this.userDTO.getStoreId() != null) {
-            Stores storeRef = new Stores();
-            storeRef.setId(this.userDTO.getStoreId());
-            user.setStores(storeRef);
+            user.setStoreId(this.userDTO.getStoreId());
         }
         user.setProviderUserId(providerUserId);
         user.setRegistrationChannel("omnia");

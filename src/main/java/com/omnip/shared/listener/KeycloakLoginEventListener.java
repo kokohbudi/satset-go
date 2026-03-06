@@ -92,7 +92,7 @@ public class KeycloakLoginEventListener {
                     userDTO.setUsername(username);
                     userDTO.setFullname(fullName);
                     userDTO.setRoles(roles);
-                    userDTO.setStoreId(user.getStores() != null ? user.getStores().getId() : null);
+                    userDTO.setStoreId(user.getStoreId());
                     userDTO.setProviderUserId(providerUserId);
                     session.setAttribute(OmniConstants.SESSION_USER_DTO, userDTO);
                 }

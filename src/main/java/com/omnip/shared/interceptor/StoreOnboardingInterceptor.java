@@ -47,7 +47,7 @@ public class StoreOnboardingInterceptor implements HandlerInterceptor {
             log.debug("Session 'hasStore' is null. Querying database for user: {}", providerUserId);
             Users user = usersRepository.findByProviderUserId(providerUserId);
 
-            if (user != null && user.getStores() != null && user.getStores().getId() != null) {
+            if (user != null && user.getStoreId() != null) {
                 hasStore = true;
                 log.debug("User {} has a store. Setting session hasStore=true", providerUserId);
             } else {

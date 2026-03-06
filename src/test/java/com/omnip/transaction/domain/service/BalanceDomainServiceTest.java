@@ -109,7 +109,7 @@ class BalanceDomainServiceTest {
         verify(storeMutationRepository).save(captor.capture());
         StoreMutations saved = captor.getValue();
 
-        assertEquals(store, saved.getStore());
+        assertEquals(store.getId(), saved.getStoreId());
         assertEquals(MutationReferenceType.PURCHASE, saved.getReferenceType());
         assertEquals(refId, saved.getReferenceId());
         assertEquals("Pulsa Telkomsel", saved.getDescription());

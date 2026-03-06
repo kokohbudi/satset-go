@@ -80,10 +80,14 @@ public class TransactionDomainService implements PurchaseUseCase, TopUpUseCase, 
                                         "Harap tunggu 1 menit sebelum melakukan transaksi ke nomor yang sama.");
                 }
 
+                String productName = denom.getProduct() != null ? denom.getProduct().getName() : null;
+
                 // 1. Create transaction (PENDING)
                 Transactions transaction = new Transactions();
-                transaction.setStore(store);
-                transaction.setProductDenom(denom);
+                transaction.setStoreId(storeId);
+                transaction.setProductDenomId(denomId);
+                transaction.setDenomName(denom.getName());
+                transaction.setProductName(productName);
                 transaction.setTargetNumber(targetNumber);
                 transaction.setPrice(price);
                 transaction.setAdminFee(adminFee);
@@ -174,13 +178,12 @@ public class TransactionDomainService implements PurchaseUseCase, TopUpUseCase, 
         }
 
         private TransactionSummary toSummary(Transactions tx) {
-                var denom = tx.getProductDenom();
                 return new TransactionSummary(
                                 tx.getId(),
-                                tx.getStore().getId(),
+                                tx.getStoreId(),
                                 tx.getTargetNumber(),
-                                denom.getName(),
-                                denom.getProduct() != null ? denom.getProduct().getName() : null,
+                                tx.getDenomName(),
+                                tx.getProductName(),
                                 tx.getPrice(),
                                 tx.getAdminFee(),
                                 tx.getTotal(),

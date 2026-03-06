@@ -39,7 +39,7 @@ public interface UserJpaRepository extends JpaRepository<Users, UUID>, UserRepos
      * @param storeId ID toko dalam format String (akan dikonversi ke UUID)
      * @return List objek Users yang memenuhi kriteria
      */
-    @Query("SELECT u FROM Users u WHERE u.email IN :emails AND u.stores.id = CAST(:storeId AS java.util.UUID)")
+    @Query("SELECT u FROM Users u WHERE u.email IN :emails AND u.storeId = CAST(:storeId AS java.util.UUID)")
     List<Users> findByEmailInAndStoreId(@Param("emails") List<String> emails, @Param("storeId") String storeId);
 
     /**

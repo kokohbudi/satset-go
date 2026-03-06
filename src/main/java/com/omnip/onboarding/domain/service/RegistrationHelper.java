@@ -82,7 +82,7 @@ public class RegistrationHelper {
         // Logika bisnis: username = email
         user.setUsername(email);
         user.setFullname(fullName);
-        user.setStores(stores);
+        user.setStoreId(stores.getId());
         // Logika bisnis: user baru selalu aktif
         user.setActive(true);
         user.setRoles(roles);

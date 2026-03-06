@@ -1,8 +1,6 @@
 package com.omnip.transaction.domain.model;
 
 import com.omnip.transaction.domain.model.TransactionStatus;
-import com.omnip.onboarding.domain.model.Stores;
-import com.omnip.catalog.domain.model.ProductDenoms;
 import jakarta.persistence.*;
 import lombok.Data;
 import org.hibernate.annotations.UuidGenerator;
@@ -24,13 +22,17 @@ public class Transactions {
     @Column(name = "id", updatable = false, nullable = false, columnDefinition = "uuid")
     private UUID id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "store_id", nullable = false)
-    private Stores store;
+    @Column(name = "store_id", nullable = false, columnDefinition = "uuid")
+    private UUID storeId;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "product_denom_id", nullable = false)
-    private ProductDenoms productDenom;
+    @Column(name = "product_denom_id", nullable = false, columnDefinition = "uuid")
+    private UUID productDenomId;
+
+    @Column(nullable = false, length = 150)
+    private String denomName;
+
+    @Column(length = 100)
+    private String productName;
 
     @Column(nullable = false, length = 50)
     private String targetNumber;

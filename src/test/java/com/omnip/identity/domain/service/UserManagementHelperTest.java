@@ -154,7 +154,7 @@ class UserManagementHelperTest {
         assertEquals(List.of("reseller"), user.getRoles());
         assertEquals("kc-new", user.getProviderUserId());
         assertEquals("omnia", user.getRegistrationChannel());
-        assertNotNull(user.getStores()); // sessionUserDTO has storeId
+        assertNotNull(user.getStoreId()); // sessionUserDTO has storeId
     }
 
     // ==================== createSuccessResponse ====================

@@ -75,7 +75,7 @@ class StoreOnboardingInterceptorTest {
     void preHandle_UserWithoutStore_NotBackoffice_RedirectsToOnboarding() throws Exception {
         setJwtAuth("kc-uuid");
         Users userNoStore = new Users();
-        userNoStore.setStores(null);
+        userNoStore.setStoreId(null);
         when(usersRepository.findByProviderUserId("kc-uuid")).thenReturn(userNoStore);
 
         MockHttpServletRequest request = new MockHttpServletRequest();
@@ -94,9 +94,7 @@ class StoreOnboardingInterceptorTest {
     void preHandle_UserWithStore_ReturnsTrue() throws Exception {
         setJwtAuth("kc-uuid");
         Users user = new Users();
-        Stores store = new Stores();
-        store.setId(UUID.randomUUID());
-        user.setStores(store);
+        user.setStoreId(UUID.randomUUID());
         when(usersRepository.findByProviderUserId("kc-uuid")).thenReturn(user);
 
         MockHttpServletRequest request = new MockHttpServletRequest();

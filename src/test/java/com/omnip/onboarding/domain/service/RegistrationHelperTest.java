@@ -84,6 +84,7 @@ class RegistrationHelperTest {
     @Test
     void prepareNewStoreUser_SetsAllFields() {
         Stores store = new Stores();
+        store.setId(java.util.UUID.randomUUID());
         List<String> roles = List.of("reseller");
 
         Users user = helper.prepareNewStoreUser(
@@ -92,7 +93,7 @@ class RegistrationHelperTest {
         assertEquals("alice@mail.com", user.getEmail());
         assertEquals("alice@mail.com", user.getUsername()); // username = email
         assertEquals("Alice", user.getFullname());
-        assertEquals(store, user.getStores());
+        assertEquals(store.getId(), user.getStoreId());
         assertTrue(user.isActive());
         assertEquals(roles, user.getRoles());
         assertEquals("WEB", user.getRegistrationChannel());

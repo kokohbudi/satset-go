@@ -138,7 +138,7 @@ class StoreOnboardingDomainServiceTest {
 
         ArgumentCaptor<Users> userCaptor = ArgumentCaptor.forClass(Users.class);
         verify(usersRepository).save(userCaptor.capture());
-        assertNotNull(userCaptor.getValue().getStores());
+        assertNotNull(userCaptor.getValue().getStoreId());
     }
 
     @Test

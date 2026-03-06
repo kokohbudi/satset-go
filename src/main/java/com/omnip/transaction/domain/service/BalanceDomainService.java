@@ -49,7 +49,7 @@ public class BalanceDomainService implements BalanceManagementUseCase {
                 BigDecimal newBalance = currentBalance.subtract(amount);
 
                 StoreMutations mutation = new StoreMutations();
-                mutation.setStore(store);
+                mutation.setStoreId(store.getId());
                 mutation.setAmount(amount);
                 mutation.setType(MutationType.DEBIT);
                 mutation.setBalanceAfter(newBalance);
@@ -79,7 +79,7 @@ public class BalanceDomainService implements BalanceManagementUseCase {
                 BigDecimal newBalance = store.getBalance().add(amount);
 
                 StoreMutations mutation = new StoreMutations();
-                mutation.setStore(store);
+                mutation.setStoreId(store.getId());
                 mutation.setAmount(amount);
                 mutation.setType(MutationType.CREDIT);
                 mutation.setBalanceAfter(newBalance);
