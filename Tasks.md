@@ -1,8 +1,8 @@
 # SatSetGo - Task Board
 
 > **Owner**: August (Senior PM)
-> **Last Updated**: 2026-03-03
-> **Sprint**: MR-series (Mandatory Role Assignment) — Ready
+> **Last Updated**: 2026-03-07
+> **Sprint**: W-series Fix (Neo audit fix) — In Progress
 
 ---
 
@@ -82,14 +82,51 @@
 > **Prerequisite W-series**: WR-series harus selesai dulu.
 > Design lengkap: `TechSpecs.md` → "Multi-Module Maven — Structure & Migration Plan"
 
-- [ ] **W-SETUP**: Restructure project → multi-module Maven
-  - Buat `omnip-core/` + `git mv src omnip-core/src`
-  - Update root `pom.xml` → parent POM (`packaging: pom`, tambah `<modules>`)
-  - Buat `omnip-core/pom.xml` (inherit parent, deps dari root pom lama)
-  - Verify: `cd omnip-core && mvn compile` → BUILD SUCCESS
-- [ ] **W-1**: Buat `omnip-wallet/` module skeleton — Spring Boot app, Keycloak Resource Server, `/actuator/health`
-- [ ] **W-2**: Wallet domain model — `WalletAccount`, `WalletMutation` entities (pindah dari Core setelah WR-series)
-- [ ] **W-3**: Wallet use cases + domain service — `debit`, `credit`, `refund`, `getBalance`, `getMutationHistory`
+#### ~~Phase A — Fix Build (W-SETUP broken oleh Qwen)~~ ✅ DONE
+> **Neo audit 2026-03-07**: Build BROKEN. `mvn compile` fail semua module.
+> Root cause: frontend-maven-plugin inheritance + dependency leak ke child modules.
+> **Fixed 2026-03-07**: Root POM stripped ke pure parent. Frontend assets dipindah ke omnip-core. Defaults ditambah di application.yml.
+
+- [x] **W-SETUP**: Restructure project → multi-module Maven ✅
+  - [x] Buat `omnip-core/` + `git mv src omnip-core/src` ✅
+  - [x] Update root `pom.xml` → parent POM (`packaging: pom`, `<modules>`) ✅
+  - [x] Buat `omnip-core/pom.xml` (inherit parent) ✅
+  - [x] **WF-1**: Fix root POM — hapus `frontend-maven-plugin`, `spring-boot-maven-plugin`, `jacoco`, `dependency-plugin`. Root hanya compiler + surefire ✅
+  - [x] **WF-2**: Fix root POM — hapus ALL `<dependencies>` + `<profiles>` dari root (children declare own deps). Root hanya `<dependencyManagement>` untuk version pinning ✅
+  - [x] **WF-3**: `git mv package.json tailwind.config.js postcss.config.js` → `omnip-core/` ✅
+  - [x] **WF-4**: Wallet POM — tambah `spring-boot-starter-validation` (sebelumnya inherited dari root), hapus useless `junit-vintage-engine` exclusion ✅
+  - [x] **WF-5**: `application.yml` — tambah defaults untuk env vars (`KEYCLOAK_BASE_URL`, `DB_URL`, etc.) supaya test jalan tanpa `.env` ✅
+  - [x] **WF-6**: Verify `mvn clean package` → BUILD SUCCESS, 388 tests pass (372 Core + 16 Wallet) ✅
+
+#### ~~Phase B — Fix Wallet Hexagonal Violations~~ ✅ DONE
+> **Fixed 2026-03-07**: Domain layer sekarang zero adapter imports. Ports pakai domain types. Adapters di layer adapter.
+
+- [x] **W-1**: Buat `omnip-wallet/` module skeleton ✅
+  - [x] Spring Boot app + `OmnipWalletApplication.java` ✅
+  - [x] `SecurityConfig` (JWT resource server, stateless) ✅
+  - [x] `application.yml` + `application-test.yml` ✅
+  - [x] JPA entities (`WalletAccountEntity`, `WalletMutationEntity`) — indexing + locking bagus ✅
+  - [x] JPA repositories (clean, no port coupling) ✅
+  - [x] **WH-1**: `WalletAccount.java` + `WalletMutation.java` domain records di `domain.model` ✅
+  - [x] **WH-2**: `WalletAccountPort` + `WalletMutationPort` — pakai domain types ✅
+  - [x] **WH-3**: `WalletAccountMapper` + `WalletMutationMapper` + `WalletAccountRepositoryAdapter` + `WalletMutationRepositoryAdapter` ✅
+  - [x] **WH-4**: `WalletDomainService` — zero `adapter.out.*` imports, pure domain types ✅
+  - [x] **WH-5**: `WalletUseCase.java` di `domain.port.in` — controller inject interface ✅
+  - [x] **WH-6**: `MutationResponse.from(WalletMutation)` — domain type ✅
+  - [x] **WH-7**: `WalletExceptionHandler` — 404 ResourceNotFound, 422 InsufficientBalance ✅
+  - [x] **WH-8**: Hapus `DuplicateReferenceException.java` ✅
+
+#### ~~Phase C — Fix Tests~~ ✅ DONE
+> **Fixed 2026-03-07**: Repo tests dihapus. Domain service tests di-rewrite + edge cases ditambah.
+
+  - [x] **WT-1**: Hapus `WalletAccountRepositoryTest` + `WalletMutationRepositoryTest` ✅
+  - [x] **WT-2**: Idempotency tests — duplicate debit/credit/refund → return existing (tidak debit ulang) ✅
+  - [x] **WT-3**: Edge case tests — credit auto-create account, debit/refund account not found ✅
+  - [x] **WT-4**: `mvn clean package` → BUILD SUCCESS, 385 tests pass (372 Core + 13 Wallet) ✅
+
+#### Phase D — Lanjut W-series (setelah Phase A-C clean)
+- [ ] **W-2**: Wallet domain model — (sudah partial dari WH-1, tinggal finalize)
+- [ ] **W-3**: Wallet use cases + domain service — (sudah partial dari WH-5, tinggal finalize)
 - [ ] **W-4**: Wallet REST endpoints — `/internal/wallet/*` (5 endpoints per API contract di TechSpecs)
 - [ ] **W-5**: Core: `WalletClient` (RestClient) — call Wallet API, service account auth (client credentials)
 - [ ] **W-6**: Core: replace `BalanceDomainService` calls → `WalletClient` di `TransactionDomainService`

@@ -58,7 +58,10 @@ node/
 .mcp.json
 
 # Generated & logs
-/src/main/resources/static/css/output.css
+omnip-core/src/main/resources/static/css/output.css
 /logs/
 /*.jfr
 .worktrees/
+/omnip-core/target/site/surefire-reports/
+/omnip-core/target
+/omnip-wallet/target
