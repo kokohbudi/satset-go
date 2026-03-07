@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html layout:decorate="~{layouts/base}" xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout">
+
+<head>
+    <title>Riwayat Transaksi</title>
+</head>
+
+<body>
+    <div layout:fragment="content" x-data="transactionHistory()">
+
+        <!-- Page Header -->
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+            <div>
+                <h1 class="text-2xl font-bold text-base-content mb-2">Riwayat Transaksi</h1>
+                <p class="text-base-content/60">Lihat semua riwayat pembelian dan top-up</p>
+            </div>
+            <div class="flex gap-2">
+                <a th:href="@{/purchase}" class="btn btn-primary gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                    </svg>
+                    Trx Baru
+                </a>
+            </div>
+        </div>
+
+        <!-- Filters -->
+        <div class="card bg-base-100 shadow-sm border border-base-300/50 mb-6">
+            <div class="card-body py-4 flex flex-row items-center gap-4">
+                <!-- Filter Dropdown -->
+                <div class="flex-none">
+                    <select class="select select-bordered w-full max-w-xs" x-model="statusFilter"
+                        @change="fetchPage(0)">
+                        <option value="">Semua Status</option>
+                        <option value="SUCCESS">Sukses (Success)</option>
+                        <option value="PROCESSING">Diproses (Processing)</option>
+                        <option value="PENDING">Menunggu (Pending)</option>
+                        <option value="FAILED">Gagal (Failed)</option>
+                        <option value="REFUNDED">Dikembalikan (Refunded)</option>
+                    </select>
+                </div>
+
+                <div class="flex-1 text-right">
+                    <button @click="fetchPage(currentPage)" class="btn btn-ghost btn-circle" title="Refresh">
+                        <svg class="w-5 h-5" :class="loading ? 'animate-spin' : ''" fill="none" stroke="currentColor"
+                            viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Data Table -->
+        <div class="card bg-base-100 shadow-lg border border-base-300/50 overflow-visible">
+            <div class="overflow-x-auto min-h-[400px]">
+                <table class="table w-full">
+                    <thead class="bg-base-200/50">
+                        <tr>
+                            <th>Waktu</th>
+                            <th>Detail Produk</th>
+                            <th>Nomor Tujuan</th>
+                            <th>Total</th>
+                            <th>Status</th>
+                            <th>SN / Ref</th>
+                            <th>Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+
+                        <!-- Loading Skeleton -->
+                        <template x-if="loading && content.length === 0">
+                            <tr>
+                                <td colspan="7" class="text-center py-16">
+                                    <span class="loading loading-spinner loading-lg text-primary"></span>
+                                </td>
+                            </tr>
+                        </template>
+
+                        <!-- Transactions -->
+                        <template x-for="tx in filteredContent" :key="tx.id">
+                            <tr class="hover:bg-base-200/50 transition-colors">
+                                <td class="whitespace-nowrap">
+                                    <div class="font-medium" x-text="formatDate(tx.createdAt)"></div>
+                                    <div class="text-xs text-base-content/50" x-text="formatTime(tx.createdAt)"></div>
+                                </td>
+                                <td>
+                                    <div class="font-bold" x-text="tx.denomName || 'Top Up'"></div>
+                                    <div class="text-xs text-base-content/60" x-text="tx.productName || 'Manual'"></div>
+                                </td>
+                                <td class="font-mono text-sm tracking-wider" x-text="tx.targetNumber || '-'"></td>
+                                <td class="font-medium" x-text="formatCurrency(tx.total)"></td>
+                                <td>
+                                    <div class="badge" :class="getStatusBadgeClass(tx.status)" x-text="tx.status"></div>
+                                </td>
+                                <td>
+                                    <div class="text-xs max-w-[150px] truncate" title="S/N" x-show="tx.serialNumber"
+                                        x-text="'SN: ' + tx.serialNumber"></div>
+                                    <div class="text-xs text-base-content/50 max-w-[150px] truncate"
+                                        title="Provider Ref" x-show="tx.providerRef" x-text="'Ref: ' + tx.providerRef">
+                                    </div>
+                                    <span x-show="!tx.serialNumber && !tx.providerRef"
+                                        class="text-base-content/30">-</span>
+                                </td>
+                                <td>
+                                    <button @click="openDetail(tx)" class="btn btn-sm btn-ghost btn-circle">
+                                        <svg class="w-5 h-5 text-base-content/70" fill="none" stroke="currentColor"
+                                            viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                        </svg>
+                                    </button>
+                                </td>
+                            </tr>
+                        </template>
+
+                        <!-- Empty State -->
+                        <template x-if="!loading && filteredContent.length === 0">
+                            <tr>
+                                <td colspan="7" class="text-center py-16">
+                                    <div class="flex flex-col items-center">
+                                        <div
+                                            class="w-16 h-16 rounded-full bg-base-200 flex items-center justify-center mb-4">
+                                            <svg class="w-8 h-8 text-base-content/30" fill="none" stroke="currentColor"
+                                                viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                            </svg>
+                                        </div>
+                                        <h3 class="font-bold text-lg mb-1">Pencarian Kosong</h3>
+                                        <p class="text-base-content/60">Tidak ada transaksi yang ditemukan.</p>
+                                    </div>
+                                </td>
+                            </tr>
+                        </template>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination Footer -->
+            <div
+                class="bg-base-200/50 p-4 border-t border-base-300 flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div class="text-sm text-base-content/70">
+                    Menampilkan <span class="font-medium" x-text="pageData.numberOfElements || 0"></span> dari <span
+                        class="font-medium" x-text="pageData.totalElements || 0"></span> data
+                </div>
+
+                <div class="join">
+                    <button class="join-item btn btn-sm" :disabled="pageData.first || loading" @click="fetchPage(0)">
+                        «
+                    </button>
+                    <button class="join-item btn btn-sm" :disabled="pageData.first || loading"
+                        @click="fetchPage(currentPage - 1)">
+                        ‹
+                    </button>
+
+                    <button class="join-item btn btn-sm pointer-events-none bg-base-100">
+                        Hal <span x-text="(currentPage + 1)"></span> / <span x-text="pageData.totalPages || 1"></span>
+                    </button>
+
+                    <button class="join-item btn btn-sm"
+                        :disabled="pageData.last || loading || pageData.totalPages === 0"
+                        @click="fetchPage(currentPage + 1)">
+                        ›
+                    </button>
+                    <button class="join-item btn btn-sm"
+                        :disabled="pageData.last || loading || pageData.totalPages === 0"
+                        @click="fetchPage(pageData.totalPages - 1)">
+                        »
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Detail Modal -->
+        <dialog id="tx_detail_modal" class="modal modal-bottom sm:modal-middle">
+            <div class="modal-box p-0 overflow-hidden">
+                <!-- Modal Header -->
+                <div class="bg-base-200 p-4 border-b flex justify-between items-center relative">
+                    <h3 class="font-bold text-lg">Detail Transaksi</h3>
+                    <form method="dialog"><button class="btn btn-sm btn-circle btn-ghost">✕</button></form>
+                </div>
+
+                <!-- Modal Body -->
+                <div class="p-6 space-y-4" x-show="selectedTx">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="text-sm text-base-content/60">Status</p>
+                            <div class="badge mt-1" :class="getStatusBadgeClass(selectedTx?.status)"
+                                x-text="selectedTx?.status"></div>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-sm text-base-content/60">Waktu</p>
+                            <p class="font-medium"
+                                x-text="selectedTx ? (formatDate(selectedTx.createdAt) + ' ' + formatTime(selectedTx.createdAt)) : ''">
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="divider my-2"></div>
+
+                    <div class="bg-base-200/50 p-4 rounded-xl space-y-3 text-sm">
+                        <div class="grid grid-cols-3 gap-2">
+                            <div class="text-base-content/60">No. Tujuan</div>
+                            <div class="col-span-2 font-mono font-bold" x-text="selectedTx?.targetNumber || '-'"></div>
+
+                            <div class="col-span-3 border-b border-base-300/50 my-1"></div>
+
+                            <div class="text-base-content/60">Produk</div>
+                            <div class="col-span-2 font-medium" x-text="selectedTx?.denomName"></div>
+
+                            <div class="text-base-content/60">Kategori</div>
+                            <div class="col-span-2" x-text="selectedTx?.productName || '-'"></div>
+                        </div>
+                    </div>
+
+                    <div class="bg-base-200/50 p-4 rounded-xl space-y-3 text-sm">
+                        <div class="grid grid-cols-3 gap-2">
+                            <div class="text-base-content/60">Harga</div>
+                            <div class="col-span-2 text-right" x-text="formatCurrency(selectedTx?.price)"></div>
+
+                            <div class="text-base-content/60">Biaya Admin</div>
+                            <div class="col-span-2 text-right" x-text="formatCurrency(selectedTx?.adminFee)"></div>
+
+                            <div class="col-span-3 border-b border-base-300/50 border-dashed my-1"></div>
+
+                            <div class="text-base-content/80 font-bold">Total</div>
+                            <div class="col-span-2 text-right font-bold text-primary text-lg"
+                                x-text="formatCurrency(selectedTx?.total)"></div>
+                        </div>
+                    </div>
+
+                    <div class="bg-base-200/50 p-4 rounded-xl space-y-3 text-sm"
+                        x-show="selectedTx?.serialNumber || selectedTx?.providerRef">
+                        <div class="grid grid-cols-3 gap-2">
+                            <div class="text-base-content/60 truncate" title="Provider Reference">Ref Provider</div>
+                            <div class="col-span-2 font-mono text-xs break-all" x-text="selectedTx?.providerRef || '-'">
+                            </div>
+
+                            <div class="col-span-3 border-b border-base-300/50 my-1"></div>
+
+                            <div class="text-base-content/60 font-bold text-success">S/N</div>
+                            <div class="col-span-2 font-mono font-bold bg-success/10 text-success p-1 rounded break-all mt-[-4px]"
+                                x-text="selectedTx?.serialNumber || '-'"></div>
+                        </div>
+                    </div>
+
+                    <div class="text-xs text-center text-base-content/40 mt-4 font-mono">
+                        TrxID: <span x-text="selectedTx?.id"></span>
+                    </div>
+                </div>
+
+                <!-- Modal Footer -->
+                <div class="bg-base-200 p-4 border-t text-right">
+                    <form method="dialog">
+                        <button class="btn btn-outline border-base-300">Tutup</button>
+                    </form>
+                </div>
+            </div>
+            <form method="dialog" class="modal-backdrop">
+                <button>close</button>
+            </form>
+        </dialog>
+
+    </div>
+
+    <div layout:fragment="scripts">
+        <script>
+            function transactionHistory() {
+                return {
+                    loading: true,
+                    content: [],
+                    pageData: {},
+                    currentPage: 0,
+                    statusFilter: '',
+                    selectedTx: null,
+
+                    get filteredContent() {
+                        if (!this.statusFilter) return this.content;
+                        return this.content.filter(tx => tx.status === this.statusFilter);
+                    },
+
+                    init() {
+                        this.fetchPage(0);
+                    },
+
+                    async fetchPage(pageNumber) {
+                        if (pageNumber < 0) return;
+
+                        this.loading = true;
+                        try {
+                            // Current API doesn't support backend status filter yet, 
+                            // so we fetch the page and filter locally for now.
+                            const res = await fetch(`/api/transactions/history?page=${pageNumber}&size=20&sort=createdAt,desc`);
+                            if (res.ok) {
+                                const data = await res.json();
+                                this.content = data.content;
+                                this.pageData = data;
+                                this.currentPage = data.number;
+                            }
+                        } catch (e) {
+                            Alpine.store('toast').error('Gagal memuat data histori transaksi');
+                        }
+                        this.loading = false;
+                    },
+
+                    openDetail(tx) {
+                        this.selectedTx = tx;
+                        document.getElementById('tx_detail_modal').showModal();
+                    },
+
+                    getStatusBadgeClass(status) {
+                        switch (status) {
+                            case 'SUCCESS': return 'badge-success';
+                            case 'FAILED': return 'badge-error';
+                            case 'REFUNDED': return 'badge-warning';
+                            case 'PROCESSING': return 'badge-info';
+                            case 'PENDING': return 'badge-ghost';
+                            default: return '';
+                        }
+                    },
+
+                    formatCurrency(amount) {
+                        if (amount == null) return '-';
+                        return new Intl.NumberFormat('id-ID', {
+                            style: 'currency', currency: 'IDR',
+                            minimumFractionDigits: 0, maximumFractionDigits: 0
+                        }).format(amount);
+                    },
+
+                    formatDate(isoString) {
+                        if (!isoString) return '-';
+                        const date = new Date(isoString);
+                        return date.toLocaleDateString('id-ID', { year: 'numeric', month: 'short', day: 'numeric' });
+                    },
+
+                    formatTime(isoString) {
+                        if (!isoString) return '-';
+                        const date = new Date(isoString);
+                        return date.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+                    }
+                }
+            }
+        </script>
+    </div>
+</body>
+
+</html>

@@ -8,16 +8,16 @@
         <version>4.0.1</version>
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
-    <groupId>com.omnip</groupId>
-    <artifactId>omnip-services</artifactId>
+    <groupId>com.satset</groupId>
+    <artifactId>satset-services</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <packaging>pom</packaging>
-    <name>omnip-services</name>
+    <name>satset-services</name>
     <description>SatSetGo - Multi-module Maven project</description>
 
     <modules>
-        <module>omnip-core</module>
-        <module>omnip-wallet</module>
+        <module>satset-core</module>
+        <module>satset-wallet</module>
     </modules>
 
     <properties>
