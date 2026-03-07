@@ -7,6 +7,7 @@ import com.satset.wallet.domain.model.WalletMutation;
 import com.satset.wallet.domain.port.in.WalletUseCase;
 import com.satset.wallet.domain.port.out.WalletAccountPort;
 import com.satset.wallet.domain.port.out.WalletMutationPort;
+import com.satset.wallet.domain.service.WalletIdGenerator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -24,10 +25,34 @@ public class WalletDomainService implements WalletUseCase {
 
     private final WalletAccountPort walletAccountPort;
     private final WalletMutationPort walletMutationPort;
+    private final WalletIdGenerator walletIdGenerator;
 
-    public WalletDomainService(WalletAccountPort walletAccountPort, WalletMutationPort walletMutationPort) {
+    public WalletDomainService(WalletAccountPort walletAccountPort,
+                               WalletMutationPort walletMutationPort,
+                               WalletIdGenerator walletIdGenerator) {
         this.walletAccountPort = walletAccountPort;
         this.walletMutationPort = walletMutationPort;
+        this.walletIdGenerator = walletIdGenerator;
+    }
+
+    @Override
+    @Transactional
+    public WalletAccount createWallet(UUID storeId) {
+        log.info("Creating wallet for store {}", storeId);
+
+        // Check if wallet already exists
+        var existingWallet = walletAccountPort.findByStoreId(storeId);
+        if (existingWallet.isPresent()) {
+            log.warn("Wallet already exists for store {}, returning existing wallet", storeId);
+            return existingWallet.get();
+        }
+
+        String walletId = walletIdGenerator.generate();
+        WalletAccount newAccount = WalletAccount.newAccount(walletId, storeId);
+        WalletAccount saved = walletAccountPort.save(newAccount);
+
+        log.info("Wallet created successfully: {} for store {}", walletId, storeId);
+        return saved;
     }
 
     @Override
@@ -84,7 +109,10 @@ public class WalletDomainService implements WalletUseCase {
         }
 
         WalletAccount account = walletAccountPort.findByStoreIdWithLock(storeId)
-                .orElseGet(() -> walletAccountPort.save(WalletAccount.newAccount(storeId)));
+                .orElseGet(() -> {
+                    String walletId = walletIdGenerator.generate();
+                    return walletAccountPort.save(WalletAccount.newAccount(walletId, storeId));
+                });
 
         BigDecimal newBalance = account.balance().add(amount);
         walletAccountPort.save(account.withBalance(newBalance));

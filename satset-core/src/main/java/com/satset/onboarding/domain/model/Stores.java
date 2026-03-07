@@ -6,6 +6,10 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
+/**
+ * Domain model for Store.
+ * Each store has a unique wallet ID for financial transactions.
+ */
 @Data
 public class Stores {
     private UUID id;
@@ -13,6 +17,12 @@ public class Stores {
     private String referralId;
     private String email;
     private String phone;
+
+    /**
+     * Wallet ID for this store (format: 700xxxxxxx).
+     * Nullable for existing stores before this feature was introduced.
+     */
+    private String walletId;
 
     /**
      * @deprecated Since WR-8. Balance sekarang disimpan di WalletAccount entity.

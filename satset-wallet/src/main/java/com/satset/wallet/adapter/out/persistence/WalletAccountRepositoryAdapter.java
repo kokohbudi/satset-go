@@ -8,6 +8,9 @@ import org.springframework.stereotype.Component;
 import java.util.Optional;
 import java.util.UUID;
 
+/**
+ * Adapter for wallet account persistence using JPA.
+ */
 @Component
 public class WalletAccountRepositoryAdapter implements WalletAccountPort {
 
@@ -28,7 +31,17 @@ public class WalletAccountRepositoryAdapter implements WalletAccountPort {
     }
 
     @Override
+    public Optional<WalletAccount> findByWalletId(String walletId) {
+        return repository.findById(walletId).map(WalletAccountMapper::toDomain);
+    }
+
+    @Override
     public WalletAccount save(WalletAccount account) {
         return WalletAccountMapper.toDomain(repository.save(WalletAccountMapper.toEntity(account)));
+    }
+
+    @Override
+    public boolean existsByWalletId(String walletId) {
+        return repository.existsByWalletId(walletId);
     }
 }

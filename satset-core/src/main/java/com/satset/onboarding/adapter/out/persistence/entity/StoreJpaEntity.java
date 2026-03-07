@@ -29,6 +29,13 @@ public class StoreJpaEntity {
     private String phone;
 
     /**
+     * Wallet ID for this store (format: 700xxxxxxx).
+     * Nullable for existing stores before this feature was introduced.
+     */
+    @Column(name = "wallet_id", unique = true, length = 10)
+    private String walletId;
+
+    /**
      * @deprecated Since WR-8. Balance sekarang disimpan di WalletAccount entity.
      *             Field ini hanya untuk backward compatibility dan akan dihapus di versi mendatang.
      *             Source of truth: transaction.domain.model.WalletAccount.balance

@@ -3,7 +3,6 @@ package com.satset.shared.testcontainers;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dasniko.testcontainers.keycloak.KeycloakContainer;
 import org.keycloak.admin.client.Keycloak;
-import org.keycloak.admin.client.KeycloakBuilder;
 import org.keycloak.representations.idm.CredentialRepresentation;
 import org.keycloak.representations.idm.RealmRepresentation;
 import org.keycloak.representations.idm.UserRepresentation;
@@ -12,8 +11,11 @@ import java.io.IOException;
 
 /**
  * Singleton Keycloak container — starts once per JVM, shared across all IT classes.
- * Realm setup via JSON import (satset-go-realm-full.json exported from live KC 26.1).
+ * Realm setup via JSON import (satset-go-realm-full.json exported from live KC 26.2.1).
  * Includes all roles, users, and clients from production realm.
+ *
+ * Note: KC 26.1+ sets sslRequired=EXTERNAL on master realm even in start-dev mode.
+ * We use kcadm.sh inside the container to disable SSL before calling admin API externally.
  */
 public abstract class KeycloakContainerSupport {
 
@@ -24,8 +26,9 @@ public abstract class KeycloakContainerSupport {
 
     static {
         configureDockerHost();
-        KEYCLOAK = new KeycloakContainer("quay.io/keycloak/keycloak:latest");
+        KEYCLOAK = new KeycloakContainer("quay.io/keycloak/keycloak:26.2.1");
         KEYCLOAK.start();
+        disableSslRequirement();
         setupTestRealm();
     }
 
@@ -45,8 +48,30 @@ public abstract class KeycloakContainerSupport {
         }
     }
 
+    /**
+     * KC 26.1+ sets sslRequired=EXTERNAL on master realm even in start-dev mode.
+     * Use kcadm.sh inside the container (localhost → no SSL check) to disable it.
+     */
+    private static void disableSslRequirement() {
+        try {
+            KEYCLOAK.execInContainer(
+                    "/opt/keycloak/bin/kcadm.sh", "config", "credentials",
+                    "--server", "http://localhost:8080",
+                    "--realm", "master",
+                    "--user", KEYCLOAK.getAdminUsername(),
+                    "--password", KEYCLOAK.getAdminPassword()
+            );
+            KEYCLOAK.execInContainer(
+                    "/opt/keycloak/bin/kcadm.sh", "update", "realms/master",
+                    "-s", "sslRequired=NONE"
+            );
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to disable SSL requirement on master realm", e);
+        }
+    }
+
     private static void setupTestRealm() {
-        try (Keycloak admin = masterAdminClient()) {
+        try (Keycloak admin = KEYCLOAK.getKeycloakAdminClient()) {
             // 1. Import realm from JSON export (includes roles, users, clients from live KC)
             RealmRepresentation realm = loadRealmFromJson();
             admin.realms().create(realm);
@@ -91,22 +116,10 @@ public abstract class KeycloakContainerSupport {
     }
 
     protected static Keycloak masterAdminClient() {
-        return KeycloakBuilder.builder()
-                .serverUrl(KEYCLOAK.getAuthServerUrl())
-                .realm("master")
-                .clientId("admin-cli")
-                .username(KEYCLOAK.getAdminUsername())
-                .password(KEYCLOAK.getAdminPassword())
-                .build();
+        return KEYCLOAK.getKeycloakAdminClient();
     }
 
     protected static Keycloak testRealmAdminClient() {
-        return KeycloakBuilder.builder()
-                .serverUrl(KEYCLOAK.getAuthServerUrl())
-                .realm("master")
-                .clientId("admin-cli")
-                .username(KEYCLOAK.getAdminUsername())
-                .password(KEYCLOAK.getAdminPassword())
-                .build();
+        return KEYCLOAK.getKeycloakAdminClient();
     }
 }

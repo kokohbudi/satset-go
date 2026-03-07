@@ -1,11 +1,15 @@
-package com.satset.wallet.domain;
+package com.omnip.wallet.domain;
 
+import com.satset.wallet.domain.InsufficientBalanceException;
+import com.satset.wallet.domain.ResourceNotFoundException;
+import com.satset.wallet.domain.WalletDomainService;
 import com.satset.wallet.domain.model.MutationReferenceType;
 import com.satset.wallet.domain.model.MutationType;
 import com.satset.wallet.domain.model.WalletAccount;
 import com.satset.wallet.domain.model.WalletMutation;
 import com.satset.wallet.domain.port.out.WalletAccountPort;
 import com.satset.wallet.domain.port.out.WalletMutationPort;
+import com.satset.wallet.domain.service.WalletIdGenerator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -28,23 +32,54 @@ class WalletDomainServiceTest {
 
     @Mock private WalletAccountPort walletAccountPort;
     @Mock private WalletMutationPort walletMutationPort;
+    @Mock
+    private WalletIdGenerator walletIdGenerator;
 
     private WalletDomainService service;
     private UUID storeId;
     private UUID referenceId;
+    private String walletId;
 
     @BeforeEach
     void setUp() {
-        service = new WalletDomainService(walletAccountPort, walletMutationPort);
+        service = new WalletDomainService(walletAccountPort, walletMutationPort, walletIdGenerator);
         storeId = UUID.randomUUID();
         referenceId = UUID.randomUUID();
+        walletId = "7000000001";
+    }
+
+    // --- createWallet ---
+
+    @Test
+    void createWallet_whenWalletDoesNotExist_createsNewWallet() {
+        when(walletAccountPort.findByStoreId(storeId)).thenReturn(Optional.empty());
+        when(walletIdGenerator.generate()).thenReturn(walletId);
+        when(walletAccountPort.save(any())).thenAnswer(i -> i.getArgument(0));
+
+        var result = service.createWallet(storeId);
+
+        assertThat(result.walletId()).isEqualTo(walletId);
+        assertThat(result.storeId()).isEqualTo(storeId);
+        assertThat(result.balance()).isEqualByComparingTo(BigDecimal.ZERO);
+        verify(walletAccountPort).save(any(WalletAccount.class));
+    }
+
+    @Test
+    void createWallet_whenWalletAlreadyExists_returnsExistingWallet() {
+        var existingWallet = WalletAccount.newAccount(walletId, storeId);
+        when(walletAccountPort.findByStoreId(storeId)).thenReturn(Optional.of(existingWallet));
+
+        var result = service.createWallet(storeId);
+
+        assertThat(result.walletId()).isEqualTo(walletId);
+        verify(walletAccountPort, never()).save(any());
     }
 
     // --- getBalance ---
 
     @Test
     void getBalance_whenAccountExists_returnsBalance() {
-        var account = new WalletAccount(UUID.randomUUID(), storeId, new BigDecimal("100000.0000"), 0L);
+        var account = new WalletAccount(walletId, storeId, new BigDecimal("100000.0000"), 0L);
         when(walletAccountPort.findByStoreId(storeId)).thenReturn(Optional.of(account));
 
         assertThat(service.getBalance(storeId)).isEqualByComparingTo(new BigDecimal("100000.0000"));
@@ -62,7 +97,7 @@ class WalletDomainServiceTest {
 
     @Test
     void debit_whenSufficientBalance_deductsAndCreatesMutation() {
-        var account = new WalletAccount(UUID.randomUUID(), storeId, new BigDecimal("100000.0000"), 0L);
+        var account = new WalletAccount(walletId, storeId, new BigDecimal("100000.0000"), 0L);
         when(walletMutationPort.findByReferenceIdAndReferenceType(referenceId, MutationReferenceType.TRANSACTION))
                 .thenReturn(Optional.empty());
         when(walletAccountPort.findByStoreIdWithLock(storeId)).thenReturn(Optional.of(account));
@@ -83,7 +118,7 @@ class WalletDomainServiceTest {
 
     @Test
     void debit_whenInsufficientBalance_throwsException() {
-        var account = new WalletAccount(UUID.randomUUID(), storeId, new BigDecimal("10000.0000"), 0L);
+        var account = new WalletAccount(walletId, storeId, new BigDecimal("10000.0000"), 0L);
         when(walletMutationPort.findByReferenceIdAndReferenceType(referenceId, MutationReferenceType.TRANSACTION))
                 .thenReturn(Optional.empty());
         when(walletAccountPort.findByStoreIdWithLock(storeId)).thenReturn(Optional.of(account));
@@ -126,7 +161,7 @@ class WalletDomainServiceTest {
 
     @Test
     void credit_whenAccountExists_addsAndCreatesMutation() {
-        var account = new WalletAccount(UUID.randomUUID(), storeId, new BigDecimal("100000.0000"), 0L);
+        var account = new WalletAccount(walletId, storeId, new BigDecimal("100000.0000"), 0L);
         when(walletMutationPort.findByReferenceIdAndReferenceType(referenceId, MutationReferenceType.TOPUP))
                 .thenReturn(Optional.empty());
         when(walletAccountPort.findByStoreIdWithLock(storeId)).thenReturn(Optional.of(account));
@@ -145,9 +180,10 @@ class WalletDomainServiceTest {
 
     @Test
     void credit_whenAccountDoesNotExist_createsAccountThenCredits() {
-        var newAccount = new WalletAccount(UUID.randomUUID(), storeId, BigDecimal.ZERO, 0L);
+        var newAccount = new WalletAccount(walletId, storeId, BigDecimal.ZERO, 0L);
         when(walletMutationPort.findByReferenceIdAndReferenceType(any(), any())).thenReturn(Optional.empty());
         when(walletAccountPort.findByStoreIdWithLock(storeId)).thenReturn(Optional.empty());
+        when(walletIdGenerator.generate()).thenReturn(walletId);
         when(walletAccountPort.save(any())).thenReturn(newAccount);
         when(walletMutationPort.save(any())).thenAnswer(i -> i.getArgument(0));
 
@@ -178,7 +214,7 @@ class WalletDomainServiceTest {
 
     @Test
     void refund_whenValid_restoresBalance() {
-        var account = new WalletAccount(UUID.randomUUID(), storeId, new BigDecimal("50000.0000"), 0L);
+        var account = new WalletAccount(walletId, storeId, new BigDecimal("50000.0000"), 0L);
         when(walletMutationPort.findByReferenceIdAndReferenceType(referenceId, MutationReferenceType.REFUND))
                 .thenReturn(Optional.empty());
         when(walletAccountPort.findByStoreIdWithLock(storeId)).thenReturn(Optional.of(account));

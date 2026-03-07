@@ -7,8 +7,10 @@ import com.satset.wallet.adapter.in.web.dto.WalletRequest;
 import com.satset.wallet.domain.WalletMutationResult;
 import com.satset.wallet.domain.model.MutationReferenceType;
 import com.satset.wallet.domain.model.MutationType;
+import com.satset.wallet.domain.model.WalletAccount;
 import com.satset.wallet.domain.port.in.WalletUseCase;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -67,5 +69,23 @@ public class WalletInternalController {
         return ResponseEntity.ok(walletUseCase.getMutations(storeId).stream()
                 .map(MutationResponse::from)
                 .toList());
+    }
+
+    @PostMapping("/accounts")
+    public ResponseEntity<WalletCreationResponse> createWallet(@Valid @RequestBody WalletCreationRequest request) {
+        WalletAccount account = walletUseCase.createWallet(request.storeId());
+        return ResponseEntity.ok(new WalletCreationResponse(account.walletId(), account.storeId()));
+    }
+
+    /**
+     * Request DTO for wallet creation.
+     */
+    public record WalletCreationRequest(@NotNull UUID storeId) {
+    }
+
+    /**
+     * Response DTO for wallet creation.
+     */
+    public record WalletCreationResponse(String walletId, UUID storeId) {
     }
 }

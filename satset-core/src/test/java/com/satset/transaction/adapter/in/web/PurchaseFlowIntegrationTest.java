@@ -5,14 +5,16 @@ import com.satset.catalog.adapter.out.persistence.DenomRepositoryAdapter;
 import com.satset.identity.domain.port.out.KeycloakIdentityPort;
 import com.satset.onboarding.adapter.out.persistence.StoreJpaRepository;
 import com.satset.onboarding.domain.port.out.KeycloakOrganizationPort;
+import com.satset.onboarding.domain.port.out.WalletCreationPort;
 import com.satset.shared.dto.UserDTO;
+import com.satset.shared.exception.InsufficientBalanceException;
 import com.satset.shared.model.DenomInfo;
 import com.satset.transaction.adapter.in.web.dto.PurchaseRequest;
 import com.satset.transaction.domain.model.*;
+import com.satset.transaction.domain.port.in.BalanceManagementUseCase;
 import com.satset.transaction.domain.port.out.ProviderPort;
 import com.satset.transaction.domain.port.out.StoreMutationRepositoryPort;
 import com.satset.transaction.domain.port.out.TransactionRepositoryPort;
-import com.satset.transaction.domain.port.out.WalletAccountPort;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -59,7 +61,7 @@ class PurchaseFlowIntegrationTest {
     private StoreMutationRepositoryPort storeMutationRepository;
 
     @MockitoBean
-    private WalletAccountPort walletAccountPort;
+    private BalanceManagementUseCase balanceManagementUseCase;
 
     @MockitoBean
     private ProviderPort providerService;
@@ -71,16 +73,17 @@ class PurchaseFlowIntegrationTest {
     private KeycloakOrganizationPort keycloakOrganizationPort;
 
     @MockitoBean
-    private UserDTO userDTO;
+    private WalletCreationPort walletCreationPort;
 
-    private WalletAccount walletAccount;
+    @MockitoBean
+    private UserDTO userDTO;
 
     private UUID storeId;
     private UUID denomId;
     private DenomInfo denomInfo;
 
     @BeforeEach
-    void setUp() {
+    void setUp() throws Exception {
         mockMvc = MockMvcBuilders
                 .webAppContextSetup(context)
                 .apply(springSecurity())
@@ -93,12 +96,12 @@ class PurchaseFlowIntegrationTest {
         denomInfo = new DenomInfo(denomId, "PULSA10", "Telkomsel 10K", "Telkomsel",
                 new BigDecimal("10000.00"), BigDecimal.ZERO, true, false);
 
-        // WalletAccount mock — BalanceDomainService uses WalletAccountPort for balance operations
-        walletAccount = new WalletAccount(storeId, new BigDecimal("100000.00"));
-        walletAccount.setId(UUID.randomUUID());
-        when(walletAccountPort.findByStoreIdWithLock(storeId)).thenReturn(Optional.of(walletAccount));
-        when(walletAccountPort.findByStoreId(storeId)).thenReturn(Optional.of(walletAccount));
-        when(walletAccountPort.save(any(WalletAccount.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        // BalanceManagementUseCase mock — TransactionDomainService uses this for balance operations
+        MutationResult debitResult = new MutationResult(UUID.randomUUID(), new BigDecimal("90000.00"));
+        MutationResult refundResult = new MutationResult(UUID.randomUUID(), new BigDecimal("100000.00"));
+        doReturn(debitResult).when(balanceManagementUseCase).deductBalance(any(), any(), any(), any(), any());
+        doReturn(refundResult).when(balanceManagementUseCase).addBalance(any(), any(), any(), any(), any());
+        doReturn(new BigDecimal("100000.00")).when(balanceManagementUseCase).getBalance(any());
 
         // UserDTO provides store context to controller
         when(userDTO.getStoreId()).thenReturn(storeId);
@@ -163,8 +166,8 @@ class PurchaseFlowIntegrationTest {
 
     @Test
     void whenPurchase_withInsufficientBalance_thenReturn422AndProviderNotCalled() throws Exception {
-        // WalletAccount hanya punya 5000, harga denom 10000
-        walletAccount.setBalance(new BigDecimal("5000.00"));
+        when(balanceManagementUseCase.deductBalance(any(), any(), any(), any(), any()))
+                .thenThrow(new InsufficientBalanceException("Saldo tidak mencukupi"));
 
         PurchaseRequest request = new PurchaseRequest(denomId, "081234567890");
 
@@ -203,7 +206,8 @@ class PurchaseFlowIntegrationTest {
         verify(providerService, times(1))
                 .sendTransaction(eq("081234567890"), eq("PULSA10"), eq(new BigDecimal("10000.00")));
 
-        // BalanceDomainService.deductBalance + addBalance each call findByStoreIdWithLock
-        verify(walletAccountPort, atLeast(2)).findByStoreIdWithLock(storeId);
+        // deductBalance (purchase) + addBalance (refund) both called
+        verify(balanceManagementUseCase, times(1)).deductBalance(eq(storeId), any(), any(), any(), any());
+        verify(balanceManagementUseCase, times(1)).addBalance(eq(storeId), any(), any(), any(), any());
     }
 }

@@ -3,12 +3,15 @@ package com.satset.wallet.adapter.out.persistence.entity;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
-import org.hibernate.annotations.UuidGenerator;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
+/**
+ * JPA entity for wallet account.
+ * Uses wallet_id (String, format: 700xxxxxxx) as primary key.
+ */
 @Entity
 @Table(name = "wallet_accounts")
 @Getter
@@ -16,8 +19,8 @@ import java.util.UUID;
 public class WalletAccountEntity {
 
     @Id
-    @UuidGenerator
-    private UUID id;
+    @Column(name = "wallet_id", nullable = false, updatable = false, length = 10)
+    private String walletId;
 
     @Column(name = "store_id", nullable = false, unique = true)
     private UUID storeId;

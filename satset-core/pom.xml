@@ -122,7 +122,7 @@
         <dependency>
             <groupId>com.github.dasniko</groupId>
             <artifactId>testcontainers-keycloak</artifactId>
-            <version>3.5.0</version>
+            <version>3.7.0</version>
             <scope>test</scope>
         </dependency>
         <!-- docker-java-core: needed for custom DockerClientProviderStrategy with API version override -->
