@@ -65,3 +65,4 @@ satset-core/src/main/resources/static/css/output.css
 /satset-core/target/site/surefire-reports/
 /satset-core/target
 /satset-wallet/target
+/satset-wallet-rs

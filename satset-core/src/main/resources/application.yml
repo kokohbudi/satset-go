@@ -1,6 +1,6 @@
 spring:
   config:
-    import: optional:file:.env[.properties]
+    import: optional:file:.env[.properties],optional:file:../.env[.properties]
   threads:
     virtual:
       enabled: true
@@ -73,7 +73,7 @@ keycloak:
   realm: ${KEYCLOAK_REALM:satset-go}
   base-server-url: ${KEYCLOAK_BASE_URL:http://localhost:9999}
   server-url: ${keycloak.base-server-url}
-  client-id: ${KEYCLOAK_CLIENT_ID:omnip-web}
+  client-id: ${KEYCLOAK_CLIENT_ID:satsetgo-client}
   client-secret: ${KEYCLOAK_CLIENT_SECRET:dummy-secret}
 
 wallet:
