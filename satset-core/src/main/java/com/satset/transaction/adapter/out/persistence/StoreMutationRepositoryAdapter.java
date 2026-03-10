@@ -7,7 +7,6 @@ import com.satset.transaction.domain.port.out.StoreMutationRepositoryPort;
 import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
-import java.util.UUID;
 
 @Repository
 class StoreMutationRepositoryAdapter implements StoreMutationRepositoryPort {
@@ -28,7 +27,7 @@ class StoreMutationRepositoryAdapter implements StoreMutationRepositoryPort {
     }
 
     @Override
-    public Optional<StoreMutations> findTopByStoreIdOrderByCreatedAtDesc(UUID storeId) {
-        return mapper.toOptionalDomain(jpaRepository.findTopByStoreIdOrderByCreatedAtDesc(storeId));
+    public Optional<StoreMutations> findTopByWalletIdOrderByCreatedAtDesc(String walletId) {
+        return mapper.toOptionalDomain(jpaRepository.findTopByWalletIdOrderByCreatedAtDesc(walletId));
     }
 }

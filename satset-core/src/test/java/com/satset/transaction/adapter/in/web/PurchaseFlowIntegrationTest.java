@@ -79,6 +79,7 @@ class PurchaseFlowIntegrationTest {
     private UserDTO userDTO;
 
     private UUID storeId;
+    private String walletId;
     private UUID denomId;
     private DenomInfo denomInfo;
 
@@ -90,6 +91,7 @@ class PurchaseFlowIntegrationTest {
                 .build();
 
         storeId = UUID.randomUUID();
+        walletId = "7001234567";
         denomId = UUID.randomUUID();
 
         // Setup denom info (shared kernel value object used by TransactionDomainService)
@@ -103,8 +105,9 @@ class PurchaseFlowIntegrationTest {
         doReturn(refundResult).when(balanceManagementUseCase).addBalance(any(), any(), any(), any(), any());
         doReturn(new BigDecimal("100000.00")).when(balanceManagementUseCase).getBalance(any());
 
-        // UserDTO provides store context to controller
+        // UserDTO provides store/wallet context to controller
         when(userDTO.getStoreId()).thenReturn(storeId);
+        when(userDTO.getWalletId()).thenReturn(walletId);
 
 
         // Denom lookup (service uses findDenomInfoById, not findById)
@@ -207,7 +210,7 @@ class PurchaseFlowIntegrationTest {
                 .sendTransaction(eq("081234567890"), eq("PULSA10"), eq(new BigDecimal("10000.00")));
 
         // deductBalance (purchase) + addBalance (refund) both called
-        verify(balanceManagementUseCase, times(1)).deductBalance(eq(storeId), any(), any(), any(), any());
-        verify(balanceManagementUseCase, times(1)).addBalance(eq(storeId), any(), any(), any(), any());
+        verify(balanceManagementUseCase, times(1)).deductBalance(eq(walletId), any(), any(), any(), any());
+        verify(balanceManagementUseCase, times(1)).addBalance(eq(walletId), any(), any(), any(), any());
     }
 }

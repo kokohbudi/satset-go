@@ -22,5 +22,6 @@ public class Users {
     private String providerUserId;
     private Long version;
     private UUID storeId;
+    private String walletId;
     private List<String> roles;
 }

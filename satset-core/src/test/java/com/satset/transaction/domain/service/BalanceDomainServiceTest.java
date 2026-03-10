@@ -27,10 +27,10 @@ class BalanceDomainServiceTest {
 
     @Mock
     private WalletAccountPort walletAccountPort;
-    
+
     @Mock
     private StoreMutationRepositoryPort storeMutationRepository;
-    
+
     private BalanceDomainService balanceDomainService;
 
     @BeforeEach
@@ -41,37 +41,37 @@ class BalanceDomainServiceTest {
     @Test
     void testDeductBalanceSuccess() throws InsufficientBalanceException {
         // Given
-        UUID storeId = UUID.randomUUID();
+        String walletId = "7001234567";
         BigDecimal amount = new BigDecimal("10000");
         MutationReferenceType referenceType = MutationReferenceType.PURCHASE;
         UUID referenceId = UUID.randomUUID();
         String description = "Test deduction";
-        
-        WalletAccount walletAccount = new WalletAccount(storeId, new BigDecimal("50000"));
+
+        WalletAccount walletAccount = new WalletAccount(walletId, new BigDecimal("50000"));
         StoreMutations storeMutation = new StoreMutations();
-        storeMutation.setStoreId(storeId);
+        storeMutation.setWalletId(walletId);
         storeMutation.setBalanceAfter(new BigDecimal("40000"));
         storeMutation.setId(UUID.randomUUID());
-        
-        when(walletAccountPort.findByStoreIdWithLock(storeId)).thenReturn(Optional.of(walletAccount));
+
+        when(walletAccountPort.findByWalletIdWithLock(walletId)).thenReturn(Optional.of(walletAccount));
         when(storeMutationRepository.save(any(StoreMutations.class))).thenAnswer(invocation -> {
             StoreMutations argument = invocation.getArgument(0);
             if (argument.getId() == null) {
-                argument.setId(UUID.randomUUID()); // Simulasikan ID yang di-generate oleh DB
+                argument.setId(UUID.randomUUID());
             }
             return argument;
         });
         when(walletAccountPort.save(any(WalletAccount.class))).thenReturn(walletAccount);
 
         // When
-        MutationResult result = balanceDomainService.deductBalance(storeId, amount, referenceType, referenceId, description);
+        MutationResult result = balanceDomainService.deductBalance(walletId, amount, referenceType, referenceId, description);
 
         // Then
         assertNotNull(result);
         assertNotNull(result.mutationId());
         assertEquals(new BigDecimal("40000"), result.balanceAfter());
-        
-        verify(walletAccountPort).findByStoreIdWithLock(storeId);
+
+        verify(walletAccountPort).findByWalletIdWithLock(walletId);
         verify(storeMutationRepository).save(any(StoreMutations.class));
         verify(walletAccountPort).save(any(WalletAccount.class));
     }
@@ -79,23 +79,23 @@ class BalanceDomainServiceTest {
     @Test
     void testDeductBalanceInsufficientFunds() {
         // Given
-        UUID storeId = UUID.randomUUID();
+        String walletId = "7001234567";
         BigDecimal amount = new BigDecimal("10000");
         MutationReferenceType referenceType = MutationReferenceType.PURCHASE;
         UUID referenceId = UUID.randomUUID();
         String description = "Test deduction";
-        
-        WalletAccount walletAccount = new WalletAccount(storeId, new BigDecimal("5000")); // Less than amount
-        
-        when(walletAccountPort.findByStoreIdWithLock(storeId)).thenReturn(Optional.of(walletAccount));
+
+        WalletAccount walletAccount = new WalletAccount(walletId, new BigDecimal("5000")); // Less than amount
+
+        when(walletAccountPort.findByWalletIdWithLock(walletId)).thenReturn(Optional.of(walletAccount));
 
         // When & Then
         InsufficientBalanceException exception = assertThrows(InsufficientBalanceException.class, () -> {
-            balanceDomainService.deductBalance(storeId, amount, referenceType, referenceId, description);
+            balanceDomainService.deductBalance(walletId, amount, referenceType, referenceId, description);
         });
-        
+
         assertTrue(exception.getMessage().contains("Saldo tidak mencukupi"));
-        verify(walletAccountPort).findByStoreIdWithLock(storeId);
+        verify(walletAccountPort).findByWalletIdWithLock(walletId);
         verify(storeMutationRepository, never()).save(any(StoreMutations.class));
         verify(walletAccountPort, never()).save(any(WalletAccount.class));
     }
@@ -103,21 +103,21 @@ class BalanceDomainServiceTest {
     @Test
     void testDeductBalanceWalletAccountNotFound() {
         // Given
-        UUID storeId = UUID.randomUUID();
+        String walletId = "7001234567";
         BigDecimal amount = new BigDecimal("10000");
         MutationReferenceType referenceType = MutationReferenceType.PURCHASE;
         UUID referenceId = UUID.randomUUID();
         String description = "Test deduction";
-        
-        when(walletAccountPort.findByStoreIdWithLock(storeId)).thenReturn(Optional.empty());
+
+        when(walletAccountPort.findByWalletIdWithLock(walletId)).thenReturn(Optional.empty());
 
         // When & Then
         ResourceNotFoundException exception = assertThrows(ResourceNotFoundException.class, () -> {
-            balanceDomainService.deductBalance(storeId, amount, referenceType, referenceId, description);
+            balanceDomainService.deductBalance(walletId, amount, referenceType, referenceId, description);
         });
-        
+
         assertTrue(exception.getMessage().contains("WalletAccount"));
-        verify(walletAccountPort).findByStoreIdWithLock(storeId);
+        verify(walletAccountPort).findByWalletIdWithLock(walletId);
         verify(storeMutationRepository, never()).save(any(StoreMutations.class));
         verify(walletAccountPort, never()).save(any(WalletAccount.class));
     }
@@ -125,37 +125,37 @@ class BalanceDomainServiceTest {
     @Test
     void testAddBalanceSuccess() {
         // Given
-        UUID storeId = UUID.randomUUID();
+        String walletId = "7001234567";
         BigDecimal amount = new BigDecimal("10000");
         MutationReferenceType referenceType = MutationReferenceType.TOP_UP;
         UUID referenceId = UUID.randomUUID();
         String description = "Test addition";
-        
-        WalletAccount walletAccount = new WalletAccount(storeId, new BigDecimal("40000"));
+
+        WalletAccount walletAccount = new WalletAccount(walletId, new BigDecimal("40000"));
         StoreMutations storeMutation = new StoreMutations();
-        storeMutation.setStoreId(storeId);
+        storeMutation.setWalletId(walletId);
         storeMutation.setBalanceAfter(new BigDecimal("50000"));
         storeMutation.setId(UUID.randomUUID());
-        
-        when(walletAccountPort.findByStoreIdWithLock(storeId)).thenReturn(Optional.of(walletAccount));
+
+        when(walletAccountPort.findByWalletIdWithLock(walletId)).thenReturn(Optional.of(walletAccount));
         when(storeMutationRepository.save(any(StoreMutations.class))).thenAnswer(invocation -> {
             StoreMutations argument = invocation.getArgument(0);
             if (argument.getId() == null) {
-                argument.setId(UUID.randomUUID()); // Simulasikan ID yang di-generate oleh DB
+                argument.setId(UUID.randomUUID());
             }
             return argument;
         });
         when(walletAccountPort.save(any(WalletAccount.class))).thenReturn(walletAccount);
 
         // When
-        MutationResult result = balanceDomainService.addBalance(storeId, amount, referenceType, referenceId, description);
+        MutationResult result = balanceDomainService.addBalance(walletId, amount, referenceType, referenceId, description);
 
         // Then
         assertNotNull(result);
         assertNotNull(result.mutationId());
         assertEquals(new BigDecimal("50000"), result.balanceAfter());
-        
-        verify(walletAccountPort).findByStoreIdWithLock(storeId);
+
+        verify(walletAccountPort).findByWalletIdWithLock(walletId);
         verify(storeMutationRepository).save(any(StoreMutations.class));
         verify(walletAccountPort).save(any(WalletAccount.class));
     }
@@ -163,21 +163,21 @@ class BalanceDomainServiceTest {
     @Test
     void testAddBalanceWalletAccountNotFound() {
         // Given
-        UUID storeId = UUID.randomUUID();
+        String walletId = "7001234567";
         BigDecimal amount = new BigDecimal("10000");
         MutationReferenceType referenceType = MutationReferenceType.TOP_UP;
         UUID referenceId = UUID.randomUUID();
         String description = "Test addition";
-        
-        when(walletAccountPort.findByStoreIdWithLock(storeId)).thenReturn(Optional.empty());
+
+        when(walletAccountPort.findByWalletIdWithLock(walletId)).thenReturn(Optional.empty());
 
         // When & Then
         ResourceNotFoundException exception = assertThrows(ResourceNotFoundException.class, () -> {
-            balanceDomainService.addBalance(storeId, amount, referenceType, referenceId, description);
+            balanceDomainService.addBalance(walletId, amount, referenceType, referenceId, description);
         });
-        
+
         assertTrue(exception.getMessage().contains("WalletAccount"));
-        verify(walletAccountPort).findByStoreIdWithLock(storeId);
+        verify(walletAccountPort).findByWalletIdWithLock(walletId);
         verify(storeMutationRepository, never()).save(any(StoreMutations.class));
         verify(walletAccountPort, never()).save(any(WalletAccount.class));
     }
@@ -185,34 +185,34 @@ class BalanceDomainServiceTest {
     @Test
     void testGetBalanceSuccess() {
         // Given
-        UUID storeId = UUID.randomUUID();
+        String walletId = "7001234567";
         BigDecimal expectedBalance = new BigDecimal("50000");
-        
-        WalletAccount walletAccount = new WalletAccount(storeId, expectedBalance);
-        
-        when(walletAccountPort.findByStoreId(storeId)).thenReturn(Optional.of(walletAccount));
+
+        WalletAccount walletAccount = new WalletAccount(walletId, expectedBalance);
+
+        when(walletAccountPort.findByWalletId(walletId)).thenReturn(Optional.of(walletAccount));
 
         // When
-        BigDecimal result = balanceDomainService.getBalance(storeId);
+        BigDecimal result = balanceDomainService.getBalance(walletId);
 
         // Then
         assertEquals(expectedBalance, result);
-        verify(walletAccountPort).findByStoreId(storeId);
+        verify(walletAccountPort).findByWalletId(walletId);
     }
 
     @Test
     void testGetBalanceWalletAccountNotFound() {
         // Given
-        UUID storeId = UUID.randomUUID();
-        
-        when(walletAccountPort.findByStoreId(storeId)).thenReturn(Optional.empty());
+        String walletId = "7001234567";
+
+        when(walletAccountPort.findByWalletId(walletId)).thenReturn(Optional.empty());
 
         // When & Then
         ResourceNotFoundException exception = assertThrows(ResourceNotFoundException.class, () -> {
-            balanceDomainService.getBalance(storeId);
+            balanceDomainService.getBalance(walletId);
         });
-        
+
         assertTrue(exception.getMessage().contains("WalletAccount"));
-        verify(walletAccountPort).findByStoreId(storeId);
+        verify(walletAccountPort).findByWalletId(walletId);
     }
 }

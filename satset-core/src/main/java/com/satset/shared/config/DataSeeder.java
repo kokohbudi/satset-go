@@ -91,7 +91,7 @@ public class DataSeeder implements ApplicationRunner {
         log.info("Seeding WalletAccount for {} stores via wallet service...", stores.size());
         int created = 0;
         for (Stores store : stores) {
-            if (walletAccountPort.findByStoreId(store.getId()).isEmpty()) {
+            if (store.getWalletId() == null || walletAccountPort.findByWalletId(store.getWalletId()).isEmpty()) {
                 try {
                     walletCreationPort.createWallet(store.getId());
                     created++;

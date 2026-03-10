@@ -3,13 +3,12 @@ package com.satset.transaction.domain.port.out;
 import com.satset.transaction.domain.model.WalletAccount;
 
 import java.util.Optional;
-import java.util.UUID;
 
 public interface WalletAccountPort {
 
-    Optional<WalletAccount> findByStoreId(UUID storeId);
+    Optional<WalletAccount> findByWalletId(String walletId);
 
-    Optional<WalletAccount> findByStoreIdWithLock(UUID storeId);
+    Optional<WalletAccount> findByWalletIdWithLock(String walletId);
 
     WalletAccount save(WalletAccount walletAccount);
 

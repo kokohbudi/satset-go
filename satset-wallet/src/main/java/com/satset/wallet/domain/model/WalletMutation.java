@@ -6,7 +6,7 @@ import java.util.UUID;
 
 public record WalletMutation(
         UUID id,
-        UUID storeId,
+        String walletId,
         BigDecimal amount,
         MutationType mutationType,
         BigDecimal balanceAfter,
@@ -15,10 +15,10 @@ public record WalletMutation(
         String description,
         LocalDateTime createdAt
 ) {
-    public static WalletMutation of(UUID storeId, BigDecimal amount, MutationType mutationType,
+    public static WalletMutation of(String walletId, BigDecimal amount, MutationType mutationType,
             BigDecimal balanceAfter, UUID referenceId, MutationReferenceType referenceType,
             String description) {
-        return new WalletMutation(null, storeId, amount, mutationType, balanceAfter,
+        return new WalletMutation(null, walletId, amount, mutationType, balanceAfter,
                 referenceType, referenceId, description, null);
     }
 }

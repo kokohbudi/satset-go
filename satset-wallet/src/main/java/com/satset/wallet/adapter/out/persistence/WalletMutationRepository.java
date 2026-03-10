@@ -12,7 +12,7 @@ import java.util.UUID;
 @Repository
 public interface WalletMutationRepository extends JpaRepository<WalletMutationEntity, UUID> {
 
-    List<WalletMutationEntity> findByStoreIdOrderByCreatedAtDesc(UUID storeId);
+    List<WalletMutationEntity> findByWalletIdOrderByCreatedAtDesc(String walletId);
 
     Optional<WalletMutationEntity> findByReferenceIdAndReferenceType(UUID referenceId, MutationReferenceType referenceType);
 }

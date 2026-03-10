@@ -36,14 +36,12 @@ class WalletDomainServiceTest {
     private WalletIdGenerator walletIdGenerator;
 
     private WalletDomainService service;
-    private UUID storeId;
     private UUID referenceId;
     private String walletId;
 
     @BeforeEach
     void setUp() {
         service = new WalletDomainService(walletAccountPort, walletMutationPort, walletIdGenerator);
-        storeId = UUID.randomUUID();
         referenceId = UUID.randomUUID();
         walletId = "7000000001";
     }
@@ -51,45 +49,32 @@ class WalletDomainServiceTest {
     // --- createWallet ---
 
     @Test
-    void createWallet_whenWalletDoesNotExist_createsNewWallet() {
-        when(walletAccountPort.findByStoreId(storeId)).thenReturn(Optional.empty());
+    void createWallet_createsNewWallet() {
         when(walletIdGenerator.generate()).thenReturn(walletId);
         when(walletAccountPort.save(any())).thenAnswer(i -> i.getArgument(0));
 
-        var result = service.createWallet(storeId);
+        var result = service.createWallet();
 
         assertThat(result.walletId()).isEqualTo(walletId);
-        assertThat(result.storeId()).isEqualTo(storeId);
         assertThat(result.balance()).isEqualByComparingTo(BigDecimal.ZERO);
         verify(walletAccountPort).save(any(WalletAccount.class));
-    }
-
-    @Test
-    void createWallet_whenWalletAlreadyExists_returnsExistingWallet() {
-        var existingWallet = WalletAccount.newAccount(walletId, storeId);
-        when(walletAccountPort.findByStoreId(storeId)).thenReturn(Optional.of(existingWallet));
-
-        var result = service.createWallet(storeId);
-
-        assertThat(result.walletId()).isEqualTo(walletId);
-        verify(walletAccountPort, never()).save(any());
     }
 
     // --- getBalance ---
 
     @Test
     void getBalance_whenAccountExists_returnsBalance() {
-        var account = new WalletAccount(walletId, storeId, new BigDecimal("100000.0000"), 0L);
-        when(walletAccountPort.findByStoreId(storeId)).thenReturn(Optional.of(account));
+        var account = new WalletAccount(walletId, new BigDecimal("100000.0000"), 0L);
+        when(walletAccountPort.findByWalletId(walletId)).thenReturn(Optional.of(account));
 
-        assertThat(service.getBalance(storeId)).isEqualByComparingTo(new BigDecimal("100000.0000"));
+        assertThat(service.getBalance(walletId)).isEqualByComparingTo(new BigDecimal("100000.0000"));
     }
 
     @Test
     void getBalance_whenAccountDoesNotExist_throwsException() {
-        when(walletAccountPort.findByStoreId(storeId)).thenReturn(Optional.empty());
+        when(walletAccountPort.findByWalletId(walletId)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> service.getBalance(storeId))
+        assertThatThrownBy(() -> service.getBalance(walletId))
                 .isInstanceOf(ResourceNotFoundException.class);
     }
 
@@ -97,14 +82,14 @@ class WalletDomainServiceTest {
 
     @Test
     void debit_whenSufficientBalance_deductsAndCreatesMutation() {
-        var account = new WalletAccount(walletId, storeId, new BigDecimal("100000.0000"), 0L);
+        var account = new WalletAccount(walletId, new BigDecimal("100000.0000"), 0L);
         when(walletMutationPort.findByReferenceIdAndReferenceType(referenceId, MutationReferenceType.TRANSACTION))
                 .thenReturn(Optional.empty());
-        when(walletAccountPort.findByStoreIdWithLock(storeId)).thenReturn(Optional.of(account));
+        when(walletAccountPort.findByWalletIdWithLock(walletId)).thenReturn(Optional.of(account));
         when(walletAccountPort.save(any())).thenAnswer(i -> i.getArgument(0));
         when(walletMutationPort.save(any())).thenAnswer(i -> i.getArgument(0));
 
-        var result = service.debit(storeId, new BigDecimal("50000.0000"), referenceId,
+        var result = service.debit(walletId, new BigDecimal("50000.0000"), referenceId,
                 MutationReferenceType.TRANSACTION, "Test purchase");
 
         assertThat(result.newBalance()).isEqualByComparingTo(new BigDecimal("50000.0000"));
@@ -118,12 +103,12 @@ class WalletDomainServiceTest {
 
     @Test
     void debit_whenInsufficientBalance_throwsException() {
-        var account = new WalletAccount(walletId, storeId, new BigDecimal("10000.0000"), 0L);
+        var account = new WalletAccount(walletId, new BigDecimal("10000.0000"), 0L);
         when(walletMutationPort.findByReferenceIdAndReferenceType(referenceId, MutationReferenceType.TRANSACTION))
                 .thenReturn(Optional.empty());
-        when(walletAccountPort.findByStoreIdWithLock(storeId)).thenReturn(Optional.of(account));
+        when(walletAccountPort.findByWalletIdWithLock(walletId)).thenReturn(Optional.of(account));
 
-        assertThatThrownBy(() -> service.debit(storeId, new BigDecimal("50000.0000"), referenceId,
+        assertThatThrownBy(() -> service.debit(walletId, new BigDecimal("50000.0000"), referenceId,
                 MutationReferenceType.TRANSACTION, "Test"))
                 .isInstanceOf(InsufficientBalanceException.class);
 
@@ -133,26 +118,26 @@ class WalletDomainServiceTest {
     @Test
     void debit_whenDuplicate_returnsExistingResult() {
         UUID existingMutationId = UUID.randomUUID();
-        var existingMutation = new WalletMutation(existingMutationId, storeId, new BigDecimal("50000"),
+        var existingMutation = new WalletMutation(existingMutationId, walletId, new BigDecimal("50000"),
                 MutationType.DEBIT, new BigDecimal("50000"), MutationReferenceType.TRANSACTION,
                 referenceId, "existing", null);
         when(walletMutationPort.findByReferenceIdAndReferenceType(referenceId, MutationReferenceType.TRANSACTION))
                 .thenReturn(Optional.of(existingMutation));
 
-        var result = service.debit(storeId, new BigDecimal("50000"), referenceId,
+        var result = service.debit(walletId, new BigDecimal("50000"), referenceId,
                 MutationReferenceType.TRANSACTION, "duplicate");
 
         assertThat(result.mutationId()).isEqualTo(existingMutationId);
-        verify(walletAccountPort, never()).findByStoreIdWithLock(any());
+        verify(walletAccountPort, never()).findByWalletIdWithLock(any());
         verify(walletMutationPort, never()).save(any());
     }
 
     @Test
     void debit_whenAccountNotFound_throwsException() {
         when(walletMutationPort.findByReferenceIdAndReferenceType(any(), any())).thenReturn(Optional.empty());
-        when(walletAccountPort.findByStoreIdWithLock(storeId)).thenReturn(Optional.empty());
+        when(walletAccountPort.findByWalletIdWithLock(walletId)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> service.debit(storeId, new BigDecimal("100"), referenceId,
+        assertThatThrownBy(() -> service.debit(walletId, new BigDecimal("100"), referenceId,
                 MutationReferenceType.TRANSACTION, "test"))
                 .isInstanceOf(ResourceNotFoundException.class);
     }
@@ -161,14 +146,14 @@ class WalletDomainServiceTest {
 
     @Test
     void credit_whenAccountExists_addsAndCreatesMutation() {
-        var account = new WalletAccount(walletId, storeId, new BigDecimal("100000.0000"), 0L);
+        var account = new WalletAccount(walletId, new BigDecimal("100000.0000"), 0L);
         when(walletMutationPort.findByReferenceIdAndReferenceType(referenceId, MutationReferenceType.TOPUP))
                 .thenReturn(Optional.empty());
-        when(walletAccountPort.findByStoreIdWithLock(storeId)).thenReturn(Optional.of(account));
+        when(walletAccountPort.findByWalletIdWithLock(walletId)).thenReturn(Optional.of(account));
         when(walletAccountPort.save(any())).thenAnswer(i -> i.getArgument(0));
         when(walletMutationPort.save(any())).thenAnswer(i -> i.getArgument(0));
 
-        var result = service.credit(storeId, new BigDecimal("50000.0000"), referenceId,
+        var result = service.credit(walletId, new BigDecimal("50000.0000"), referenceId,
                 MutationReferenceType.TOPUP, "Test topup");
 
         assertThat(result.newBalance()).isEqualByComparingTo(new BigDecimal("150000.0000"));
@@ -179,49 +164,43 @@ class WalletDomainServiceTest {
     }
 
     @Test
-    void credit_whenAccountDoesNotExist_createsAccountThenCredits() {
-        var newAccount = new WalletAccount(walletId, storeId, BigDecimal.ZERO, 0L);
+    void credit_whenAccountNotFound_throwsException() {
         when(walletMutationPort.findByReferenceIdAndReferenceType(any(), any())).thenReturn(Optional.empty());
-        when(walletAccountPort.findByStoreIdWithLock(storeId)).thenReturn(Optional.empty());
-        when(walletIdGenerator.generate()).thenReturn(walletId);
-        when(walletAccountPort.save(any())).thenReturn(newAccount);
-        when(walletMutationPort.save(any())).thenAnswer(i -> i.getArgument(0));
+        when(walletAccountPort.findByWalletIdWithLock(walletId)).thenReturn(Optional.empty());
 
-        var result = service.credit(storeId, new BigDecimal("50000"), referenceId,
-                MutationReferenceType.TOPUP, "First topup");
-
-        assertThat(result.newBalance()).isEqualByComparingTo(new BigDecimal("50000"));
-        verify(walletAccountPort, times(2)).save(any()); // once to create, once to update balance
+        assertThatThrownBy(() -> service.credit(walletId, new BigDecimal("50000"), referenceId,
+                MutationReferenceType.TOPUP, "Test"))
+                .isInstanceOf(ResourceNotFoundException.class);
     }
 
     @Test
     void credit_whenDuplicate_returnsExistingResult() {
         UUID existingMutationId = UUID.randomUUID();
-        var existingMutation = new WalletMutation(existingMutationId, storeId, new BigDecimal("50000"),
+        var existingMutation = new WalletMutation(existingMutationId, walletId, new BigDecimal("50000"),
                 MutationType.CREDIT, new BigDecimal("150000"), MutationReferenceType.TOPUP,
                 referenceId, "existing", null);
         when(walletMutationPort.findByReferenceIdAndReferenceType(referenceId, MutationReferenceType.TOPUP))
                 .thenReturn(Optional.of(existingMutation));
 
-        var result = service.credit(storeId, new BigDecimal("50000"), referenceId,
+        var result = service.credit(walletId, new BigDecimal("50000"), referenceId,
                 MutationReferenceType.TOPUP, "duplicate");
 
         assertThat(result.mutationId()).isEqualTo(existingMutationId);
-        verify(walletAccountPort, never()).findByStoreIdWithLock(any());
+        verify(walletAccountPort, never()).findByWalletIdWithLock(any());
     }
 
     // --- refund ---
 
     @Test
     void refund_whenValid_restoresBalance() {
-        var account = new WalletAccount(walletId, storeId, new BigDecimal("50000.0000"), 0L);
+        var account = new WalletAccount(walletId, new BigDecimal("50000.0000"), 0L);
         when(walletMutationPort.findByReferenceIdAndReferenceType(referenceId, MutationReferenceType.REFUND))
                 .thenReturn(Optional.empty());
-        when(walletAccountPort.findByStoreIdWithLock(storeId)).thenReturn(Optional.of(account));
+        when(walletAccountPort.findByWalletIdWithLock(walletId)).thenReturn(Optional.of(account));
         when(walletAccountPort.save(any())).thenAnswer(i -> i.getArgument(0));
         when(walletMutationPort.save(any())).thenAnswer(i -> i.getArgument(0));
 
-        var result = service.refund(storeId, new BigDecimal("10000.0000"), referenceId, "Test refund");
+        var result = service.refund(walletId, new BigDecimal("10000.0000"), referenceId, "Test refund");
 
         assertThat(result.newBalance()).isEqualByComparingTo(new BigDecimal("60000.0000"));
 
@@ -233,24 +212,24 @@ class WalletDomainServiceTest {
     @Test
     void refund_whenDuplicate_returnsExistingResult() {
         UUID existingMutationId = UUID.randomUUID();
-        var existingMutation = new WalletMutation(existingMutationId, storeId, new BigDecimal("10000"),
+        var existingMutation = new WalletMutation(existingMutationId, walletId, new BigDecimal("10000"),
                 MutationType.REFUND, new BigDecimal("60000"), MutationReferenceType.REFUND,
                 referenceId, "existing", null);
         when(walletMutationPort.findByReferenceIdAndReferenceType(referenceId, MutationReferenceType.REFUND))
                 .thenReturn(Optional.of(existingMutation));
 
-        var result = service.refund(storeId, new BigDecimal("10000"), referenceId, "duplicate");
+        var result = service.refund(walletId, new BigDecimal("10000"), referenceId, "duplicate");
 
         assertThat(result.mutationId()).isEqualTo(existingMutationId);
-        verify(walletAccountPort, never()).findByStoreIdWithLock(any());
+        verify(walletAccountPort, never()).findByWalletIdWithLock(any());
     }
 
     @Test
     void refund_whenAccountNotFound_throwsException() {
         when(walletMutationPort.findByReferenceIdAndReferenceType(any(), any())).thenReturn(Optional.empty());
-        when(walletAccountPort.findByStoreIdWithLock(storeId)).thenReturn(Optional.empty());
+        when(walletAccountPort.findByWalletIdWithLock(walletId)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> service.refund(storeId, new BigDecimal("100"), referenceId, "test"))
+        assertThatThrownBy(() -> service.refund(walletId, new BigDecimal("100"), referenceId, "test"))
                 .isInstanceOf(ResourceNotFoundException.class);
     }
 
@@ -258,12 +237,12 @@ class WalletDomainServiceTest {
 
     @Test
     void getMutations_returnsListFromPort() {
-        var mutation = new WalletMutation(UUID.randomUUID(), storeId, new BigDecimal("10000"),
+        var mutation = new WalletMutation(UUID.randomUUID(), walletId, new BigDecimal("10000"),
                 MutationType.DEBIT, new BigDecimal("90000"), MutationReferenceType.TRANSACTION,
                 UUID.randomUUID(), "test", null);
-        when(walletMutationPort.findByStoreIdOrderByCreatedAtDesc(storeId)).thenReturn(List.of(mutation));
+        when(walletMutationPort.findByWalletIdOrderByCreatedAtDesc(walletId)).thenReturn(List.of(mutation));
 
-        var result = service.getMutations(storeId);
+        var result = service.getMutations(walletId);
 
         assertThat(result).hasSize(1);
         assertThat(result.getFirst().mutationType()).isEqualTo(MutationType.DEBIT);

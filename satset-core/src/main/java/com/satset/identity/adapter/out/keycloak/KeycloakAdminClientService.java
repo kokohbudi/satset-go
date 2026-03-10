@@ -28,17 +28,11 @@ public class KeycloakAdminClientService implements KeycloakIdentityPort, Keycloa
         private final KeycloakHelper keycloakAdminClientBusiness;
         private final IdentityMapper identityMapper;
 
-        @Value("${keycloak.base-server-url}")
-        private String keycloakServerUrl;
-
         @Value("${keycloak.realm}")
         private String realm;
 
         @Value("${keycloak.client-id}")
         private String clientId;
-
-        @Value("${keycloak.client-secret}")
-        private String keycloakClientSecret;
 
         public KeycloakAdminClientService(Keycloak keycloak, KeycloakHelper keycloakAdminClientBusiness, IdentityMapper identityMapper) {
                 this.keycloak = keycloak;
@@ -90,7 +84,6 @@ public class KeycloakAdminClientService implements KeycloakIdentityPort, Keycloa
 
                 // Build a map of role name -> DTO with children populated
                 java.util.Map<String, KeycloakRole> roleMap = new java.util.LinkedHashMap<>();
-                java.util.Set<String> childRoleNames = new java.util.HashSet<>();
 
                 // First pass: create DTOs and collect composite children
                 for (RoleRepresentation role : allRoles) {
@@ -114,7 +107,6 @@ public class KeycloakAdminClientService implements KeycloakIdentityPort, Keycloa
                                                                         child.getName());
                                                         childDto.setChildren(new java.util.ArrayList<>());
                                                         dto.getChildren().add(childDto);
-                                                        childRoleNames.add(child.getName());
                                                 }
                                         }
                                 } catch (Exception e) {
@@ -155,8 +147,7 @@ public class KeycloakAdminClientService implements KeycloakIdentityPort, Keycloa
         /**
          * Mendapatkan roles yang difilter berdasarkan scope attribute.
          * Role harus memiliki attribute "scope" dengan value yang sesuai.
-         * 
-         * Contoh: scope=backoffice, scope=customer, scope=shared
+         * <p>Contoh: scope=backoffice, scope=customer, scope=shared
          *
          * @param scope Nilai scope untuk filter (e.g., "backoffice", "customer")
          * @return List of KeycloakRole yang memiliki scope tersebut
@@ -183,13 +174,6 @@ public class KeycloakAdminClientService implements KeycloakIdentityPort, Keycloa
         }
 
         /**
-         * Mendapatkan full role representation dengan attributes (cached).
-         * Cache key adalah roleName, TTL mengikuti fastCacheManager config.
-         *
-         * @param roleName Nama role yang akan di-fetch
-         * @return KeycloakRole dengan attributes lengkap
-         */
-        /**
          * Mendapatkan full REALM role representation dengan attributes (cached).
          * Updated for new structure: roles are now realm-level.
          */
@@ -207,6 +191,48 @@ public class KeycloakAdminClientService implements KeycloakIdentityPort, Keycloa
                         log.warn("Failed to fetch realm role details for: {}", roleName, e);
                         return KeycloakRole.builder().name(roleName).build();
                 }
+        }
+
+        /**
+         * Mendapatkan full CLIENT role representation dengan attributes (cached).
+         * Cache key menggunakan prefix "client:" untuk menghindari collision dengan realm roles.
+         *
+         * @param clientUuid UUID internal client di Keycloak (bukan clientId string)
+         * @param roleName   Nama client role
+         * @return KeycloakRole dengan attributes lengkap
+         */
+        @Cacheable(value = "keycloakRoles", key = "'client:' + #clientUuid + ':' + #roleName", cacheManager = "fastCacheManager")
+        public KeycloakRole getCachedClientRoleWithAttributes(String clientUuid, String roleName) {
+                log.debug("Fetching client role details from Keycloak for: {}/{}", clientUuid, roleName);
+                try {
+                        RoleRepresentation fullRole = this.keycloak
+                                .realm(this.realm)
+                                .clients()
+                                .get(clientUuid)
+                                .roles()
+                                .get(roleName)
+                                .toRepresentation();
+                        return KeycloakRole.fromRoleRepresentation(fullRole);
+                } catch (Exception e) {
+                        log.warn("Failed to fetch client role details for: {}/{}", clientUuid, roleName, e);
+                        return KeycloakRole.builder().name(roleName).clientRole(true).build();
+                }
+        }
+
+        /**
+         * Mencari UUID internal dari client berdasarkan clientId string yang dikonfigurasi.
+         *
+         * @return UUID internal client, atau null jika tidak ditemukan
+         */
+        private String findClientUuid() {
+                return this.keycloak
+                        .realm(this.realm)
+                        .clients()
+                        .findByClientId(this.clientId)
+                        .stream()
+                        .findFirst()
+                        .map(ClientRepresentation::getId)
+                        .orElse(null);
         }
 
         /**
@@ -406,7 +432,7 @@ public class KeycloakAdminClientService implements KeycloakIdentityPort, Keycloa
          * @param userId   ID of the user
          * @param roleName Name of the realm role to assign
          */
-        public void assignRoleToUser(String userId, String roleName) throws BusinessException {
+        public void assignRoleToUser(String userId, String roleName) {
                 // Get realm role
                 RoleRepresentation role = this.keycloak
                                 .realm(this.realm)
@@ -473,7 +499,7 @@ public class KeycloakAdminClientService implements KeycloakIdentityPort, Keycloa
          * @param userId   ID of the user
          * @param roleName Name of the realm role to remove
          */
-        public void unassignRoleFromUser(String userId, String roleName) throws BusinessException {
+        public void unassignRoleFromUser(String userId, String roleName) {
                 // Get realm role
                 RoleRepresentation role = this.keycloak
                                 .realm(this.realm)
@@ -584,22 +610,6 @@ public class KeycloakAdminClientService implements KeycloakIdentityPort, Keycloa
                                 .stream()
                                 .map(KeycloakGroup::fromGroupRepresentation)
                                 .toList();
-        }
-
-        /**
-         * Batch fetch user groups untuk menghindari N+1 problem.
-         * Menggunakan parallel stream untuk concurrent API calls.
-         * 
-         * @param userIds List of user IDs
-         * @return Map of userId to their groups
-         */
-        public java.util.Map<String, List<KeycloakGroup>> getUserGroupsBatch(List<String> userIds) {
-                log.debug("Batch fetching groups for {} users", userIds.size());
-                return userIds.parallelStream()
-                                .collect(java.util.stream.Collectors.toMap(
-                                                userId -> userId,
-                                                userId -> getUserGroups(userId),
-                                                (existing, replacement) -> existing));
         }
 
         /**
@@ -738,8 +748,7 @@ public class KeycloakAdminClientService implements KeycloakIdentityPort, Keycloa
          * Used for User Management display - shows only roles assigned directly to
          * user,
          * NOT roles inherited from composite roles.
-         * 
-         * Example:
+         * <p>Example:
          * - User has manage_users (composite containing create_users, delete_users)
          * - This returns: [manage_users] only
          * - If user also has create_users assigned directly, returns: [manage_users,
@@ -786,17 +795,7 @@ public class KeycloakAdminClientService implements KeycloakIdentityPort, Keycloa
          * @return List of KeycloakRole with hierarchy (root roles only, children
          *         nested)
          */
-        public List<KeycloakRole> getMenuRoles(String userId) throws BusinessException {
-                // Get ALL realm level roles assigned/effective to user
-                List<RoleRepresentation> allUserRoles = this.keycloak
-                                .realm(this.realm)
-                                .users()
-                                .get(userId)
-                                .roles()
-                                .realmLevel()
-                                .listEffective();
-
-                // Filter out system roles
+        public List<KeycloakRole> getMenuRoles(String userId) {
                 java.util.Set<String> systemRoles = java.util.Set.of(
                                 "offline_access", "uma_authorization", "default-roles-satset-go",
                                 "default-roles-omnip");
@@ -804,47 +803,83 @@ public class KeycloakAdminClientService implements KeycloakIdentityPort, Keycloa
                 // Fetch FULL role representation (with attributes) using CACHED method
                 // listEffective() does not include attributes!
                 java.util.Map<String, KeycloakRole> dtoMap = new java.util.HashMap<>();
-                for (RoleRepresentation role : allUserRoles) {
-                        if (systemRoles.contains(role.getName())) {
-                                continue; // Skip system roles
-                        }
-                        // Use cached method to get full role with attributes
+
+                // 1. Get realm level roles
+                List<RoleRepresentation> realmRoles = this.keycloak
+                        .realm(this.realm)
+                        .users()
+                        .get(userId)
+                        .roles()
+                        .realmLevel()
+                        .listEffective();
+
+                for (RoleRepresentation role : realmRoles) {
+                        if (systemRoles.contains(role.getName())) continue;
                         KeycloakRole fullRole = getCachedRoleWithAttributes(role.getName());
-                        // Ensure children list is initialized
-                        if (fullRole.getChildren() == null) {
-                                fullRole.setChildren(new java.util.ArrayList<>());
-                        }
+                        if (fullRole.getChildren() == null) fullRole.setChildren(new java.util.ArrayList<>());
                         dtoMap.put(role.getName(), fullRole);
                 }
 
-                // Build hierarchy for composite roles
+                // 2. Get client level roles and merge
+                String clientUuid = findClientUuid();
+                if (clientUuid != null) {
+                        try {
+                                List<RoleRepresentation> clientRoles = this.keycloak
+                                        .realm(this.realm)
+                                        .users()
+                                        .get(userId)
+                                        .roles()
+                                        .clientLevel(clientUuid)
+                                        .listEffective();
+
+                                for (RoleRepresentation role : clientRoles) {
+                                        if (systemRoles.contains(role.getName())) continue;
+                                        KeycloakRole fullRole = getCachedClientRoleWithAttributes(clientUuid, role.getName());
+                                        if (fullRole.getChildren() == null)
+                                                fullRole.setChildren(new java.util.ArrayList<>());
+                                        // Use qualified key to avoid name collision with realm roles
+                                        dtoMap.put("client:" + role.getName(), fullRole);
+                                }
+                        } catch (Exception e) {
+                                log.warn("Failed to fetch client roles for user: {}", userId);
+                        }
+                }
+
+                // 3. Build hierarchy for composite roles
                 java.util.Set<String> childRoleNames = new java.util.HashSet<>();
 
                 for (KeycloakRole parentDto : dtoMap.values()) {
-                        if (Boolean.TRUE.equals(parentDto.getComposite())) {
-                                try {
-                                        // Fetch children of this composite role
-                                        java.util.Set<RoleRepresentation> children = this.keycloak
-                                                        .realm(this.realm)
-                                                        .roles()
+                        if (!Boolean.TRUE.equals(parentDto.getComposite())) continue;
+                        try {
+                                java.util.Set<RoleRepresentation> children;
+                                if (Boolean.TRUE.equals(parentDto.getClientRole()) && clientUuid != null) {
+                                        children = this.keycloak
+                                                .realm(this.realm)
+                                                .clients()
+                                                .get(clientUuid)
+                                                .roles()
+                                                .get(parentDto.getName())
+                                                .getRoleComposites();
+                                } else {
+                                        children = this.keycloak
+                                                .realm(this.realm)
+                                                .roles()
                                                         .get(parentDto.getName())
                                                         .getRoleComposites();
-
-                                        for (RoleRepresentation child : children) {
-                                                if (systemRoles.contains(child.getName())) {
-                                                        continue;
-                                                }
-                                                // Fetch full child role WITH attributes (recursively)
-                                                KeycloakRole childDto = getCachedRoleWithAttributes(child.getName());
-                                                if (childDto.getChildren() == null) {
-                                                        childDto.setChildren(new java.util.ArrayList<>());
-                                                }
-                                                parentDto.getChildren().add(childDto);
-                                                childRoleNames.add(child.getName());
-                                        }
-                                } catch (Exception e) {
-                                        log.warn("Failed to fetch composites for role: {}", parentDto.getName());
                                 }
+
+                                for (RoleRepresentation child : children) {
+                                        if (systemRoles.contains(child.getName())) continue;
+                                        KeycloakRole childDto = Boolean.TRUE.equals(child.getClientRole()) && clientUuid != null
+                                                ? getCachedClientRoleWithAttributes(clientUuid, child.getName())
+                                                : getCachedRoleWithAttributes(child.getName());
+                                        if (childDto.getChildren() == null)
+                                                childDto.setChildren(new java.util.ArrayList<>());
+                                        parentDto.getChildren().add(childDto);
+                                        childRoleNames.add(child.getName());
+                                }
+                        } catch (Exception e) {
+                                log.warn("Failed to fetch composites for role: {}", parentDto.getName());
                         }
                 }
 
@@ -878,24 +913,25 @@ public class KeycloakAdminClientService implements KeycloakIdentityPort, Keycloa
                 domain.setVerified(false);
                 orgRep.addDomain(domain);
 
-                Response resp = this.keycloak
-                                .realm(this.realm)
+                try (Response resp = this.keycloak
+                        .realm(this.realm)
                                 .organizations()
-                                .create(orgRep);
+                                .create(orgRep)) {
 
-                if (resp.getStatus() != 201) {
-                        String body = resp.readEntity(String.class);
-                        log.error("Failed to create organization '{}': status={} body={}", orgName, resp.getStatus(),
+                        if (resp.getStatus() != 201) {
+                                String body = resp.readEntity(String.class);
+                                log.error("Failed to create organization '{}': status={} body={}", orgName, resp.getStatus(),
                                         body);
-                        throw new BusinessException("Failed to create Keycloak organization '" + orgName
+                                throw new BusinessException("Failed to create Keycloak organization '" + orgName
                                         + "': HTTP " + resp.getStatus() + " - " + body);
-                }
+                        }
 
-                String orgId = resp.getLocation()
+                        String orgId = resp.getLocation()
                                 .getPath()
                                 .replaceAll(".*/([^/]+)$", "$1");
-                log.info("Organization '{}' created with id='{}'", orgName, orgId);
-                return orgId;
+                        log.info("Organization '{}' created with id='{}'", orgName, orgId);
+                        return orgId;
+                }
         }
 
         /**
@@ -908,18 +944,19 @@ public class KeycloakAdminClientService implements KeycloakIdentityPort, Keycloa
         public void addMemberToOrganization(String orgId, String userId) throws BusinessException {
                 try {
                         log.info("Attempting to add user '{}' as member to organization '{}'", userId, orgId);
-                        Response resp = this.keycloak
-                                        .realm(this.realm)
+                        try (Response resp = this.keycloak
+                                .realm(this.realm)
                                         .organizations()
                                         .get(orgId)
                                         .members()
-                                        .addMember(userId);
-                        if (resp != null) {
-                                log.info("addMember response: status={}", resp.getStatus());
-                                if (resp.getStatus() >= 400) {
-                                        String body = resp.readEntity(String.class);
-                                        log.error("Failed to add member: status={} body={}", resp.getStatus(), body);
-                                        throw new BusinessException("Failed to add member to organization: " + body);
+                                        .addMember(userId)) {
+                                if (resp != null) {
+                                        log.info("addMember response: status={}", resp.getStatus());
+                                        if (resp.getStatus() >= 400) {
+                                                String body = resp.readEntity(String.class);
+                                                log.error("Failed to add member: status={} body={}", resp.getStatus(), body);
+                                                throw new BusinessException("Failed to add member to organization: " + body);
+                                        }
                                 }
                         }
                         log.info("User '{}' added as member to organization '{}'", userId, orgId);
@@ -985,7 +1022,7 @@ public class KeycloakAdminClientService implements KeycloakIdentityPort, Keycloa
          * @param userId Keycloak user ID
          * @return List of RoleInfo for sidebar menu display
          */
-        public List<RoleInfo> getMenuRoleInfos(String userId) throws BusinessException {
+        public List<RoleInfo> getMenuRoleInfos(String userId) {
                 List<KeycloakRole> roles = getMenuRoles(userId);
                 return identityMapper.toRoleInfoList(roles);
         }
@@ -997,7 +1034,7 @@ public class KeycloakAdminClientService implements KeycloakIdentityPort, Keycloa
          * @param userId Keycloak user ID
          * @return List of GroupInfo
          */
-        public List<GroupInfo> getUserGroupInfos(String userId) throws BusinessException {
+        public List<GroupInfo> getUserGroupInfos(String userId) {
                 List<KeycloakGroup> groups = getUserGroups(userId);
                 return identityMapper.toGroupInfoList(groups);
         }

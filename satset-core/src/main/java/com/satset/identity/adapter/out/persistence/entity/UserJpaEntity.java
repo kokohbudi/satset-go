@@ -3,6 +3,7 @@ package com.satset.identity.adapter.out.persistence.entity;
 import com.satset.shared.converter.StringListConverter;
 import jakarta.persistence.*;
 import lombok.Data;
+import org.hibernate.annotations.Formula;
 import org.hibernate.annotations.UuidGenerator;
 import org.springframework.data.annotation.CreatedBy;
 import org.springframework.data.annotation.CreatedDate;
@@ -43,6 +44,13 @@ public class UserJpaEntity {
 
     @Column(name = "store_id", columnDefinition = "uuid")
     private UUID storeId;
+
+    /**
+     * Derived from the associated store's wallet_id.
+     * Read-only via SQL Formula join with stores table.
+     */
+    @Formula("(SELECT s.wallet_id FROM stores s WHERE s.id = store_id)")
+    private String walletId;
 
     @Convert(converter = StringListConverter.class)
     @Column(name = "roles", columnDefinition = "text")

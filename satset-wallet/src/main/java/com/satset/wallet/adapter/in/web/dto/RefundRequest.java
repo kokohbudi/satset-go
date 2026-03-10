@@ -7,7 +7,7 @@ import java.math.BigDecimal;
 import java.util.UUID;
 
 public record RefundRequest(
-    @NotNull UUID storeId,
+        @NotNull String walletId,
     @NotNull @Positive BigDecimal amount,
     @NotNull UUID originalReferenceId,
     String description

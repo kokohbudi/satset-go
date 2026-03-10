@@ -3,7 +3,6 @@ package com.satset.identity.adapter.out.keycloak;
 import com.satset.identity.domain.model.GroupMemberInfo;
 import com.satset.identity.domain.model.KeycloakGroup;
 import com.satset.identity.domain.model.KeycloakRole;
-import com.satset.shared.exception.BusinessException;
 import com.satset.shared.testcontainers.KeycloakContainerSupport;
 import jakarta.ws.rs.NotFoundException;
 import org.junit.jupiter.api.BeforeEach;
@@ -30,7 +29,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class KeycloakAdminClientServiceIntegrationTest extends KeycloakContainerSupport {
 
     private KeycloakAdminClientService keycloakAdminClientService;
-    private KeycloakHelper keycloakHelper;
     private final IdentityMapper identityMapper = new IdentityMapper();
 
     private static final String TEST_REALM = "satset-go";
@@ -47,11 +45,8 @@ class KeycloakAdminClientServiceIntegrationTest extends KeycloakContainerSupport
                 .password(KEYCLOAK.getAdminPassword())
                 .build();
 
-        // Create helper
-        keycloakHelper = new KeycloakHelper();
-
         // Create service instance
-        keycloakAdminClientService = new KeycloakAdminClientService(keycloak, keycloakHelper, identityMapper);
+        keycloakAdminClientService = new KeycloakAdminClientService(keycloak, new KeycloakHelper(), identityMapper);
 
         // Inject test realm via reflection
         try {
@@ -95,6 +90,43 @@ class KeycloakAdminClientServiceIntegrationTest extends KeycloakContainerSupport
         }
 
         @Test
+        @DisplayName("getMenuRoles should include client roles that have sidebar=1 attribute")
+        void getMenuRoles_IncludesClientRolesWithSidebarAttribute() {
+            // Arrange
+            Keycloak admin = masterAdminClient();
+            String userId = admin.realm(TEST_REALM).users().search("testuser", 0, 1).getFirst().getId();
+
+            // Create a client role with sidebar=1 attribute
+            var clientUuid = admin.realm(TEST_REALM).clients().findByClientId(TEST_CLIENT_ID).getFirst().getId();
+            RoleRepresentation clientRole = new RoleRepresentation();
+            clientRole.setName("store_dashboard");
+            clientRole.setAttributes(Map.of("sidebar", List.of("1"), "url", List.of("/store/dashboard"), "display_name", List.of("Dashboard Toko")));
+            admin.realm(TEST_REALM).clients().get(clientUuid).roles().create(clientRole);
+
+            // Assign the client role to testuser
+            RoleRepresentation createdRole = admin.realm(TEST_REALM).clients().get(clientUuid).roles().get("store_dashboard").toRepresentation();
+            admin.realm(TEST_REALM).users().get(userId).roles().clientLevel(clientUuid).add(List.of(createdRole));
+
+            try {
+                // Act
+                List<KeycloakRole> menuRoles = keycloakAdminClientService.getMenuRoles(userId);
+
+                // Assert
+                assertThat(menuRoles).extracting("name").contains("store_dashboard");
+                KeycloakRole storeRole = menuRoles.stream()
+                        .filter(r -> "store_dashboard".equals(r.getName()))
+                        .findFirst().orElseThrow();
+                assertThat(storeRole.getAttributes()).containsEntry("sidebar", "1");
+                assertThat(storeRole.getAttributes()).containsEntry("url", "/store/dashboard");
+                assertThat(storeRole.getClientRole()).isTrue();
+            } finally {
+                // Cleanup
+                admin.realm(TEST_REALM).users().get(userId).roles().clientLevel(clientUuid).remove(List.of(createdRole));
+                admin.realm(TEST_REALM).clients().get(clientUuid).roles().deleteRole("store_dashboard");
+            }
+        }
+
+        @Test
         @DisplayName("getRolesByScope should filter roles by scope attribute")
         void getRolesByScope_FiltersByScope() {
             // Arrange - add scope attribute to a role so we can filter by it
@@ -120,7 +152,7 @@ class KeycloakAdminClientServiceIntegrationTest extends KeycloakContainerSupport
 
         @Test
         @DisplayName("getAllKeycloakUsers should return list of users")
-        void getAllKeycloakUsers_ReturnsUserList() throws BusinessException {
+        void getAllKeycloakUsers_ReturnsUserList() {
             // Act
             var users = keycloakAdminClientService.getAllKeycloakUsers(10);
 
@@ -130,10 +162,10 @@ class KeycloakAdminClientServiceIntegrationTest extends KeycloakContainerSupport
 
         @Test
         @DisplayName("assignRoleToUser should assign realm role to user")
-        void assignRoleToUser_AssignsRealmRole() throws BusinessException {
+        void assignRoleToUser_AssignsRealmRole() {
             // Arrange
             Keycloak admin = masterAdminClient();
-            String userId = admin.realm(TEST_REALM).users().search("testuser", 0, 1).get(0).getId();
+            String userId = admin.realm(TEST_REALM).users().search("testuser", 0, 1).getFirst().getId();
 
             // Act
             keycloakAdminClientService.assignRoleToUser(userId, "view_users");
@@ -145,10 +177,10 @@ class KeycloakAdminClientServiceIntegrationTest extends KeycloakContainerSupport
 
         @Test
         @DisplayName("unassignRoleFromUser should remove realm role from user")
-        void unassignRoleFromUser_RemovesRealmRole() throws BusinessException {
+        void unassignRoleFromUser_RemovesRealmRole() {
             // Arrange
             Keycloak admin = masterAdminClient();
-            String userId = admin.realm(TEST_REALM).users().search("testuser", 0, 1).get(0).getId();
+            String userId = admin.realm(TEST_REALM).users().search("testuser", 0, 1).getFirst().getId();
             keycloakAdminClientService.assignRoleToUser(userId, "view_users");
 
             // Act
@@ -161,10 +193,10 @@ class KeycloakAdminClientServiceIntegrationTest extends KeycloakContainerSupport
 
         @Test
         @DisplayName("updateUserStatus should enable/disable user")
-        void updateUserStatus_UpdatesUserStatus() throws BusinessException {
+        void updateUserStatus_UpdatesUserStatus() {
             // Arrange
             Keycloak admin = masterAdminClient();
-            String userId = admin.realm(TEST_REALM).users().search("testuser", 0, 1).get(0).getId();
+            String userId = admin.realm(TEST_REALM).users().search("testuser", 0, 1).getFirst().getId();
 
             // Act - disable
             keycloakAdminClientService.updateUserStatus(userId, false);
@@ -193,7 +225,7 @@ class KeycloakAdminClientServiceIntegrationTest extends KeycloakContainerSupport
         void getUserGroups_ReturnsUserGroups() {
             // Arrange
             Keycloak admin = masterAdminClient();
-            String userId = admin.realm(TEST_REALM).users().search("testuser", 0, 1).get(0).getId();
+            String userId = admin.realm(TEST_REALM).users().search("testuser", 0, 1).getFirst().getId();
 
             // Act
             List<KeycloakGroup> userGroups = keycloakAdminClientService.getUserGroups(userId);
@@ -211,7 +243,7 @@ class KeycloakAdminClientServiceIntegrationTest extends KeycloakContainerSupport
             if (groups.isEmpty()) {
                 return; // Skip if no groups exist in test realm
             }
-            String groupId = groups.get(0).getId();
+            String groupId = groups.getFirst().getId();
 
             // Act
             List<GroupMemberInfo> members = keycloakAdminClientService.getGroupMembers(groupId, false);
@@ -259,7 +291,7 @@ class KeycloakAdminClientServiceIntegrationTest extends KeycloakContainerSupport
         void assignRoleToUser_NonExistentRole_ThrowsNotFoundException() {
             // Arrange
             Keycloak admin = masterAdminClient();
-            String userId = admin.realm(TEST_REALM).users().search("testuser", 0, 1).get(0).getId();
+            String userId = admin.realm(TEST_REALM).users().search("testuser", 0, 1).getFirst().getId();
 
             // Act & Assert - Keycloak throws NotFoundException for non-existent roles
             assertThatThrownBy(() -> keycloakAdminClientService.assignRoleToUser(userId, "non-existent-role"))

@@ -8,7 +8,7 @@ import java.math.BigDecimal;
 import java.util.UUID;
 
 public record WalletRequest(
-    @NotNull UUID storeId,
+        @NotNull String walletId,
     @NotNull @Positive BigDecimal amount,
     @NotNull UUID referenceId,
     MutationReferenceType referenceType,

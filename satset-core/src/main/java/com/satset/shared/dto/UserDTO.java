@@ -33,6 +33,7 @@ public class UserDTO extends BaseDTO {
     private String providerUserId;
     private String password;
     private UUID storeId;
+    private String walletId;
     private boolean active;
     /**
      * Groups the user belongs to.

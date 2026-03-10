@@ -10,7 +10,7 @@ import java.util.UUID;
 public class StoreMutations {
 
     private UUID id;
-    private UUID storeId;
+    private String walletId;
     private BigDecimal amount;
     private MutationType type;
     private BigDecimal balanceAfter;

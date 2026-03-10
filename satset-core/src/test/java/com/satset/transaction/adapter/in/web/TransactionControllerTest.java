@@ -30,8 +30,8 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
@@ -52,19 +52,22 @@ class TransactionControllerTest {
     private MockMvc mockMvc;
     private final ObjectMapper objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
     private UUID storeId;
+    private String walletId;
 
     @BeforeEach
     void setUp() {
         storeId = UUID.randomUUID();
+        walletId = "7001234567";
         UserDTO userDTO = new UserDTO();
         userDTO.setStoreId(storeId);
+        userDTO.setWalletId(walletId);
 
         TransactionController controller = new TransactionController(
                 purchaseUseCase, topUpUseCase, transactionQueryUseCase,
                 balanceManagementUseCase, userDTO);
 
-        MappingJackson2HttpMessageConverter converter = new MappingJackson2HttpMessageConverter();
-        converter.setObjectMapper(objectMapper);
+        @SuppressWarnings("removal") // Jackson 2 → 3 migration pending
+        var converter = new MappingJackson2HttpMessageConverter(objectMapper);
 
         mockMvc = MockMvcBuilders.standaloneSetup(controller)
                 .setCustomArgumentResolvers(new PageableHandlerMethodArgumentResolver())
@@ -78,7 +81,7 @@ class TransactionControllerTest {
         UUID txId = UUID.randomUUID();
         TransactionSummary summary = buildSummary(txId, TransactionStatus.SUCCESS, new BigDecimal("10000"));
 
-        when(purchaseUseCase.createPurchase(storeId, denomId, "081234567890")).thenReturn(summary);
+        when(purchaseUseCase.createPurchase(storeId, walletId, denomId, "081234567890")).thenReturn(summary);
 
         PurchaseRequest request = new PurchaseRequest(denomId, "081234567890");
 
@@ -90,13 +93,13 @@ class TransactionControllerTest {
                 .andExpect(jsonPath("$.transactionId").value(txId.toString()))
                 .andExpect(jsonPath("$.total").value(10000));
 
-        verify(purchaseUseCase).createPurchase(storeId, denomId, "081234567890");
+        verify(purchaseUseCase).createPurchase(storeId, walletId, denomId, "081234567890");
     }
 
     @Test
     void topup_ReturnsOk_WithBalanceInResponse() throws Exception {
         BigDecimal newBalance = new BigDecimal("50000");
-        when(balanceManagementUseCase.getBalance(storeId)).thenReturn(newBalance);
+        when(balanceManagementUseCase.getBalance(walletId)).thenReturn(newBalance);
 
         TopUpRequest request = new TopUpRequest(new BigDecimal("50000"), "Top-up manual");
 
@@ -107,17 +110,17 @@ class TransactionControllerTest {
                 .andExpect(jsonPath("$.status").value("success"))
                 .andExpect(jsonPath("$.balance").value(50000));
 
-        verify(topUpUseCase).topUp(eq(storeId), any(BigDecimal.class), any());
-        verify(balanceManagementUseCase).getBalance(storeId);
+        verify(topUpUseCase).topUp(eq(walletId), any(BigDecimal.class), any());
+        verify(balanceManagementUseCase).getBalance(walletId);
     }
 
     @Test
-    void balance_ReturnsStoreIdAndBalance() throws Exception {
-        when(balanceManagementUseCase.getBalance(storeId)).thenReturn(new BigDecimal("25000"));
+    void balance_ReturnsWalletIdAndBalance() throws Exception {
+        when(balanceManagementUseCase.getBalance(walletId)).thenReturn(new BigDecimal("25000"));
 
         mockMvc.perform(get("/api/transactions/balance"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.storeId").value(storeId.toString()))
+                .andExpect(jsonPath("$.walletId").value(walletId))
                 .andExpect(jsonPath("$.balance").value(25000));
     }
 
@@ -149,27 +152,28 @@ class TransactionControllerTest {
     }
 
     @Test
-    void purchase_WhenNoStoreId_ThrowsResourceNotFoundException() throws Exception {
-        // Controller with no storeId in UserDTO
-        UserDTO emptyUserDTO = new UserDTO(); // storeId is null
-        TransactionController noStoreController = new TransactionController(
+    void purchase_WhenNoWalletId_ThrowsResourceNotFoundException() {
+        // Controller with no walletId in UserDTO (but storeId present)
+        UserDTO noWalletUserDTO = new UserDTO();
+        noWalletUserDTO.setStoreId(storeId); // storeId present, walletId null
+        TransactionController noWalletController = new TransactionController(
                 purchaseUseCase, topUpUseCase, transactionQueryUseCase,
-                balanceManagementUseCase, emptyUserDTO);
-        MockMvc noStoreMockMvc = MockMvcBuilders.standaloneSetup(noStoreController)
+                balanceManagementUseCase, noWalletUserDTO);
+        MockMvc noWalletMockMvc = MockMvcBuilders.standaloneSetup(noWalletController)
                 .setCustomArgumentResolvers(new PageableHandlerMethodArgumentResolver())
                 .build();
 
         PurchaseRequest request = new PurchaseRequest(UUID.randomUUID(), "081234567890");
 
         Exception thrown = assertThrows(Exception.class, () ->
-                noStoreMockMvc.perform(post("/api/transactions/purchase")
+                noWalletMockMvc.perform(post("/api/transactions/purchase")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                         .andReturn());
 
         // Exception propagates wrapped or directly as ResourceNotFoundException
         Throwable root = thrown.getCause() != null ? thrown.getCause() : thrown;
-        assertTrue(root instanceof ResourceNotFoundException,
+        assertInstanceOf(ResourceNotFoundException.class, root,
                 "Expected ResourceNotFoundException but got: " + root.getClass().getName());
     }
 

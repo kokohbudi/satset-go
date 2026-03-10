@@ -20,8 +20,8 @@ public class WalletMutationRepositoryAdapter implements WalletMutationPort {
     }
 
     @Override
-    public List<WalletMutation> findByStoreIdOrderByCreatedAtDesc(UUID storeId) {
-        return repository.findByStoreIdOrderByCreatedAtDesc(storeId).stream()
+    public List<WalletMutation> findByWalletIdOrderByCreatedAtDesc(String walletId) {
+        return repository.findByWalletIdOrderByCreatedAtDesc(walletId).stream()
                 .map(WalletMutationMapper::toDomain)
                 .toList();
     }

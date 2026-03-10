@@ -16,8 +16,8 @@ import java.util.UUID;
 @Table(
     name = "store_mutations",
     uniqueConstraints = @UniqueConstraint(
-        name = "uc_storemutation_storeid_referenceid",
-        columnNames = {"store_id", "reference_id"}
+            name = "uc_storemutation_walletid_referenceid",
+            columnNames = {"wallet_id", "reference_id"}
     )
 )
 @EntityListeners(AuditingEntityListener.class)
@@ -29,8 +29,8 @@ public class StoreMutationJpaEntity {
     @Column(name = "id", updatable = false, nullable = false, columnDefinition = "uuid")
     private UUID id;
 
-    @Column(name = "store_id", nullable = false, columnDefinition = "uuid")
-    private UUID storeId;
+    @Column(name = "wallet_id", nullable = false, length = 10)
+    private String walletId;
 
     @Column(precision = 15, scale = 2, nullable = false)
     private BigDecimal amount;
@@ -49,7 +49,6 @@ public class StoreMutationJpaEntity {
     @Column(columnDefinition = "uuid")
     private UUID referenceId;
 
-    @Column(length = 255)
     private String description;
 
     @CreatedDate

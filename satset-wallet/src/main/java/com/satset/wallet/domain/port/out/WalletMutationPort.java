@@ -9,7 +9,7 @@ import java.util.UUID;
 
 public interface WalletMutationPort {
 
-    List<WalletMutation> findByStoreIdOrderByCreatedAtDesc(UUID storeId);
+    List<WalletMutation> findByWalletIdOrderByCreatedAtDesc(String walletId);
 
     Optional<WalletMutation> findByReferenceIdAndReferenceType(UUID referenceId, MutationReferenceType referenceType);
 

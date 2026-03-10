@@ -76,7 +76,7 @@ class DataSeederTest {
         dataSeeder.seedWalletAccounts();
 
         // Then
-        verify(walletAccountPort, never()).findByStoreId(any());
+        verify(walletAccountPort, never()).findByWalletId(any());
         verify(walletAccountPort, never()).save(any());
     }
 
@@ -94,30 +94,26 @@ class DataSeederTest {
     }
 
     @Test
-    void seedWalletAccounts_whenStoresExist_shouldCreateWalletAccounts() {
+    void seedWalletAccounts_whenStoresWithNoWalletId_shouldCreateWalletAccounts() {
         // Given
         UUID storeId1 = UUID.randomUUID();
         UUID storeId2 = UUID.randomUUID();
 
         Stores store1 = new Stores();
         store1.setId(storeId1);
-        store1.setBalance(new BigDecimal("100000.00"));
+        store1.setWalletId(null);
 
         Stores store2 = new Stores();
         store2.setId(storeId2);
-        store2.setBalance(new BigDecimal("50000.00"));
+        store2.setWalletId(null);
 
         when(walletAccountPort.count()).thenReturn(0L);
         when(storeRepository.findAll()).thenReturn(Arrays.asList(store1, store2));
-        when(walletAccountPort.findByStoreId(storeId1)).thenReturn(Optional.empty());
-        when(walletAccountPort.findByStoreId(storeId2)).thenReturn(Optional.empty());
 
         // When
         dataSeeder.seedWalletAccounts();
 
-        // Then
-        verify(walletAccountPort).findByStoreId(storeId1);
-        verify(walletAccountPort).findByStoreId(storeId2);
+        // Then — walletId is null, so createWallet is called for both
         verify(walletCreationPort, times(2)).createWallet(any());
     }
 
@@ -126,44 +122,47 @@ class DataSeederTest {
         // Given
         UUID storeId1 = UUID.randomUUID();
         UUID storeId2 = UUID.randomUUID();
+        String walletId1 = "7001000001";
+        String walletId2 = "7001000002";
 
         Stores store1 = new Stores();
         store1.setId(storeId1);
-        store1.setBalance(new BigDecimal("100000.00"));
+        store1.setWalletId(walletId1);
 
         Stores store2 = new Stores();
         store2.setId(storeId2);
-        store2.setBalance(new BigDecimal("50000.00"));
+        store2.setWalletId(walletId2);
 
-        WalletAccount existingWallet = new WalletAccount(storeId1, new BigDecimal("100000.00"));
+        WalletAccount existingWallet = new WalletAccount(walletId1, new BigDecimal("100000.00"));
 
         when(walletAccountPort.count()).thenReturn(0L);
         when(storeRepository.findAll()).thenReturn(Arrays.asList(store1, store2));
-        when(walletAccountPort.findByStoreId(storeId1)).thenReturn(Optional.of(existingWallet));
-        when(walletAccountPort.findByStoreId(storeId2)).thenReturn(Optional.empty());
+        when(walletAccountPort.findByWalletId(walletId1)).thenReturn(Optional.of(existingWallet));
+        when(walletAccountPort.findByWalletId(walletId2)).thenReturn(Optional.empty());
 
         // When
         dataSeeder.seedWalletAccounts();
 
         // Then
-        verify(walletAccountPort).findByStoreId(storeId1);
-        verify(walletAccountPort).findByStoreId(storeId2);
+        verify(walletAccountPort).findByWalletId(walletId1);
+        verify(walletAccountPort).findByWalletId(walletId2);
         // Only store2 should trigger createWallet (store1 already has wallet)
         verify(walletCreationPort, times(1)).createWallet(storeId2);
     }
 
     @Test
-    void seedWalletAccounts_whenStoreHasNoWallet_shouldCallCreateWallet() {
+    void seedWalletAccounts_whenStoreHasWalletIdButNoWalletAccount_shouldCallCreateWallet() {
         // Given
         UUID storeId = UUID.randomUUID();
+        String walletId = "7001000001";
 
         Stores store = new Stores();
         store.setId(storeId);
-        store.setBalance(null);
+        store.setWalletId(walletId);
 
         when(walletAccountPort.count()).thenReturn(0L);
         when(storeRepository.findAll()).thenReturn(Collections.singletonList(store));
-        when(walletAccountPort.findByStoreId(storeId)).thenReturn(Optional.empty());
+        when(walletAccountPort.findByWalletId(walletId)).thenReturn(Optional.empty());
 
         // When
         dataSeeder.seedWalletAccounts();

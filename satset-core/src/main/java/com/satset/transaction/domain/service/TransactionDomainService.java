@@ -41,7 +41,7 @@ public class TransactionDomainService implements PurchaseUseCase, TopUpUseCase, 
 
         @Override
         @Transactional
-        public TransactionSummary createPurchase(UUID storeId, UUID denomId, String targetNumber)
+        public TransactionSummary createPurchase(UUID storeId, String walletId, UUID denomId, String targetNumber)
                         throws InsufficientBalanceException {
 
                 // Use DenomInfo (shared kernel) instead of ProductDenoms (catalog domain entity)
@@ -87,7 +87,7 @@ public class TransactionDomainService implements PurchaseUseCase, TopUpUseCase, 
                                 transaction.getId(), storeId, denom.code(), total);
 
                 // 2. Deduct balance
-                balanceService.deductBalance(storeId, total,
+                balanceService.deductBalance(walletId, total,
                                 MutationReferenceType.PURCHASE, transaction.getId(),
                                 "Pembelian " + denom.name() + " ke " + targetNumber);
 
@@ -114,7 +114,7 @@ public class TransactionDomainService implements PurchaseUseCase, TopUpUseCase, 
                         transactionRepository.save(transaction);
 
                         try {
-                                balanceService.addBalance(storeId, total,
+                                balanceService.addBalance(walletId, total,
                                                 MutationReferenceType.REFUND, transaction.getId(),
                                                 "Refund " + denom.name() + " - " + response.message());
 
@@ -124,8 +124,8 @@ public class TransactionDomainService implements PurchaseUseCase, TopUpUseCase, 
                                 log.warn("Transaction REFUNDED: id={} reason={}",
                                                 transaction.getId(), response.message());
                         } catch (Exception e) {
-                                log.error("ALERT: Failed to refund transaction {} for store {}. Reason: {}",
-                                                transaction.getId(), storeId, e.getMessage(), e);
+                                log.error("ALERT: Failed to refund transaction {} for wallet {}. Reason: {}",
+                                        transaction.getId(), walletId, e.getMessage(), e);
                                 // Leave status as FAILED so Ops team can retry manual refund
                         }
                 }
@@ -135,14 +135,14 @@ public class TransactionDomainService implements PurchaseUseCase, TopUpUseCase, 
 
         @Override
         @Transactional
-        public void topUp(UUID storeId, BigDecimal amount, String description) {
+        public void topUp(String walletId, BigDecimal amount, String description) {
                 UUID topUpId = UUID.randomUUID();
 
-                balanceService.addBalance(storeId, amount,
+                balanceService.addBalance(walletId, amount,
                                 MutationReferenceType.TOP_UP, topUpId,
                                 description != null ? description : "Manual top-up");
 
-                log.info("Top-up completed: store={} amount={} topUpId={}", storeId, amount, topUpId);
+                log.info("Top-up completed: wallet={} amount={} topUpId={}", walletId, amount, topUpId);
         }
 
         @Override

@@ -4,20 +4,18 @@ import lombok.Data;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.UUID;
 
 @Data
 public class WalletAccount {
 
     private String walletId;
-    private UUID storeId;
     private BigDecimal balance = BigDecimal.ZERO;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private Long version;
 
-    public WalletAccount(UUID storeId, BigDecimal balance) {
-        this.storeId = storeId;
+    public WalletAccount(String walletId, BigDecimal balance) {
+        this.walletId = walletId;
         this.balance = balance != null ? balance : BigDecimal.ZERO;
     }
 

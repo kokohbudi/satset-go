@@ -10,5 +10,5 @@ import java.util.UUID;
 @Repository
 public interface StoreMutationJpaRepository extends JpaRepository<StoreMutationJpaEntity, UUID> {
 
-    Optional<StoreMutationJpaEntity> findTopByStoreIdOrderByCreatedAtDesc(UUID storeId);
+    Optional<StoreMutationJpaEntity> findTopByWalletIdOrderByCreatedAtDesc(String walletId);
 }

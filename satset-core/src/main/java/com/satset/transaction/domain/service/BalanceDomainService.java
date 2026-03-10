@@ -30,12 +30,12 @@ public class BalanceDomainService implements BalanceManagementUseCase {
 
     @Override
     @Transactional
-    public MutationResult deductBalance(UUID storeId, BigDecimal amount,
+    public MutationResult deductBalance(String walletId, BigDecimal amount,
             MutationReferenceType referenceType, UUID referenceId, String description)
             throws InsufficientBalanceException {
 
-        WalletAccount account = walletAccountPort.findByStoreIdWithLock(storeId)
-                .orElseThrow(() -> new ResourceNotFoundException("WalletAccount", storeId));
+        WalletAccount account = walletAccountPort.findByWalletIdWithLock(walletId)
+                .orElseThrow(() -> new ResourceNotFoundException("WalletAccount", walletId));
 
         if (account.getBalance().compareTo(amount) < 0) {
             throw new InsufficientBalanceException(
@@ -44,51 +44,51 @@ public class BalanceDomainService implements BalanceManagementUseCase {
 
         BigDecimal newBalance = account.getBalance().subtract(amount);
         StoreMutations mutation = storeMutationRepository.save(
-                buildMutation(storeId, amount, MutationType.DEBIT, newBalance, referenceType, referenceId, description));
+                buildMutation(walletId, amount, MutationType.DEBIT, newBalance, referenceType, referenceId, description));
 
         account.setBalance(newBalance);
         walletAccountPort.save(account);
 
-        log.info("DEBIT store={} amount={} balanceAfter={} ref={}:{}",
-                storeId, amount, newBalance, referenceType, referenceId);
+        log.info("DEBIT wallet={} amount={} balanceAfter={} ref={}:{}",
+                walletId, amount, newBalance, referenceType, referenceId);
 
         return new MutationResult(mutation.getId(), newBalance);
     }
 
     @Override
     @Transactional
-    public MutationResult addBalance(UUID storeId, BigDecimal amount,
+    public MutationResult addBalance(String walletId, BigDecimal amount,
             MutationReferenceType referenceType, UUID referenceId, String description) {
 
-        WalletAccount account = walletAccountPort.findByStoreIdWithLock(storeId)
-                .orElseThrow(() -> new ResourceNotFoundException("WalletAccount", storeId));
+        WalletAccount account = walletAccountPort.findByWalletIdWithLock(walletId)
+                .orElseThrow(() -> new ResourceNotFoundException("WalletAccount", walletId));
 
         BigDecimal newBalance = account.getBalance().add(amount);
         StoreMutations mutation = storeMutationRepository.save(
-                buildMutation(storeId, amount, MutationType.CREDIT, newBalance, referenceType, referenceId, description));
+                buildMutation(walletId, amount, MutationType.CREDIT, newBalance, referenceType, referenceId, description));
 
         account.setBalance(newBalance);
         walletAccountPort.save(account);
 
-        log.info("CREDIT store={} amount={} balanceAfter={} ref={}:{}",
-                storeId, amount, newBalance, referenceType, referenceId);
+        log.info("CREDIT wallet={} amount={} balanceAfter={} ref={}:{}",
+                walletId, amount, newBalance, referenceType, referenceId);
 
         return new MutationResult(mutation.getId(), newBalance);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public BigDecimal getBalance(UUID storeId) {
-        return walletAccountPort.findByStoreId(storeId)
+    public BigDecimal getBalance(String walletId) {
+        return walletAccountPort.findByWalletId(walletId)
                 .map(WalletAccount::getBalance)
-                .orElseThrow(() -> new ResourceNotFoundException("WalletAccount", storeId));
+                .orElseThrow(() -> new ResourceNotFoundException("WalletAccount", walletId));
     }
 
-    private StoreMutations buildMutation(UUID storeId, BigDecimal amount, MutationType type,
+    private StoreMutations buildMutation(String walletId, BigDecimal amount, MutationType type,
             BigDecimal balanceAfter, MutationReferenceType referenceType,
             UUID referenceId, String description) {
         StoreMutations m = new StoreMutations();
-        m.setStoreId(storeId);
+        m.setWalletId(walletId);
         m.setAmount(amount);
         m.setType(type);
         m.setBalanceAfter(balanceAfter);

@@ -9,14 +9,14 @@ public class WalletMutationMapper {
 
     public static WalletMutation toDomain(WalletMutationEntity entity) {
         return new WalletMutation(
-                entity.getId(), entity.getStoreId(), entity.getAmount(),
+                entity.getId(), entity.getWalletId(), entity.getAmount(),
                 entity.getMutationType(), entity.getBalanceAfter(), entity.getReferenceType(),
                 entity.getReferenceId(), entity.getDescription(), entity.getCreatedAt());
     }
 
     public static WalletMutationEntity toEntity(WalletMutation domain) {
         WalletMutationEntity entity = new WalletMutationEntity();
-        entity.setStoreId(domain.storeId());
+        entity.setWalletId(domain.walletId());
         entity.setAmount(domain.amount());
         entity.setMutationType(domain.mutationType());
         entity.setBalanceAfter(domain.balanceAfter());

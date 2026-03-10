@@ -5,7 +5,6 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 import java.util.Optional;
-import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -15,32 +14,32 @@ import static org.mockito.Mockito.when;
 class WalletAccountPortTest {
 
     @Test
-    void testFindByStoreIdMethodExists() {
+    void testFindByWalletIdMethodExists() {
         // Given
         WalletAccountPort port = Mockito.mock(WalletAccountPort.class);
-        UUID storeId = UUID.randomUUID();
-        
+        String walletId = "7001234567";
+
         // When
-        when(port.findByStoreId(storeId)).thenReturn(Optional.empty());
-        Optional<WalletAccount> result = port.findByStoreId(storeId);
-        
+        when(port.findByWalletId(walletId)).thenReturn(Optional.empty());
+        Optional<WalletAccount> result = port.findByWalletId(walletId);
+
         // Then
-        verify(port).findByStoreId(storeId);
+        verify(port).findByWalletId(walletId);
         assertTrue(result.isEmpty());
     }
 
     @Test
-    void testFindByStoreIdWithLockMethodExists() {
+    void testFindByWalletIdWithLockMethodExists() {
         // Given
         WalletAccountPort port = Mockito.mock(WalletAccountPort.class);
-        UUID storeId = UUID.randomUUID();
-        
+        String walletId = "7001234567";
+
         // When
-        when(port.findByStoreIdWithLock(storeId)).thenReturn(Optional.empty());
-        Optional<WalletAccount> result = port.findByStoreIdWithLock(storeId);
-        
+        when(port.findByWalletIdWithLock(walletId)).thenReturn(Optional.empty());
+        Optional<WalletAccount> result = port.findByWalletIdWithLock(walletId);
+
         // Then
-        verify(port).findByStoreIdWithLock(storeId);
+        verify(port).findByWalletIdWithLock(walletId);
         assertTrue(result.isEmpty());
     }
 
@@ -48,12 +47,12 @@ class WalletAccountPortTest {
     void testSaveMethodExists() {
         // Given
         WalletAccountPort port = Mockito.mock(WalletAccountPort.class);
-        WalletAccount walletAccount = new WalletAccount(UUID.randomUUID(), null);
-        
+        WalletAccount walletAccount = new WalletAccount("7001234567", null);
+
         // When
         when(port.save(walletAccount)).thenReturn(walletAccount);
         WalletAccount result = port.save(walletAccount);
-        
+
         // Then
         verify(port).save(walletAccount);
         assertNotNull(result);

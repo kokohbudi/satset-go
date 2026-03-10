@@ -10,13 +10,11 @@ import com.satset.wallet.domain.model.MutationType;
 import com.satset.wallet.domain.model.WalletAccount;
 import com.satset.wallet.domain.port.in.WalletUseCase;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotNull;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.UUID;
 
 @RestController
 @RequestMapping("/internal/wallet")
@@ -28,9 +26,9 @@ public class WalletInternalController {
         this.walletUseCase = walletUseCase;
     }
 
-    @GetMapping("/balance/{storeId}")
-    public ResponseEntity<BalanceResponse> getBalance(@PathVariable UUID storeId) {
-        return ResponseEntity.ok(BalanceResponse.of(storeId, walletUseCase.getBalance(storeId)));
+    @GetMapping("/balance/{walletId}")
+    public ResponseEntity<BalanceResponse> getBalance(@PathVariable String walletId) {
+        return ResponseEntity.ok(BalanceResponse.of(walletId, walletUseCase.getBalance(walletId)));
     }
 
     @PostMapping("/debit")
@@ -38,8 +36,8 @@ public class WalletInternalController {
         MutationReferenceType refType = request.referenceType() != null
                 ? request.referenceType() : MutationReferenceType.TRANSACTION;
         WalletMutationResult result = walletUseCase.debit(
-                request.storeId(), request.amount(), request.referenceId(), refType, request.description());
-        return ResponseEntity.ok(new MutationResponse(result.mutationId(), request.storeId(),
+                request.walletId(), request.amount(), request.referenceId(), refType, request.description());
+        return ResponseEntity.ok(new MutationResponse(result.mutationId(), request.walletId(),
                 request.amount(), MutationType.DEBIT, result.newBalance(),
                 refType, request.referenceId(), request.description(), LocalDateTime.now()));
     }
@@ -49,8 +47,8 @@ public class WalletInternalController {
         MutationReferenceType refType = request.referenceType() != null
                 ? request.referenceType() : MutationReferenceType.TOPUP;
         WalletMutationResult result = walletUseCase.credit(
-                request.storeId(), request.amount(), request.referenceId(), refType, request.description());
-        return ResponseEntity.ok(new MutationResponse(result.mutationId(), request.storeId(),
+                request.walletId(), request.amount(), request.referenceId(), refType, request.description());
+        return ResponseEntity.ok(new MutationResponse(result.mutationId(), request.walletId(),
                 request.amount(), MutationType.CREDIT, result.newBalance(),
                 refType, request.referenceId(), request.description(), LocalDateTime.now()));
     }
@@ -58,34 +56,28 @@ public class WalletInternalController {
     @PostMapping("/refund")
     public ResponseEntity<MutationResponse> refund(@Valid @RequestBody RefundRequest request) {
         WalletMutationResult result = walletUseCase.refund(
-                request.storeId(), request.amount(), request.originalReferenceId(), request.description());
-        return ResponseEntity.ok(new MutationResponse(result.mutationId(), request.storeId(),
+                request.walletId(), request.amount(), request.originalReferenceId(), request.description());
+        return ResponseEntity.ok(new MutationResponse(result.mutationId(), request.walletId(),
                 request.amount(), MutationType.REFUND, result.newBalance(),
                 MutationReferenceType.REFUND, request.originalReferenceId(), request.description(), LocalDateTime.now()));
     }
 
-    @GetMapping("/mutations/{storeId}")
-    public ResponseEntity<List<MutationResponse>> getMutations(@PathVariable UUID storeId) {
-        return ResponseEntity.ok(walletUseCase.getMutations(storeId).stream()
+    @GetMapping("/mutations/{walletId}")
+    public ResponseEntity<List<MutationResponse>> getMutations(@PathVariable String walletId) {
+        return ResponseEntity.ok(walletUseCase.getMutations(walletId).stream()
                 .map(MutationResponse::from)
                 .toList());
     }
 
     @PostMapping("/accounts")
-    public ResponseEntity<WalletCreationResponse> createWallet(@Valid @RequestBody WalletCreationRequest request) {
-        WalletAccount account = walletUseCase.createWallet(request.storeId());
-        return ResponseEntity.ok(new WalletCreationResponse(account.walletId(), account.storeId()));
-    }
-
-    /**
-     * Request DTO for wallet creation.
-     */
-    public record WalletCreationRequest(@NotNull UUID storeId) {
+    public ResponseEntity<WalletCreationResponse> createWallet() {
+        WalletAccount account = walletUseCase.createWallet();
+        return ResponseEntity.ok(new WalletCreationResponse(account.walletId()));
     }
 
     /**
      * Response DTO for wallet creation.
      */
-    public record WalletCreationResponse(String walletId, UUID storeId) {
+    public record WalletCreationResponse(String walletId) {
     }
 }

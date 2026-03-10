@@ -28,7 +28,7 @@ public class WalletCreationAdapter implements WalletCreationPort {
             OAuth2AuthorizedClientManager authorizedClientManager) {
 
         var interceptor = new OAuth2ClientHttpRequestInterceptor(authorizedClientManager);
-        interceptor.setClientRegistrationIdResolver(request -> "wallet-service");
+        interceptor.setClientRegistrationIdResolver(_ -> "wallet-service");
 
         this.restClient = RestClient.builder()
                 .baseUrl(walletBaseUrl)
@@ -42,12 +42,10 @@ public class WalletCreationAdapter implements WalletCreationPort {
         log.info("Creating wallet for store {} via Wallet API", storeId);
 
         try {
-            WalletCreationRequest request = new WalletCreationRequest(storeId);
-
             WalletCreationResponse response = restClient.post()
                     .uri("/internal/wallet/accounts")
                     .contentType(MediaType.APPLICATION_JSON)
-                    .body(request)
+                    .body("{}")
                     .retrieve()
                     .body(WalletCreationResponse.class);
 
@@ -65,14 +63,8 @@ public class WalletCreationAdapter implements WalletCreationPort {
     }
 
     /**
-     * Request DTO for wallet creation.
-     */
-    public record WalletCreationRequest(UUID storeId) {
-    }
-
-    /**
      * Response DTO from wallet creation.
      */
-    public record WalletCreationResponse(String walletId, UUID storeId) {
+    public record WalletCreationResponse(String walletId) {
     }
 }

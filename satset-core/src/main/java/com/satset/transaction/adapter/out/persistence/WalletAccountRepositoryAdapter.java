@@ -7,7 +7,6 @@ import com.satset.transaction.domain.port.out.WalletAccountPort;
 import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
-import java.util.UUID;
 
 @Repository
 class WalletAccountRepositoryAdapter implements WalletAccountPort {
@@ -21,13 +20,13 @@ class WalletAccountRepositoryAdapter implements WalletAccountPort {
     }
 
     @Override
-    public Optional<WalletAccount> findByStoreId(UUID storeId) {
-        return mapper.toOptionalDomain(jpaRepository.findByStoreId(storeId));
+    public Optional<WalletAccount> findByWalletId(String walletId) {
+        return mapper.toOptionalDomain(jpaRepository.findById(walletId));
     }
 
     @Override
-    public Optional<WalletAccount> findByStoreIdWithLock(UUID storeId) {
-        return mapper.toOptionalDomain(jpaRepository.findByStoreIdWithLock(storeId));
+    public Optional<WalletAccount> findByWalletIdWithLock(String walletId) {
+        return mapper.toOptionalDomain(jpaRepository.findByWalletIdWithLock(walletId));
     }
 
     @Override

@@ -37,7 +37,7 @@ public class WalletClientAdapter implements BalanceManagementUseCase {
             OAuth2AuthorizedClientManager authorizedClientManager) {
 
         var interceptor = new OAuth2ClientHttpRequestInterceptor(authorizedClientManager);
-        interceptor.setClientRegistrationIdResolver(request -> "wallet-service");
+        interceptor.setClientRegistrationIdResolver(_ -> "wallet-service");
 
         this.restClient = RestClient.builder()
                 .baseUrl(baseUrl)
@@ -47,11 +47,11 @@ public class WalletClientAdapter implements BalanceManagementUseCase {
     }
 
     @Override
-    public MutationResult deductBalance(UUID storeId, BigDecimal amount,
+    public MutationResult deductBalance(String walletId, BigDecimal amount,
             MutationReferenceType referenceType, UUID referenceId, String description)
             throws InsufficientBalanceException {
 
-        var req = new WalletMutationRequest(storeId, amount, referenceId, "TRANSACTION", description);
+        var req = new WalletMutationRequest(walletId, amount, referenceId, "TRANSACTION", description);
         try {
             WalletMutationResponse resp = restClient.post()
                     .uri("/internal/wallet/debit")
@@ -59,13 +59,14 @@ public class WalletClientAdapter implements BalanceManagementUseCase {
                     .body(req)
                     .retrieve()
                     .body(WalletMutationResponse.class);
-            log.info("DEBIT via wallet-service store={} amount={} balanceAfter={}", storeId, amount, resp.balanceAfter());
+            if (resp == null) throw new ResourceNotFoundException("WalletMutation", walletId);
+            log.info("DEBIT via wallet-service wallet={} amount={} balanceAfter={}", walletId, amount, resp.balanceAfter());
             return new MutationResult(resp.id(), resp.balanceAfter());
         } catch (HttpClientErrorException e) {
             if (e.getStatusCode() == HttpStatus.NOT_FOUND) {
-                throw new ResourceNotFoundException("WalletAccount", storeId);
+                throw new ResourceNotFoundException("WalletAccount", walletId);
             }
-            if (e.getStatusCode() == HttpStatus.UNPROCESSABLE_ENTITY) {
+            if (e.getStatusCode().value() == 422) {
                 throw new InsufficientBalanceException("Saldo tidak mencukupi");
             }
             throw e;
@@ -73,13 +74,13 @@ public class WalletClientAdapter implements BalanceManagementUseCase {
     }
 
     @Override
-    public MutationResult addBalance(UUID storeId, BigDecimal amount,
+    public MutationResult addBalance(String walletId, BigDecimal amount,
             MutationReferenceType referenceType, UUID referenceId, String description) {
 
         if (referenceType == MutationReferenceType.REFUND) {
-            return callRefund(storeId, amount, referenceId, description);
+            return callRefund(walletId, amount, referenceId, description);
         }
-        var req = new WalletMutationRequest(storeId, amount, referenceId, "TOPUP", description);
+        var req = new WalletMutationRequest(walletId, amount, referenceId, "TOPUP", description);
         try {
             WalletMutationResponse resp = restClient.post()
                     .uri("/internal/wallet/credit")
@@ -87,34 +88,36 @@ public class WalletClientAdapter implements BalanceManagementUseCase {
                     .body(req)
                     .retrieve()
                     .body(WalletMutationResponse.class);
-            log.info("CREDIT via wallet-service store={} amount={} balanceAfter={}", storeId, amount, resp.balanceAfter());
+            if (resp == null) throw new ResourceNotFoundException("WalletMutation", walletId);
+            log.info("CREDIT via wallet-service wallet={} amount={} balanceAfter={}", walletId, amount, resp.balanceAfter());
             return new MutationResult(resp.id(), resp.balanceAfter());
         } catch (HttpClientErrorException e) {
             if (e.getStatusCode() == HttpStatus.NOT_FOUND) {
-                throw new ResourceNotFoundException("WalletAccount", storeId);
+                throw new ResourceNotFoundException("WalletAccount", walletId);
             }
             throw e;
         }
     }
 
     @Override
-    public BigDecimal getBalance(UUID storeId) {
+    public BigDecimal getBalance(String walletId) {
         try {
             WalletBalanceResponse resp = restClient.get()
-                    .uri("/internal/wallet/balance/{storeId}", storeId)
+                    .uri("/internal/wallet/balance/{walletId}", walletId)
                     .retrieve()
                     .body(WalletBalanceResponse.class);
+            if (resp == null) throw new ResourceNotFoundException("WalletAccount", walletId);
             return resp.balance();
         } catch (HttpClientErrorException e) {
             if (e.getStatusCode() == HttpStatus.NOT_FOUND) {
-                throw new ResourceNotFoundException("WalletAccount", storeId);
+                throw new ResourceNotFoundException("WalletAccount", walletId);
             }
             throw e;
         }
     }
 
-    private MutationResult callRefund(UUID storeId, BigDecimal amount, UUID originalReferenceId, String description) {
-        var req = new WalletRefundRequest(storeId, amount, originalReferenceId, description);
+    private MutationResult callRefund(String walletId, BigDecimal amount, UUID originalReferenceId, String description) {
+        var req = new WalletRefundRequest(walletId, amount, originalReferenceId, description);
         try {
             WalletMutationResponse resp = restClient.post()
                     .uri("/internal/wallet/refund")
@@ -122,11 +125,12 @@ public class WalletClientAdapter implements BalanceManagementUseCase {
                     .body(req)
                     .retrieve()
                     .body(WalletMutationResponse.class);
-            log.info("REFUND via wallet-service store={} amount={} balanceAfter={}", storeId, amount, resp.balanceAfter());
+            if (resp == null) throw new ResourceNotFoundException("WalletMutation", walletId);
+            log.info("REFUND via wallet-service wallet={} amount={} balanceAfter={}", walletId, amount, resp.balanceAfter());
             return new MutationResult(resp.id(), resp.balanceAfter());
         } catch (HttpClientErrorException e) {
             if (e.getStatusCode() == HttpStatus.NOT_FOUND) {
-                throw new ResourceNotFoundException("WalletAccount", storeId);
+                throw new ResourceNotFoundException("WalletAccount", walletId);
             }
             throw e;
         }

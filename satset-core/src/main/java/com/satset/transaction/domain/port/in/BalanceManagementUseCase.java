@@ -9,12 +9,12 @@ import java.util.UUID;
 
 public interface BalanceManagementUseCase {
 
-    MutationResult deductBalance(UUID storeId, BigDecimal amount,
+    MutationResult deductBalance(String walletId, BigDecimal amount,
             MutationReferenceType referenceType, UUID referenceId, String description)
             throws InsufficientBalanceException;
 
-    MutationResult addBalance(UUID storeId, BigDecimal amount,
+    MutationResult addBalance(String walletId, BigDecimal amount,
             MutationReferenceType referenceType, UUID referenceId, String description);
 
-    BigDecimal getBalance(UUID storeId);
+    BigDecimal getBalance(String walletId);
 }

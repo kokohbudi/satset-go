@@ -13,7 +13,7 @@ import java.util.UUID;
 
 @Entity
 @Table(name = "wallet_mutations", indexes = {
-    @Index(name = "idx_wallet_mutations_store_id", columnList = "store_id"),
+        @Index(name = "idx_wallet_mutations_wallet_id", columnList = "wallet_id"),
     @Index(name = "idx_wallet_mutations_created_at", columnList = "created_at"),
     @Index(name = "idx_wallet_mutations_reference", columnList = "reference_id, reference_type")
 }, uniqueConstraints = {
@@ -27,8 +27,8 @@ public class WalletMutationEntity {
     @UuidGenerator
     private UUID id;
 
-    @Column(name = "store_id", nullable = false)
-    private UUID storeId;
+    @Column(name = "wallet_id", nullable = false, length = 10)
+    private String walletId;
 
     @Column(nullable = false, precision = 19, scale = 4)
     private BigDecimal amount;

@@ -6,7 +6,6 @@ import lombok.Setter;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.UUID;
 
 /**
  * JPA entity for wallet account.
@@ -21,9 +20,6 @@ public class WalletAccountEntity {
     @Id
     @Column(name = "wallet_id", nullable = false, updatable = false, length = 10)
     private String walletId;
-
-    @Column(name = "store_id", nullable = false, unique = true)
-    private UUID storeId;
 
     @Column(nullable = false, precision = 19, scale = 4)
     private BigDecimal balance = BigDecimal.ZERO;

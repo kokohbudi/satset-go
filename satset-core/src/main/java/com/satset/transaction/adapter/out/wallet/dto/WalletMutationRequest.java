@@ -4,7 +4,7 @@ import java.math.BigDecimal;
 import java.util.UUID;
 
 public record WalletMutationRequest(
-    UUID storeId,
+        String walletId,
     BigDecimal amount,
     UUID referenceId,
     String referenceType,

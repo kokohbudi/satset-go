@@ -19,20 +19,20 @@ class BalanceManagementUseCaseTest {
     void testDeductBalanceReturnsMutationResult() throws InsufficientBalanceException {
         // Given
         BalanceManagementUseCase useCase = Mockito.mock(BalanceManagementUseCase.class);
-        UUID storeId = UUID.randomUUID();
+        String walletId = "7001234567";
         BigDecimal amount = new BigDecimal("10000");
         MutationReferenceType referenceType = MutationReferenceType.PURCHASE;
         UUID referenceId = UUID.randomUUID();
         String description = "Test deduction";
         MutationResult expectedResult = new MutationResult(UUID.randomUUID(), new BigDecimal("90000"));
-        
+
         // When
-        when(useCase.deductBalance(storeId, amount, referenceType, referenceId, description))
+        when(useCase.deductBalance(walletId, amount, referenceType, referenceId, description))
             .thenReturn(expectedResult);
-        MutationResult result = useCase.deductBalance(storeId, amount, referenceType, referenceId, description);
-        
+        MutationResult result = useCase.deductBalance(walletId, amount, referenceType, referenceId, description);
+
         // Then
-        verify(useCase).deductBalance(storeId, amount, referenceType, referenceId, description);
+        verify(useCase).deductBalance(walletId, amount, referenceType, referenceId, description);
         assertEquals(expectedResult.mutationId(), result.mutationId());
         assertEquals(expectedResult.balanceAfter(), result.balanceAfter());
     }
@@ -41,20 +41,20 @@ class BalanceManagementUseCaseTest {
     void testAddBalanceReturnsMutationResult() {
         // Given
         BalanceManagementUseCase useCase = Mockito.mock(BalanceManagementUseCase.class);
-        UUID storeId = UUID.randomUUID();
+        String walletId = "7001234567";
         BigDecimal amount = new BigDecimal("10000");
         MutationReferenceType referenceType = MutationReferenceType.TOP_UP;
         UUID referenceId = UUID.randomUUID();
         String description = "Test addition";
         MutationResult expectedResult = new MutationResult(UUID.randomUUID(), new BigDecimal("110000"));
-        
+
         // When
-        when(useCase.addBalance(storeId, amount, referenceType, referenceId, description))
+        when(useCase.addBalance(walletId, amount, referenceType, referenceId, description))
             .thenReturn(expectedResult);
-        MutationResult result = useCase.addBalance(storeId, amount, referenceType, referenceId, description);
-        
+        MutationResult result = useCase.addBalance(walletId, amount, referenceType, referenceId, description);
+
         // Then
-        verify(useCase).addBalance(storeId, amount, referenceType, referenceId, description);
+        verify(useCase).addBalance(walletId, amount, referenceType, referenceId, description);
         assertEquals(expectedResult.mutationId(), result.mutationId());
         assertEquals(expectedResult.balanceAfter(), result.balanceAfter());
     }
@@ -63,15 +63,15 @@ class BalanceManagementUseCaseTest {
     void testGetBalanceReturnsBigDecimal() {
         // Given
         BalanceManagementUseCase useCase = Mockito.mock(BalanceManagementUseCase.class);
-        UUID storeId = UUID.randomUUID();
+        String walletId = "7001234567";
         BigDecimal expectedBalance = new BigDecimal("100000");
-        
+
         // When
-        when(useCase.getBalance(storeId)).thenReturn(expectedBalance);
-        BigDecimal result = useCase.getBalance(storeId);
-        
+        when(useCase.getBalance(walletId)).thenReturn(expectedBalance);
+        BigDecimal result = useCase.getBalance(walletId);
+
         // Then
-        verify(useCase).getBalance(storeId);
+        verify(useCase).getBalance(walletId);
         assertEquals(expectedBalance, result);
     }
 }

@@ -52,7 +52,7 @@ public class TransactionController {
             throws InsufficientBalanceException {
 
         TransactionSummary summary = purchaseUseCase.createPurchase(
-                getStoreId(), request.denomId(), request.targetNumber());
+                getStoreId(), getWalletId(), request.denomId(), request.targetNumber());
 
         Map<String, Object> response = new HashMap<>();
         response.put("status", summary.status().name());
@@ -67,10 +67,10 @@ public class TransactionController {
     @PostMapping("/topup")
     public ResponseEntity<Map<String, Object>> topUp(@Valid @RequestBody TopUpRequest request) {
 
-        UUID storeId = getStoreId();
-        topUpUseCase.topUp(storeId, request.amount(), request.description());
+        String walletId = getWalletId();
+        topUpUseCase.topUp(walletId, request.amount(), request.description());
 
-        BigDecimal balance = balanceManagementUseCase.getBalance(storeId);
+        BigDecimal balance = balanceManagementUseCase.getBalance(walletId);
 
         Map<String, Object> response = new HashMap<>();
         response.put("status", "success");
@@ -83,11 +83,11 @@ public class TransactionController {
     @GetMapping("/balance")
     public ResponseEntity<Map<String, Object>> getBalance() {
 
-        UUID storeId = getStoreId();
-        BigDecimal balance = balanceManagementUseCase.getBalance(storeId);
+        String walletId = getWalletId();
+        BigDecimal balance = balanceManagementUseCase.getBalance(walletId);
 
         Map<String, Object> response = new HashMap<>();
-        response.put("storeId", storeId);
+        response.put("walletId", walletId);
         response.put("balance", balance);
 
         return ResponseEntity.ok(response);
@@ -130,5 +130,12 @@ public class TransactionController {
             throw new ResourceNotFoundException("Store", "current user has no store");
         }
         return userDTO.getStoreId();
+    }
+
+    private String getWalletId() {
+        if (userDTO.getWalletId() == null) {
+            throw new ResourceNotFoundException("Wallet", "current user has no wallet");
+        }
+        return userDTO.getWalletId();
     }
 }

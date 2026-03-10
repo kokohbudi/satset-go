@@ -37,37 +37,30 @@ public class WalletDomainService implements WalletUseCase {
 
     @Override
     @Transactional
-    public WalletAccount createWallet(UUID storeId) {
-        log.info("Creating wallet for store {}", storeId);
-
-        // Check if wallet already exists
-        var existingWallet = walletAccountPort.findByStoreId(storeId);
-        if (existingWallet.isPresent()) {
-            log.warn("Wallet already exists for store {}, returning existing wallet", storeId);
-            return existingWallet.get();
-        }
-
+    public WalletAccount createWallet() {
         String walletId = walletIdGenerator.generate();
-        WalletAccount newAccount = WalletAccount.newAccount(walletId, storeId);
+        log.info("Creating wallet with id {}", walletId);
+
+        WalletAccount newAccount = WalletAccount.newAccount(walletId);
         WalletAccount saved = walletAccountPort.save(newAccount);
 
-        log.info("Wallet created successfully: {} for store {}", walletId, storeId);
+        log.info("Wallet created successfully: {}", walletId);
         return saved;
     }
 
     @Override
-    public BigDecimal getBalance(UUID storeId) {
-        return walletAccountPort.findByStoreId(storeId)
+    public BigDecimal getBalance(String walletId) {
+        return walletAccountPort.findByWalletId(walletId)
                 .map(WalletAccount::balance)
-                .orElseThrow(() -> new ResourceNotFoundException("WalletAccount", storeId));
+                .orElseThrow(() -> new ResourceNotFoundException("WalletAccount", walletId));
     }
 
     @Override
     @Transactional
-    public WalletMutationResult debit(UUID storeId, BigDecimal amount, UUID referenceId,
+    public WalletMutationResult debit(String walletId, BigDecimal amount, UUID referenceId,
             MutationReferenceType referenceType, String description) {
 
-        log.info("Debiting {} from store {} with reference {}", amount, storeId, referenceId);
+        log.info("Debiting {} from wallet {} with reference {}", amount, walletId, referenceId);
 
         var existingMutation = walletMutationPort.findByReferenceIdAndReferenceType(referenceId, referenceType);
         if (existingMutation.isPresent()) {
@@ -76,8 +69,8 @@ public class WalletDomainService implements WalletUseCase {
             return new WalletMutationResult(existing.id(), existing.balanceAfter());
         }
 
-        WalletAccount account = walletAccountPort.findByStoreIdWithLock(storeId)
-                .orElseThrow(() -> new ResourceNotFoundException("WalletAccount", storeId));
+        WalletAccount account = walletAccountPort.findByWalletIdWithLock(walletId)
+                .orElseThrow(() -> new ResourceNotFoundException("WalletAccount", walletId));
 
         BigDecimal currentBalance = account.balance();
         if (currentBalance.compareTo(amount) < 0) {
@@ -88,18 +81,18 @@ public class WalletDomainService implements WalletUseCase {
         walletAccountPort.save(account.withBalance(newBalance));
 
         WalletMutation saved = walletMutationPort.save(
-                WalletMutation.of(storeId, amount, MutationType.DEBIT, newBalance, referenceId, referenceType, description));
+                WalletMutation.of(walletId, amount, MutationType.DEBIT, newBalance, referenceId, referenceType, description));
 
-        log.info("Debit successful: new balance for store {} is {}", storeId, newBalance);
+        log.info("Debit successful: new balance for wallet {} is {}", walletId, newBalance);
         return new WalletMutationResult(saved.id(), newBalance);
     }
 
     @Override
     @Transactional
-    public WalletMutationResult credit(UUID storeId, BigDecimal amount, UUID referenceId,
+    public WalletMutationResult credit(String walletId, BigDecimal amount, UUID referenceId,
             MutationReferenceType referenceType, String description) {
 
-        log.info("Crediting {} to store {} with reference {}", amount, storeId, referenceId);
+        log.info("Crediting {} to wallet {} with reference {}", amount, walletId, referenceId);
 
         var existingMutation = walletMutationPort.findByReferenceIdAndReferenceType(referenceId, referenceType);
         if (existingMutation.isPresent()) {
@@ -108,27 +101,24 @@ public class WalletDomainService implements WalletUseCase {
             return new WalletMutationResult(existing.id(), existing.balanceAfter());
         }
 
-        WalletAccount account = walletAccountPort.findByStoreIdWithLock(storeId)
-                .orElseGet(() -> {
-                    String walletId = walletIdGenerator.generate();
-                    return walletAccountPort.save(WalletAccount.newAccount(walletId, storeId));
-                });
+        WalletAccount account = walletAccountPort.findByWalletIdWithLock(walletId)
+                .orElseThrow(() -> new ResourceNotFoundException("WalletAccount", walletId));
 
         BigDecimal newBalance = account.balance().add(amount);
         walletAccountPort.save(account.withBalance(newBalance));
 
         WalletMutation saved = walletMutationPort.save(
-                WalletMutation.of(storeId, amount, MutationType.CREDIT, newBalance, referenceId, referenceType, description));
+                WalletMutation.of(walletId, amount, MutationType.CREDIT, newBalance, referenceId, referenceType, description));
 
-        log.info("Credit successful: new balance for store {} is {}", storeId, newBalance);
+        log.info("Credit successful: new balance for wallet {} is {}", walletId, newBalance);
         return new WalletMutationResult(saved.id(), newBalance);
     }
 
     @Override
     @Transactional
-    public WalletMutationResult refund(UUID storeId, BigDecimal amount, UUID originalReferenceId, String description) {
+    public WalletMutationResult refund(String walletId, BigDecimal amount, UUID originalReferenceId, String description) {
 
-        log.info("Refunding {} to store {} for original reference {}", amount, storeId, originalReferenceId);
+        log.info("Refunding {} to wallet {} for original reference {}", amount, walletId, originalReferenceId);
 
         var existingMutation = walletMutationPort.findByReferenceIdAndReferenceType(
                 originalReferenceId, MutationReferenceType.REFUND);
@@ -138,22 +128,22 @@ public class WalletDomainService implements WalletUseCase {
             return new WalletMutationResult(existing.id(), existing.balanceAfter());
         }
 
-        WalletAccount account = walletAccountPort.findByStoreIdWithLock(storeId)
-                .orElseThrow(() -> new ResourceNotFoundException("WalletAccount", storeId));
+        WalletAccount account = walletAccountPort.findByWalletIdWithLock(walletId)
+                .orElseThrow(() -> new ResourceNotFoundException("WalletAccount", walletId));
 
         BigDecimal newBalance = account.balance().add(amount);
         walletAccountPort.save(account.withBalance(newBalance));
 
         WalletMutation saved = walletMutationPort.save(
-                WalletMutation.of(storeId, amount, MutationType.REFUND, newBalance,
+                WalletMutation.of(walletId, amount, MutationType.REFUND, newBalance,
                         originalReferenceId, MutationReferenceType.REFUND, description));
 
-        log.info("Refund successful: new balance for store {} is {}", storeId, newBalance);
+        log.info("Refund successful: new balance for wallet {} is {}", walletId, newBalance);
         return new WalletMutationResult(saved.id(), newBalance);
     }
 
     @Override
-    public List<WalletMutation> getMutations(UUID storeId) {
-        return walletMutationPort.findByStoreIdOrderByCreatedAtDesc(storeId);
+    public List<WalletMutation> getMutations(String walletId) {
+        return walletMutationPort.findByWalletIdOrderByCreatedAtDesc(walletId);
     }
 }

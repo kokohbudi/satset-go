@@ -6,6 +6,4 @@ import lombok.Data;
 public class BaseDTO {
     private String status;
     private String message;
-
-
 }

@@ -68,6 +68,7 @@ public class Beans {
                 dto.setUsername(userFromDb.getUsername());
                 dto.setEmail(email);
                 dto.setStoreId(userFromDb.getStoreId());
+                dto.setWalletId(userFromDb.getWalletId());
                 dto.setFullname(userFromDb.getFullname());
                 dto.setRoles(userFromDb.getRoles());
             }

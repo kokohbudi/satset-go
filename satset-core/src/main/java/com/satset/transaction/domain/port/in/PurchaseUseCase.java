@@ -7,6 +7,6 @@ import java.util.UUID;
 
 public interface PurchaseUseCase {
 
-    TransactionSummary createPurchase(UUID storeId, UUID denomId, String targetNumber)
+    TransactionSummary createPurchase(UUID storeId, String walletId, UUID denomId, String targetNumber)
             throws InsufficientBalanceException;
 }

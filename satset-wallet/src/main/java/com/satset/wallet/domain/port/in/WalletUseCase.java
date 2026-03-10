@@ -15,22 +15,21 @@ import java.util.UUID;
 public interface WalletUseCase {
 
     /**
-     * Creates a new wallet for the given store.
+     * Creates a new wallet with a generated wallet ID.
      *
-     * @param storeId the store ID
      * @return the created wallet account
      */
-    WalletAccount createWallet(UUID storeId);
+    WalletAccount createWallet();
 
-    BigDecimal getBalance(UUID storeId);
+    BigDecimal getBalance(String walletId);
 
-    WalletMutationResult debit(UUID storeId, BigDecimal amount, UUID referenceId,
+    WalletMutationResult debit(String walletId, BigDecimal amount, UUID referenceId,
             MutationReferenceType referenceType, String description);
 
-    WalletMutationResult credit(UUID storeId, BigDecimal amount, UUID referenceId,
+    WalletMutationResult credit(String walletId, BigDecimal amount, UUID referenceId,
             MutationReferenceType referenceType, String description);
 
-    WalletMutationResult refund(UUID storeId, BigDecimal amount, UUID originalReferenceId, String description);
+    WalletMutationResult refund(String walletId, BigDecimal amount, UUID originalReferenceId, String description);
 
-    List<WalletMutation> getMutations(UUID storeId);
+    List<WalletMutation> getMutations(String walletId);
 }

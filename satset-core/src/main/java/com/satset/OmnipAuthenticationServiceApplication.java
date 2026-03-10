@@ -3,10 +3,12 @@ package com.satset;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
-import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.event.EventListener;
 import org.springframework.core.env.Environment;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
+import org.springframework.data.web.config.EnableSpringDataWebSupport;
+
+import static org.springframework.data.web.config.EnableSpringDataWebSupport.PageSerializationMode.VIA_DTO;
 
 @SpringBootApplication
 @EnableJpaRepositories(basePackages = {
@@ -15,7 +17,7 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
         "com.satset.identity.adapter.out.persistence",
         "com.satset.onboarding.adapter.out.persistence"
 })
-@ComponentScan(basePackages = "com.satset")
+@EnableSpringDataWebSupport(pageSerializationMode = VIA_DTO)
 public class OmnipAuthenticationServiceApplication {
 
     static void main(String[] args) {

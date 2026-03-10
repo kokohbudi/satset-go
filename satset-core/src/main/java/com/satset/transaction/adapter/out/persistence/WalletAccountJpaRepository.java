@@ -9,14 +9,11 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
-import java.util.UUID;
 
 @Repository
 public interface WalletAccountJpaRepository extends JpaRepository<WalletAccountJpaEntity, String> {
 
-    Optional<WalletAccountJpaEntity> findByStoreId(UUID storeId);
-
     @Lock(LockModeType.PESSIMISTIC_WRITE)
-    @Query("SELECT w FROM WalletAccountJpaEntity w WHERE w.storeId = :storeId")
-    Optional<WalletAccountJpaEntity> findByStoreIdWithLock(@Param("storeId") UUID storeId);
+    @Query("SELECT w FROM WalletAccountJpaEntity w WHERE w.walletId = :walletId")
+    Optional<WalletAccountJpaEntity> findByWalletIdWithLock(@Param("walletId") String walletId);
 }

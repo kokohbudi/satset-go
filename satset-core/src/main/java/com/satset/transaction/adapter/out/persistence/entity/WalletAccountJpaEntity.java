@@ -8,7 +8,6 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.UUID;
 
 @Entity
 @Table(name = "wallet_accounts")
@@ -21,9 +20,6 @@ public class WalletAccountJpaEntity {
     @Id
     @Column(name = "wallet_id", updatable = false, nullable = false, length = 10)
     private String walletId;
-
-    @Column(name = "store_id", columnDefinition = "uuid", nullable = false, unique = true)
-    private UUID storeId;
 
     @Column(precision = 15, scale = 2, nullable = false)
     private BigDecimal balance = BigDecimal.ZERO;

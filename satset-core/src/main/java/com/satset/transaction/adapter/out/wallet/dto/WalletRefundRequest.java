@@ -4,7 +4,7 @@ import java.math.BigDecimal;
 import java.util.UUID;
 
 public record WalletRefundRequest(
-    UUID storeId,
+        String walletId,
     BigDecimal amount,
     UUID originalReferenceId,
     String description

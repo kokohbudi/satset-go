@@ -6,40 +6,37 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 
 class StoreMutationsTest {
 
     @Test
-    void testStoreMutationsHasStoreIdField() {
+    void testStoreMutationsHasWalletIdField() {
         // Given
         StoreMutations mutations = new StoreMutations();
-        UUID storeId = UUID.randomUUID();
-        
+        String walletId = "7001234567";
+
         // When
-        mutations.setStoreId(storeId);
-        
+        mutations.setWalletId(walletId);
+
         // Then
-        assertEquals(storeId, mutations.getStoreId());
+        assertEquals(walletId, mutations.getWalletId());
     }
 
     @Test
     void testStoreMutationsDoesNotHaveStoreEntityReference() {
         // Given & When
         StoreMutations mutations = new StoreMutations();
-        
+
         // Then
-        // We should be able to verify that there's no 'Store' object reference
-        // Just checking that we can access storeId as UUID and not as Store entity
-        UUID storeId = UUID.randomUUID();
-        mutations.setStoreId(storeId);
-        assertEquals(storeId, mutations.getStoreId());
-        
-        // Verify we can't access a Store entity object (field shouldn't exist)
-        // This is more of a compile-time check, but we can at least verify
-        // that the field is UUID and not a Store object
-        assertNotNull(mutations.getStoreId());
-        assertTrue(mutations.getStoreId() instanceof UUID);
+        // Verify we can set walletId as String
+        String walletId = "7001234567";
+        mutations.setWalletId(walletId);
+        assertEquals(walletId, mutations.getWalletId());
+
+        // Verify walletId is a String
+        assertInstanceOf(String.class, mutations.getWalletId());
     }
 
     @Test
@@ -47,7 +44,7 @@ class StoreMutationsTest {
         // Given
         StoreMutations mutations = new StoreMutations();
         UUID id = UUID.randomUUID();
-        UUID storeId = UUID.randomUUID();
+        String walletId = "7001234567";
         BigDecimal amount = new BigDecimal("10000");
         MutationType type = MutationType.DEBIT;
         BigDecimal balanceAfter = new BigDecimal("90000");
@@ -56,10 +53,10 @@ class StoreMutationsTest {
         String description = "Test mutation";
         LocalDateTime createdAt = LocalDateTime.now();
         Long version = 1L;
-        
+
         // When
         mutations.setId(id);
-        mutations.setStoreId(storeId);
+        mutations.setWalletId(walletId);
         mutations.setAmount(amount);
         mutations.setType(type);
         mutations.setBalanceAfter(balanceAfter);
@@ -68,10 +65,10 @@ class StoreMutationsTest {
         mutations.setDescription(description);
         mutations.setCreatedAt(createdAt);
         mutations.setVersion(version);
-        
+
         // Then
         assertEquals(id, mutations.getId());
-        assertEquals(storeId, mutations.getStoreId());
+        assertEquals(walletId, mutations.getWalletId());
         assertEquals(amount, mutations.getAmount());
         assertEquals(type, mutations.getType());
         assertEquals(balanceAfter, mutations.getBalanceAfter());

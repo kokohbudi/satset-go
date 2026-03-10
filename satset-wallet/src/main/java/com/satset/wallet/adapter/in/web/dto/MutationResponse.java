@@ -10,7 +10,7 @@ import java.util.UUID;
 
 public record MutationResponse(
     UUID id,
-    UUID storeId,
+    String walletId,
     BigDecimal amount,
     MutationType mutationType,
     BigDecimal balanceAfter,
@@ -21,7 +21,7 @@ public record MutationResponse(
 ) {
     public static MutationResponse from(WalletMutation mutation) {
         return new MutationResponse(
-            mutation.id(), mutation.storeId(), mutation.amount(), mutation.mutationType(),
+                mutation.id(), mutation.walletId(), mutation.amount(), mutation.mutationType(),
             mutation.balanceAfter(), mutation.referenceType(), mutation.referenceId(),
             mutation.description(), mutation.createdAt());
     }
