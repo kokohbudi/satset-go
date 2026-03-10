@@ -1,7 +1,5 @@
 package com.satset.transaction.adapter.in.web;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.satset.shared.dto.UserDTO;
 import com.satset.shared.exception.ResourceNotFoundException;
 import com.satset.transaction.adapter.in.web.dto.PurchaseRequest;
@@ -21,7 +19,7 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableHandlerMethodArgumentResolver;
 import org.springframework.http.MediaType;
-import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
+import org.springframework.http.converter.json.JacksonJsonHttpMessageConverter;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
@@ -50,7 +48,7 @@ class TransactionControllerTest {
     @Mock private BalanceManagementUseCase balanceManagementUseCase;
 
     private MockMvc mockMvc;
-    private final ObjectMapper objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
+    private final tools.jackson.databind.json.JsonMapper jsonMapper = tools.jackson.databind.json.JsonMapper.builder().build();
     private UUID storeId;
     private String walletId;
 
@@ -66,8 +64,7 @@ class TransactionControllerTest {
                 purchaseUseCase, topUpUseCase, transactionQueryUseCase,
                 balanceManagementUseCase, userDTO);
 
-        @SuppressWarnings("removal") // Jackson 2 → 3 migration pending
-        var converter = new MappingJackson2HttpMessageConverter(objectMapper);
+        var converter = new JacksonJsonHttpMessageConverter(jsonMapper);
 
         mockMvc = MockMvcBuilders.standaloneSetup(controller)
                 .setCustomArgumentResolvers(new PageableHandlerMethodArgumentResolver())
@@ -87,7 +84,7 @@ class TransactionControllerTest {
 
         mockMvc.perform(post("/api/transactions/purchase")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+                        .content(jsonMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("SUCCESS"))
                 .andExpect(jsonPath("$.transactionId").value(txId.toString()))
@@ -105,7 +102,7 @@ class TransactionControllerTest {
 
         mockMvc.perform(post("/api/transactions/topup")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+                        .content(jsonMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("success"))
                 .andExpect(jsonPath("$.balance").value(50000));
@@ -168,7 +165,7 @@ class TransactionControllerTest {
         Exception thrown = assertThrows(Exception.class, () ->
                 noWalletMockMvc.perform(post("/api/transactions/purchase")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+                                .content(jsonMapper.writeValueAsString(request)))
                         .andReturn());
 
         // Exception propagates wrapped or directly as ResourceNotFoundException
