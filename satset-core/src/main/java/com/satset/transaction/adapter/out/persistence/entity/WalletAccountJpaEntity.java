@@ -2,7 +2,6 @@ package com.satset.transaction.adapter.out.persistence.entity;
 
 import jakarta.persistence.*;
 import lombok.Data;
-import org.hibernate.annotations.UuidGenerator;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
@@ -17,10 +16,11 @@ import java.util.UUID;
 @Data
 public class WalletAccountJpaEntity {
 
+    // wallet_id is the business key owned by satset-wallet service (format: 700xxxxxxx).
+    // satset-core uses this as PK to align with satset-wallet's schema.
     @Id
-    @UuidGenerator
-    @Column(name = "id", updatable = false, nullable = false, columnDefinition = "uuid")
-    private UUID id;
+    @Column(name = "wallet_id", updatable = false, nullable = false, length = 10)
+    private String walletId;
 
     @Column(name = "store_id", columnDefinition = "uuid", nullable = false, unique = true)
     private UUID storeId;

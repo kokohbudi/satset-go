@@ -3,6 +3,7 @@ package com.satset.onboarding.domain.service;
 import com.satset.identity.domain.model.Users;
 import com.satset.onboarding.domain.model.Stores;
 import com.satset.onboarding.domain.port.in.AdminOnboardingUseCase;
+import com.satset.onboarding.domain.port.in.CreateStoreUseCase;
 import com.satset.onboarding.domain.port.out.KeycloakOrganizationPort;
 import com.satset.onboarding.domain.port.out.OnboardingUserPort;
 import com.satset.onboarding.domain.port.out.StoreRepositoryPort;
@@ -20,13 +21,16 @@ public class AdminOnboardingDomainService implements AdminOnboardingUseCase {
     private final KeycloakOrganizationPort keycloakAdminClientService;
     private final StoreRepositoryPort storeRepository;
     private final OnboardingUserPort usersRepository;
+    private final CreateStoreUseCase createStoreUseCase;
 
     public AdminOnboardingDomainService(KeycloakOrganizationPort keycloakAdminClientService,
             StoreRepositoryPort storeRepository,
-            OnboardingUserPort usersRepository) {
+                                        OnboardingUserPort usersRepository,
+                                        CreateStoreUseCase createStoreUseCase) {
         this.keycloakAdminClientService = keycloakAdminClientService;
         this.storeRepository = storeRepository;
         this.usersRepository = usersRepository;
+        this.createStoreUseCase = createStoreUseCase;
     }
 
     @Transactional
@@ -70,7 +74,7 @@ public class AdminOnboardingDomainService implements AdminOnboardingUseCase {
                 }
             }
 
-            store = storeRepository.save(store);
+            store = createStoreUseCase.createNewStore(store);
 
             // 5. Create User Entity in DB
             Users user = usersRepository.findByProviderUserId(userId);

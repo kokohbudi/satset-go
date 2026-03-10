@@ -5,6 +5,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
+import org.springframework.security.oauth2.client.OAuth2AuthorizedClientManager;
+import org.springframework.security.oauth2.client.web.client.OAuth2ClientHttpRequestInterceptor;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
@@ -23,9 +25,15 @@ public class WalletCreationAdapter implements WalletCreationPort {
 
     public WalletCreationAdapter(
             @Value("${wallet.base-url:http://localhost:8081}") String walletBaseUrl,
-            RestClient.Builder restClientBuilder) {
-        this.restClient = restClientBuilder
+            OAuth2AuthorizedClientManager authorizedClientManager) {
+
+        var interceptor = new OAuth2ClientHttpRequestInterceptor(authorizedClientManager);
+        interceptor.setClientRegistrationIdResolver(request -> "wallet-service");
+
+        this.restClient = RestClient.builder()
                 .baseUrl(walletBaseUrl)
+                .defaultHeader("Accept", MediaType.APPLICATION_JSON_VALUE)
+                .requestInterceptor(interceptor)
                 .build();
     }
 

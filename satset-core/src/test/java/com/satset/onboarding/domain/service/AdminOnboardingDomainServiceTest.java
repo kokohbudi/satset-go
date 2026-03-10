@@ -2,6 +2,7 @@ package com.satset.onboarding.domain.service;
 
 import com.satset.identity.domain.model.Users;
 import com.satset.onboarding.domain.model.Stores;
+import com.satset.onboarding.domain.port.in.CreateStoreUseCase;
 import com.satset.onboarding.domain.port.out.KeycloakOrganizationPort;
 import com.satset.onboarding.domain.port.out.OnboardingUserPort;
 import com.satset.onboarding.domain.port.out.StoreRepositoryPort;
@@ -36,6 +37,9 @@ class AdminOnboardingDomainServiceTest {
     @Mock
     private OnboardingUserPort usersRepository;
 
+    @Mock
+    private CreateStoreUseCase createStoreUseCase;
+
     @InjectMocks
     private AdminOnboardingDomainService service;
 
@@ -51,7 +55,7 @@ class AdminOnboardingDomainServiceTest {
         when(keycloakOrgPort.userExistsByEmail(EMAIL)).thenReturn(false);
         when(keycloakOrgPort.createOrganization(ORG_NAME)).thenReturn(KC_ORG_ID);
         when(keycloakOrgPort.createResellerUser(USERNAME, USERNAME, EMAIL)).thenReturn(KC_USER_ID);
-        when(storeRepository.save(any())).thenAnswer(inv -> {
+        when(createStoreUseCase.createNewStore(any())).thenAnswer(inv -> {
             Stores s = inv.getArgument(0);
             s.setId(UUID.randomUUID());
             return s;
@@ -68,7 +72,7 @@ class AdminOnboardingDomainServiceTest {
         verify(keycloakOrgPort).createResellerUser(USERNAME, USERNAME, EMAIL);
         verify(keycloakOrgPort).addMemberToOrganization(KC_ORG_ID, KC_USER_ID);
         verify(keycloakOrgPort).assignClientRoleToUser(KC_USER_ID, "org_owner");
-        verify(storeRepository).save(any());
+        verify(createStoreUseCase).createNewStore(any());
         verify(usersRepository).save(any());
     }
 
@@ -81,7 +85,7 @@ class AdminOnboardingDomainServiceTest {
 
         assertTrue(ex.getMessage().contains(EMAIL));
         verify(keycloakOrgPort, never()).createOrganization(any());
-        verify(storeRepository, never()).save(any());
+        verify(createStoreUseCase, never()).createNewStore(any());
     }
 
     @Test
@@ -93,7 +97,7 @@ class AdminOnboardingDomainServiceTest {
                 () -> service.onboardReseller(USERNAME, EMAIL, ORG_NAME, PHONE, null));
 
         assertEquals("Gagal membuat reseller. Silakan coba lagi.", ex.getMessage());
-        verify(storeRepository, never()).save(any());
+        verify(createStoreUseCase, never()).createNewStore(any());
     }
 
     @Test
@@ -101,7 +105,7 @@ class AdminOnboardingDomainServiceTest {
         service.onboardReseller(USERNAME, EMAIL, ORG_NAME, PHONE, null);
 
         ArgumentCaptor<Stores> storeCaptor = ArgumentCaptor.forClass(Stores.class);
-        verify(storeRepository).save(storeCaptor.capture());
+        verify(createStoreUseCase).createNewStore(storeCaptor.capture());
         assertNull(storeCaptor.getValue().getUplineId());
         verify(storeRepository, never()).findById(any());
     }
@@ -117,7 +121,7 @@ class AdminOnboardingDomainServiceTest {
         service.onboardReseller(USERNAME, EMAIL, ORG_NAME, PHONE, uplineId.toString());
 
         ArgumentCaptor<Stores> storeCaptor = ArgumentCaptor.forClass(Stores.class);
-        verify(storeRepository).save(storeCaptor.capture());
+        verify(createStoreUseCase).createNewStore(storeCaptor.capture());
         assertEquals(uplineId, storeCaptor.getValue().getUplineId());
     }
 
@@ -146,7 +150,7 @@ class AdminOnboardingDomainServiceTest {
                 () -> service.onboardReseller(USERNAME, EMAIL, ORG_NAME, PHONE, null));
 
         verify(keycloakOrgPort, never()).createResellerUser(any(), any(), any());
-        verify(storeRepository, never()).save(any());
+        verify(createStoreUseCase, never()).createNewStore(any());
     }
 
     @Test
@@ -158,7 +162,7 @@ class AdminOnboardingDomainServiceTest {
                 () -> service.onboardReseller(USERNAME, EMAIL, ORG_NAME, PHONE, null));
 
         assertEquals("Gagal membuat reseller. Silakan coba lagi.", ex.getMessage());
-        verify(storeRepository, never()).save(any());
+        verify(createStoreUseCase, never()).createNewStore(any());
     }
 
     @Test
@@ -166,7 +170,7 @@ class AdminOnboardingDomainServiceTest {
         service.onboardReseller(USERNAME, EMAIL, ORG_NAME, PHONE, null);
 
         ArgumentCaptor<Stores> storeCaptor = ArgumentCaptor.forClass(Stores.class);
-        verify(storeRepository).save(storeCaptor.capture());
+        verify(createStoreUseCase).createNewStore(storeCaptor.capture());
         Stores saved = storeCaptor.getValue();
 
         assertEquals(ORG_NAME, saved.getName());

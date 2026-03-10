@@ -35,124 +35,117 @@ class StoreDomainServiceTest {
         storeDomainService = new StoreDomainService(storeRepository, walletCreationPort);
     }
 
+    private UUID setupSaveWithIdAssignment() {
+        UUID assignedId = UUID.randomUUID();
+        when(storeRepository.save(any(Stores.class))).thenAnswer(invocation -> {
+            Stores s = invocation.getArgument(0);
+            if (s.getId() == null) s.setId(assignedId);
+            return s;
+        });
+        return assignedId;
+    }
+
     @Test
     @DisplayName("Should create store with auto-generated wallet")
     void createNewStore_shouldAutoCreateWallet() {
-        // Arrange
         Stores store = new Stores();
         store.setName("Test Store");
         store.setEmail("test@example.com");
-
         String generatedWalletId = "7001234567";
-        UUID storeId = UUID.randomUUID();
 
-        when(walletCreationPort.createWallet(any(UUID.class))).thenReturn(generatedWalletId);
-        when(storeRepository.save(any(Stores.class))).thenAnswer(invocation -> {
-            Stores saved = invocation.getArgument(0);
-            if (saved.getId() == null) {
-                saved.setId(storeId);
-            }
-            return saved;
-        });
+        UUID assignedId = setupSaveWithIdAssignment();
+        when(walletCreationPort.createWallet(assignedId)).thenReturn(generatedWalletId);
 
-        // Act
         Stores result = storeDomainService.createNewStore(store);
 
-        // Assert
         assertThat(result.getWalletId()).isEqualTo(generatedWalletId);
-        verify(walletCreationPort).createWallet(any(UUID.class));
-        verify(storeRepository, times(2)).save(any(Stores.class)); // Initial save + update with walletId
+        verify(walletCreationPort).createWallet(assignedId);
+        verify(storeRepository, times(2)).save(any(Stores.class));
+    }
+
+    @Test
+    @DisplayName("Should assign store ID from DB before calling wallet service")
+    void createNewStore_shouldAssignIdFromDbBeforeWalletCall() {
+        Stores store = new Stores();
+        store.setName("Test Store");
+
+        UUID assignedId = setupSaveWithIdAssignment();
+        when(walletCreationPort.createWallet(assignedId)).thenReturn("7000000001");
+
+        Stores result = storeDomainService.createNewStore(store);
+
+        assertThat(result.getId()).isEqualTo(assignedId);
+        verify(walletCreationPort).createWallet(assignedId);
+        verify(storeRepository, times(2)).save(any(Stores.class));
     }
 
     @Test
     @DisplayName("Should save store with walletId set")
     void createNewStore_shouldSaveStoreWithWalletId() {
-        // Arrange
         Stores store = new Stores();
         store.setName("Test Store");
         String walletId = "7000000001";
-        UUID storeId = UUID.randomUUID();
 
-        when(walletCreationPort.createWallet(any(UUID.class))).thenReturn(walletId);
-        when(storeRepository.save(any(Stores.class))).thenAnswer(invocation -> {
-            Stores saved = invocation.getArgument(0);
-            if (saved.getId() == null) {
-                saved.setId(storeId);
-            }
-            return saved;
-        });
+        UUID assignedId = setupSaveWithIdAssignment();
+        when(walletCreationPort.createWallet(assignedId)).thenReturn(walletId);
 
-        // Act
         Stores result = storeDomainService.createNewStore(store);
 
-        // Assert
         assertThat(result.getWalletId()).isEqualTo(walletId);
+        verify(storeRepository, times(2)).save(any(Stores.class));
     }
 
     @Test
     @DisplayName("Should still create store when wallet creation fails")
     void createNewStore_whenWalletCreationFails_shouldStillCreateStore() {
-        // Arrange
         Stores store = new Stores();
         store.setName("Test Store");
 
+        setupSaveWithIdAssignment();
         when(walletCreationPort.createWallet(any(UUID.class)))
                 .thenThrow(new RuntimeException("Wallet service unavailable"));
-        when(storeRepository.save(any(Stores.class))).thenAnswer(i -> i.getArgument(0));
 
-        // Act
         Stores result = storeDomainService.createNewStore(store);
 
-        // Assert
         assertThat(result).isNotNull();
         assertThat(result.getName()).isEqualTo("Test Store");
-        // Wallet ID should be null when creation fails
         assertThat(result.getWalletId()).isNull();
-        verify(storeRepository, times(2)).save(any(Stores.class)); // Initial save + update attempt
+        // Only 1 save: wallet failed so no second save
+        verify(storeRepository, times(1)).save(any(Stores.class));
     }
 
     @Test
-    @DisplayName("Should call wallet creation with correct store ID")
+    @DisplayName("Should call wallet creation with the ID assigned by first save")
     void createNewStore_shouldCallWalletCreationWithCorrectStoreId() {
-        // Arrange
         Stores store = new Stores();
         store.setName("Test Store");
-        UUID expectedStoreId = UUID.randomUUID();
 
-        when(walletCreationPort.createWallet(any(UUID.class))).thenReturn("7000000001");
-        when(storeRepository.save(any(Stores.class))).thenAnswer(invocation -> {
-            Stores saved = invocation.getArgument(0);
-            saved.setId(expectedStoreId);
-            return saved;
-        });
+        UUID assignedId = setupSaveWithIdAssignment();
+        when(walletCreationPort.createWallet(assignedId)).thenReturn("7000000001");
 
-        // Act
         storeDomainService.createNewStore(store);
 
-        // Assert
-        verify(walletCreationPort).createWallet(expectedStoreId);
+        verify(walletCreationPort).createWallet(assignedId);
     }
 
     @Test
     @DisplayName("Should preserve all store fields when creating")
     void createNewStore_shouldPreserveAllStoreFields() {
-        // Arrange
         Stores store = new Stores();
         store.setName("Test Store");
         store.setEmail("test@example.com");
         store.setPhone("08123456789");
         store.setActive(true);
 
-        when(walletCreationPort.createWallet(any(UUID.class))).thenReturn("7000000001");
-        when(storeRepository.save(any(Stores.class))).thenAnswer(i -> i.getArgument(0));
+        UUID assignedId = setupSaveWithIdAssignment();
+        when(walletCreationPort.createWallet(assignedId)).thenReturn("7000000001");
 
-        // Act
         Stores result = storeDomainService.createNewStore(store);
 
-        // Assert
         assertThat(result.getName()).isEqualTo("Test Store");
         assertThat(result.getEmail()).isEqualTo("test@example.com");
         assertThat(result.getPhone()).isEqualTo("08123456789");
         assertThat(result.isActive()).isTrue();
+        verify(storeRepository, times(2)).save(any(Stores.class));
     }
 }

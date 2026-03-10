@@ -2,6 +2,7 @@ package com.satset.onboarding.domain.service;
 
 import com.satset.identity.domain.model.Users;
 import com.satset.onboarding.domain.model.Stores;
+import com.satset.onboarding.domain.port.in.CreateStoreUseCase;
 import com.satset.onboarding.domain.port.in.SelfOnboardingUseCase;
 import com.satset.onboarding.domain.port.out.KeycloakOrganizationPort;
 import com.satset.onboarding.domain.port.out.OnboardingUserPort;
@@ -21,14 +22,17 @@ public class StoreOnboardingDomainService implements SelfOnboardingUseCase {
 
     private final KeycloakOrganizationPort keycloakAdminClientService;
     private final StoreRepositoryPort storeRepository;
+    private final CreateStoreUseCase createStoreUseCase;
     private final OnboardingUserPort usersRepository;
 
     public StoreOnboardingDomainService(KeycloakOrganizationPort keycloakAdminClientService,
             StoreRepositoryPort storeRepository,
-            OnboardingUserPort usersRepository) {
+                                        OnboardingUserPort usersRepository,
+                                        CreateStoreUseCase createStoreUseCase) {
         this.keycloakAdminClientService = keycloakAdminClientService;
         this.storeRepository = storeRepository;
         this.usersRepository = usersRepository;
+        this.createStoreUseCase = createStoreUseCase;
     }
 
     @Transactional
@@ -62,7 +66,7 @@ public class StoreOnboardingDomainService implements SelfOnboardingUseCase {
             store.setActive(true);
             store.setDeleted(false);
 
-            store = storeRepository.save(store);
+            store = createStoreUseCase.createNewStore(store);
 
             // 4. Link User -> Store
             user.setStoreId(store.getId());

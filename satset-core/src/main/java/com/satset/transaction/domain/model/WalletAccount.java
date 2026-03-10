@@ -9,7 +9,7 @@ import java.util.UUID;
 @Data
 public class WalletAccount {
 
-    private UUID id;
+    private String walletId;
     private UUID storeId;
     private BigDecimal balance = BigDecimal.ZERO;
     private LocalDateTime createdAt;

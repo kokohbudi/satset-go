@@ -18,7 +18,7 @@ class WalletAccountTest {
 
         assertThat(walletAccount.getStoreId()).isEqualTo(storeId);
         assertThat(walletAccount.getBalance()).isEqualByComparingTo(balance);
-        assertThat(walletAccount.getId()).isNull();
+        assertThat(walletAccount.getWalletId()).isNull();
         assertThat(walletAccount.getVersion()).isNull();
     }
 

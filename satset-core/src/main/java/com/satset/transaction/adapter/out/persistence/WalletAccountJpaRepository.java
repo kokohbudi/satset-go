@@ -12,7 +12,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 @Repository
-public interface WalletAccountJpaRepository extends JpaRepository<WalletAccountJpaEntity, UUID> {
+public interface WalletAccountJpaRepository extends JpaRepository<WalletAccountJpaEntity, String> {
 
     Optional<WalletAccountJpaEntity> findByStoreId(UUID storeId);
 

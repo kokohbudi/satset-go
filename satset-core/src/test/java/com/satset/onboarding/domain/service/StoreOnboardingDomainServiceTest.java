@@ -2,6 +2,7 @@ package com.satset.onboarding.domain.service;
 
 import com.satset.identity.domain.model.Users;
 import com.satset.onboarding.domain.model.Stores;
+import com.satset.onboarding.domain.port.in.CreateStoreUseCase;
 import com.satset.onboarding.domain.port.out.KeycloakOrganizationPort;
 import com.satset.onboarding.domain.port.out.OnboardingUserPort;
 import com.satset.onboarding.domain.port.out.StoreRepositoryPort;
@@ -39,6 +40,9 @@ class StoreOnboardingDomainServiceTest {
     @Mock
     private OnboardingUserPort usersRepository;
 
+    @Mock
+    private CreateStoreUseCase createStoreUseCase;
+
     @InjectMocks
     private StoreOnboardingDomainService service;
 
@@ -54,7 +58,7 @@ class StoreOnboardingDomainServiceTest {
                 new ServletRequestAttributes(new MockHttpServletRequest()));
 
         when(keycloakOrgPort.createOrganization(ORG_NAME)).thenReturn(KC_ORG_ID);
-        when(storeRepository.save(any())).thenAnswer(inv -> {
+        when(createStoreUseCase.createNewStore(any())).thenAnswer(inv -> {
             Stores s = inv.getArgument(0);
             s.setId(UUID.randomUUID());
             return s;
@@ -77,7 +81,7 @@ class StoreOnboardingDomainServiceTest {
         verify(keycloakOrgPort).createOrganization(ORG_NAME);
         verify(keycloakOrgPort).addMemberToOrganization(KC_ORG_ID, USER_ID);
         verify(keycloakOrgPort).assignClientRoleToUser(USER_ID, "org_owner");
-        verify(storeRepository).save(any());
+        verify(createStoreUseCase).createNewStore(any());
         verify(usersRepository).save(any());
     }
 
@@ -89,7 +93,7 @@ class StoreOnboardingDomainServiceTest {
                 () -> service.onboardStore(USER_ID, ORG_NAME, PHONE));
 
         assertEquals("Gagal mendaftarkan toko. Silakan coba lagi.", ex.getMessage());
-        verify(storeRepository, never()).save(any());
+        verify(createStoreUseCase, never()).createNewStore(any());
     }
 
     @Test
@@ -111,7 +115,7 @@ class StoreOnboardingDomainServiceTest {
         assertThrows(BusinessException.class,
                 () -> service.onboardStore(USER_ID, ORG_NAME, PHONE));
 
-        verify(storeRepository, never()).save(any());
+        verify(createStoreUseCase, never()).createNewStore(any());
         verify(usersRepository, never()).save(any());
     }
 
@@ -126,7 +130,7 @@ class StoreOnboardingDomainServiceTest {
                 () -> service.onboardStore(USER_ID, ORG_NAME, PHONE));
 
         assertEquals("Gagal mendaftarkan toko. Silakan coba lagi.", ex.getMessage());
-        verify(storeRepository, never()).save(any());
+        verify(createStoreUseCase, never()).createNewStore(any());
     }
 
     @Test
@@ -149,7 +153,7 @@ class StoreOnboardingDomainServiceTest {
         service.onboardStore(USER_ID, ORG_NAME, PHONE);
 
         ArgumentCaptor<Stores> storeCaptor = ArgumentCaptor.forClass(Stores.class);
-        verify(storeRepository).save(storeCaptor.capture());
+        verify(createStoreUseCase).createNewStore(storeCaptor.capture());
         Stores saved = storeCaptor.getValue();
 
         assertEquals(ORG_NAME, saved.getName());

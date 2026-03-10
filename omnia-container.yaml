@@ -16,7 +16,7 @@ services:
       - ${NETWORK}
 
   keycloak-omnia:
-    image: quay.io/keycloak/keycloak:latest
+    image: quay.io/keycloak/keycloak:26.2.1
     container_name: keycloak-omnia
     command: start-dev
     ports:

@@ -7,7 +7,7 @@ import com.satset.catalog.domain.port.out.DenomRepositoryPort;
 import com.satset.catalog.domain.port.out.ProductRepositoryPort;
 import com.satset.onboarding.domain.model.Stores;
 import com.satset.onboarding.domain.port.out.StoreRepositoryPort;
-import com.satset.transaction.domain.model.WalletAccount;
+import com.satset.onboarding.domain.port.out.WalletCreationPort;
 import com.satset.transaction.domain.port.out.WalletAccountPort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,19 +32,22 @@ public class DataSeeder implements ApplicationRunner {
     private final DenomMetaRepositoryPort metaRepository;
     private final StoreRepositoryPort storeRepository;
     private final WalletAccountPort walletAccountPort;
+    private final WalletCreationPort walletCreationPort;
 
     public DataSeeder(CategoryRepositoryPort categoryRepository,
                       ProductRepositoryPort productRepository,
                       DenomRepositoryPort denomRepository,
                       DenomMetaRepositoryPort metaRepository,
                       StoreRepositoryPort storeRepository,
-                      WalletAccountPort walletAccountPort) {
+                      WalletAccountPort walletAccountPort,
+                      WalletCreationPort walletCreationPort) {
         this.categoryRepository = categoryRepository;
         this.productRepository = productRepository;
         this.denomRepository = denomRepository;
         this.metaRepository = metaRepository;
         this.storeRepository = storeRepository;
         this.walletAccountPort = walletAccountPort;
+        this.walletCreationPort = walletCreationPort;
     }
 
     @Override
@@ -85,14 +88,16 @@ public class DataSeeder implements ApplicationRunner {
             return;
         }
 
-        log.info("Seeding WalletAccount for {} stores...", stores.size());
+        log.info("Seeding WalletAccount for {} stores via wallet service...", stores.size());
         int created = 0;
         for (Stores store : stores) {
             if (walletAccountPort.findByStoreId(store.getId()).isEmpty()) {
-                BigDecimal initialBalance = store.getBalance() != null ? store.getBalance() : BigDecimal.ZERO;
-                WalletAccount wallet = new WalletAccount(store.getId(), initialBalance);
-                walletAccountPort.save(wallet);
-                created++;
+                try {
+                    walletCreationPort.createWallet(store.getId());
+                    created++;
+                } catch (Exception e) {
+                    log.warn("Failed to create wallet for store {} — wallet service unavailable? Skipping. Error: {}", store.getId(), e.getMessage());
+                }
             }
         }
         log.info("WalletAccount seeding complete. Created {} accounts.", created);

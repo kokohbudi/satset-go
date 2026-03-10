@@ -14,7 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Component
 public class WalletIdSequenceAdapter implements WalletIdSequencePort {
 
-    private static final String SEQUENCE_NAME = "wallet_id_seq";
+    private static final String SEQUENCE_NAME = "satset_wallet.wallet_id_seq";
 
     @PersistenceContext
     private EntityManager entityManager;

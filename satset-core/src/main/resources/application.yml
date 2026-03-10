@@ -19,7 +19,7 @@ spring:
             redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
             scope: openid,profile,email
           wallet-service:
-            client-id: ${WALLET_CLIENT_ID:omnip-core}
+            client-id: ${WALLET_CLIENT_ID:satset-core}
             client-secret: ${WALLET_CLIENT_SECRET:dummy-secret}
             authorization-grant-type: client_credentials
             scope: wallet:internal

@@ -6,6 +6,7 @@ import com.satset.catalog.domain.port.out.DenomRepositoryPort;
 import com.satset.catalog.domain.port.out.ProductRepositoryPort;
 import com.satset.onboarding.domain.model.Stores;
 import com.satset.onboarding.domain.port.out.StoreRepositoryPort;
+import com.satset.onboarding.domain.port.out.WalletCreationPort;
 import com.satset.transaction.domain.model.WalletAccount;
 import com.satset.transaction.domain.port.out.WalletAccountPort;
 import org.junit.jupiter.api.BeforeEach;
@@ -44,6 +45,9 @@ class DataSeederTest {
     @Mock
     private WalletAccountPort walletAccountPort;
 
+    @Mock
+    private WalletCreationPort walletCreationPort;
+
     private DataSeeder dataSeeder;
 
     @BeforeEach
@@ -54,7 +58,8 @@ class DataSeederTest {
                 denomRepository,
                 metaRepository,
                 storeRepository,
-                walletAccountPort
+                walletAccountPort,
+                walletCreationPort
         );
     }
 
@@ -106,7 +111,6 @@ class DataSeederTest {
         when(storeRepository.findAll()).thenReturn(Arrays.asList(store1, store2));
         when(walletAccountPort.findByStoreId(storeId1)).thenReturn(Optional.empty());
         when(walletAccountPort.findByStoreId(storeId2)).thenReturn(Optional.empty());
-        when(walletAccountPort.save(any(WalletAccount.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         // When
         dataSeeder.seedWalletAccounts();
@@ -114,7 +118,7 @@ class DataSeederTest {
         // Then
         verify(walletAccountPort).findByStoreId(storeId1);
         verify(walletAccountPort).findByStoreId(storeId2);
-        verify(walletAccountPort, times(2)).save(any(WalletAccount.class));
+        verify(walletCreationPort, times(2)).createWallet(any());
     }
 
     @Test
@@ -137,7 +141,6 @@ class DataSeederTest {
         when(storeRepository.findAll()).thenReturn(Arrays.asList(store1, store2));
         when(walletAccountPort.findByStoreId(storeId1)).thenReturn(Optional.of(existingWallet));
         when(walletAccountPort.findByStoreId(storeId2)).thenReturn(Optional.empty());
-        when(walletAccountPort.save(any(WalletAccount.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         // When
         dataSeeder.seedWalletAccounts();
@@ -145,12 +148,12 @@ class DataSeederTest {
         // Then
         verify(walletAccountPort).findByStoreId(storeId1);
         verify(walletAccountPort).findByStoreId(storeId2);
-        // Only store2 should trigger save (store1 already has wallet)
-        verify(walletAccountPort, times(1)).save(any(WalletAccount.class));
+        // Only store2 should trigger createWallet (store1 already has wallet)
+        verify(walletCreationPort, times(1)).createWallet(storeId2);
     }
 
     @Test
-    void seedWalletAccounts_whenStoreHasNullBalance_shouldUseZero() {
+    void seedWalletAccounts_whenStoreHasNoWallet_shouldCallCreateWallet() {
         // Given
         UUID storeId = UUID.randomUUID();
 
@@ -161,15 +164,11 @@ class DataSeederTest {
         when(walletAccountPort.count()).thenReturn(0L);
         when(storeRepository.findAll()).thenReturn(Collections.singletonList(store));
         when(walletAccountPort.findByStoreId(storeId)).thenReturn(Optional.empty());
-        when(walletAccountPort.save(any(WalletAccount.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         // When
         dataSeeder.seedWalletAccounts();
 
         // Then
-        verify(walletAccountPort).save(argThat(wallet ->
-                wallet.getStoreId().equals(storeId) &&
-                wallet.getBalance().compareTo(BigDecimal.ZERO) == 0
-        ));
+        verify(walletCreationPort).createWallet(storeId);
     }
 }

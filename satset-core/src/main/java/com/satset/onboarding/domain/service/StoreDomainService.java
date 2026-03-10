@@ -8,6 +8,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
+
 /**
  * Domain service for store operations.
  * Auto-creates wallet when a new store is created.
@@ -28,23 +29,17 @@ public class StoreDomainService implements CreateStoreUseCase {
 
     @Override
     public Stores createNewStore(Stores stores) {
-        // First save the store to get an ID
-        Stores savedStore = storeRepository.save(stores);
+        // Save first to get the persisted ID from DB
+        Stores saved = storeRepository.save(stores);
 
-        // Auto-create wallet for the store
         try {
-            String walletId = walletCreationPort.createWallet(savedStore.getId());
-            savedStore.setWalletId(walletId);
-            log.info("Wallet {} created for store {}", walletId, savedStore.getId());
-
-            // Update store with walletId
-            savedStore = storeRepository.save(savedStore);
+            String walletId = walletCreationPort.createWallet(saved.getId());
+            saved.setWalletId(walletId);
+            log.info("Wallet {} created for store {}", walletId, saved.getId());
+            return storeRepository.save(saved);
         } catch (Exception e) {
-            // Log error but don't fail store creation
-            // Wallet can be created later manually or via retry mechanism
-            log.error("Failed to auto-create wallet for store {}: {}", savedStore.getId(), e.getMessage());
+            log.error("Failed to auto-create wallet for store {}: {}", saved.getId(), e.getMessage());
+            return saved;
         }
-
-        return savedStore;
     }
 }
