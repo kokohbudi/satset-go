@@ -24,19 +24,28 @@ ProductDenoms (fixed/open amount, prepaid/postpaid)
 ProductDenomMeta (key-value metadata)
 ```
 
-## Architecture: Hexagonal (Ports & Adapters)
+## Architecture: Layered (vertical slice per feature)
 ```
-[Adapter In]  →  [Port In]  →  [Domain/Service]  →  [Port Out]  →  [Adapter Out]
- Controller        Interface      Business Logic       Interface      Repository/API
+<feature>/
+  web/         Controllers (REST + Thymeleaf)
+  service/     Business logic
+  repository/  Spring Data JpaRepository  (entity == domain model)
+  model/       @Entity classes, enums, value records
+  dto/         request/response DTOs
+  client/      external-system clients + their ports (Keycloak, wallet, provider)
 ```
-**Rule**: Setelah selesai coding, panggil Neo untuk review hexagonal compliance.
+Flow: `Controller → Service → Repository`. Interfaces/ports ONLY at external or
+polymorphic boundaries (Keycloak, wallet HTTP, provider) — NOT for own-DB access
+and NOT one-impl use-case interfaces. (Migrated from Hexagonal, 2026-06.)
 
 ## Key Decisions
 - **UUID IDs** (`@UuidGenerator`) — distributed-friendly, non-sequential
 - **LocalDateTime** — modern Java Time API
 - **Soft Delete** (`deleted` flag) — preserve data for audit
 - **Optimistic Locking** (`@Version`)
-- **Mock First** — interfaces dulu (MockProviderService → real impl later)
+- **Entity == domain model** — one `@Entity` class, no separate domain/entity split or mappers
+- **Balance is remote-only** — all balance ops go to the wallet service over HTTP (`WalletClientAdapter`)
+- **Mock First** — for external boundaries (e.g. `MockProviderAdapter` → real impl later)
 
 ---
 

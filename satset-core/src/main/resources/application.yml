@@ -78,8 +78,6 @@ keycloak:
 
 wallet:
   base-url: ${WALLET_BASE_URL:http://localhost:8081}
-  client:
-    enabled: ${WALLET_CLIENT_ENABLED:false}
 
 # Performance optimizations
 server:
