@@ -13,17 +13,6 @@
 
 ---
 
-## Personas (Trigger dengan nama lengkap: "August", "Julia", "Neo")
-| Persona | File | Trigger | Role | Owns |
-|---------|------|---------|------|------|
-| August | AUGUST_PERSONA.md | "August" / "Agus" | Project Manager | Tasks.md |
-| Julia | JULIA_PERSONA.md | "Julia" / "Yulia" | Business Analyst | Julia.md |
-| Neo | NEO_PERSONA.md | "Neo" | Tech Lead | TechSpecs.md |
-
-**Usage**: Julia (req) → August (tasks) → Neo (design) → Dev (code)
-
----
-
 ## User Info & Preferences
 - **Name**: Kokoh (nama asli, bukan panggilan)
 - **Language**: Bahasa Indonesia
@@ -69,9 +58,4 @@ Ref: `Tasks.md` backlog
 - **AP-series**: ✅ DONE (2026-03-02)
 - Opsi 1: Balance Top-up feature
 - Opsi 2: Code hygiene (tests, pagination)
-- Opsi 3: Neo design plan (domain model separation)
-
-## Qwen Added Memories
-- When user says 'neo', they want to trigger the Neo persona (Tech Lead) from the project personas
-- When user says 'julia', they want to trigger the Julia persona (Business Analyst) from the project personas
-- When user says 'august', they want to trigger the August persona (Project Manager) from the project personas
+- Opsi 3: Domain model separation design plan
