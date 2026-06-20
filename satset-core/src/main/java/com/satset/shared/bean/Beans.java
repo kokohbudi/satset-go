@@ -1,6 +1,6 @@
 package com.satset.shared.bean;
 
-import com.satset.identity.adapter.out.persistence.UserRepository;
+import com.satset.identity.repository.UserRepository;
 import com.satset.shared.config.AuditorAwareImpl;
 import com.satset.shared.constant.OmniConstants;
 import com.satset.shared.dto.UserDTO;

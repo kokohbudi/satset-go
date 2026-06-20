@@ -1,7 +1,7 @@
 package com.satset.shared.listener;
 
-import com.satset.identity.domain.service.UserDomainService;
-import com.satset.onboarding.domain.service.RegistrationDomainService;
+import com.satset.identity.service.UserDomainService;
+import com.satset.onboarding.service.RegistrationDomainService;
 import com.satset.shared.constant.OmniConstants;
 import com.satset.shared.dto.UserDTO;
 import org.junit.jupiter.api.BeforeEach;

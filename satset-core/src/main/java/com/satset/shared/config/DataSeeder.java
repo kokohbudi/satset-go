@@ -1,10 +1,10 @@
 package com.satset.shared.config;
 
-import com.satset.catalog.adapter.out.persistence.CategoryRepository;
-import com.satset.catalog.adapter.out.persistence.DenomMetaRepository;
-import com.satset.catalog.adapter.out.persistence.DenomRepository;
-import com.satset.catalog.adapter.out.persistence.ProductRepository;
-import com.satset.catalog.domain.model.*;
+import com.satset.catalog.repository.CategoryRepository;
+import com.satset.catalog.repository.DenomMetaRepository;
+import com.satset.catalog.repository.DenomRepository;
+import com.satset.catalog.repository.ProductRepository;
+import com.satset.catalog.model.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.ApplicationArguments;

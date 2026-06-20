@@ -1,6 +1,6 @@
 package com.satset.shared.interceptor;
 
-import com.satset.identity.adapter.out.persistence.UserRepository;
+import com.satset.identity.repository.UserRepository;
 import com.satset.shared.constant.OmniConstants;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;

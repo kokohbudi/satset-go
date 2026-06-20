@@ -12,10 +12,10 @@ import static org.springframework.data.web.config.EnableSpringDataWebSupport.Pag
 
 @SpringBootApplication
 @EnableJpaRepositories(basePackages = {
-        "com.satset.catalog.adapter.out.persistence",
-        "com.satset.transaction.adapter.out.persistence",
-        "com.satset.identity.adapter.out.persistence",
-        "com.satset.onboarding.adapter.out.persistence"
+        "com.satset.catalog.repository",
+        "com.satset.transaction.repository",
+        "com.satset.identity.repository",
+        "com.satset.onboarding.repository"
 })
 @EnableSpringDataWebSupport(pageSerializationMode = VIA_DTO)
 public class OmnipAuthenticationServiceApplication {

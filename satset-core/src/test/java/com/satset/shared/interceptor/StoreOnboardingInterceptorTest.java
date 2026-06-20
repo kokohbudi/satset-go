@@ -1,6 +1,6 @@
 package com.satset.shared.interceptor;
 
-import com.satset.identity.adapter.out.persistence.UserRepository;
+import com.satset.identity.repository.UserRepository;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
