@@ -1,4 +1,4 @@
-package com.satset.shared.config;
+package com.satset;
 
 import com.satset.catalog.repository.CategoryRepository;
 import com.satset.catalog.repository.DenomMetaRepository;

@@ -1,5 +1,7 @@
 package com.satset.shared.web;
 
+import com.satset.UserSessionControllerAdvice;
+
 import com.satset.identity.client.KeycloakIdentityPort;
 import com.satset.shared.dto.RoleInfo;
 import com.satset.shared.dto.UserDTO;

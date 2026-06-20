@@ -1,5 +1,7 @@
 package com.satset.shared.listener;
 
+import com.satset.KeycloakLoginEventListener;
+
 import com.satset.identity.service.UserDomainService;
 import com.satset.onboarding.service.RegistrationDomainService;
 import com.satset.shared.constant.OmniConstants;

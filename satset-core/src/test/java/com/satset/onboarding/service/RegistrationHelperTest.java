@@ -2,7 +2,7 @@ package com.satset.onboarding.service;
 
 import com.satset.identity.model.Users;
 import com.satset.onboarding.model.Stores;
-import com.satset.onboarding.client.OnboardingUserPort;
+import com.satset.identity.repository.UserRepository;
 import com.satset.onboarding.repository.StoreRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -24,7 +24,7 @@ import static org.mockito.Mockito.when;
 class RegistrationHelperTest {
 
     @Mock private StoreRepository storeRepository;
-    @Mock private OnboardingUserPort usersRepository;
+    @Mock private UserRepository usersRepository;
 
     @InjectMocks
     private RegistrationHelper helper;

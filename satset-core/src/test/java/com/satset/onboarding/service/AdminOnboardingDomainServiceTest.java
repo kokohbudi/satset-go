@@ -2,8 +2,8 @@ package com.satset.onboarding.service;
 
 import com.satset.identity.model.Users;
 import com.satset.onboarding.model.Stores;
-import com.satset.onboarding.client.KeycloakOrganizationPort;
-import com.satset.onboarding.client.OnboardingUserPort;
+import com.satset.identity.client.KeycloakOrganizationPort;
+import com.satset.identity.repository.UserRepository;
 import com.satset.onboarding.repository.StoreRepository;
 import com.satset.shared.exception.BusinessException;
 import org.junit.jupiter.api.BeforeEach;
@@ -34,7 +34,7 @@ class AdminOnboardingDomainServiceTest {
     private StoreRepository storeRepository;
 
     @Mock
-    private OnboardingUserPort usersRepository;
+    private UserRepository usersRepository;
 
     @Mock
     private StoreDomainService createStoreUseCase;

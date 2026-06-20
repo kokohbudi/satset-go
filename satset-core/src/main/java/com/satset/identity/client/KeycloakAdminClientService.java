@@ -3,8 +3,6 @@ package com.satset.identity.client;
 import com.satset.identity.model.GroupMemberInfo;
 import com.satset.identity.model.KeycloakGroup;
 import com.satset.identity.model.KeycloakRole;
-import com.satset.identity.client.KeycloakIdentityPort;
-import com.satset.onboarding.client.KeycloakOrganizationPort;
 import com.satset.shared.dto.GroupInfo;
 import com.satset.shared.dto.RoleInfo;
 import com.satset.shared.dto.UserDTO;

@@ -3,8 +3,8 @@ package com.satset.onboarding.service;
 import com.satset.identity.model.Users;
 import com.satset.onboarding.repository.StoreRepository;
 import com.satset.onboarding.model.Stores;
-import com.satset.onboarding.client.KeycloakOrganizationPort;
-import com.satset.onboarding.client.OnboardingUserPort;
+import com.satset.identity.client.KeycloakOrganizationPort;
+import com.satset.identity.repository.UserRepository;
 import com.satset.shared.exception.BusinessException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -21,11 +21,11 @@ public class StoreOnboardingDomainService {
     private final KeycloakOrganizationPort keycloakAdminClientService;
     private final StoreRepository storeRepository;
     private final StoreDomainService storeService;
-    private final OnboardingUserPort usersRepository;
+    private final UserRepository usersRepository;
 
     public StoreOnboardingDomainService(KeycloakOrganizationPort keycloakAdminClientService,
             StoreRepository storeRepository,
-                                        OnboardingUserPort usersRepository,
+                                        UserRepository usersRepository,
                                         StoreDomainService storeService) {
         this.keycloakAdminClientService = keycloakAdminClientService;
         this.storeRepository = storeRepository;

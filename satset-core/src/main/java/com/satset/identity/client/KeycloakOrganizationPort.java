@@ -1,4 +1,4 @@
-package com.satset.onboarding.client;
+package com.satset.identity.client;
 
 import com.satset.shared.exception.BusinessException;
 

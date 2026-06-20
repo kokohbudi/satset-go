@@ -1,5 +1,7 @@
 package com.satset.shared.interceptor;
 
+import com.satset.StoreOnboardingInterceptor;
+
 import com.satset.identity.repository.UserRepository;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;

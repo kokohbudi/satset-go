@@ -1,4 +1,4 @@
-package com.satset.shared.bean;
+package com.satset;
 
 import com.satset.identity.repository.UserRepository;
 import com.satset.shared.config.AuditorAwareImpl;

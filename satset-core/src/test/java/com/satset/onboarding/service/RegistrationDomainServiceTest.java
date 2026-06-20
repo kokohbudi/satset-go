@@ -2,7 +2,7 @@ package com.satset.onboarding.service;
 
 import com.satset.identity.model.Users;
 import com.satset.onboarding.model.Stores;
-import com.satset.onboarding.client.OnboardingUserPort;
+import com.satset.identity.repository.UserRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -21,7 +21,7 @@ import static org.mockito.Mockito.*;
 class RegistrationDomainServiceTest {
 
     @Mock
-    private OnboardingUserPort onboardingUserPort;
+    private UserRepository onboardingUserPort;
 
     @Mock
     private StoreDomainService storeService;

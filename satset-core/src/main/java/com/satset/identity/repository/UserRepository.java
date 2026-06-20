@@ -1,7 +1,6 @@
 package com.satset.identity.repository;
 
 import com.satset.identity.model.Users;
-import com.satset.onboarding.client.OnboardingUserPort;
 import com.satset.shared.dto.UserDTO;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -13,14 +12,9 @@ import java.util.UUID;
 
 /**
  * User persistence. Spring Data provides the implementation.
- * Also satisfies {@link OnboardingUserPort} (cross-context, owned by onboarding).
  */
 @Repository
-public interface UserRepository extends JpaRepository<Users, UUID>, OnboardingUserPort {
-
-    /** Narrowed save to disambiguate OnboardingUserPort.save vs CrudRepository.save. */
-    @Override
-    Users save(Users user);
+public interface UserRepository extends JpaRepository<Users, UUID> {
 
     Users findByEmail(String email);
 

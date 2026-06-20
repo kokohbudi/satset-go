@@ -1,6 +1,5 @@
-package com.satset.shared.config;
+package com.satset;
 
-import com.satset.shared.interceptor.StoreOnboardingInterceptor;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;

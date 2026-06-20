@@ -2,7 +2,7 @@ package com.satset.onboarding.service;
 
 import com.satset.identity.model.Users;
 import com.satset.onboarding.model.Stores;
-import com.satset.onboarding.client.OnboardingUserPort;
+import com.satset.identity.repository.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -11,11 +11,11 @@ import java.util.Map;
 
 @Service
 public class RegistrationDomainService {
-    private final OnboardingUserPort onboardingUserPort;
+    private final UserRepository onboardingUserPort;
     private final StoreDomainService storeService;
     private final RegistrationHelper registrationBusiness;
 
-    public RegistrationDomainService(OnboardingUserPort onboardingUserPort,
+    public RegistrationDomainService(UserRepository onboardingUserPort,
             StoreDomainService storeService,
             RegistrationHelper registrationBusiness) {
         this.onboardingUserPort = onboardingUserPort;

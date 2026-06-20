@@ -1,4 +1,4 @@
-package com.satset.shared.interceptor;
+package com.satset;
 
 import com.satset.identity.repository.UserRepository;
 import com.satset.shared.constant.OmniConstants;

@@ -4,7 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.satset.catalog.repository.DenomRepository;
 import com.satset.identity.client.KeycloakIdentityPort;
 import com.satset.onboarding.repository.StoreRepository;
-import com.satset.onboarding.client.KeycloakOrganizationPort;
+import com.satset.identity.client.KeycloakOrganizationPort;
 import com.satset.onboarding.client.WalletCreationPort;
 import com.satset.shared.dto.UserDTO;
 import com.satset.shared.exception.InsufficientBalanceException;

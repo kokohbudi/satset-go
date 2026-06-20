@@ -1,4 +1,4 @@
-package com.satset.shared.listener;
+package com.satset;
 
 import com.satset.identity.service.UserDomainService;
 import com.satset.onboarding.service.RegistrationDomainService;

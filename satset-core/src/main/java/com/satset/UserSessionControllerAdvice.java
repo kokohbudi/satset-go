@@ -1,4 +1,4 @@
-package com.satset.shared.web;
+package com.satset;
 
 import com.satset.identity.client.KeycloakIdentityPort;
 import com.satset.shared.dto.RoleInfo;
