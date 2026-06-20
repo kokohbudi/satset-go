@@ -1,6 +1,6 @@
 package com.satset.onboarding.adapter.in.web;
 
-import com.satset.onboarding.domain.port.in.SelfOnboardingUseCase;
+import com.satset.onboarding.domain.service.StoreOnboardingDomainService;
 import com.satset.shared.constant.OmniConstants;
 import com.satset.shared.dto.UserDTO;
 import org.junit.jupiter.api.BeforeEach;
@@ -22,7 +22,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class OnboardingControllerTest {
 
     @Mock
-    private SelfOnboardingUseCase selfOnboardingUseCase;
+    private StoreOnboardingDomainService selfOnboardingUseCase;
 
     private MockMvc mockMvc;
 

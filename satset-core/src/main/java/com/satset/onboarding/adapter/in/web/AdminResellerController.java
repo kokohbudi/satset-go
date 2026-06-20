@@ -1,6 +1,6 @@
 package com.satset.onboarding.adapter.in.web;
 
-import com.satset.onboarding.domain.port.in.AdminOnboardingUseCase;
+import com.satset.onboarding.domain.service.AdminOnboardingDomainService;
 import com.satset.shared.constant.OmniConstants;
 import com.satset.shared.exception.BusinessException;
 import lombok.extern.slf4j.Slf4j;
@@ -18,10 +18,10 @@ import java.util.Map;
 @Slf4j
 public class AdminResellerController {
 
-    private final AdminOnboardingUseCase adminOnboardingUseCase;
+    private final AdminOnboardingDomainService adminOnboardingService;
 
-    public AdminResellerController(AdminOnboardingUseCase adminOnboardingUseCase) {
-        this.adminOnboardingUseCase = adminOnboardingUseCase;
+    public AdminResellerController(AdminOnboardingDomainService adminOnboardingService) {
+        this.adminOnboardingService = adminOnboardingService;
     }
     @RequestMapping("/api/admin/resellers")
     @PreAuthorize("hasRole('" + OmniConstants.PERM_CREATE_RESELLER + "')")
@@ -34,7 +34,7 @@ public class AdminResellerController {
             @RequestParam(value = "upline", required = false) String upline) {
 
         try {
-            adminOnboardingUseCase.onboardReseller(username, email, orgName, phone, upline);
+            adminOnboardingService.onboardReseller(username, email, orgName, phone, upline);
             return ResponseEntity
                     .ok(Map.of("status", "success", "message", "Reseller " + username + " berhasil dibuat."));
         } catch (BusinessException e) {

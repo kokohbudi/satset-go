@@ -1,12 +1,10 @@
 package com.satset.onboarding.domain.service;
 
 import com.satset.identity.domain.model.Users;
+import com.satset.onboarding.adapter.out.persistence.StoreRepository;
 import com.satset.onboarding.domain.model.Stores;
-import com.satset.onboarding.domain.port.in.AdminOnboardingUseCase;
-import com.satset.onboarding.domain.port.in.CreateStoreUseCase;
 import com.satset.onboarding.domain.port.out.KeycloakOrganizationPort;
 import com.satset.onboarding.domain.port.out.OnboardingUserPort;
-import com.satset.onboarding.domain.port.out.StoreRepositoryPort;
 import com.satset.shared.exception.BusinessException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -16,21 +14,21 @@ import java.util.UUID;
 
 @Service
 @Slf4j
-public class AdminOnboardingDomainService implements AdminOnboardingUseCase {
+public class AdminOnboardingDomainService {
 
     private final KeycloakOrganizationPort keycloakAdminClientService;
-    private final StoreRepositoryPort storeRepository;
+    private final StoreRepository storeRepository;
     private final OnboardingUserPort usersRepository;
-    private final CreateStoreUseCase createStoreUseCase;
+    private final StoreDomainService storeService;
 
     public AdminOnboardingDomainService(KeycloakOrganizationPort keycloakAdminClientService,
-            StoreRepositoryPort storeRepository,
+            StoreRepository storeRepository,
                                         OnboardingUserPort usersRepository,
-                                        CreateStoreUseCase createStoreUseCase) {
+                                        StoreDomainService storeService) {
         this.keycloakAdminClientService = keycloakAdminClientService;
         this.storeRepository = storeRepository;
         this.usersRepository = usersRepository;
-        this.createStoreUseCase = createStoreUseCase;
+        this.storeService = storeService;
     }
 
     @Transactional
@@ -74,7 +72,7 @@ public class AdminOnboardingDomainService implements AdminOnboardingUseCase {
                 }
             }
 
-            store = createStoreUseCase.createNewStore(store);
+            store = storeService.createNewStore(store);
 
             // 5. Create User Entity in DB
             Users user = usersRepository.findByProviderUserId(userId);

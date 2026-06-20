@@ -5,7 +5,7 @@ import com.satset.catalog.domain.port.out.DenomMetaRepositoryPort;
 import com.satset.catalog.domain.port.out.DenomRepositoryPort;
 import com.satset.catalog.domain.port.out.ProductRepositoryPort;
 import com.satset.onboarding.domain.model.Stores;
-import com.satset.onboarding.domain.port.out.StoreRepositoryPort;
+import com.satset.onboarding.adapter.out.persistence.StoreRepository;
 import com.satset.onboarding.domain.port.out.WalletCreationPort;
 import com.satset.transaction.domain.model.WalletAccount;
 import com.satset.transaction.domain.port.out.WalletAccountPort;
@@ -40,7 +40,7 @@ class DataSeederTest {
     private DenomMetaRepositoryPort metaRepository;
 
     @Mock
-    private StoreRepositoryPort storeRepository;
+    private StoreRepository storeRepository;
 
     @Mock
     private WalletAccountPort walletAccountPort;

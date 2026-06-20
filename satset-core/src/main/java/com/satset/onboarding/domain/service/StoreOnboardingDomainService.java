@@ -1,12 +1,10 @@
 package com.satset.onboarding.domain.service;
 
 import com.satset.identity.domain.model.Users;
+import com.satset.onboarding.adapter.out.persistence.StoreRepository;
 import com.satset.onboarding.domain.model.Stores;
-import com.satset.onboarding.domain.port.in.CreateStoreUseCase;
-import com.satset.onboarding.domain.port.in.SelfOnboardingUseCase;
 import com.satset.onboarding.domain.port.out.KeycloakOrganizationPort;
 import com.satset.onboarding.domain.port.out.OnboardingUserPort;
-import com.satset.onboarding.domain.port.out.StoreRepositoryPort;
 import com.satset.shared.exception.BusinessException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -18,21 +16,21 @@ import java.util.UUID;
 
 @Service
 @Slf4j
-public class StoreOnboardingDomainService implements SelfOnboardingUseCase {
+public class StoreOnboardingDomainService {
 
     private final KeycloakOrganizationPort keycloakAdminClientService;
-    private final StoreRepositoryPort storeRepository;
-    private final CreateStoreUseCase createStoreUseCase;
+    private final StoreRepository storeRepository;
+    private final StoreDomainService storeService;
     private final OnboardingUserPort usersRepository;
 
     public StoreOnboardingDomainService(KeycloakOrganizationPort keycloakAdminClientService,
-            StoreRepositoryPort storeRepository,
+            StoreRepository storeRepository,
                                         OnboardingUserPort usersRepository,
-                                        CreateStoreUseCase createStoreUseCase) {
+                                        StoreDomainService storeService) {
         this.keycloakAdminClientService = keycloakAdminClientService;
         this.storeRepository = storeRepository;
         this.usersRepository = usersRepository;
-        this.createStoreUseCase = createStoreUseCase;
+        this.storeService = storeService;
     }
 
     @Transactional
@@ -66,7 +64,7 @@ public class StoreOnboardingDomainService implements SelfOnboardingUseCase {
             store.setActive(true);
             store.setDeleted(false);
 
-            store = createStoreUseCase.createNewStore(store);
+            store = storeService.createNewStore(store);
 
             // 4. Link User -> Store
             user.setStoreId(store.getId());

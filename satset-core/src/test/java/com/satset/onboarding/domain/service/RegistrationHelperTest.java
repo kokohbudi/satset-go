@@ -3,7 +3,7 @@ package com.satset.onboarding.domain.service;
 import com.satset.identity.domain.model.Users;
 import com.satset.onboarding.domain.model.Stores;
 import com.satset.onboarding.domain.port.out.OnboardingUserPort;
-import com.satset.onboarding.domain.port.out.StoreRepositoryPort;
+import com.satset.onboarding.adapter.out.persistence.StoreRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -23,7 +23,7 @@ import static org.mockito.Mockito.when;
 @MockitoSettings(strictness = Strictness.LENIENT)
 class RegistrationHelperTest {
 
-    @Mock private StoreRepositoryPort storeRepository;
+    @Mock private StoreRepository storeRepository;
     @Mock private OnboardingUserPort usersRepository;
 
     @InjectMocks

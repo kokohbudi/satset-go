@@ -1,7 +1,7 @@
 package com.satset.onboarding.domain.service;
 
 import com.satset.onboarding.domain.model.Stores;
-import com.satset.onboarding.domain.port.out.StoreRepositoryPort;
+import com.satset.onboarding.adapter.out.persistence.StoreRepository;
 import com.satset.onboarding.domain.port.out.WalletCreationPort;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -23,7 +23,7 @@ import static org.mockito.Mockito.*;
 class StoreDomainServiceTest {
 
     @Mock
-    private StoreRepositoryPort storeRepository;
+    private StoreRepository storeRepository;
 
     @Mock
     private WalletCreationPort walletCreationPort;

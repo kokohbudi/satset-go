@@ -1,6 +1,6 @@
 package com.satset.onboarding.adapter.in.web;
 
-import com.satset.onboarding.domain.port.in.SelfOnboardingUseCase;
+import com.satset.onboarding.domain.service.StoreOnboardingDomainService;
 import com.satset.shared.constant.OmniConstants;
 import com.satset.shared.dto.UserDTO;
 import jakarta.servlet.http.HttpSession;
@@ -15,10 +15,10 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 @Slf4j
 public class OnboardingController {
 
-    private final SelfOnboardingUseCase selfOnboardingUseCase;
+    private final StoreOnboardingDomainService onboardingService;
 
-    public OnboardingController(SelfOnboardingUseCase selfOnboardingUseCase) {
-        this.selfOnboardingUseCase = selfOnboardingUseCase;
+    public OnboardingController(StoreOnboardingDomainService onboardingService) {
+        this.onboardingService = onboardingService;
     }
 
     @GetMapping("/onboarding")
@@ -44,7 +44,7 @@ public class OnboardingController {
         }
 
         try {
-            selfOnboardingUseCase.onboardStore(userDTO.getProviderUserId(), orgName, phone);
+            onboardingService.onboardStore(userDTO.getProviderUserId(), orgName, phone);
             redirectAttributes.addFlashAttribute("toastMessage", "Toko \"" + orgName + "\" berhasil didaftarkan! 🎉");
             redirectAttributes.addFlashAttribute("toastType", "success");
             return "redirect:/dashboard";

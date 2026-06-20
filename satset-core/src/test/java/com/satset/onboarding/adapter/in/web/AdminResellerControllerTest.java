@@ -1,6 +1,6 @@
 package com.satset.onboarding.adapter.in.web;
 
-import com.satset.onboarding.domain.port.in.AdminOnboardingUseCase;
+import com.satset.onboarding.domain.service.AdminOnboardingDomainService;
 import com.satset.shared.exception.BusinessException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -20,7 +20,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class AdminResellerControllerTest {
 
     @Mock
-    private AdminOnboardingUseCase adminOnboardingUseCase;
+    private AdminOnboardingDomainService adminOnboardingUseCase;
 
     private MockMvc mockMvc;
 

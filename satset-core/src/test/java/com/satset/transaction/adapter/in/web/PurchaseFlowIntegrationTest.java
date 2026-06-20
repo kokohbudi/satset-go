@@ -3,7 +3,7 @@ package com.satset.transaction.adapter.in.web;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.satset.catalog.adapter.out.persistence.DenomRepositoryAdapter;
 import com.satset.identity.domain.port.out.KeycloakIdentityPort;
-import com.satset.onboarding.adapter.out.persistence.StoreJpaRepository;
+import com.satset.onboarding.adapter.out.persistence.StoreRepository;
 import com.satset.onboarding.domain.port.out.KeycloakOrganizationPort;
 import com.satset.onboarding.domain.port.out.WalletCreationPort;
 import com.satset.shared.dto.UserDTO;
@@ -52,7 +52,7 @@ class PurchaseFlowIntegrationTest {
     private TransactionRepositoryPort transactionRepository;
 
     @MockitoBean
-    private StoreJpaRepository storeJpaRepo;
+    private StoreRepository storeJpaRepo;
 
     @MockitoBean
     private DenomRepositoryAdapter productDenomRepository;

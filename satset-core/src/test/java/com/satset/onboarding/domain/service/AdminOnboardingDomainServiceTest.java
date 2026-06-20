@@ -2,10 +2,9 @@ package com.satset.onboarding.domain.service;
 
 import com.satset.identity.domain.model.Users;
 import com.satset.onboarding.domain.model.Stores;
-import com.satset.onboarding.domain.port.in.CreateStoreUseCase;
 import com.satset.onboarding.domain.port.out.KeycloakOrganizationPort;
 import com.satset.onboarding.domain.port.out.OnboardingUserPort;
-import com.satset.onboarding.domain.port.out.StoreRepositoryPort;
+import com.satset.onboarding.adapter.out.persistence.StoreRepository;
 import com.satset.shared.exception.BusinessException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -32,13 +31,13 @@ class AdminOnboardingDomainServiceTest {
     private KeycloakOrganizationPort keycloakOrgPort;
 
     @Mock
-    private StoreRepositoryPort storeRepository;
+    private StoreRepository storeRepository;
 
     @Mock
     private OnboardingUserPort usersRepository;
 
     @Mock
-    private CreateStoreUseCase createStoreUseCase;
+    private StoreDomainService createStoreUseCase;
 
     @InjectMocks
     private AdminOnboardingDomainService service;

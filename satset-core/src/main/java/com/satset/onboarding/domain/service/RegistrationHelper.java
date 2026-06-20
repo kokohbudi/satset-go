@@ -3,7 +3,7 @@ package com.satset.onboarding.domain.service;
 import com.satset.identity.domain.model.Users;
 import com.satset.onboarding.domain.model.Stores;
 import com.satset.onboarding.domain.port.out.OnboardingUserPort;
-import com.satset.onboarding.domain.port.out.StoreRepositoryPort;
+import com.satset.onboarding.adapter.out.persistence.StoreRepository;
 import org.springframework.stereotype.Component;
 
 import java.security.SecureRandom;
@@ -19,7 +19,7 @@ import java.util.Map;
  */
 @Component
 public class RegistrationHelper {
-    private final StoreRepositoryPort storeRepository;
+    private final StoreRepository storeRepository;
     private final OnboardingUserPort usersRepository;
     private final SecureRandom random = new SecureRandom();
 
@@ -29,7 +29,7 @@ public class RegistrationHelper {
      * @param storeRepository Repository untuk operasi data Store
      * @param usersRepository Repository untuk operasi data Users
      */
-    public RegistrationHelper(StoreRepositoryPort storeRepository, OnboardingUserPort usersRepository) {
+    public RegistrationHelper(StoreRepository storeRepository, OnboardingUserPort usersRepository) {
         this.storeRepository = storeRepository;
         this.usersRepository = usersRepository;
     }

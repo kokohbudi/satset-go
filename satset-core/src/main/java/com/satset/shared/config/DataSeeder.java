@@ -6,7 +6,7 @@ import com.satset.catalog.domain.port.out.DenomMetaRepositoryPort;
 import com.satset.catalog.domain.port.out.DenomRepositoryPort;
 import com.satset.catalog.domain.port.out.ProductRepositoryPort;
 import com.satset.onboarding.domain.model.Stores;
-import com.satset.onboarding.domain.port.out.StoreRepositoryPort;
+import com.satset.onboarding.adapter.out.persistence.StoreRepository;
 import com.satset.onboarding.domain.port.out.WalletCreationPort;
 import com.satset.transaction.domain.port.out.WalletAccountPort;
 import org.slf4j.Logger;
@@ -30,7 +30,7 @@ public class DataSeeder implements ApplicationRunner {
     private final ProductRepositoryPort productRepository;
     private final DenomRepositoryPort denomRepository;
     private final DenomMetaRepositoryPort metaRepository;
-    private final StoreRepositoryPort storeRepository;
+    private final StoreRepository storeRepository;
     private final WalletAccountPort walletAccountPort;
     private final WalletCreationPort walletCreationPort;
 
@@ -38,7 +38,7 @@ public class DataSeeder implements ApplicationRunner {
                       ProductRepositoryPort productRepository,
                       DenomRepositoryPort denomRepository,
                       DenomMetaRepositoryPort metaRepository,
-                      StoreRepositoryPort storeRepository,
+                      StoreRepository storeRepository,
                       WalletAccountPort walletAccountPort,
                       WalletCreationPort walletCreationPort) {
         this.categoryRepository = categoryRepository;

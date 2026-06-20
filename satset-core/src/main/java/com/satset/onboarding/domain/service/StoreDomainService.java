@@ -1,8 +1,7 @@
 package com.satset.onboarding.domain.service;
 
+import com.satset.onboarding.adapter.out.persistence.StoreRepository;
 import com.satset.onboarding.domain.model.Stores;
-import com.satset.onboarding.domain.port.in.CreateStoreUseCase;
-import com.satset.onboarding.domain.port.out.StoreRepositoryPort;
 import com.satset.onboarding.domain.port.out.WalletCreationPort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -14,20 +13,19 @@ import org.springframework.stereotype.Service;
  * Auto-creates wallet when a new store is created.
  */
 @Service
-public class StoreDomainService implements CreateStoreUseCase {
+public class StoreDomainService {
 
     private static final Logger log = LoggerFactory.getLogger(StoreDomainService.class);
 
-    private final StoreRepositoryPort storeRepository;
+    private final StoreRepository storeRepository;
     private final WalletCreationPort walletCreationPort;
 
-    public StoreDomainService(StoreRepositoryPort storeRepository,
+    public StoreDomainService(StoreRepository storeRepository,
                               WalletCreationPort walletCreationPort) {
         this.storeRepository = storeRepository;
         this.walletCreationPort = walletCreationPort;
     }
 
-    @Override
     public Stores createNewStore(Stores stores) {
         // Save first to get the persisted ID from DB
         Stores saved = storeRepository.save(stores);

@@ -2,7 +2,6 @@ package com.satset.onboarding.domain.service;
 
 import com.satset.identity.domain.model.Users;
 import com.satset.onboarding.domain.model.Stores;
-import com.satset.onboarding.domain.port.in.RegistrationUseCase;
 import com.satset.onboarding.domain.port.out.OnboardingUserPort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -11,7 +10,7 @@ import java.util.List;
 import java.util.Map;
 
 @Service
-public class RegistrationDomainService implements RegistrationUseCase {
+public class RegistrationDomainService {
     private final OnboardingUserPort onboardingUserPort;
     private final StoreDomainService storeService;
     private final RegistrationHelper registrationBusiness;
