@@ -1,9 +1,8 @@
 package com.satset.identity.domain.service;
 
+import com.satset.identity.adapter.out.persistence.UserRepository;
 import com.satset.identity.domain.model.Users;
-import com.satset.identity.domain.port.in.UserQueryUseCase;
 import com.satset.identity.domain.port.out.KeycloakIdentityPort;
-import com.satset.identity.domain.port.out.UserRepositoryPort;
 import com.satset.shared.dto.UserDTO;
 import com.satset.shared.exception.BusinessException;
 import org.springframework.stereotype.Service;
@@ -13,8 +12,8 @@ import org.springframework.stereotype.Service;
  * Menyediakan metode untuk operasi CRUD pengguna dan manajemen akun.
  */
 @Service
-public class UserDomainService implements UserQueryUseCase {
-    private final UserRepositoryPort usersRepository;
+public class UserDomainService {
+    private final UserRepository usersRepository;
     private final UserManagementHelper userManagementBusiness;
     private final UserDTO userDTO;
     private final KeycloakIdentityPort keycloakAdminClientService;
@@ -29,7 +28,7 @@ public class UserDomainService implements UserQueryUseCase {
      * @param keycloakAdminClientService Service untuk interaksi dengan Keycloak
      *                                   Admin API
      */
-    public UserDomainService(UserRepositoryPort usersRepository, UserManagementHelper userManagementBusiness,
+    public UserDomainService(UserRepository usersRepository, UserManagementHelper userManagementBusiness,
             UserDTO userDTO, KeycloakIdentityPort keycloakAdminClientService) {
         this.usersRepository = usersRepository;
         this.userManagementBusiness = userManagementBusiness;

@@ -1,7 +1,7 @@
 package com.satset.identity.domain.service;
 
+import com.satset.identity.adapter.out.persistence.UserRepository;
 import com.satset.identity.domain.model.Users;
-import com.satset.identity.domain.port.out.UserRepositoryPort;
 import com.satset.shared.dto.UserDTO;
 import com.satset.shared.exception.BusinessException;
 import org.springframework.stereotype.Component;
@@ -17,7 +17,7 @@ import java.util.Objects;
 @Component
 public class UserManagementHelper {
     private final UserDTO userDTO;
-    private final UserRepositoryPort usersRepository;
+    private final UserRepository usersRepository;
 
     /**
      * Konstruktor dengan dependency injection.
@@ -25,7 +25,7 @@ public class UserManagementHelper {
      * @param userDTO         UserDTO yang mewakili pengguna saat ini
      * @param usersRepository Repository untuk operasi data pengguna
      */
-    public UserManagementHelper(UserDTO userDTO, UserRepositoryPort usersRepository) {
+    public UserManagementHelper(UserDTO userDTO, UserRepository usersRepository) {
         this.userDTO = userDTO;
         this.usersRepository = usersRepository;
     }
@@ -67,7 +67,7 @@ public class UserManagementHelper {
      * @param usersRepository  Repository untuk operasi data pengguna
      * @throws BusinessException Jika pengguna yang diminta tidak ditemukan
      */
-    public void setUserStatus(UserDTO sessionUserDTO, UserDTO requestedUserDTO, UserRepositoryPort usersRepository)
+    public void setUserStatus(UserDTO sessionUserDTO, UserDTO requestedUserDTO, UserRepository usersRepository)
             throws BusinessException {
         Users user = this.getRequestedUserOnStore(sessionUserDTO, requestedUserDTO, usersRepository);
 
@@ -90,7 +90,7 @@ public class UserManagementHelper {
      * @throws BusinessException Jika pengguna tidak berada pada toko yang sama
      */
     private Users getRequestedUserOnStore(UserDTO sessionUserDTO, UserDTO requestUserDTO,
-            UserRepositoryPort usersRepository) throws BusinessException {
+            UserRepository usersRepository) throws BusinessException {
         String[] emails = { sessionUserDTO.getEmail(), requestUserDTO.getEmail() };
         List<Users> users = usersRepository.findByEmailInAndStoreId(List.of(emails),
                 sessionUserDTO.getStoreId().toString());

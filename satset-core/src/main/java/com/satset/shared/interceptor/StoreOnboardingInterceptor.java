@@ -1,6 +1,6 @@
 package com.satset.shared.interceptor;
 
-import com.satset.identity.domain.port.out.UserRepositoryPort;
+import com.satset.identity.adapter.out.persistence.UserRepository;
 import com.satset.shared.constant.OmniConstants;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -23,9 +23,9 @@ import java.util.UUID;
 @Slf4j
 public class StoreOnboardingInterceptor implements HandlerInterceptor {
 
-    private final UserRepositoryPort usersRepository;
+    private final UserRepository usersRepository;
 
-    public StoreOnboardingInterceptor(UserRepositoryPort usersRepository) {
+    public StoreOnboardingInterceptor(UserRepository usersRepository) {
         this.usersRepository = usersRepository;
     }
 

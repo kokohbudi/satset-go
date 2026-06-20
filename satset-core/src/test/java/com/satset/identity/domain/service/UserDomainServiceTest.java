@@ -1,7 +1,7 @@
 package com.satset.identity.domain.service;
 
 import com.satset.identity.domain.port.out.KeycloakIdentityPort;
-import com.satset.identity.domain.port.out.UserRepositoryPort;
+import com.satset.identity.adapter.out.persistence.UserRepository;
 import com.satset.shared.dto.UserDTO;
 import com.satset.shared.exception.BusinessException;
 import org.junit.jupiter.api.BeforeEach;
@@ -18,7 +18,7 @@ import static org.mockito.Mockito.*;
 class UserDomainServiceTest {
 
     @Mock
-    private UserRepositoryPort usersRepository;
+    private UserRepository usersRepository;
 
     @Mock
     private UserManagementHelper userManagementBusiness;

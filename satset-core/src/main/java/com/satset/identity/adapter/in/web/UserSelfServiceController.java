@@ -1,7 +1,7 @@
 package com.satset.identity.adapter.in.web;
 
 import com.satset.identity.domain.model.ChangeMyPasswordRequest;
-import com.satset.identity.domain.port.in.ManageMyProfileUseCase;
+import com.satset.identity.domain.service.UserSelfServiceDomainService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -22,7 +22,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class UserSelfServiceController {
 
-    private final ManageMyProfileUseCase manageMyProfileUseCase;
+    private final UserSelfServiceDomainService selfService;
 
     @PutMapping("/password")
     @PreAuthorize("isAuthenticated()")
@@ -44,7 +44,7 @@ public class UserSelfServiceController {
         }
 
         try {
-            manageMyProfileUseCase.changeMyPassword(providerUserId, email, request);
+            selfService.changeMyPassword(providerUserId, email, request);
             return ResponseEntity.ok(Map.of("message", "Password berhasil diubah"));
         } catch (IllegalArgumentException e) {
             log.warn("Password change validation failed: {}", e.getMessage());

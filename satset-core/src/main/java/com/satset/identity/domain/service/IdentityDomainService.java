@@ -2,10 +2,6 @@ package com.satset.identity.domain.service;
 
 import com.satset.identity.domain.model.KeycloakGroup;
 import com.satset.identity.domain.model.KeycloakRole;
-import com.satset.identity.domain.port.in.ChangePasswordUseCase;
-import com.satset.identity.domain.port.in.ManageBackofficeUsersUseCase;
-import com.satset.identity.domain.port.in.ManageGroupsUseCase;
-import com.satset.identity.domain.port.in.ManageRolesUseCase;
 import com.satset.identity.domain.port.out.KeycloakIdentityPort;
 import com.satset.shared.dto.UserDTO;
 import com.satset.shared.exception.BusinessException;
@@ -24,8 +20,7 @@ import java.util.Map;
  */
 @Service
 @Slf4j
-public class IdentityDomainService implements ManageGroupsUseCase, ManageRolesUseCase,
-        ManageBackofficeUsersUseCase, ChangePasswordUseCase {
+public class IdentityDomainService {
 
     private final KeycloakIdentityPort keycloakAdminClientService;
     private final UserDomainService userManagementService;

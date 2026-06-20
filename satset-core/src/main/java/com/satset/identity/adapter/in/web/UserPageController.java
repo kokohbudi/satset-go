@@ -1,8 +1,6 @@
 package com.satset.identity.adapter.in.web;
 
-import com.satset.identity.domain.port.in.ManageBackofficeUsersUseCase;
-import com.satset.identity.domain.port.in.ManageGroupsUseCase;
-import com.satset.identity.domain.port.in.ManageRolesUseCase;
+import com.satset.identity.domain.service.IdentityDomainService;
 import com.satset.shared.constant.OmniConstants;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -20,9 +18,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 @RequiredArgsConstructor
 public class UserPageController {
 
-    private final ManageBackofficeUsersUseCase manageBackofficeUsersUseCase;
-    private final ManageGroupsUseCase manageGroupsUseCase;
-    private final ManageRolesUseCase manageRolesUseCase;
+    private final IdentityDomainService identityService;
 
     @GetMapping("/admin/user-management")
     @PreAuthorize("hasRole('" + OmniConstants.PERM_VIEW_USERS + "')")
@@ -32,11 +28,11 @@ public class UserPageController {
         model.addAttribute("breadcrumb", "User Management");
 
         // SSR: Inject initial data for faster first paint
-        model.addAttribute("initialUsers", manageBackofficeUsersUseCase.getBackofficeUsers().stream()
+        model.addAttribute("initialUsers", identityService.getBackofficeUsers().stream()
                 .map(com.satset.shared.viewmodel.UserViewModel::new)
                 .toList());
-        model.addAttribute("initialGroups", manageGroupsUseCase.getBackofficeSubGroups());
-        model.addAttribute("rolesHierarchy", manageRolesUseCase.getRolesForDropdown());
+        model.addAttribute("initialGroups", identityService.getBackofficeSubGroups());
+        model.addAttribute("rolesHierarchy", identityService.getRolesForDropdown());
 
         return "pages/admin/user-management";
     }

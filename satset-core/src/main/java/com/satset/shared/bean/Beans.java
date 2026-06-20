@@ -1,6 +1,6 @@
 package com.satset.shared.bean;
 
-import com.satset.identity.domain.port.out.UserRepositoryPort;
+import com.satset.identity.adapter.out.persistence.UserRepository;
 import com.satset.shared.config.AuditorAwareImpl;
 import com.satset.shared.constant.OmniConstants;
 import com.satset.shared.dto.UserDTO;
@@ -28,7 +28,7 @@ import org.springframework.web.context.WebApplicationContext;
 public class Beans {
 
     private final JwtDecoder jwtDecoder;
-    private final UserRepositoryPort usersRepository;
+    private final UserRepository usersRepository;
     private final HttpServletRequest session;
 
     @Value("${keycloak.server-url}")
@@ -43,7 +43,7 @@ public class Beans {
     @Value("${keycloak.client-secret}")
     private String clientSecret;
 
-    public Beans(JwtDecoder jwtDecoder, UserRepositoryPort usersRepository, HttpServletRequest session) {
+    public Beans(JwtDecoder jwtDecoder, UserRepository usersRepository, HttpServletRequest session) {
         this.jwtDecoder = jwtDecoder;
         this.usersRepository = usersRepository;
         this.session = session;

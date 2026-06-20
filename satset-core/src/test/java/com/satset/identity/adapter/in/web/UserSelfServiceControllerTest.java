@@ -1,6 +1,6 @@
 package com.satset.identity.adapter.in.web;
 
-import com.satset.identity.domain.port.in.ManageMyProfileUseCase;
+import com.satset.identity.domain.service.UserSelfServiceDomainService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -30,14 +30,14 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class UserSelfServiceControllerTest {
 
     @Mock
-    private ManageMyProfileUseCase manageMyProfileUseCase;
+    private UserSelfServiceDomainService selfService;
 
     private MockMvc mockMvc;
 
     @BeforeEach
     void setUp() {
         mockMvc = MockMvcBuilders.standaloneSetup(
-                new UserSelfServiceController(manageMyProfileUseCase))
+                new UserSelfServiceController(selfService))
                 .setCustomArgumentResolvers(new AuthenticationPrincipalArgumentResolver())
                 .build();
     }
@@ -54,7 +54,7 @@ class UserSelfServiceControllerTest {
     @Test
     void changePassword_WithJwtPrincipal_ReturnsOk() throws Exception {
         setJwtAuth("kc-uuid", "alice@mail.com");
-        doNothing().when(manageMyProfileUseCase).changeMyPassword(eq("kc-uuid"), eq("alice@mail.com"), any());
+        doNothing().when(selfService).changeMyPassword(eq("kc-uuid"), eq("alice@mail.com"), any());
 
         mockMvc.perform(put("/api/users/me/password")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -67,7 +67,7 @@ class UserSelfServiceControllerTest {
     void changePassword_WithJwtPrincipal_ValidationFails_Returns400() throws Exception {
         setJwtAuth("kc-uuid", "alice@mail.com");
         doThrow(new IllegalArgumentException("Password tidak cocok"))
-                .when(manageMyProfileUseCase).changeMyPassword(any(), any(), any());
+                .when(selfService).changeMyPassword(any(), any(), any());
 
         mockMvc.perform(put("/api/users/me/password")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -87,7 +87,7 @@ class UserSelfServiceControllerTest {
                         .content(VALID_BODY))
                 .andExpect(status().isUnauthorized());
 
-        verify(manageMyProfileUseCase, never()).changeMyPassword(any(), any(), any());
+        verify(selfService, never()).changeMyPassword(any(), any(), any());
     }
 
     // ==================== helpers ====================

@@ -1,6 +1,6 @@
 package com.satset.shared.interceptor;
 
-import com.satset.identity.domain.port.out.UserRepositoryPort;
+import com.satset.identity.adapter.out.persistence.UserRepository;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -31,7 +31,7 @@ import static org.mockito.Mockito.*;
 class StoreOnboardingInterceptorTest {
 
     @Mock
-    private UserRepositoryPort usersRepository;
+    private UserRepository usersRepository;
 
     @InjectMocks
     private StoreOnboardingInterceptor interceptor;

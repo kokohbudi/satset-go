@@ -1,7 +1,7 @@
 package com.satset.identity.domain.service;
 
 import com.satset.identity.domain.model.Users;
-import com.satset.identity.domain.port.out.UserRepositoryPort;
+import com.satset.identity.adapter.out.persistence.UserRepository;
 import com.satset.shared.dto.UserDTO;
 import com.satset.shared.exception.BusinessException;
 import org.junit.jupiter.api.BeforeEach;
@@ -25,7 +25,7 @@ import static org.mockito.Mockito.*;
 class UserManagementHelperTest {
 
     @Mock
-    private UserRepositoryPort usersRepository;
+    private UserRepository usersRepository;
 
     private UserDTO sessionUserDTO;
     private UserManagementHelper helper;

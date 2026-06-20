@@ -1,10 +1,7 @@
 package com.satset.identity.adapter.in.web;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.satset.identity.domain.port.in.ChangePasswordUseCase;
-import com.satset.identity.domain.port.in.ManageBackofficeUsersUseCase;
-import com.satset.identity.domain.port.in.ManageGroupsUseCase;
-import com.satset.identity.domain.port.in.ManageRolesUseCase;
+import com.satset.identity.domain.service.IdentityDomainService;
 import com.satset.shared.dto.UserDTO;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -27,19 +24,14 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @ExtendWith(MockitoExtension.class)
 class IdentityControllerTest {
 
-    @Mock private ManageGroupsUseCase manageGroupsUseCase;
-    @Mock private ManageRolesUseCase manageRolesUseCase;
-    @Mock private ManageBackofficeUsersUseCase manageBackofficeUsersUseCase;
-    @Mock private ChangePasswordUseCase changePasswordUseCase;
+    @Mock private IdentityDomainService identityService;
 
     private MockMvc mockMvc;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @BeforeEach
     void setUp() {
-        IdentityController controller = new IdentityController(
-                manageGroupsUseCase, manageRolesUseCase,
-                manageBackofficeUsersUseCase, changePasswordUseCase);
+        IdentityController controller = new IdentityController(identityService);
         mockMvc = MockMvcBuilders.standaloneSetup(controller).build();
     }
 
@@ -49,7 +41,7 @@ class IdentityControllerTest {
     void getBackofficeUsers_NoQueryParam_ReturnsAllUsers() throws Exception {
         List<UserDTO> users = List.of(buildUser("alice@mail.com", "Alice", "alice"),
                 buildUser("bob@mail.com", "Bob", "bob"));
-        when(manageBackofficeUsersUseCase.getBackofficeUsers(any())).thenReturn(users);
+        when(identityService.getBackofficeUsers(any())).thenReturn(users);
 
         mockMvc.perform(get("/api/idm/backoffice/users"))
                 .andExpect(status().isOk())
@@ -61,7 +53,7 @@ class IdentityControllerTest {
         List<UserDTO> users = List.of(
                 buildUser("alice@mail.com", "Alice Smith", "asmith"),
                 buildUser("bob@mail.com", "Bob Jones", "bjones"));
-        when(manageBackofficeUsersUseCase.getBackofficeUsers(any())).thenReturn(users);
+        when(identityService.getBackofficeUsers(any())).thenReturn(users);
 
         mockMvc.perform(get("/api/idm/backoffice/users").param("q", "alice"))
                 .andExpect(status().isOk())
@@ -74,7 +66,7 @@ class IdentityControllerTest {
         List<UserDTO> users = List.of(
                 buildUser("alice@mail.com", "Alice", "alice"),
                 buildUser("bob@company.com", "Bob", "bob"));
-        when(manageBackofficeUsersUseCase.getBackofficeUsers(any())).thenReturn(users);
+        when(identityService.getBackofficeUsers(any())).thenReturn(users);
 
         mockMvc.perform(get("/api/idm/backoffice/users").param("q", "company"))
                 .andExpect(status().isOk())
@@ -87,7 +79,7 @@ class IdentityControllerTest {
         List<UserDTO> users = List.of(
                 buildUser("alice@mail.com", "Alice", "alice_admin"),
                 buildUser("bob@mail.com", "Bob", "bob_user"));
-        when(manageBackofficeUsersUseCase.getBackofficeUsers(any())).thenReturn(users);
+        when(identityService.getBackofficeUsers(any())).thenReturn(users);
 
         mockMvc.perform(get("/api/idm/backoffice/users").param("q", "admin"))
                 .andExpect(status().isOk())
@@ -98,7 +90,7 @@ class IdentityControllerTest {
     @Test
     void getBackofficeUsers_WithQuery_CaseInsensitive() throws Exception {
         List<UserDTO> users = List.of(buildUser("ALICE@MAIL.COM", "ALICE SMITH", "ALICE"));
-        when(manageBackofficeUsersUseCase.getBackofficeUsers(any())).thenReturn(users);
+        when(identityService.getBackofficeUsers(any())).thenReturn(users);
 
         mockMvc.perform(get("/api/idm/backoffice/users").param("q", "alice"))
                 .andExpect(status().isOk())
@@ -108,7 +100,7 @@ class IdentityControllerTest {
     @Test
     void getBackofficeUsers_WithQuery_NoMatch_ReturnsEmpty() throws Exception {
         List<UserDTO> users = List.of(buildUser("alice@mail.com", "Alice", "alice"));
-        when(manageBackofficeUsersUseCase.getBackofficeUsers(any())).thenReturn(users);
+        when(identityService.getBackofficeUsers(any())).thenReturn(users);
 
         mockMvc.perform(get("/api/idm/backoffice/users").param("q", "zzz-no-match"))
                 .andExpect(status().isOk())
@@ -119,7 +111,7 @@ class IdentityControllerTest {
     void getBackofficeUsers_WithBlankQuery_ReturnsAll() throws Exception {
         List<UserDTO> users = List.of(buildUser("alice@mail.com", "Alice", "alice"),
                 buildUser("bob@mail.com", "Bob", "bob"));
-        when(manageBackofficeUsersUseCase.getBackofficeUsers(any())).thenReturn(users);
+        when(identityService.getBackofficeUsers(any())).thenReturn(users);
 
         mockMvc.perform(get("/api/idm/backoffice/users").param("q", "   "))
                 .andExpect(status().isOk())
@@ -131,7 +123,7 @@ class IdentityControllerTest {
     @Test
     void createBackofficeUser_MapsRequestFieldsToUserDTO() throws Exception {
         UserDTO returned = buildUser("new@mail.com", "New User", "newuser");
-        when(manageBackofficeUsersUseCase.createBackofficeUser(any())).thenReturn(returned);
+        when(identityService.createBackofficeUser(any())).thenReturn(returned);
 
         String body = """
                 {
@@ -149,14 +141,14 @@ class IdentityControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.email").value("new@mail.com"));
 
-        verify(manageBackofficeUsersUseCase).createBackofficeUser(any(UserDTO.class));
+        verify(identityService).createBackofficeUser(any(UserDTO.class));
     }
 
     // ==================== Groups ====================
 
     @Test
     void getGroups_ReturnsOk() throws Exception {
-        when(manageGroupsUseCase.getGroups()).thenReturn(List.of());
+        when(identityService.getGroups()).thenReturn(List.of());
 
         mockMvc.perform(get("/api/idm/groups"))
                 .andExpect(status().isOk());
@@ -164,7 +156,7 @@ class IdentityControllerTest {
 
     @Test
     void getGroupsHierarchy_ReturnsOk() throws Exception {
-        when(manageGroupsUseCase.getGroupsHierarchy()).thenReturn(List.of());
+        when(identityService.getGroupsHierarchy()).thenReturn(List.of());
 
         mockMvc.perform(get("/api/idm/groups/hierarchy"))
                 .andExpect(status().isOk());
@@ -172,7 +164,7 @@ class IdentityControllerTest {
 
     @Test
     void getSubGroups_ReturnsOk() throws Exception {
-        when(manageGroupsUseCase.getSubGroups("/backoffice")).thenReturn(List.of());
+        when(identityService.getSubGroups("/backoffice")).thenReturn(List.of());
 
         mockMvc.perform(get("/api/idm/groups/subgroups").param("parentPath", "/backoffice"))
                 .andExpect(status().isOk());
@@ -180,7 +172,7 @@ class IdentityControllerTest {
 
     @Test
     void getGroupMembers_ReturnsOk() throws Exception {
-        when(manageGroupsUseCase.getGroupMembers("g-1", false)).thenReturn(List.of());
+        when(identityService.getGroupMembers("g-1", false)).thenReturn(List.of());
 
         mockMvc.perform(get("/api/idm/groups/g-1/members"))
                 .andExpect(status().isOk());
@@ -188,17 +180,17 @@ class IdentityControllerTest {
 
     @Test
     void getGroupMembers_Recursive_PassesFlagToUseCase() throws Exception {
-        when(manageGroupsUseCase.getGroupMembers("g-1", true)).thenReturn(List.of());
+        when(identityService.getGroupMembers("g-1", true)).thenReturn(List.of());
 
         mockMvc.perform(get("/api/idm/groups/g-1/members").param("recursive", "true"))
                 .andExpect(status().isOk());
 
-        verify(manageGroupsUseCase).getGroupMembers("g-1", true);
+        verify(identityService).getGroupMembers("g-1", true);
     }
 
     @Test
     void getUserGroups_ReturnsOk() throws Exception {
-        when(manageGroupsUseCase.getUserGroups("u-1")).thenReturn(List.of());
+        when(identityService.getUserGroups("u-1")).thenReturn(List.of());
 
         mockMvc.perform(get("/api/idm/users/u-1/groups"))
                 .andExpect(status().isOk());
@@ -206,7 +198,7 @@ class IdentityControllerTest {
 
     @Test
     void assignUserToGroup_ReturnsOk() throws Exception {
-        when(manageGroupsUseCase.assignUserToGroup("u-1", "g-1"))
+        when(identityService.assignUserToGroup("u-1", "g-1"))
                 .thenReturn(Map.of("status", "success"));
 
         mockMvc.perform(post("/api/idm/users/u-1/groups/g-1"))
@@ -216,7 +208,7 @@ class IdentityControllerTest {
 
     @Test
     void removeUserFromGroup_ReturnsOk() throws Exception {
-        when(manageGroupsUseCase.removeUserFromGroup("u-1", "g-1"))
+        when(identityService.removeUserFromGroup("u-1", "g-1"))
                 .thenReturn(Map.of("status", "success"));
 
         mockMvc.perform(delete("/api/idm/users/u-1/groups/g-1"))
@@ -227,7 +219,7 @@ class IdentityControllerTest {
 
     @Test
     void getClientRoles_ReturnsOk() throws Exception {
-        when(manageRolesUseCase.getRoles()).thenReturn(List.of());
+        when(identityService.getRoles()).thenReturn(List.of());
 
         mockMvc.perform(get("/api/idm/roles"))
                 .andExpect(status().isOk());
@@ -235,7 +227,7 @@ class IdentityControllerTest {
 
     @Test
     void getRolesByScope_ReturnsOk() throws Exception {
-        when(manageRolesUseCase.getRolesByScope("backoffice")).thenReturn(List.of());
+        when(identityService.getRolesByScope("backoffice")).thenReturn(List.of());
 
         mockMvc.perform(get("/api/idm/roles/scope/backoffice"))
                 .andExpect(status().isOk());
@@ -243,7 +235,7 @@ class IdentityControllerTest {
 
     @Test
     void getRolesByGroup_ReturnsOk() throws Exception {
-        when(manageRolesUseCase.getRolesByGroup("g-1")).thenReturn(List.of());
+        when(identityService.getRolesByGroup("g-1")).thenReturn(List.of());
 
         mockMvc.perform(get("/api/idm/groups/g-1/roles"))
                 .andExpect(status().isOk());
@@ -251,7 +243,7 @@ class IdentityControllerTest {
 
     @Test
     void assignRoleToGroup_ReturnsOk() throws Exception {
-        when(manageRolesUseCase.assignRoleToGroup("g-1", "manage_users"))
+        when(identityService.assignRoleToGroup("g-1", "manage_users"))
                 .thenReturn(Map.of("status", "success"));
 
         mockMvc.perform(post("/api/idm/groups/g-1/roles/manage_users"))
@@ -261,7 +253,7 @@ class IdentityControllerTest {
 
     @Test
     void unassignRoleFromGroup_ReturnsOk() throws Exception {
-        when(manageRolesUseCase.unassignRoleFromGroup("g-1", "manage_users"))
+        when(identityService.unassignRoleFromGroup("g-1", "manage_users"))
                 .thenReturn(Map.of("status", "success"));
 
         mockMvc.perform(delete("/api/idm/groups/g-1/roles/manage_users"))
@@ -270,7 +262,7 @@ class IdentityControllerTest {
 
     @Test
     void assignRoleToUser_ReturnsOk() throws Exception {
-        doNothing().when(manageRolesUseCase).assignRoleToUser("u-1", "manage_users");
+        doNothing().when(identityService).assignRoleToUser("u-1", "manage_users");
 
         mockMvc.perform(post("/api/idm/users/u-1/roles/manage_users"))
                 .andExpect(status().isOk())
@@ -279,7 +271,7 @@ class IdentityControllerTest {
 
     @Test
     void unassignRoleFromUser_ReturnsOk() throws Exception {
-        doNothing().when(manageRolesUseCase).unassignRoleFromUser("u-1", "manage_users");
+        doNothing().when(identityService).unassignRoleFromUser("u-1", "manage_users");
 
         mockMvc.perform(delete("/api/idm/users/u-1/roles/manage_users"))
                 .andExpect(status().isOk());
@@ -289,7 +281,7 @@ class IdentityControllerTest {
 
     @Test
     void getAllUsers_ReturnsOk() throws Exception {
-        when(manageBackofficeUsersUseCase.getAllUsers(100)).thenReturn(List.of());
+        when(identityService.getAllUsers(100)).thenReturn(List.of());
 
         mockMvc.perform(get("/api/idm/users"))
                 .andExpect(status().isOk());
@@ -299,7 +291,7 @@ class IdentityControllerTest {
     void changePassword_ReturnsOk() throws Exception {
         UserDTO result = new UserDTO();
         result.setStatus("success");
-        when(changePasswordUseCase.changePassword(any())).thenReturn(result);
+        when(identityService.changePassword(any())).thenReturn(result);
 
         mockMvc.perform(put("/api/idm/users/password")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -312,7 +304,7 @@ class IdentityControllerTest {
     void setUserStatus_ReturnsOk() throws Exception {
         UserDTO result = new UserDTO();
         result.setStatus("success");
-        when(manageBackofficeUsersUseCase.setUserStatus("alice@mail.com", false)).thenReturn(result);
+        when(identityService.setUserStatus("alice@mail.com", false)).thenReturn(result);
 
         mockMvc.perform(put("/api/idm/users/alice@mail.com/status/false"))
                 .andExpect(status().isOk())
@@ -323,7 +315,7 @@ class IdentityControllerTest {
     void setBackofficeUserStatus_ReturnsOk() throws Exception {
         UserDTO result = new UserDTO();
         result.setStatus("success");
-        when(manageBackofficeUsersUseCase.setBackofficeUserStatus("kc-uuid", true)).thenReturn(result);
+        when(identityService.setBackofficeUserStatus("kc-uuid", true)).thenReturn(result);
 
         mockMvc.perform(put("/api/idm/backoffice/users/kc-uuid/status/true"))
                 .andExpect(status().isOk())
