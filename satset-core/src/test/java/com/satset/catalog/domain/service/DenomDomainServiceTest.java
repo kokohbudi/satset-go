@@ -5,9 +5,9 @@ import com.satset.catalog.domain.model.ProductDenoms;
 import com.satset.catalog.domain.model.Products;
 import com.satset.catalog.domain.port.in.CreateDenomRequest;
 import com.satset.catalog.domain.port.in.UpdateDenomRequest;
-import com.satset.catalog.domain.port.out.DenomMetaRepositoryPort;
-import com.satset.catalog.domain.port.out.DenomRepositoryPort;
-import com.satset.catalog.domain.port.out.ProductRepositoryPort;
+import com.satset.catalog.adapter.out.persistence.DenomMetaRepository;
+import com.satset.catalog.adapter.out.persistence.DenomRepository;
+import com.satset.catalog.adapter.out.persistence.ProductRepository;
 import com.satset.shared.exception.BusinessException;
 import com.satset.shared.exception.ResourceNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
@@ -31,11 +31,11 @@ import static org.mockito.Mockito.*;
 class DenomDomainServiceTest {
 
     @Mock
-    private DenomRepositoryPort denomRepository;
+    private DenomRepository denomRepository;
     @Mock
-    private DenomMetaRepositoryPort metaRepository;
+    private DenomMetaRepository metaRepository;
     @Mock
-    private ProductRepositoryPort productRepository;
+    private ProductRepository productRepository;
 
     @InjectMocks
     private DenomDomainService denomService;

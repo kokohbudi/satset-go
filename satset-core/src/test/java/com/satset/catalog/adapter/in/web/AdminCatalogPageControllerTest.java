@@ -4,9 +4,9 @@ import com.satset.catalog.domain.model.Category;
 import com.satset.catalog.domain.model.CategoryType;
 import com.satset.catalog.domain.model.ProductDenoms;
 import com.satset.catalog.domain.model.Products;
-import com.satset.catalog.domain.port.in.ManageCategoriesUseCase;
-import com.satset.catalog.domain.port.in.ManageDenomsUseCase;
-import com.satset.catalog.domain.port.in.ManageProductsUseCase;
+import com.satset.catalog.domain.service.CategoryDomainService;
+import com.satset.catalog.domain.service.DenomDomainService;
+import com.satset.catalog.domain.service.ProductDomainService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -31,9 +31,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @MockitoSettings(strictness = Strictness.LENIENT)
 class AdminCatalogPageControllerTest {
 
-    @Mock private ManageCategoriesUseCase manageCategoriesUseCase;
-    @Mock private ManageProductsUseCase manageProductsUseCase;
-    @Mock private ManageDenomsUseCase manageDenomsUseCase;
+    @Mock private CategoryDomainService manageCategoriesUseCase;
+    @Mock private ProductDomainService manageProductsUseCase;
+    @Mock private DenomDomainService manageDenomsUseCase;
 
     private MockMvc mockMvc;
 

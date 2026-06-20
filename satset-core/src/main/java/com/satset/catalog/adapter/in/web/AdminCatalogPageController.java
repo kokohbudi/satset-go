@@ -4,9 +4,9 @@ import com.satset.catalog.adapter.in.web.dto.CategoryDTO;
 import com.satset.catalog.adapter.in.web.dto.ProductDTO;
 import com.satset.catalog.adapter.in.web.dto.ProductDenomDTO;
 import com.satset.catalog.domain.model.*;
-import com.satset.catalog.domain.port.in.ManageCategoriesUseCase;
-import com.satset.catalog.domain.port.in.ManageDenomsUseCase;
-import com.satset.catalog.domain.port.in.ManageProductsUseCase;
+import com.satset.catalog.domain.service.CategoryDomainService;
+import com.satset.catalog.domain.service.DenomDomainService;
+import com.satset.catalog.domain.service.ProductDomainService;
 import com.satset.shared.constant.OmniConstants;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
@@ -24,13 +24,13 @@ import java.util.UUID;
 @PreAuthorize("hasRole('" + OmniConstants.PERM_VIEW_CATALOG + "')")
 public class AdminCatalogPageController {
 
-    private final ManageCategoriesUseCase manageCategoriesUseCase;
-    private final ManageProductsUseCase manageProductsUseCase;
-    private final ManageDenomsUseCase manageDenomsUseCase;
+    private final CategoryDomainService manageCategoriesUseCase;
+    private final ProductDomainService manageProductsUseCase;
+    private final DenomDomainService manageDenomsUseCase;
 
-    public AdminCatalogPageController(ManageCategoriesUseCase manageCategoriesUseCase,
-                                      ManageProductsUseCase manageProductsUseCase,
-                                      ManageDenomsUseCase manageDenomsUseCase) {
+    public AdminCatalogPageController(CategoryDomainService manageCategoriesUseCase,
+                                      ProductDomainService manageProductsUseCase,
+                                      DenomDomainService manageDenomsUseCase) {
         this.manageCategoriesUseCase = manageCategoriesUseCase;
         this.manageProductsUseCase = manageProductsUseCase;
         this.manageDenomsUseCase = manageDenomsUseCase;

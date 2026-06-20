@@ -4,7 +4,7 @@ import com.satset.catalog.domain.model.Category;
 import com.satset.catalog.domain.model.CategoryType;
 import com.satset.catalog.domain.port.in.CreateCategoryRequest;
 import com.satset.catalog.domain.port.in.UpdateCategoryRequest;
-import com.satset.catalog.domain.port.out.CategoryRepositoryPort;
+import com.satset.catalog.adapter.out.persistence.CategoryRepository;
 import com.satset.shared.exception.BusinessException;
 import com.satset.shared.exception.ResourceNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
@@ -27,7 +27,7 @@ import static org.mockito.Mockito.*;
 class CategoryDomainServiceTest {
 
     @Mock
-    private CategoryRepositoryPort categoryRepository;
+    private CategoryRepository categoryRepository;
 
     @InjectMocks
     private CategoryDomainService categoryService;

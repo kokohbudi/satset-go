@@ -1,7 +1,7 @@
 package com.satset.transaction.adapter.in.web;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.satset.catalog.adapter.out.persistence.DenomRepositoryAdapter;
+import com.satset.catalog.adapter.out.persistence.DenomRepository;
 import com.satset.identity.domain.port.out.KeycloakIdentityPort;
 import com.satset.onboarding.adapter.out.persistence.StoreRepository;
 import com.satset.onboarding.domain.port.out.KeycloakOrganizationPort;
@@ -55,7 +55,7 @@ class PurchaseFlowIntegrationTest {
     private StoreRepository storeJpaRepo;
 
     @MockitoBean
-    private DenomRepositoryAdapter productDenomRepository;
+    private DenomRepository productDenomRepository;
 
     @MockitoBean
     private StoreMutationRepositoryPort storeMutationRepository;

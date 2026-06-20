@@ -5,9 +5,9 @@ import com.satset.catalog.adapter.in.web.dto.ProductDTO;
 import com.satset.catalog.adapter.in.web.dto.ProductDenomDTO;
 import com.satset.catalog.adapter.in.web.dto.ProductDenomMetaDTO;
 import com.satset.catalog.domain.model.*;
-import com.satset.catalog.domain.port.in.BrowseCategoriesUseCase;
-import com.satset.catalog.domain.port.in.BrowseDenomsUseCase;
-import com.satset.catalog.domain.port.in.BrowseProductsUseCase;
+import com.satset.catalog.domain.service.CategoryDomainService;
+import com.satset.catalog.domain.service.DenomDomainService;
+import com.satset.catalog.domain.service.ProductDomainService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -20,13 +20,13 @@ import java.util.List;
 @RequestMapping("/api")
 public class ProductCatalogController {
 
-    private final BrowseCategoriesUseCase browseCategoriesUseCase;
-    private final BrowseProductsUseCase browseProductsUseCase;
-    private final BrowseDenomsUseCase browseDenomsUseCase;
+    private final CategoryDomainService browseCategoriesUseCase;
+    private final ProductDomainService browseProductsUseCase;
+    private final DenomDomainService browseDenomsUseCase;
 
-    public ProductCatalogController(BrowseCategoriesUseCase browseCategoriesUseCase,
-            BrowseProductsUseCase browseProductsUseCase,
-            BrowseDenomsUseCase browseDenomsUseCase) {
+    public ProductCatalogController(CategoryDomainService browseCategoriesUseCase,
+            ProductDomainService browseProductsUseCase,
+            DenomDomainService browseDenomsUseCase) {
         this.browseCategoriesUseCase = browseCategoriesUseCase;
         this.browseProductsUseCase = browseProductsUseCase;
         this.browseDenomsUseCase = browseDenomsUseCase;

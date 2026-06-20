@@ -1,6 +1,6 @@
 package com.satset.transaction.domain.service;
 
-import com.satset.catalog.domain.port.out.DenomRepositoryPort;
+import com.satset.catalog.adapter.out.persistence.DenomRepository;
 import com.satset.shared.exception.InsufficientBalanceException;
 import com.satset.shared.model.DenomInfo;
 import com.satset.transaction.domain.model.*;
@@ -29,7 +29,7 @@ class TransactionDomainServiceTest {
     @Mock
     private TransactionRepositoryPort transactionRepository;
     @Mock
-    private DenomRepositoryPort denomRepository;
+    private DenomRepository denomRepository;
     @Mock
     private BalanceManagementUseCase balanceService;
     @Mock

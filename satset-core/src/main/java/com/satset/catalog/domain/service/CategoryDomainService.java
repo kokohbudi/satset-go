@@ -1,12 +1,10 @@
 package com.satset.catalog.domain.service;
 
+import com.satset.catalog.adapter.out.persistence.CategoryRepository;
 import com.satset.catalog.domain.model.Category;
 import com.satset.catalog.domain.model.CategoryType;
-import com.satset.catalog.domain.port.in.BrowseCategoriesUseCase;
 import com.satset.catalog.domain.port.in.CreateCategoryRequest;
-import com.satset.catalog.domain.port.in.ManageCategoriesUseCase;
 import com.satset.catalog.domain.port.in.UpdateCategoryRequest;
-import com.satset.catalog.domain.port.out.CategoryRepositoryPort;
 import com.satset.shared.exception.BusinessException;
 import com.satset.shared.exception.ResourceNotFoundException;
 import org.springframework.cache.annotation.CacheEvict;
@@ -21,29 +19,26 @@ import java.util.UUID;
 
 @Service
 @Transactional(readOnly = true)
-public class CategoryDomainService implements BrowseCategoriesUseCase, ManageCategoriesUseCase {
+public class CategoryDomainService {
 
-    private final CategoryRepositoryPort categoryRepository;
+    private final CategoryRepository categoryRepository;
 
-    public CategoryDomainService(CategoryRepositoryPort categoryRepository) {
+    public CategoryDomainService(CategoryRepository categoryRepository) {
         this.categoryRepository = categoryRepository;
     }
 
     // === Browse (read-only, cached) ===
 
-    @Override
     @Cacheable(value = "categoriesAll", cacheManager = "standardCacheManager")
     public List<Category> findAll() {
         return categoryRepository.findByActiveTrueAndDeletedFalseOrderBySortOrder();
     }
 
-    @Override
     public Optional<Category> findByCode(String code) {
         return categoryRepository.findByCode(code)
                 .filter(c -> c.isActive() && !c.isDeleted());
     }
 
-    @Override
     @Cacheable(value = "categoriesByType", key = "#type", cacheManager = "standardCacheManager")
     public List<Category> findByType(CategoryType type) {
         return categoryRepository.findByCategoryTypeAndActiveTrueAndDeletedFalseOrderBySortOrder(type);
@@ -51,17 +46,14 @@ public class CategoryDomainService implements BrowseCategoriesUseCase, ManageCat
 
     // === Manage (admin CRUD) ===
 
-    @Override
     public List<Category> findAllForAdmin() {
         return categoryRepository.findAllByOrderBySortOrder();
     }
 
-    @Override
     public Optional<Category> findById(UUID id) {
         return categoryRepository.findById(id);
     }
 
-    @Override
     @Transactional
     @Caching(evict = {
         @CacheEvict(value = "categoriesAll", allEntries = true, cacheManager = "standardCacheManager"),
@@ -82,7 +74,6 @@ public class CategoryDomainService implements BrowseCategoriesUseCase, ManageCat
         return categoryRepository.save(cat);
     }
 
-    @Override
     @Transactional
     @Caching(evict = {
         @CacheEvict(value = "categoriesAll", allEntries = true, cacheManager = "standardCacheManager"),
@@ -103,7 +94,6 @@ public class CategoryDomainService implements BrowseCategoriesUseCase, ManageCat
         return categoryRepository.save(cat);
     }
 
-    @Override
     @Transactional
     @Caching(evict = {
         @CacheEvict(value = "categoriesAll", allEntries = true, cacheManager = "standardCacheManager"),

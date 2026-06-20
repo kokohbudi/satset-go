@@ -1,6 +1,6 @@
 package com.satset.transaction.domain.service;
 
-import com.satset.catalog.domain.port.out.DenomRepositoryPort;
+import com.satset.catalog.adapter.out.persistence.DenomRepository;
 import com.satset.shared.exception.InsufficientBalanceException;
 import com.satset.shared.exception.ResourceNotFoundException;
 import com.satset.shared.model.DenomInfo;
@@ -25,12 +25,12 @@ import java.util.UUID;
 public class TransactionDomainService implements PurchaseUseCase, TopUpUseCase, TransactionQueryUseCase {
 
         private final TransactionRepositoryPort transactionRepository;
-        private final DenomRepositoryPort denomRepository;
+        private final DenomRepository denomRepository;
         private final BalanceManagementUseCase balanceService;
         private final ProviderPort providerService;
 
         public TransactionDomainService(TransactionRepositoryPort transactionRepository,
-                        DenomRepositoryPort denomRepository,
+                        DenomRepository denomRepository,
                         BalanceManagementUseCase balanceService,
                         ProviderPort providerService) {
                 this.transactionRepository = transactionRepository;

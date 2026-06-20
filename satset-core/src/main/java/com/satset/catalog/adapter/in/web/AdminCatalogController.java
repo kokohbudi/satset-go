@@ -6,7 +6,15 @@ import com.satset.catalog.adapter.in.web.dto.ProductDenomDTO;
 import com.satset.catalog.domain.model.Category;
 import com.satset.catalog.domain.model.ProductDenoms;
 import com.satset.catalog.domain.model.Products;
-import com.satset.catalog.domain.port.in.*;
+import com.satset.catalog.domain.port.in.CreateCategoryRequest;
+import com.satset.catalog.domain.port.in.CreateDenomRequest;
+import com.satset.catalog.domain.port.in.CreateProductRequest;
+import com.satset.catalog.domain.port.in.UpdateCategoryRequest;
+import com.satset.catalog.domain.port.in.UpdateDenomRequest;
+import com.satset.catalog.domain.port.in.UpdateProductRequest;
+import com.satset.catalog.domain.service.CategoryDomainService;
+import com.satset.catalog.domain.service.DenomDomainService;
+import com.satset.catalog.domain.service.ProductDomainService;
 import com.satset.shared.constant.OmniConstants;
 import com.satset.shared.exception.BusinessException;
 import jakarta.validation.Valid;
@@ -23,13 +31,13 @@ import java.util.UUID;
 @PreAuthorize("isAuthenticated()")
 public class AdminCatalogController {
 
-    private final ManageCategoriesUseCase manageCategoriesUseCase;
-    private final ManageProductsUseCase manageProductsUseCase;
-    private final ManageDenomsUseCase manageDenomsUseCase;
+    private final CategoryDomainService manageCategoriesUseCase;
+    private final ProductDomainService manageProductsUseCase;
+    private final DenomDomainService manageDenomsUseCase;
 
-    public AdminCatalogController(ManageCategoriesUseCase manageCategoriesUseCase,
-                                  ManageProductsUseCase manageProductsUseCase,
-                                  ManageDenomsUseCase manageDenomsUseCase) {
+    public AdminCatalogController(CategoryDomainService manageCategoriesUseCase,
+                                  ProductDomainService manageProductsUseCase,
+                                  DenomDomainService manageDenomsUseCase) {
         this.manageCategoriesUseCase = manageCategoriesUseCase;
         this.manageProductsUseCase = manageProductsUseCase;
         this.manageDenomsUseCase = manageDenomsUseCase;

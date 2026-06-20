@@ -1,15 +1,13 @@
 package com.satset.catalog.domain.service;
 
+import com.satset.catalog.adapter.out.persistence.CategoryRepository;
+import com.satset.catalog.adapter.out.persistence.DenomRepository;
+import com.satset.catalog.adapter.out.persistence.ProductRepository;
 import com.satset.catalog.domain.model.Category;
 import com.satset.catalog.domain.model.ProductDenoms;
 import com.satset.catalog.domain.model.Products;
-import com.satset.catalog.domain.port.in.BrowseProductsUseCase;
 import com.satset.catalog.domain.port.in.CreateProductRequest;
-import com.satset.catalog.domain.port.in.ManageProductsUseCase;
 import com.satset.catalog.domain.port.in.UpdateProductRequest;
-import com.satset.catalog.domain.port.out.CategoryRepositoryPort;
-import com.satset.catalog.domain.port.out.DenomRepositoryPort;
-import com.satset.catalog.domain.port.out.ProductRepositoryPort;
 import com.satset.shared.exception.BusinessException;
 import com.satset.shared.exception.ResourceNotFoundException;
 import org.springframework.cache.annotation.CacheEvict;
@@ -23,15 +21,15 @@ import java.util.UUID;
 
 @Service
 @Transactional(readOnly = true)
-public class ProductDomainService implements BrowseProductsUseCase, ManageProductsUseCase {
+public class ProductDomainService {
 
-    private final ProductRepositoryPort productRepository;
-    private final CategoryRepositoryPort categoryRepository;
-    private final DenomRepositoryPort denomRepository;
+    private final ProductRepository productRepository;
+    private final CategoryRepository categoryRepository;
+    private final DenomRepository denomRepository;
 
-    public ProductDomainService(ProductRepositoryPort productRepository,
-                                CategoryRepositoryPort categoryRepository,
-                                DenomRepositoryPort denomRepository) {
+    public ProductDomainService(ProductRepository productRepository,
+                                CategoryRepository categoryRepository,
+                                DenomRepository denomRepository) {
         this.productRepository = productRepository;
         this.categoryRepository = categoryRepository;
         this.denomRepository = denomRepository;
@@ -39,7 +37,6 @@ public class ProductDomainService implements BrowseProductsUseCase, ManageProduc
 
     // === Browse (read-only, cached) ===
 
-    @Override
     public List<Products> findByCategory(String categoryCode) {
         Optional<Category> category = categoryRepository.findByCode(categoryCode);
         if (category.isEmpty()) {
@@ -48,13 +45,11 @@ public class ProductDomainService implements BrowseProductsUseCase, ManageProduc
         return productRepository.findByCategoryIdAndActiveTrueAndDeletedFalseOrderBySortOrder(category.get().getId());
     }
 
-    @Override
     @Cacheable(value = "products", cacheManager = "standardCacheManager")
     public List<Products> findActiveProducts() {
         return productRepository.findByActiveTrueAndDeletedFalseOrderBySortOrder();
     }
 
-    @Override
     public Optional<Products> findByCode(String code) {
         return productRepository.findByCode(code)
                 .filter(p -> p.isActive() && !p.isDeleted());
@@ -62,17 +57,14 @@ public class ProductDomainService implements BrowseProductsUseCase, ManageProduc
 
     // === Manage (admin CRUD) ===
 
-    @Override
     public List<Products> findByCategoryForAdmin(UUID categoryId) {
         return productRepository.findByCategoryIdOrderBySortOrder(categoryId);
     }
 
-    @Override
     public Optional<Products> findById(UUID id) {
         return productRepository.findById(id);
     }
 
-    @Override
     @Transactional
     @CacheEvict(value = "products", allEntries = true, cacheManager = "standardCacheManager")
     public Products create(CreateProductRequest req) throws BusinessException {
@@ -94,7 +86,6 @@ public class ProductDomainService implements BrowseProductsUseCase, ManageProduc
         return productRepository.save(product);
     }
 
-    @Override
     @Transactional
     @CacheEvict(value = "products", allEntries = true, cacheManager = "standardCacheManager")
     public Products update(UUID id, UpdateProductRequest req) throws BusinessException {
@@ -116,7 +107,6 @@ public class ProductDomainService implements BrowseProductsUseCase, ManageProduc
         return productRepository.save(product);
     }
 
-    @Override
     @Transactional
     @CacheEvict(value = "products", allEntries = true, cacheManager = "standardCacheManager")
     public void softDelete(UUID id) {

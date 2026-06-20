@@ -4,9 +4,9 @@ import com.satset.catalog.domain.model.Category;
 import com.satset.catalog.domain.model.CategoryType;
 import com.satset.catalog.domain.model.ProductDenoms;
 import com.satset.catalog.domain.model.Products;
-import com.satset.catalog.domain.port.in.BrowseCategoriesUseCase;
-import com.satset.catalog.domain.port.in.BrowseDenomsUseCase;
-import com.satset.catalog.domain.port.in.BrowseProductsUseCase;
+import com.satset.catalog.domain.service.CategoryDomainService;
+import com.satset.catalog.domain.service.DenomDomainService;
+import com.satset.catalog.domain.service.ProductDomainService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -28,9 +28,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @ExtendWith(MockitoExtension.class)
 class ProductCatalogControllerTest {
 
-    @Mock private BrowseCategoriesUseCase browseCategoriesUseCase;
-    @Mock private BrowseProductsUseCase browseProductsUseCase;
-    @Mock private BrowseDenomsUseCase browseDenomsUseCase;
+    @Mock private CategoryDomainService browseCategoriesUseCase;
+    @Mock private ProductDomainService browseProductsUseCase;
+    @Mock private DenomDomainService browseDenomsUseCase;
 
     private MockMvc mockMvc;
 

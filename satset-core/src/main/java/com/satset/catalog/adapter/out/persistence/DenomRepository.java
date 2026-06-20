@@ -1,6 +1,6 @@
 package com.satset.catalog.adapter.out.persistence;
 
-import com.satset.catalog.adapter.out.persistence.entity.ProductDenomJpaEntity;
+import com.satset.catalog.domain.model.ProductDenoms;
 import com.satset.shared.model.DenomInfo;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -11,13 +11,13 @@ import java.util.Optional;
 import java.util.UUID;
 
 @Repository
-public interface DenomJpaRepository extends JpaRepository<ProductDenomJpaEntity, UUID> {
+public interface DenomRepository extends JpaRepository<ProductDenoms, UUID> {
 
-    Optional<ProductDenomJpaEntity> findByCode(String code);
+    Optional<ProductDenoms> findByCode(String code);
 
-    List<ProductDenomJpaEntity> findByProductIdAndActiveTrueAndDeletedFalseOrderBySortOrder(UUID productId);
+    List<ProductDenoms> findByProductIdAndActiveTrueAndDeletedFalseOrderBySortOrder(UUID productId);
 
-    List<ProductDenomJpaEntity> findByProductIdOrderBySortOrder(UUID productId);
+    List<ProductDenoms> findByProductIdOrderBySortOrder(UUID productId);
 
     boolean existsByCodeAndIdNot(String code, UUID id);
 
@@ -29,8 +29,8 @@ public interface DenomJpaRepository extends JpaRepository<ProductDenomJpaEntity,
             SELECT new com.satset.shared.model.DenomInfo(
             d.id, d.code, d.name, p.name, d.price, d.adminFee, d.active, d.deleted
         )
-        FROM ProductDenomJpaEntity d
-        LEFT JOIN ProductJpaEntity p ON d.productId = p.id
+        FROM ProductDenoms d
+        LEFT JOIN Products p ON d.productId = p.id
         WHERE d.id = :id
         """)
     Optional<DenomInfo> findDenomInfoById(UUID id);

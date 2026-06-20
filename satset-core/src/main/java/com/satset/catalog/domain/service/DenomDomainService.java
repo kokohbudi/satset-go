@@ -1,15 +1,13 @@
 package com.satset.catalog.domain.service;
 
+import com.satset.catalog.adapter.out.persistence.DenomMetaRepository;
+import com.satset.catalog.adapter.out.persistence.DenomRepository;
+import com.satset.catalog.adapter.out.persistence.ProductRepository;
 import com.satset.catalog.domain.model.ProductDenomMeta;
 import com.satset.catalog.domain.model.ProductDenoms;
 import com.satset.catalog.domain.model.Products;
-import com.satset.catalog.domain.port.in.BrowseDenomsUseCase;
 import com.satset.catalog.domain.port.in.CreateDenomRequest;
-import com.satset.catalog.domain.port.in.ManageDenomsUseCase;
 import com.satset.catalog.domain.port.in.UpdateDenomRequest;
-import com.satset.catalog.domain.port.out.DenomMetaRepositoryPort;
-import com.satset.catalog.domain.port.out.DenomRepositoryPort;
-import com.satset.catalog.domain.port.out.ProductRepositoryPort;
 import com.satset.shared.exception.BusinessException;
 import com.satset.shared.exception.ResourceNotFoundException;
 import org.springframework.stereotype.Service;
@@ -21,15 +19,15 @@ import java.util.UUID;
 
 @Service
 @Transactional(readOnly = true)
-public class DenomDomainService implements BrowseDenomsUseCase, ManageDenomsUseCase {
+public class DenomDomainService {
 
-    private final DenomRepositoryPort denomRepository;
-    private final DenomMetaRepositoryPort metaRepository;
-    private final ProductRepositoryPort productRepository;
+    private final DenomRepository denomRepository;
+    private final DenomMetaRepository metaRepository;
+    private final ProductRepository productRepository;
 
-    public DenomDomainService(DenomRepositoryPort denomRepository,
-            DenomMetaRepositoryPort metaRepository,
-            ProductRepositoryPort productRepository) {
+    public DenomDomainService(DenomRepository denomRepository,
+            DenomMetaRepository metaRepository,
+            ProductRepository productRepository) {
         this.denomRepository = denomRepository;
         this.metaRepository = metaRepository;
         this.productRepository = productRepository;
@@ -37,7 +35,6 @@ public class DenomDomainService implements BrowseDenomsUseCase, ManageDenomsUseC
 
     // === Browse (read-only) ===
 
-    @Override
     public List<ProductDenoms> findByProduct(String productCode) {
         Optional<Products> product = productRepository.findByCode(productCode);
         if (product.isEmpty()) {
@@ -46,13 +43,11 @@ public class DenomDomainService implements BrowseDenomsUseCase, ManageDenomsUseC
         return denomRepository.findByProductIdAndActiveTrueAndDeletedFalseOrderBySortOrder(product.get().getId());
     }
 
-    @Override
     public Optional<ProductDenoms> findByCode(String code) {
         return denomRepository.findByCode(code)
                 .filter(d -> d.isActive() && !d.isDeleted());
     }
 
-    @Override
     public Optional<ProductDenoms> getDenomWithMeta(String code) {
         return denomRepository.findByCode(code)
                 .filter(d -> d.isActive() && !d.isDeleted())
@@ -66,17 +61,14 @@ public class DenomDomainService implements BrowseDenomsUseCase, ManageDenomsUseC
 
     // === Manage (admin CRUD) ===
 
-    @Override
     public List<ProductDenoms> findByProductForAdmin(UUID productId) {
         return denomRepository.findByProductIdOrderBySortOrder(productId);
     }
 
-    @Override
     public Optional<ProductDenoms> findById(UUID id) {
         return denomRepository.findById(id);
     }
 
-    @Override
     @Transactional
     public ProductDenoms create(UUID productId, CreateDenomRequest req) throws BusinessException {
         Products product = productRepository.findById(productId)
@@ -105,7 +97,6 @@ public class DenomDomainService implements BrowseDenomsUseCase, ManageDenomsUseC
         return denomRepository.save(denom);
     }
 
-    @Override
     @Transactional
     public ProductDenoms update(UUID id, UpdateDenomRequest req) throws BusinessException {
         ProductDenoms denom = denomRepository.findById(id)
@@ -131,7 +122,6 @@ public class DenomDomainService implements BrowseDenomsUseCase, ManageDenomsUseC
         return denomRepository.save(denom);
     }
 
-    @Override
     @Transactional
     public void softDelete(UUID id) {
         ProductDenoms denom = denomRepository.findById(id)

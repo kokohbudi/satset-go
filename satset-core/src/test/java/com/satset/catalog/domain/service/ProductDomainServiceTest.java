@@ -6,9 +6,9 @@ import com.satset.catalog.domain.model.ProductDenoms;
 import com.satset.catalog.domain.model.Products;
 import com.satset.catalog.domain.port.in.CreateProductRequest;
 import com.satset.catalog.domain.port.in.UpdateProductRequest;
-import com.satset.catalog.domain.port.out.CategoryRepositoryPort;
-import com.satset.catalog.domain.port.out.DenomRepositoryPort;
-import com.satset.catalog.domain.port.out.ProductRepositoryPort;
+import com.satset.catalog.adapter.out.persistence.CategoryRepository;
+import com.satset.catalog.adapter.out.persistence.DenomRepository;
+import com.satset.catalog.adapter.out.persistence.ProductRepository;
 import com.satset.shared.exception.BusinessException;
 import com.satset.shared.exception.ResourceNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
@@ -30,11 +30,11 @@ import static org.mockito.Mockito.*;
 class ProductDomainServiceTest {
 
     @Mock
-    private ProductRepositoryPort productRepository;
+    private ProductRepository productRepository;
     @Mock
-    private CategoryRepositoryPort categoryRepository;
+    private CategoryRepository categoryRepository;
     @Mock
-    private DenomRepositoryPort denomRepository;
+    private DenomRepository denomRepository;
 
     @InjectMocks
     private ProductDomainService productService;

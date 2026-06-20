@@ -1,9 +1,9 @@
 package com.satset.shared.config;
 
-import com.satset.catalog.domain.port.out.CategoryRepositoryPort;
-import com.satset.catalog.domain.port.out.DenomMetaRepositoryPort;
-import com.satset.catalog.domain.port.out.DenomRepositoryPort;
-import com.satset.catalog.domain.port.out.ProductRepositoryPort;
+import com.satset.catalog.adapter.out.persistence.CategoryRepository;
+import com.satset.catalog.adapter.out.persistence.DenomMetaRepository;
+import com.satset.catalog.adapter.out.persistence.DenomRepository;
+import com.satset.catalog.adapter.out.persistence.ProductRepository;
 import com.satset.onboarding.domain.model.Stores;
 import com.satset.onboarding.adapter.out.persistence.StoreRepository;
 import com.satset.onboarding.domain.port.out.WalletCreationPort;
@@ -28,16 +28,16 @@ import static org.mockito.Mockito.*;
 class DataSeederTest {
 
     @Mock
-    private CategoryRepositoryPort categoryRepository;
+    private CategoryRepository categoryRepository;
 
     @Mock
-    private ProductRepositoryPort productRepository;
+    private ProductRepository productRepository;
 
     @Mock
-    private DenomRepositoryPort denomRepository;
+    private DenomRepository denomRepository;
 
     @Mock
-    private DenomMetaRepositoryPort metaRepository;
+    private DenomMetaRepository metaRepository;
 
     @Mock
     private StoreRepository storeRepository;

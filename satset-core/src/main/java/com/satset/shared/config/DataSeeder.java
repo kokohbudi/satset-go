@@ -1,10 +1,10 @@
 package com.satset.shared.config;
 
+import com.satset.catalog.adapter.out.persistence.CategoryRepository;
+import com.satset.catalog.adapter.out.persistence.DenomMetaRepository;
+import com.satset.catalog.adapter.out.persistence.DenomRepository;
+import com.satset.catalog.adapter.out.persistence.ProductRepository;
 import com.satset.catalog.domain.model.*;
-import com.satset.catalog.domain.port.out.CategoryRepositoryPort;
-import com.satset.catalog.domain.port.out.DenomMetaRepositoryPort;
-import com.satset.catalog.domain.port.out.DenomRepositoryPort;
-import com.satset.catalog.domain.port.out.ProductRepositoryPort;
 import com.satset.onboarding.domain.model.Stores;
 import com.satset.onboarding.adapter.out.persistence.StoreRepository;
 import com.satset.onboarding.domain.port.out.WalletCreationPort;
@@ -26,18 +26,18 @@ public class DataSeeder implements ApplicationRunner {
 
     private static final Logger log = LoggerFactory.getLogger(DataSeeder.class);
 
-    private final CategoryRepositoryPort categoryRepository;
-    private final ProductRepositoryPort productRepository;
-    private final DenomRepositoryPort denomRepository;
-    private final DenomMetaRepositoryPort metaRepository;
+    private final CategoryRepository categoryRepository;
+    private final ProductRepository productRepository;
+    private final DenomRepository denomRepository;
+    private final DenomMetaRepository metaRepository;
     private final StoreRepository storeRepository;
     private final WalletAccountPort walletAccountPort;
     private final WalletCreationPort walletCreationPort;
 
-    public DataSeeder(CategoryRepositoryPort categoryRepository,
-                      ProductRepositoryPort productRepository,
-                      DenomRepositoryPort denomRepository,
-                      DenomMetaRepositoryPort metaRepository,
+    public DataSeeder(CategoryRepository categoryRepository,
+                      ProductRepository productRepository,
+                      DenomRepository denomRepository,
+                      DenomMetaRepository metaRepository,
                       StoreRepository storeRepository,
                       WalletAccountPort walletAccountPort,
                       WalletCreationPort walletCreationPort) {

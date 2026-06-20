@@ -1,24 +1,23 @@
-package com.satset.catalog.domain.port.out;
+package com.satset.catalog.adapter.out.persistence;
 
 import com.satset.catalog.domain.model.Products;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-public interface ProductRepositoryPort {
+@Repository
+public interface ProductRepository extends JpaRepository<Products, UUID> {
 
-    Products save(Products product);
-
-    Optional<Products> findById(UUID id);
+    Optional<Products> findByCode(String code);
 
     List<Products> findByCategoryIdAndActiveTrueAndDeletedFalseOrderBySortOrder(UUID categoryId);
 
     List<Products> findByCategoryIdOrderBySortOrder(UUID categoryId);
 
     List<Products> findByActiveTrueAndDeletedFalseOrderBySortOrder();
-
-    Optional<Products> findByCode(String code);
 
     boolean existsByCodeAndIdNot(String code, UUID id);
 }
