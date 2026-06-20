@@ -4,12 +4,10 @@ import com.satset.shared.dto.UserDTO;
 import com.satset.shared.exception.ResourceNotFoundException;
 import com.satset.transaction.adapter.in.web.dto.PurchaseRequest;
 import com.satset.transaction.adapter.in.web.dto.TopUpRequest;
+import com.satset.transaction.adapter.out.wallet.WalletClientAdapter;
 import com.satset.transaction.domain.model.TransactionStatus;
 import com.satset.transaction.domain.model.TransactionSummary;
-import com.satset.transaction.domain.port.in.BalanceManagementUseCase;
-import com.satset.transaction.domain.port.in.PurchaseUseCase;
-import com.satset.transaction.domain.port.in.TopUpUseCase;
-import com.satset.transaction.domain.port.in.TransactionQueryUseCase;
+import com.satset.transaction.domain.service.TransactionDomainService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -42,10 +40,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @ExtendWith(MockitoExtension.class)
 class TransactionControllerTest {
 
-    @Mock private PurchaseUseCase purchaseUseCase;
-    @Mock private TopUpUseCase topUpUseCase;
-    @Mock private TransactionQueryUseCase transactionQueryUseCase;
-    @Mock private BalanceManagementUseCase balanceManagementUseCase;
+    @Mock private TransactionDomainService transactionService;
+    @Mock private WalletClientAdapter balanceService;
 
     private MockMvc mockMvc;
     private final tools.jackson.databind.json.JsonMapper jsonMapper = tools.jackson.databind.json.JsonMapper.builder().build();
@@ -61,8 +57,7 @@ class TransactionControllerTest {
         userDTO.setWalletId(walletId);
 
         TransactionController controller = new TransactionController(
-                purchaseUseCase, topUpUseCase, transactionQueryUseCase,
-                balanceManagementUseCase, userDTO);
+                transactionService, balanceService, userDTO);
 
         var converter = new JacksonJsonHttpMessageConverter(jsonMapper);
 
@@ -78,7 +73,7 @@ class TransactionControllerTest {
         UUID txId = UUID.randomUUID();
         TransactionSummary summary = buildSummary(txId, TransactionStatus.SUCCESS, new BigDecimal("10000"));
 
-        when(purchaseUseCase.createPurchase(storeId, walletId, denomId, "081234567890")).thenReturn(summary);
+        when(transactionService.createPurchase(storeId, walletId, denomId, "081234567890")).thenReturn(summary);
 
         PurchaseRequest request = new PurchaseRequest(denomId, "081234567890");
 
@@ -90,13 +85,13 @@ class TransactionControllerTest {
                 .andExpect(jsonPath("$.transactionId").value(txId.toString()))
                 .andExpect(jsonPath("$.total").value(10000));
 
-        verify(purchaseUseCase).createPurchase(storeId, walletId, denomId, "081234567890");
+        verify(transactionService).createPurchase(storeId, walletId, denomId, "081234567890");
     }
 
     @Test
     void topup_ReturnsOk_WithBalanceInResponse() throws Exception {
         BigDecimal newBalance = new BigDecimal("50000");
-        when(balanceManagementUseCase.getBalance(walletId)).thenReturn(newBalance);
+        when(balanceService.getBalance(walletId)).thenReturn(newBalance);
 
         TopUpRequest request = new TopUpRequest(new BigDecimal("50000"), "Top-up manual");
 
@@ -107,13 +102,13 @@ class TransactionControllerTest {
                 .andExpect(jsonPath("$.status").value("success"))
                 .andExpect(jsonPath("$.balance").value(50000));
 
-        verify(topUpUseCase).topUp(eq(walletId), any(BigDecimal.class), any());
-        verify(balanceManagementUseCase).getBalance(walletId);
+        verify(transactionService).topUp(eq(walletId), any(BigDecimal.class), any());
+        verify(balanceService).getBalance(walletId);
     }
 
     @Test
     void balance_ReturnsWalletIdAndBalance() throws Exception {
-        when(balanceManagementUseCase.getBalance(walletId)).thenReturn(new BigDecimal("25000"));
+        when(balanceService.getBalance(walletId)).thenReturn(new BigDecimal("25000"));
 
         mockMvc.perform(get("/api/transactions/balance"))
                 .andExpect(status().isOk())
@@ -126,7 +121,7 @@ class TransactionControllerTest {
         UUID txId = UUID.randomUUID();
         TransactionSummary summary = buildSummary(txId, TransactionStatus.SUCCESS, new BigDecimal("5000"));
 
-        when(transactionQueryUseCase.getTransaction(txId, storeId)).thenReturn(summary);
+        when(transactionService.getTransaction(txId, storeId)).thenReturn(summary);
 
         mockMvc.perform(get("/api/transactions/{id}", txId))
                 .andExpect(status().isOk())
@@ -139,13 +134,13 @@ class TransactionControllerTest {
         UUID txId = UUID.randomUUID();
         TransactionSummary summary = buildSummary(txId, TransactionStatus.SUCCESS, new BigDecimal("7000"));
 
-        when(transactionQueryUseCase.getTransactionHistory(eq(storeId), any(Pageable.class)))
+        when(transactionService.getTransactionHistory(eq(storeId), any(Pageable.class)))
                 .thenReturn(new PageImpl<>(List.of(summary)));
 
         // Note: Page<T> serialization requires full Spring context; verify delegation only
         mockMvc.perform(get("/api/transactions/history"));
 
-        verify(transactionQueryUseCase).getTransactionHistory(eq(storeId), any(Pageable.class));
+        verify(transactionService).getTransactionHistory(eq(storeId), any(Pageable.class));
     }
 
     @Test
@@ -154,8 +149,7 @@ class TransactionControllerTest {
         UserDTO noWalletUserDTO = new UserDTO();
         noWalletUserDTO.setStoreId(storeId); // storeId present, walletId null
         TransactionController noWalletController = new TransactionController(
-                purchaseUseCase, topUpUseCase, transactionQueryUseCase,
-                balanceManagementUseCase, noWalletUserDTO);
+                transactionService, balanceService, noWalletUserDTO);
         MockMvc noWalletMockMvc = MockMvcBuilders.standaloneSetup(noWalletController)
                 .setCustomArgumentResolvers(new PageableHandlerMethodArgumentResolver())
                 .build();

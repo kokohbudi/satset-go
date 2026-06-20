@@ -6,11 +6,9 @@ import com.satset.shared.exception.ResourceNotFoundException;
 import com.satset.transaction.adapter.in.web.dto.PurchaseRequest;
 import com.satset.transaction.adapter.in.web.dto.TopUpRequest;
 import com.satset.transaction.adapter.in.web.dto.TransactionDTO;
+import com.satset.transaction.adapter.out.wallet.WalletClientAdapter;
 import com.satset.transaction.domain.model.TransactionSummary;
-import com.satset.transaction.domain.port.in.BalanceManagementUseCase;
-import com.satset.transaction.domain.port.in.PurchaseUseCase;
-import com.satset.transaction.domain.port.in.TopUpUseCase;
-import com.satset.transaction.domain.port.in.TransactionQueryUseCase;
+import com.satset.transaction.domain.service.TransactionDomainService;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -29,21 +27,15 @@ import java.util.UUID;
 @PreAuthorize("isAuthenticated()")
 public class TransactionController {
 
-    private final PurchaseUseCase purchaseUseCase;
-    private final TopUpUseCase topUpUseCase;
-    private final TransactionQueryUseCase transactionQueryUseCase;
-    private final BalanceManagementUseCase balanceManagementUseCase;
+    private final TransactionDomainService transactionService;
+    private final WalletClientAdapter balanceService;
     private final UserDTO userDTO;
 
-    public TransactionController(PurchaseUseCase purchaseUseCase,
-            TopUpUseCase topUpUseCase,
-            TransactionQueryUseCase transactionQueryUseCase,
-            BalanceManagementUseCase balanceManagementUseCase,
+    public TransactionController(TransactionDomainService transactionService,
+            WalletClientAdapter balanceService,
             UserDTO userDTO) {
-        this.purchaseUseCase = purchaseUseCase;
-        this.topUpUseCase = topUpUseCase;
-        this.transactionQueryUseCase = transactionQueryUseCase;
-        this.balanceManagementUseCase = balanceManagementUseCase;
+        this.transactionService = transactionService;
+        this.balanceService = balanceService;
         this.userDTO = userDTO;
     }
 
@@ -51,7 +43,7 @@ public class TransactionController {
     public ResponseEntity<Map<String, Object>> purchase(@Valid @RequestBody PurchaseRequest request)
             throws InsufficientBalanceException {
 
-        TransactionSummary summary = purchaseUseCase.createPurchase(
+        TransactionSummary summary = transactionService.createPurchase(
                 getStoreId(), getWalletId(), request.denomId(), request.targetNumber());
 
         Map<String, Object> response = new HashMap<>();
@@ -68,9 +60,9 @@ public class TransactionController {
     public ResponseEntity<Map<String, Object>> topUp(@Valid @RequestBody TopUpRequest request) {
 
         String walletId = getWalletId();
-        topUpUseCase.topUp(walletId, request.amount(), request.description());
+        transactionService.topUp(walletId, request.amount(), request.description());
 
-        BigDecimal balance = balanceManagementUseCase.getBalance(walletId);
+        BigDecimal balance = balanceService.getBalance(walletId);
 
         Map<String, Object> response = new HashMap<>();
         response.put("status", "success");
@@ -84,7 +76,7 @@ public class TransactionController {
     public ResponseEntity<Map<String, Object>> getBalance() {
 
         String walletId = getWalletId();
-        BigDecimal balance = balanceManagementUseCase.getBalance(walletId);
+        BigDecimal balance = balanceService.getBalance(walletId);
 
         Map<String, Object> response = new HashMap<>();
         response.put("walletId", walletId);
@@ -95,14 +87,14 @@ public class TransactionController {
 
     @GetMapping("/{id}")
     public ResponseEntity<TransactionDTO> getTransaction(@PathVariable UUID id) {
-        TransactionSummary summary = transactionQueryUseCase.getTransaction(id, getStoreId());
+        TransactionSummary summary = transactionService.getTransaction(id, getStoreId());
         return ResponseEntity.ok(toDTO(summary));
     }
 
     @GetMapping("/history")
     public ResponseEntity<Page<TransactionDTO>> getTransactionHistory(
             @PageableDefault(size = 20, sort = "createdAt", direction = org.springframework.data.domain.Sort.Direction.DESC) Pageable pageable) {
-        Page<TransactionDTO> page = transactionQueryUseCase.getTransactionHistory(getStoreId(), pageable)
+        Page<TransactionDTO> page = transactionService.getTransactionHistory(getStoreId(), pageable)
                 .map(this::toDTO);
         return ResponseEntity.ok(page);
     }

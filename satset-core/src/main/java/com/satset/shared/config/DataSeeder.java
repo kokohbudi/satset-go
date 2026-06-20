@@ -5,10 +5,6 @@ import com.satset.catalog.adapter.out.persistence.DenomMetaRepository;
 import com.satset.catalog.adapter.out.persistence.DenomRepository;
 import com.satset.catalog.adapter.out.persistence.ProductRepository;
 import com.satset.catalog.domain.model.*;
-import com.satset.onboarding.domain.model.Stores;
-import com.satset.onboarding.adapter.out.persistence.StoreRepository;
-import com.satset.onboarding.domain.port.out.WalletCreationPort;
-import com.satset.transaction.domain.port.out.WalletAccountPort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.ApplicationArguments;
@@ -18,7 +14,6 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.util.List;
 
 @Component
 @Profile("!prod")
@@ -30,31 +25,21 @@ public class DataSeeder implements ApplicationRunner {
     private final ProductRepository productRepository;
     private final DenomRepository denomRepository;
     private final DenomMetaRepository metaRepository;
-    private final StoreRepository storeRepository;
-    private final WalletAccountPort walletAccountPort;
-    private final WalletCreationPort walletCreationPort;
 
     public DataSeeder(CategoryRepository categoryRepository,
                       ProductRepository productRepository,
                       DenomRepository denomRepository,
-                      DenomMetaRepository metaRepository,
-                      StoreRepository storeRepository,
-                      WalletAccountPort walletAccountPort,
-                      WalletCreationPort walletCreationPort) {
+                      DenomMetaRepository metaRepository) {
         this.categoryRepository = categoryRepository;
         this.productRepository = productRepository;
         this.denomRepository = denomRepository;
         this.metaRepository = metaRepository;
-        this.storeRepository = storeRepository;
-        this.walletAccountPort = walletAccountPort;
-        this.walletCreationPort = walletCreationPort;
     }
 
     @Override
     @Transactional
     public void run(ApplicationArguments args) {
         seedCatalog();
-        seedWalletAccounts();
     }
 
     private void seedCatalog() {
@@ -69,38 +54,6 @@ public class DataSeeder implements ApplicationRunner {
         seedPlnPostpaid();
         seedEwallet();
         log.info("Product catalog seeding complete.");
-    }
-
-    /**
-     * Seed WalletAccount dari existing Stores.balance.
-     * Dipanggil terpisah dari catalog seeding karena butuh existing Stores data.
-     * Idempotent: hanya buat WalletAccount jika belum ada untuk store tersebut.
-     */
-    void seedWalletAccounts() {
-        if (walletAccountPort.count() > 0) {
-            log.info("WalletAccount already seeded, skipping...");
-            return;
-        }
-
-        List<Stores> stores = storeRepository.findAll();
-        if (stores.isEmpty()) {
-            log.info("No stores found, skipping WalletAccount seeding.");
-            return;
-        }
-
-        log.info("Seeding WalletAccount for {} stores via wallet service...", stores.size());
-        int created = 0;
-        for (Stores store : stores) {
-            if (store.getWalletId() == null || walletAccountPort.findByWalletId(store.getWalletId()).isEmpty()) {
-                try {
-                    walletCreationPort.createWallet(store.getId());
-                    created++;
-                } catch (Exception e) {
-                    log.warn("Failed to create wallet for store {} — wallet service unavailable? Skipping. Error: {}", store.getId(), e.getMessage());
-                }
-            }
-        }
-        log.info("WalletAccount seeding complete. Created {} accounts.", created);
     }
 
     // ========== PULSA ==========

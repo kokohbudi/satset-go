@@ -10,11 +10,10 @@ import com.satset.shared.dto.UserDTO;
 import com.satset.shared.exception.InsufficientBalanceException;
 import com.satset.shared.model.DenomInfo;
 import com.satset.transaction.adapter.in.web.dto.PurchaseRequest;
+import com.satset.transaction.adapter.out.persistence.TransactionRepository;
+import com.satset.transaction.adapter.out.wallet.WalletClientAdapter;
 import com.satset.transaction.domain.model.*;
-import com.satset.transaction.domain.port.in.BalanceManagementUseCase;
 import com.satset.transaction.domain.port.out.ProviderPort;
-import com.satset.transaction.domain.port.out.StoreMutationRepositoryPort;
-import com.satset.transaction.domain.port.out.TransactionRepositoryPort;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -47,9 +46,8 @@ class PurchaseFlowIntegrationTest {
     private MockMvc mockMvc;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    // Mock the port interfaces (adapters implement these)
     @MockitoBean
-    private TransactionRepositoryPort transactionRepository;
+    private TransactionRepository transactionRepository;
 
     @MockitoBean
     private StoreRepository storeJpaRepo;
@@ -58,10 +56,7 @@ class PurchaseFlowIntegrationTest {
     private DenomRepository productDenomRepository;
 
     @MockitoBean
-    private StoreMutationRepositoryPort storeMutationRepository;
-
-    @MockitoBean
-    private BalanceManagementUseCase balanceManagementUseCase;
+    private WalletClientAdapter balanceManagementUseCase;
 
     @MockitoBean
     private ProviderPort providerService;
@@ -126,15 +121,6 @@ class PurchaseFlowIntegrationTest {
                 tx.setId(UUID.randomUUID());
             }
             return tx;
-        });
-
-        // Mutation save: return stub with UUID
-        when(storeMutationRepository.save(any(StoreMutations.class))).thenAnswer(invocation -> {
-            StoreMutations mutation = invocation.getArgument(0);
-            if (mutation.getId() == null) {
-                mutation.setId(UUID.randomUUID());
-            }
-            return mutation;
         });
     }
 

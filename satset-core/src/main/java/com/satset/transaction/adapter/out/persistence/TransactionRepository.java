@@ -1,7 +1,7 @@
 package com.satset.transaction.adapter.out.persistence;
 
-import com.satset.transaction.adapter.out.persistence.entity.TransactionJpaEntity;
 import com.satset.transaction.domain.model.TransactionStatus;
+import com.satset.transaction.domain.model.Transactions;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -14,14 +14,17 @@ import java.util.Collection;
 import java.util.Optional;
 import java.util.UUID;
 
+/**
+ * Transaction persistence. Spring Data provides the implementation.
+ */
 @Repository
-public interface TransactionJpaRepository extends JpaRepository<TransactionJpaEntity, UUID> {
+public interface TransactionRepository extends JpaRepository<Transactions, UUID> {
 
-    @Query("SELECT t FROM TransactionJpaEntity t WHERE t.storeId = :storeId ORDER BY t.createdAt DESC")
-    Page<TransactionJpaEntity> findByStoreIdWithDetails(@Param("storeId") UUID storeId, Pageable pageable);
+    @Query("SELECT t FROM Transactions t WHERE t.storeId = :storeId ORDER BY t.createdAt DESC")
+    Page<Transactions> findByStoreIdWithDetails(@Param("storeId") UUID storeId, Pageable pageable);
 
-    @Query("SELECT t FROM TransactionJpaEntity t WHERE t.id = :id AND t.storeId = :storeId")
-    Optional<TransactionJpaEntity> findByIdAndStoreIdWithDetails(@Param("id") UUID id, @Param("storeId") UUID storeId);
+    @Query("SELECT t FROM Transactions t WHERE t.id = :id AND t.storeId = :storeId")
+    Optional<Transactions> findByIdAndStoreIdWithDetails(@Param("id") UUID id, @Param("storeId") UUID storeId);
 
     boolean existsByStoreIdAndProductDenomIdAndTargetNumberAndStatusInAndCreatedAtAfter(
             UUID storeId, UUID denomId, String targetNumber,

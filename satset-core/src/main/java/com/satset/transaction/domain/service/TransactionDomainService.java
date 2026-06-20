@@ -4,13 +4,10 @@ import com.satset.catalog.adapter.out.persistence.DenomRepository;
 import com.satset.shared.exception.InsufficientBalanceException;
 import com.satset.shared.exception.ResourceNotFoundException;
 import com.satset.shared.model.DenomInfo;
+import com.satset.transaction.adapter.out.persistence.TransactionRepository;
+import com.satset.transaction.adapter.out.wallet.WalletClientAdapter;
 import com.satset.transaction.domain.model.*;
-import com.satset.transaction.domain.port.in.BalanceManagementUseCase;
-import com.satset.transaction.domain.port.in.PurchaseUseCase;
-import com.satset.transaction.domain.port.in.TopUpUseCase;
-import com.satset.transaction.domain.port.in.TransactionQueryUseCase;
 import com.satset.transaction.domain.port.out.ProviderPort;
-import com.satset.transaction.domain.port.out.TransactionRepositoryPort;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -22,16 +19,16 @@ import java.util.UUID;
 
 @Slf4j
 @Service
-public class TransactionDomainService implements PurchaseUseCase, TopUpUseCase, TransactionQueryUseCase {
+public class TransactionDomainService {
 
-        private final TransactionRepositoryPort transactionRepository;
+        private final TransactionRepository transactionRepository;
         private final DenomRepository denomRepository;
-        private final BalanceManagementUseCase balanceService;
+        private final WalletClientAdapter balanceService;
         private final ProviderPort providerService;
 
-        public TransactionDomainService(TransactionRepositoryPort transactionRepository,
+        public TransactionDomainService(TransactionRepository transactionRepository,
                         DenomRepository denomRepository,
-                        BalanceManagementUseCase balanceService,
+                        WalletClientAdapter balanceService,
                         ProviderPort providerService) {
                 this.transactionRepository = transactionRepository;
                 this.denomRepository = denomRepository;
@@ -39,7 +36,6 @@ public class TransactionDomainService implements PurchaseUseCase, TopUpUseCase, 
                 this.providerService = providerService;
         }
 
-        @Override
         @Transactional
         public TransactionSummary createPurchase(UUID storeId, String walletId, UUID denomId, String targetNumber)
                         throws InsufficientBalanceException {
@@ -133,7 +129,6 @@ public class TransactionDomainService implements PurchaseUseCase, TopUpUseCase, 
                 return toSummary(transaction);
         }
 
-        @Override
         @Transactional
         public void topUp(String walletId, BigDecimal amount, String description) {
                 UUID topUpId = UUID.randomUUID();
@@ -145,7 +140,6 @@ public class TransactionDomainService implements PurchaseUseCase, TopUpUseCase, 
                 log.info("Top-up completed: wallet={} amount={} topUpId={}", walletId, amount, topUpId);
         }
 
-        @Override
         @Transactional(readOnly = true)
         public TransactionSummary getTransaction(UUID id, UUID storeId) {
                 Transactions tx = transactionRepository.findByIdAndStoreIdWithDetails(id, storeId)
@@ -153,7 +147,6 @@ public class TransactionDomainService implements PurchaseUseCase, TopUpUseCase, 
                 return toSummary(tx);
         }
 
-        @Override
         @Transactional(readOnly = true)
         public Page<TransactionSummary> getTransactionHistory(UUID storeId, Pageable pageable) {
                 return transactionRepository.findByStoreIdWithDetails(storeId, pageable)

@@ -40,10 +40,8 @@ public class Stores {
     private String walletId;
 
     /**
-     * @deprecated Since WR-8. Balance sekarang disimpan di WalletAccount entity.
-     *             Field ini hanya untuk backward compatibility dan akan dihapus di versi mendatang.
-     *             Source of truth: transaction.domain.model.WalletAccount.balance
-     * @see com.satset.transaction.domain.model.WalletAccount
+     * @deprecated Since WR-8. Balance is now owned by the wallet service (remote).
+     *             Kept only for backward compatibility; to be dropped in a future version.
      */
     @Deprecated(since = "WR-8", forRemoval = true)
     @Column(precision = 15, scale = 2)

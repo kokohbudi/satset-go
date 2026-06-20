@@ -8,11 +8,9 @@ import com.satset.transaction.adapter.out.wallet.dto.WalletMutationResponse;
 import com.satset.transaction.adapter.out.wallet.dto.WalletRefundRequest;
 import com.satset.transaction.domain.model.MutationReferenceType;
 import com.satset.transaction.domain.model.MutationResult;
-import com.satset.transaction.domain.port.in.BalanceManagementUseCase;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClientManager;
@@ -24,9 +22,11 @@ import org.springframework.web.client.RestClient;
 import java.math.BigDecimal;
 import java.util.UUID;
 
+/**
+ * Sole balance provider — all balance operations go to the wallet service over HTTP.
+ */
 @Component
-@ConditionalOnProperty(name = "wallet.client.enabled", havingValue = "true")
-public class WalletClientAdapter implements BalanceManagementUseCase {
+public class WalletClientAdapter {
 
     private static final Logger log = LoggerFactory.getLogger(WalletClientAdapter.class);
 
@@ -46,7 +46,6 @@ public class WalletClientAdapter implements BalanceManagementUseCase {
                 .build();
     }
 
-    @Override
     public MutationResult deductBalance(String walletId, BigDecimal amount,
             MutationReferenceType referenceType, UUID referenceId, String description)
             throws InsufficientBalanceException {
@@ -73,7 +72,6 @@ public class WalletClientAdapter implements BalanceManagementUseCase {
         }
     }
 
-    @Override
     public MutationResult addBalance(String walletId, BigDecimal amount,
             MutationReferenceType referenceType, UUID referenceId, String description) {
 
@@ -99,7 +97,6 @@ public class WalletClientAdapter implements BalanceManagementUseCase {
         }
     }
 
-    @Override
     public BigDecimal getBalance(String walletId) {
         try {
             WalletBalanceResponse resp = restClient.get()

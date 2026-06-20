@@ -3,10 +3,10 @@ package com.satset.transaction.domain.service;
 import com.satset.catalog.adapter.out.persistence.DenomRepository;
 import com.satset.shared.exception.InsufficientBalanceException;
 import com.satset.shared.model.DenomInfo;
+import com.satset.transaction.adapter.out.persistence.TransactionRepository;
+import com.satset.transaction.adapter.out.wallet.WalletClientAdapter;
 import com.satset.transaction.domain.model.*;
-import com.satset.transaction.domain.port.in.BalanceManagementUseCase;
 import com.satset.transaction.domain.port.out.ProviderPort;
-import com.satset.transaction.domain.port.out.TransactionRepositoryPort;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -27,11 +27,11 @@ import static org.mockito.Mockito.*;
 class TransactionDomainServiceTest {
 
     @Mock
-    private TransactionRepositoryPort transactionRepository;
+    private TransactionRepository transactionRepository;
     @Mock
     private DenomRepository denomRepository;
     @Mock
-    private BalanceManagementUseCase balanceService;
+    private WalletClientAdapter balanceService;
     @Mock
     private ProviderPort providerService;
 
