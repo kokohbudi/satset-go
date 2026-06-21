@@ -69,3 +69,4 @@ satset-core/src/main/resources/static/css/output.css
 # Runtime + tooling artifacts
 logs/
 .impeccable/
+.agent/
