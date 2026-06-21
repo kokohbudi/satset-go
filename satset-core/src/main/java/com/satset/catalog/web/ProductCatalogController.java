@@ -3,7 +3,6 @@ package com.satset.catalog.web;
 import com.satset.catalog.dto.CategoryDTO;
 import com.satset.catalog.dto.ProductDTO;
 import com.satset.catalog.dto.ProductDenomDTO;
-import com.satset.catalog.dto.ProductDenomMetaDTO;
 import com.satset.catalog.model.*;
 import com.satset.catalog.service.CategoryDomainService;
 import com.satset.catalog.service.DenomDomainService;
@@ -37,21 +36,21 @@ public class ProductCatalogController {
     @GetMapping("/categories")
     public ResponseEntity<List<CategoryDTO>> getAllCategories() {
         List<CategoryDTO> dtos = browseCategoriesUseCase.findAll().stream()
-                .map(this::toCategoryDTO).toList();
+                .map(CatalogDtoMapper::toCategoryDTO).toList();
         return ResponseEntity.ok(dtos);
     }
 
     @GetMapping("/categories/type/{type}")
     public ResponseEntity<List<CategoryDTO>> getCategoriesByType(@PathVariable CategoryType type) {
         List<CategoryDTO> dtos = browseCategoriesUseCase.findByType(type).stream()
-                .map(this::toCategoryDTO).toList();
+                .map(CatalogDtoMapper::toCategoryDTO).toList();
         return ResponseEntity.ok(dtos);
     }
 
     @GetMapping("/categories/{code}")
     public ResponseEntity<CategoryDTO> getCategoryByCode(@PathVariable String code) {
         return browseCategoriesUseCase.findByCode(code)
-                .map(this::toCategoryDTO)
+                .map(CatalogDtoMapper::toCategoryDTO)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
@@ -61,14 +60,14 @@ public class ProductCatalogController {
     @GetMapping("/categories/{code}/products")
     public ResponseEntity<List<ProductDTO>> getProductsByCategory(@PathVariable String code) {
         List<ProductDTO> dtos = browseProductsUseCase.findByCategory(code).stream()
-                .map(this::toProductDTO).toList();
+                .map(CatalogDtoMapper::toProductDTO).toList();
         return ResponseEntity.ok(dtos);
     }
 
     @GetMapping("/products/{code}")
     public ResponseEntity<ProductDTO> getProductByCode(@PathVariable String code) {
         return browseProductsUseCase.findByCode(code)
-                .map(this::toProductDTO)
+                .map(CatalogDtoMapper::toProductDTO)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
@@ -92,64 +91,11 @@ public class ProductCatalogController {
 
     // ==================== Mappers ====================
 
-    private CategoryDTO toCategoryDTO(Category entity) {
-        CategoryDTO dto = new CategoryDTO();
-        dto.setId(entity.getId());
-        dto.setCode(entity.getCode());
-        dto.setName(entity.getName());
-        dto.setCategoryType(entity.getCategoryType());
-        dto.setIconUrl(entity.getIconUrl());
-        dto.setSortOrder(entity.getSortOrder());
-        dto.setActive(entity.isActive());
-        dto.setDeleted(entity.isDeleted());
-        return dto;
-    }
-
-    private ProductDTO toProductDTO(Products entity) {
-        ProductDTO dto = new ProductDTO();
-        dto.setId(entity.getId());
-        dto.setCode(entity.getCode());
-        dto.setName(entity.getName());
-        dto.setProviderName(entity.getProviderName());
-        dto.setDescription(entity.getDescription());
-        dto.setIconUrl(entity.getIconUrl());
-        dto.setSortOrder(entity.getSortOrder());
-        dto.setActive(entity.isActive());
-        dto.setDeleted(entity.isDeleted());
-        dto.setCategoryId(entity.getCategoryId());
-        return dto;
-    }
-
     private ProductDenomDTO toDenomDTO(ProductDenoms entity) {
-        ProductDenomDTO dto = new ProductDenomDTO();
-        dto.setId(entity.getId());
-        dto.setCode(entity.getCode());
-        dto.setName(entity.getName());
-        dto.setDenomType(entity.getDenomType());
-        dto.setNominal(entity.getNominal());
-        dto.setPrice(entity.getPrice());
-        dto.setBasePrice(entity.getBasePrice());
-        dto.setAdminFee(entity.getAdminFee());
-        dto.setValidityDays(entity.getValidityDays());
-        dto.setQuotaMb(entity.getQuotaMb());
-        dto.setMinAmount(entity.getMinAmount());
-        dto.setMaxAmount(entity.getMaxAmount());
-        dto.setRequiresInquiry(entity.isRequiresInquiry());
-        dto.setStockAvailable(entity.getStockAvailable());
-        dto.setSortOrder(entity.getSortOrder());
-        dto.setActive(entity.isActive());
-        dto.setDeleted(entity.isDeleted());
-        dto.setProductId(entity.getProductId());
+        ProductDenomDTO dto = CatalogDtoMapper.toDenomDTO(entity);
         if (entity.getMetadata() != null) {
-            dto.setMetadata(entity.getMetadata().stream().map(this::toMetaDTO).toList());
+            dto.setMetadata(entity.getMetadata().stream().map(CatalogDtoMapper::toMetaDTO).toList());
         }
-        return dto;
-    }
-
-    private ProductDenomMetaDTO toMetaDTO(ProductDenomMeta entity) {
-        ProductDenomMetaDTO dto = new ProductDenomMetaDTO();
-        dto.setMetaKey(entity.getMetaKey());
-        dto.setMetaValue(entity.getMetaValue());
         return dto;
     }
 }

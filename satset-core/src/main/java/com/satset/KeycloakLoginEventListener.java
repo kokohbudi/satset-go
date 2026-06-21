@@ -58,21 +58,18 @@ public class KeycloakLoginEventListener {
             String fullName = this.extractFullName(oauth2User);
             Jwt jwt = this.jwtDecoder.decode(authentication.getAccessToken().getTokenValue());
             String providerUserId = this.extractProviderUserId(jwt);
-            this.extractRolesFromJwt(jwt);
             if (email != null) {
                 logger.info("Processing Keycloak login for user: {}", email);
                 boolean isEmailRegistered = this.registrationService.isEmailRegistered(email);
-                List<String> roles;
+                // Roles from JWT token (fresh from Keycloak) instead of DB
+                List<String> roles = this.extractRolesFromJwt(jwt);
                 UserDTO user;
                 if (isEmailRegistered) {
                     user = this.userManagementService.findByEmailDTO(email);
                     email = user.getEmail();
                     username = user.getUsername();
                     fullName = user.getFullname();
-                    // Roles from JWT token (fresh from Keycloak) instead of DB
-                    roles = this.extractRolesFromJwt(jwt);
                 } else {
-                    roles = this.extractRolesFromJwt(jwt);
                     // Create new user via domain service
                     UserDTO newUser = new UserDTO();
                     newUser.setEmail(email);

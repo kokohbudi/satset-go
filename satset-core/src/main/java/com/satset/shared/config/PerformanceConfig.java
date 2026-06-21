@@ -1,20 +1,17 @@
 package com.satset.shared.config;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.cache.caffeine.CaffeineCacheManager;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
-import org.springframework.transaction.annotation.EnableTransactionManagement;
 
 import java.util.concurrent.TimeUnit;
 
 @Configuration
 @EnableCaching
-@EnableTransactionManagement
 public class PerformanceConfig {
 
         /**
@@ -79,14 +76,5 @@ public class PerformanceConfig {
                                 .maximumSize(2000)
                                 .recordStats());
                 return cacheManager;
-        }
-
-        @Bean
-        @ConditionalOnProperty(name = "spring.main.lazy-initialization", havingValue = "true")
-        public Caffeine<Object, Object> caffeineConfig() {
-                return Caffeine.newBuilder()
-                                .expireAfterWrite(10, TimeUnit.MINUTES)
-                                .maximumSize(1000)
-                                .recordStats();
         }
 }

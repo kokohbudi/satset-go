@@ -23,7 +23,6 @@ public class UserDTO extends BaseDTO {
     private String email;
     private String username;
     private String fullname;
-    private String referalId;
     private List<String> roles;
     /**
      * Full role details with attributes for UI display.

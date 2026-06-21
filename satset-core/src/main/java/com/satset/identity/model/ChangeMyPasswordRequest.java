@@ -12,9 +12,6 @@ import lombok.Data;
  * ({@code confirmPassword}). A class-level cross-field validation ensures that
  * {@code newPassword} and {@code confirmPassword} are identical before the request
  * is processed by the domain service.
- * 
- * <p>Dipindahkan dari adapter/in/web/dto untuk memenuhi hexagonal architecture:
- * Domain layer tidak boleh bergantung ke adapter layer.
  */
 @Data
 public class ChangeMyPasswordRequest {

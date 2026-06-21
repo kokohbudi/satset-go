@@ -1,8 +1,6 @@
 package com.satset.identity.client;
 
-import com.satset.identity.model.KeycloakGroup;
 import com.satset.identity.model.KeycloakRole;
-import com.satset.shared.dto.GroupInfo;
 import com.satset.shared.dto.RoleInfo;
 import org.springframework.stereotype.Component;
 
@@ -48,35 +46,6 @@ public class IdentityMapper {
         }
         return roles.stream()
                 .map(this::toRoleInfo)
-                .toList();
-    }
-
-    /**
-     * Convert KeycloakGroup domain model to GroupInfo shared DTO.
-     */
-    public GroupInfo toGroupInfo(KeycloakGroup group) {
-        if (group == null) {
-            return null;
-        }
-        
-        return GroupInfo.builder()
-                .id(group.getId())
-                .name(group.getName())
-                .path(group.getPath())
-                .parentId(group.getParentId())
-                .subGroups(toGroupInfoList(group.getSubGroups()))
-                .build();
-    }
-
-    /**
-     * Convert list of KeycloakGroup to list of GroupInfo.
-     */
-    public List<GroupInfo> toGroupInfoList(List<KeycloakGroup> groups) {
-        if (groups == null) {
-            return List.of();
-        }
-        return groups.stream()
-                .map(this::toGroupInfo)
                 .toList();
     }
 }

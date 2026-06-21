@@ -3,7 +3,6 @@ package com.satset.identity.client;
 import com.satset.identity.model.GroupMemberInfo;
 import com.satset.identity.model.KeycloakGroup;
 import com.satset.identity.model.KeycloakRole;
-import com.satset.shared.dto.GroupInfo;
 import com.satset.shared.dto.RoleInfo;
 import com.satset.shared.dto.UserDTO;
 import com.satset.shared.exception.BusinessException;
@@ -22,6 +21,11 @@ import java.util.List;
 @Service
 @Slf4j
 public class KeycloakAdminClientService implements KeycloakIdentityPort, KeycloakOrganizationPort {
+
+        private static final java.util.Set<String> SYSTEM_ROLES = java.util.Set.of(
+                        "offline_access", "uma_authorization", "default-roles-satset-go",
+                        "default-roles-omnip");
+
         private final Keycloak keycloak;
         private final KeycloakHelper keycloakAdminClientBusiness;
         private final IdentityMapper identityMapper;
@@ -46,15 +50,12 @@ public class KeycloakAdminClientService implements KeycloakIdentityPort, Keycloa
         @Cacheable(value = "allRoles", cacheManager = "fastCacheManager")
         public List<KeycloakRole> getRoles() {
                 log.debug("Fetching all realm roles from Keycloak (cache miss)");
-                java.util.Set<String> systemRoles = java.util.Set.of(
-                                "offline_access", "uma_authorization", "default-roles-satset-go",
-                                "default-roles-omnip");
                 return this.keycloak
                                 .realm(this.realm)
                                 .roles()
                                 .list()
                                 .stream()
-                                .filter(role -> !systemRoles.contains(role.getName()))
+                                .filter(role -> !SYSTEM_ROLES.contains(role.getName()))
                                 .map(KeycloakRole::fromRoleRepresentation)
                                 .toList();
         }
@@ -71,9 +72,6 @@ public class KeycloakAdminClientService implements KeycloakIdentityPort, Keycloa
         @Cacheable(value = "rolesHierarchy", cacheManager = "fastCacheManager")
         public List<KeycloakRole> getRolesWithHierarchy() {
                 log.debug("Fetching roles with hierarchy from Keycloak (cache miss)");
-                java.util.Set<String> systemRoles = java.util.Set.of(
-                                "offline_access", "uma_authorization", "default-roles-satset-go",
-                                "default-roles-omnip");
 
                 List<RoleRepresentation> allRoles = this.keycloak
                                 .realm(this.realm)
@@ -85,7 +83,7 @@ public class KeycloakAdminClientService implements KeycloakIdentityPort, Keycloa
 
                 // First pass: create DTOs and collect composite children
                 for (RoleRepresentation role : allRoles) {
-                        if (systemRoles.contains(role.getName())) {
+                        if (SYSTEM_ROLES.contains(role.getName())) {
                                 continue;
                         }
 
@@ -100,7 +98,7 @@ public class KeycloakAdminClientService implements KeycloakIdentityPort, Keycloa
                                                         .get(role.getName())
                                                         .getRoleComposites();
                                         for (RoleRepresentation child : children) {
-                                                if (!systemRoles.contains(child.getName())) {
+                                                if (!SYSTEM_ROLES.contains(child.getName())) {
                                                         KeycloakRole childDto = getCachedRoleWithAttributes(
                                                                         child.getName());
                                                         childDto.setChildren(new java.util.ArrayList<>());
@@ -151,15 +149,12 @@ public class KeycloakAdminClientService implements KeycloakIdentityPort, Keycloa
          * @return List of KeycloakRole yang memiliki scope tersebut
          */
         public List<KeycloakRole> getRolesByScope(String scope) {
-                java.util.Set<String> systemRoles = java.util.Set.of(
-                                "offline_access", "uma_authorization", "default-roles-satset-go",
-                                "default-roles-omnip");
                 return this.keycloak
                                 .realm(this.realm)
                                 .roles()
                                 .list()
                                 .stream()
-                                .filter(role -> !systemRoles.contains(role.getName()))
+                                .filter(role -> !SYSTEM_ROLES.contains(role.getName()))
                                 .map(role -> getCachedRoleWithAttributes(role.getName()))
                                 .filter(roleDto -> {
                                         var attrs = roleDto.getAttributes();
@@ -234,6 +229,26 @@ public class KeycloakAdminClientService implements KeycloakIdentityPort, Keycloa
         }
 
         /**
+         * Resolve the configured client to a ClientResource.
+         *
+         * @return ClientResource for the configured clientId
+         * @throws BusinessException if the client is not found
+         */
+        private ClientResource clientResource() throws BusinessException {
+                return this.keycloak
+                                .realm(this.realm)
+                                .clients()
+                                .findByClientId(this.clientId)
+                                .stream()
+                                .findFirst()
+                                .map(client -> this.keycloak
+                                                .realm(this.realm)
+                                                .clients()
+                                                .get(client.getId()))
+                                .orElseThrow(() -> new BusinessException("Client not found: " + this.clientId));
+        }
+
+        /**
          * Mendapatkan semua groups dari Keycloak (cached).
          * Cache TTL: 5 menit (fastCacheManager).
          *
@@ -258,18 +273,7 @@ public class KeycloakAdminClientService implements KeycloakIdentityPort, Keycloa
          * @return List of KeycloakRole
          */
         public List<KeycloakRole> getRolesByGroup(String groupId) throws BusinessException {
-                // Cari client resource untuk mendapatkan client ID
-                ClientResource clientResource = this.keycloak
-                                .realm(this.realm)
-                                .clients()
-                                .findByClientId(this.clientId)
-                                .stream()
-                                .findFirst()
-                                .map(client -> this.keycloak
-                                                .realm(this.realm)
-                                                .clients()
-                                                .get(client.getId()))
-                                .orElseThrow(() -> new BusinessException("Client not found: " + this.clientId));
+                ClientResource clientResource = clientResource();
 
                 // Get client level roles dari group
                 return this.keycloak
@@ -355,18 +359,7 @@ public class KeycloakAdminClientService implements KeycloakIdentityPort, Keycloa
          * @param roleName Nama role yang akan di-assign
          */
         public void assignRoleToGroup(String groupId, String roleName) throws BusinessException {
-                // Cari client resource
-                ClientResource clientResource = this.keycloak
-                                .realm(this.realm)
-                                .clients()
-                                .findByClientId(this.clientId)
-                                .stream()
-                                .findFirst()
-                                .map(client -> this.keycloak
-                                                .realm(this.realm)
-                                                .clients()
-                                                .get(client.getId()))
-                                .orElseThrow(() -> new BusinessException("Client not found: " + this.clientId));
+                ClientResource clientResource = clientResource();
 
                 // Get role representation
                 RoleRepresentation role = clientResource
@@ -393,18 +386,7 @@ public class KeycloakAdminClientService implements KeycloakIdentityPort, Keycloa
          * @param roleName Nama role yang akan di-remove
          */
         public void unassignRoleFromGroup(String groupId, String roleName) throws BusinessException {
-                // Cari client resource
-                ClientResource clientResource = this.keycloak
-                                .realm(this.realm)
-                                .clients()
-                                .findByClientId(this.clientId)
-                                .stream()
-                                .findFirst()
-                                .map(client -> this.keycloak
-                                                .realm(this.realm)
-                                                .clients()
-                                                .get(client.getId()))
-                                .orElseThrow(() -> new BusinessException("Client not found: " + this.clientId));
+                ClientResource clientResource = clientResource();
 
                 // Get role representation
                 RoleRepresentation role = clientResource
@@ -757,10 +739,6 @@ public class KeycloakAdminClientService implements KeycloakIdentityPort, Keycloa
          *         system roles)
          */
         public List<KeycloakRole> getAllEffectiveRolesFlat(String userId) {
-                java.util.Set<String> systemRoles = java.util.Set.of(
-                                "offline_access", "uma_authorization", "default-roles-satset-go",
-                                "default-roles-omnip");
-
                 try {
                         // Use listAll() instead of listEffective() to get only directly assigned roles
                         // listEffective() returns all roles including those inherited from composite
@@ -775,7 +753,7 @@ public class KeycloakAdminClientService implements KeycloakIdentityPort, Keycloa
                                         .listAll();
 
                         return directlyAssignedRoles.stream()
-                                        .filter(role -> !systemRoles.contains(role.getName()))
+                                        .filter(role -> !SYSTEM_ROLES.contains(role.getName()))
                                         .map(role -> getCachedRoleWithAttributes(role.getName()))
                                         .toList();
                 } catch (Exception e) {
@@ -794,10 +772,6 @@ public class KeycloakAdminClientService implements KeycloakIdentityPort, Keycloa
          *         nested)
          */
         public List<KeycloakRole> getMenuRoles(String userId) {
-                java.util.Set<String> systemRoles = java.util.Set.of(
-                                "offline_access", "uma_authorization", "default-roles-satset-go",
-                                "default-roles-omnip");
-
                 // Fetch FULL role representation (with attributes) using CACHED method
                 // listEffective() does not include attributes!
                 java.util.Map<String, KeycloakRole> dtoMap = new java.util.HashMap<>();
@@ -812,7 +786,7 @@ public class KeycloakAdminClientService implements KeycloakIdentityPort, Keycloa
                         .listEffective();
 
                 for (RoleRepresentation role : realmRoles) {
-                        if (systemRoles.contains(role.getName())) continue;
+                        if (SYSTEM_ROLES.contains(role.getName())) continue;
                         KeycloakRole fullRole = getCachedRoleWithAttributes(role.getName());
                         if (fullRole.getChildren() == null) fullRole.setChildren(new java.util.ArrayList<>());
                         dtoMap.put(role.getName(), fullRole);
@@ -831,7 +805,7 @@ public class KeycloakAdminClientService implements KeycloakIdentityPort, Keycloa
                                         .listEffective();
 
                                 for (RoleRepresentation role : clientRoles) {
-                                        if (systemRoles.contains(role.getName())) continue;
+                                        if (SYSTEM_ROLES.contains(role.getName())) continue;
                                         KeycloakRole fullRole = getCachedClientRoleWithAttributes(clientUuid, role.getName());
                                         if (fullRole.getChildren() == null)
                                                 fullRole.setChildren(new java.util.ArrayList<>());
@@ -867,7 +841,7 @@ public class KeycloakAdminClientService implements KeycloakIdentityPort, Keycloa
                                 }
 
                                 for (RoleRepresentation child : children) {
-                                        if (systemRoles.contains(child.getName())) continue;
+                                        if (SYSTEM_ROLES.contains(child.getName())) continue;
                                         KeycloakRole childDto = Boolean.TRUE.equals(child.getClientRole()) && clientUuid != null
                                                 ? getCachedClientRoleWithAttributes(clientUuid, child.getName())
                                                 : getCachedRoleWithAttributes(child.getName());
@@ -1023,17 +997,5 @@ public class KeycloakAdminClientService implements KeycloakIdentityPort, Keycloa
         public List<RoleInfo> getMenuRoleInfos(String userId) {
                 List<KeycloakRole> roles = getMenuRoles(userId);
                 return identityMapper.toRoleInfoList(roles);
-        }
-
-        /**
-         * Get user groups as shared DTOs.
-         * Delegates to getUserGroups() and converts to GroupInfo.
-         *
-         * @param userId Keycloak user ID
-         * @return List of GroupInfo
-         */
-        public List<GroupInfo> getUserGroupInfos(String userId) {
-                List<KeycloakGroup> groups = getUserGroups(userId);
-                return identityMapper.toGroupInfoList(groups);
         }
 }

@@ -5,8 +5,8 @@ import com.satset.shared.exception.ResourceNotFoundException;
 import com.satset.transaction.dto.PurchaseRequest;
 import com.satset.transaction.dto.TopUpRequest;
 import com.satset.transaction.client.WalletClientAdapter;
+import com.satset.transaction.dto.TransactionDTO;
 import com.satset.transaction.model.TransactionStatus;
-import com.satset.transaction.model.TransactionSummary;
 import com.satset.transaction.service.TransactionDomainService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -71,7 +71,7 @@ class TransactionControllerTest {
     void purchase_ReturnsOk_WithResponseBody() throws Exception {
         UUID denomId = UUID.randomUUID();
         UUID txId = UUID.randomUUID();
-        TransactionSummary summary = buildSummary(txId, TransactionStatus.SUCCESS, new BigDecimal("10000"));
+        TransactionDTO summary = buildSummary(txId, TransactionStatus.SUCCESS, new BigDecimal("10000"));
 
         when(transactionService.createPurchase(storeId, walletId, denomId, "081234567890")).thenReturn(summary);
 
@@ -119,7 +119,7 @@ class TransactionControllerTest {
     @Test
     void getTransaction_ReturnsOk_WithTransactionDTO() throws Exception {
         UUID txId = UUID.randomUUID();
-        TransactionSummary summary = buildSummary(txId, TransactionStatus.SUCCESS, new BigDecimal("5000"));
+        TransactionDTO summary = buildSummary(txId, TransactionStatus.SUCCESS, new BigDecimal("5000"));
 
         when(transactionService.getTransaction(txId, storeId)).thenReturn(summary);
 
@@ -132,7 +132,7 @@ class TransactionControllerTest {
     @Test
     void getTransactionHistory_DelegatesToUseCase_WithStoreId() throws Exception {
         UUID txId = UUID.randomUUID();
-        TransactionSummary summary = buildSummary(txId, TransactionStatus.SUCCESS, new BigDecimal("7000"));
+        TransactionDTO summary = buildSummary(txId, TransactionStatus.SUCCESS, new BigDecimal("7000"));
 
         when(transactionService.getTransactionHistory(eq(storeId), any(Pageable.class)))
                 .thenReturn(new PageImpl<>(List.of(summary)));
@@ -168,8 +168,8 @@ class TransactionControllerTest {
                 "Expected ResourceNotFoundException but got: " + root.getClass().getName());
     }
 
-    private TransactionSummary buildSummary(UUID id, TransactionStatus status, BigDecimal total) {
-        return new TransactionSummary(
+    private TransactionDTO buildSummary(UUID id, TransactionStatus status, BigDecimal total) {
+        return new TransactionDTO(
                 id, storeId, "081234567890", "Pulsa 10K", "Telkomsel",
                 total, BigDecimal.ZERO, total, status,
                 "PROV-REF-123", "SN-456", LocalDateTime.now());

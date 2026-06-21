@@ -3,7 +3,6 @@ package com.satset.onboarding.model;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-import java.math.BigDecimal;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -104,18 +103,5 @@ class StoresTest {
         assertThat(store.getEmail()).isEqualTo("test@example.com");
         assertThat(store.isActive()).isTrue();
         assertThat(store.getWalletId()).isEqualTo("7001234567");
-    }
-
-    @Test
-    @DisplayName("Should have deprecated balance field for backward compatibility")
-    void shouldHaveDeprecatedBalanceField() {
-        // Arrange
-        Stores store = new Stores();
-
-        // Act
-        store.setBalance(new BigDecimal("100000"));
-
-        // Assert
-        assertThat(store.getBalance()).isEqualByComparingTo(new BigDecimal("100000"));
     }
 }

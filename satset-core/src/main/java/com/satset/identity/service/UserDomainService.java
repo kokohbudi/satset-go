@@ -2,7 +2,6 @@ package com.satset.identity.service;
 
 import com.satset.identity.repository.UserRepository;
 import com.satset.identity.model.Users;
-import com.satset.identity.client.KeycloakIdentityPort;
 import com.satset.shared.dto.UserDTO;
 import com.satset.shared.exception.BusinessException;
 import org.springframework.stereotype.Service;
@@ -16,34 +15,20 @@ public class UserDomainService {
     private final UserRepository usersRepository;
     private final UserManagementHelper userManagementBusiness;
     private final UserDTO userDTO;
-    private final KeycloakIdentityPort keycloakAdminClientService;
 
     /**
      * Konstruktor dengan dependency injection.
      *
-     * @param usersRepository            Repository untuk operasi data pengguna
-     * @param userManagementBusiness     Komponen bisnis untuk logika manajemen
-     *                                   pengguna
-     * @param userDTO                    DTO yang mewakili pengguna saat ini
-     * @param keycloakAdminClientService Service untuk interaksi dengan Keycloak
-     *                                   Admin API
+     * @param usersRepository        Repository untuk operasi data pengguna
+     * @param userManagementBusiness Komponen bisnis untuk logika manajemen
+     *                               pengguna
+     * @param userDTO                DTO yang mewakili pengguna saat ini
      */
     public UserDomainService(UserRepository usersRepository, UserManagementHelper userManagementBusiness,
-            UserDTO userDTO, KeycloakIdentityPort keycloakAdminClientService) {
+            UserDTO userDTO) {
         this.usersRepository = usersRepository;
         this.userManagementBusiness = userManagementBusiness;
         this.userDTO = userDTO;
-        this.keycloakAdminClientService = keycloakAdminClientService;
-    }
-
-    /**
-     * Mencari pengguna berdasarkan alamat email.
-     *
-     * @param email Alamat email pengguna
-     * @return Objek Users jika ditemukan, null jika tidak
-     */
-    public Users findByEmail(String email) {
-        return this.usersRepository.findByEmail(email);
     }
 
     /**
@@ -55,30 +40,6 @@ public class UserDomainService {
      */
     public UserDTO findByEmailDTO(String email) {
         return this.usersRepository.findByEmailDTO(email);
-    }
-
-    /**
-     * Mencari pengguna berdasarkan provider user ID.
-     *
-     * @param providerUserId ID pengguna dari provider autentikasi
-     * @return Objek Users jika ditemukan, null jika tidak
-     */
-    public Users findByProviderUserId(String providerUserId) {
-        return this.usersRepository.findByProviderUserId(providerUserId);
-    }
-
-    /**
-     * Mendapatkan provider user ID untuk operasi perubahan password.
-     * Mendelegasikan ke komponen bisnis untuk validasi dan logika bisnis.
-     *
-     * @param sessionUserDTO UserDTO pengguna yang sedang login
-     * @param requestUserDTO UserDTO yang berisi data permintaan
-     * @return Provider user ID dari pengguna yang passwordnya akan diubah
-     * @throws BusinessException Jika validasi gagal
-     */
-    public String getProviderUseIdChangePassword(UserDTO sessionUserDTO, UserDTO requestUserDTO)
-            throws BusinessException {
-        return this.userManagementBusiness.getProviderUseIdChangePassword(sessionUserDTO, requestUserDTO);
     }
 
     /**
@@ -102,16 +63,6 @@ public class UserDomainService {
         requestedUserDTO.setEmail(email);
         requestedUserDTO.setActive(status);
         this.userManagementBusiness.setUserStatus(this.userDTO, requestedUserDTO, this.usersRepository);
-    }
-
-    /**
-     * Menyimpan pengguna baru ke database.
-     *
-     * @param user Objek Users yang akan disimpan
-     * @return Objek Users yang telah disimpan
-     */
-    public Users createNewUser(Users user) {
-        return this.usersRepository.save(user);
     }
 
     /**
@@ -142,47 +93,5 @@ public class UserDomainService {
         result.setStoreId(savedUser.getStoreId());
         result.setActive(savedUser.isActive());
         return result;
-    }
-
-    /**
-     * Menyimpan pengguna baru ke database (tanpa membuat di Keycloak).
-     * Digunakan oleh IdentityDomainService untuk orchestration.
-     *
-     * @param reqUserDTO     DTO yang berisi data pengguna
-     * @param providerUserId Provider user ID dari Keycloak
-     * @return UserDTO dengan status operasi
-     */
-    public UserDTO saveUserToDb(UserDTO reqUserDTO, String providerUserId) {
-        try {
-            Users user = this.userManagementBusiness.createUserObject(reqUserDTO, providerUserId);
-            this.createNewUser(user);
-            return this.userManagementBusiness.createSuccessResponse(reqUserDTO, providerUserId);
-        } catch (Exception e) {
-            return this.userManagementBusiness
-                    .createErrorResponse("Gagal menyimpan data pengguna. Silakan coba lagi.");
-        }
-    }
-
-    /**
-     * Mengubah password pengguna.
-     *
-     * @param reqUserDTO DTO yang berisi data permintaan perubahan password
-     * @return UserDTO dengan status operasi
-     */
-    public UserDTO changePassword(UserDTO reqUserDTO) {
-        UserDTO userDTOReturn = new UserDTO();
-        try {
-            // Validasi dan dapatkan provider user ID
-            String providerUserId = this.getProviderUseIdChangePassword(this.userDTO, reqUserDTO);
-
-            // Ubah password di Keycloak
-            this.keycloakAdminClientService.changeUserPassword(providerUserId, reqUserDTO.getPassword());
-            userDTOReturn.setStatus("success");
-        } catch (BusinessException e) {
-            // Tangani error jika gagal
-            userDTOReturn.setStatus("failed");
-            userDTOReturn.setMessage(e.getErrorMessage());
-        }
-        return userDTOReturn;
     }
 }

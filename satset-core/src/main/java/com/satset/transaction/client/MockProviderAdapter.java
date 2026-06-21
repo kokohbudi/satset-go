@@ -1,7 +1,6 @@
 package com.satset.transaction.client;
 
 import com.satset.transaction.model.ProviderResponse;
-import com.satset.transaction.client.ProviderPort;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 

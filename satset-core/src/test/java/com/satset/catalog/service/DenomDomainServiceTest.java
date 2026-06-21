@@ -90,24 +90,6 @@ class DenomDomainServiceTest {
     }
 
     @Test
-    void findByCode_ActiveDenom_ReturnsOptional() {
-        when(denomRepository.findByCode("TLKM5")).thenReturn(Optional.of(existingDenom));
-
-        Optional<ProductDenoms> result = denomService.findByCode("TLKM5");
-
-        assertTrue(result.isPresent());
-        assertEquals("TLKM5", result.get().getCode());
-    }
-
-    @Test
-    void findByCode_InactiveDenom_ReturnsEmpty() {
-        existingDenom.setActive(false);
-        when(denomRepository.findByCode("TLKM5")).thenReturn(Optional.of(existingDenom));
-
-        assertTrue(denomService.findByCode("TLKM5").isEmpty());
-    }
-
-    @Test
     void getDenomWithMeta_Found_LoadsMeta() {
         com.satset.catalog.model.ProductDenomMeta meta = new com.satset.catalog.model.ProductDenomMeta();
         meta.setId(UUID.randomUUID());

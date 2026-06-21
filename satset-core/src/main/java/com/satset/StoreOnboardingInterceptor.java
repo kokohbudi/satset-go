@@ -54,13 +54,8 @@ public class StoreOnboardingInterceptor implements HandlerInterceptor {
             // Use port method that returns UUID directly instead of domain model
             UUID storeId = usersRepository.findStoreIdByProviderUserId(providerUserId);
 
-            if (storeId != null) {
-                hasStore = true;
-                log.debug("User {} has a store. Setting session hasStore=true", providerUserId);
-            } else {
-                hasStore = false;
-                log.debug("User {} does NOT have a store. Setting session hasStore=false", providerUserId);
-            }
+            hasStore = storeId != null;
+            log.debug("User {} hasStore={}. Setting session attribute.", providerUserId, hasStore);
             session.setAttribute("hasStore", hasStore);
         }
 

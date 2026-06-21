@@ -3,7 +3,6 @@ package com.satset.shared.config;
 import com.satset.shared.constant.OmniConstants;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
@@ -27,7 +26,6 @@ import java.util.Set;
 
 @Configuration
 @EnableWebSecurity
-@EnableCaching
 @EnableMethodSecurity(prePostEnabled = true)
 @Slf4j
 public class SecurityConfig {

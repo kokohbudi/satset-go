@@ -1,8 +1,6 @@
 package com.satset.identity.client;
 
-import com.satset.identity.model.KeycloakGroup;
 import com.satset.identity.model.KeycloakRole;
-import com.satset.shared.dto.GroupInfo;
 import com.satset.shared.dto.RoleInfo;
 import org.junit.jupiter.api.Test;
 
@@ -91,76 +89,5 @@ class IdentityMapperTest {
         assertThat(result.getComposite()).isTrue();
         assertThat(result.getChildren()).hasSize(1);
         assertThat(result.getChildren().get(0).getName()).isEqualTo("create_users");
-    }
-
-    // ==================== Group Mapping Tests ====================
-
-    @Test
-    void shouldMapKeycloakGroupToGroupInfo() {
-        KeycloakGroup domainGroup = KeycloakGroup.builder()
-                .id("group-123")
-                .name("admin")
-                .path("/backoffice/admin")
-                .parentId("parent-456")
-                .build();
-
-        GroupInfo result = mapper.toGroupInfo(domainGroup);
-
-        assertThat(result).isNotNull();
-        assertThat(result.getId()).isEqualTo("group-123");
-        assertThat(result.getName()).isEqualTo("admin");
-        assertThat(result.getPath()).isEqualTo("/backoffice/admin");
-        assertThat(result.getParentId()).isEqualTo("parent-456");
-    }
-
-    @Test
-    void shouldReturnNullForNullGroup() {
-        GroupInfo result = mapper.toGroupInfo(null);
-        assertThat(result).isNull();
-    }
-
-    @Test
-    void shouldMapGroupListToGroupInfoList() {
-        KeycloakGroup group1 = KeycloakGroup.builder()
-                .id("1")
-                .name("admin")
-                .build();
-        KeycloakGroup group2 = KeycloakGroup.builder()
-                .id("2")
-                .name("operator")
-                .build();
-
-        List<GroupInfo> result = mapper.toGroupInfoList(List.of(group1, group2));
-
-        assertThat(result).hasSize(2);
-        assertThat(result.get(0).getName()).isEqualTo("admin");
-        assertThat(result.get(1).getName()).isEqualTo("operator");
-    }
-
-    @Test
-    void shouldReturnEmptyListForNullGroupList() {
-        List<GroupInfo> result = mapper.toGroupInfoList(null);
-        assertThat(result).isEmpty();
-    }
-
-    @Test
-    void shouldMapGroupWithSubGroups() {
-        KeycloakGroup subGroup = KeycloakGroup.builder()
-                .id("sub-1")
-                .name("sub-admin")
-                .path("/backoffice/admin/sub-admin")
-                .build();
-
-        KeycloakGroup parentGroup = KeycloakGroup.builder()
-                .id("parent-1")
-                .name("admin")
-                .path("/backoffice/admin")
-                .subGroups(List.of(subGroup))
-                .build();
-
-        GroupInfo result = mapper.toGroupInfo(parentGroup);
-
-        assertThat(result.getSubGroups()).hasSize(1);
-        assertThat(result.getSubGroups().get(0).getName()).isEqualTo("sub-admin");
     }
 }

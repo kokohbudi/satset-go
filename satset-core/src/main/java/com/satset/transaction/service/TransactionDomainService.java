@@ -4,6 +4,7 @@ import com.satset.catalog.repository.DenomRepository;
 import com.satset.shared.exception.InsufficientBalanceException;
 import com.satset.shared.exception.ResourceNotFoundException;
 import com.satset.shared.model.DenomInfo;
+import com.satset.transaction.dto.TransactionDTO;
 import com.satset.transaction.repository.TransactionRepository;
 import com.satset.transaction.client.WalletClientAdapter;
 import com.satset.transaction.model.*;
@@ -37,7 +38,7 @@ public class TransactionDomainService {
         }
 
         @Transactional
-        public TransactionSummary createPurchase(UUID storeId, String walletId, UUID denomId, String targetNumber)
+        public TransactionDTO createPurchase(UUID storeId, String walletId, UUID denomId, String targetNumber)
                         throws InsufficientBalanceException {
 
                 // Use DenomInfo (shared kernel) instead of ProductDenoms (catalog domain entity)
@@ -84,7 +85,7 @@ public class TransactionDomainService {
 
                 // 2. Deduct balance
                 balanceService.deductBalance(walletId, total,
-                                MutationReferenceType.PURCHASE, transaction.getId(),
+                                transaction.getId(),
                                 "Pembelian " + denom.name() + " ke " + targetNumber);
 
                 // 3. Update status to PROCESSING
@@ -126,7 +127,7 @@ public class TransactionDomainService {
                         }
                 }
 
-                return toSummary(transaction);
+                return toDTO(transaction);
         }
 
         @Transactional
@@ -141,20 +142,20 @@ public class TransactionDomainService {
         }
 
         @Transactional(readOnly = true)
-        public TransactionSummary getTransaction(UUID id, UUID storeId) {
-                Transactions tx = transactionRepository.findByIdAndStoreIdWithDetails(id, storeId)
+        public TransactionDTO getTransaction(UUID id, UUID storeId) {
+                Transactions tx = transactionRepository.findByIdAndStoreId(id, storeId)
                                 .orElseThrow(() -> new ResourceNotFoundException("Transaction", id));
-                return toSummary(tx);
+                return toDTO(tx);
         }
 
         @Transactional(readOnly = true)
-        public Page<TransactionSummary> getTransactionHistory(UUID storeId, Pageable pageable) {
-                return transactionRepository.findByStoreIdWithDetails(storeId, pageable)
-                                .map(this::toSummary);
+        public Page<TransactionDTO> getTransactionHistory(UUID storeId, Pageable pageable) {
+                return transactionRepository.findByStoreId(storeId, pageable)
+                                .map(this::toDTO);
         }
 
-        private TransactionSummary toSummary(Transactions tx) {
-                return new TransactionSummary(
+        private TransactionDTO toDTO(Transactions tx) {
+                return new TransactionDTO(
                                 tx.getId(),
                                 tx.getStoreId(),
                                 tx.getTargetNumber(),

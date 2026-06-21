@@ -23,9 +23,6 @@ public interface UserRepository extends JpaRepository<Users, UUID> {
     @Query("SELECT u FROM Users u WHERE u.email IN :emails AND u.storeId = CAST(:storeId AS java.util.UUID)")
     List<Users> findByEmailInAndStoreId(@Param("emails") List<String> emails, @Param("storeId") String storeId);
 
-    List<Users> findByEmailContainingIgnoreCaseOrUsernameContainingIgnoreCaseOrFullnameContainingIgnoreCase(
-            String email, String username, String fullname);
-
     /** DTO convenience for shared layer — avoids exposing entity. */
     default UserDTO findByEmailDTO(String email) {
         Users u = findByEmail(email);

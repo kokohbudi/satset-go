@@ -43,11 +43,6 @@ public class DenomDomainService {
         return denomRepository.findByProductIdAndActiveTrueAndDeletedFalseOrderBySortOrder(product.get().getId());
     }
 
-    public Optional<ProductDenoms> findByCode(String code) {
-        return denomRepository.findByCode(code)
-                .filter(d -> d.isActive() && !d.isDeleted());
-    }
-
     public Optional<ProductDenoms> getDenomWithMeta(String code) {
         return denomRepository.findByCode(code)
                 .filter(d -> d.isActive() && !d.isDeleted())

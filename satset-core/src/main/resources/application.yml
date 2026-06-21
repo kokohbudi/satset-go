@@ -68,11 +68,10 @@ spring:
           use_second_level_cache: false
           use_query_cache: false
   thymeleaf:
-    cache: true
+    cache: false   # dev: re-read templates per request (live edits + impeccable live mode). prod overrides to true.
 keycloak:
   realm: ${KEYCLOAK_REALM:satset-go}
   base-server-url: ${KEYCLOAK_BASE_URL:http://localhost:9999}
-  server-url: ${keycloak.base-server-url}
   client-id: ${KEYCLOAK_CLIENT_ID:satsetgo-client}
   client-secret: ${KEYCLOAK_CLIENT_SECRET:dummy-secret}
 

@@ -7,7 +7,6 @@ import com.satset.transaction.dto.PurchaseRequest;
 import com.satset.transaction.dto.TopUpRequest;
 import com.satset.transaction.dto.TransactionDTO;
 import com.satset.transaction.client.WalletClientAdapter;
-import com.satset.transaction.model.TransactionSummary;
 import com.satset.transaction.service.TransactionDomainService;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
@@ -43,15 +42,15 @@ public class TransactionController {
     public ResponseEntity<Map<String, Object>> purchase(@Valid @RequestBody PurchaseRequest request)
             throws InsufficientBalanceException {
 
-        TransactionSummary summary = transactionService.createPurchase(
+        TransactionDTO transaction = transactionService.createPurchase(
                 getStoreId(), getWalletId(), request.denomId(), request.targetNumber());
 
         Map<String, Object> response = new HashMap<>();
-        response.put("status", summary.status().name());
-        response.put("transactionId", summary.id());
-        response.put("total", summary.total());
-        response.put("providerRef", summary.providerRef());
-        response.put("serialNumber", summary.serialNumber());
+        response.put("status", transaction.status().name());
+        response.put("transactionId", transaction.id());
+        response.put("total", transaction.total());
+        response.put("providerRef", transaction.providerRef());
+        response.put("serialNumber", transaction.serialNumber());
 
         return ResponseEntity.ok(response);
     }
@@ -87,34 +86,14 @@ public class TransactionController {
 
     @GetMapping("/{id}")
     public ResponseEntity<TransactionDTO> getTransaction(@PathVariable UUID id) {
-        TransactionSummary summary = transactionService.getTransaction(id, getStoreId());
-        return ResponseEntity.ok(toDTO(summary));
+        return ResponseEntity.ok(transactionService.getTransaction(id, getStoreId()));
     }
 
     @GetMapping("/history")
     public ResponseEntity<Page<TransactionDTO>> getTransactionHistory(
             @PageableDefault(size = 20, sort = "createdAt", direction = org.springframework.data.domain.Sort.Direction.DESC) Pageable pageable) {
-        Page<TransactionDTO> page = transactionService.getTransactionHistory(getStoreId(), pageable)
-                .map(this::toDTO);
+        Page<TransactionDTO> page = transactionService.getTransactionHistory(getStoreId(), pageable);
         return ResponseEntity.ok(page);
-    }
-
-    // ==================== Mappers ====================
-
-    private TransactionDTO toDTO(TransactionSummary s) {
-        return new TransactionDTO(
-                s.id(),
-                s.storeId(),
-                s.targetNumber(),
-                s.denomName(),
-                s.productName(),
-                s.price(),
-                s.adminFee(),
-                s.total(),
-                s.status(),
-                s.providerRef(),
-                s.serialNumber(),
-                s.createdAt());
     }
 
     private UUID getStoreId() {

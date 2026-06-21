@@ -94,10 +94,8 @@ class PurchaseFlowIntegrationTest {
                 new BigDecimal("10000.00"), BigDecimal.ZERO, true, false);
 
         // BalanceManagementUseCase mock — TransactionDomainService uses this for balance operations
-        MutationResult debitResult = new MutationResult(UUID.randomUUID(), new BigDecimal("90000.00"));
-        MutationResult refundResult = new MutationResult(UUID.randomUUID(), new BigDecimal("100000.00"));
-        doReturn(debitResult).when(balanceManagementUseCase).deductBalance(any(), any(), any(), any(), any());
-        doReturn(refundResult).when(balanceManagementUseCase).addBalance(any(), any(), any(), any(), any());
+        doNothing().when(balanceManagementUseCase).deductBalance(any(), any(), any(), any());
+        doNothing().when(balanceManagementUseCase).addBalance(any(), any(), any(), any(), any());
         doReturn(new BigDecimal("100000.00")).when(balanceManagementUseCase).getBalance(any());
 
         // UserDTO provides store/wallet context to controller
@@ -155,8 +153,8 @@ class PurchaseFlowIntegrationTest {
 
     @Test
     void whenPurchase_withInsufficientBalance_thenReturn422AndProviderNotCalled() throws Exception {
-        when(balanceManagementUseCase.deductBalance(any(), any(), any(), any(), any()))
-                .thenThrow(new InsufficientBalanceException("Saldo tidak mencukupi"));
+        doThrow(new InsufficientBalanceException("Saldo tidak mencukupi"))
+                .when(balanceManagementUseCase).deductBalance(any(), any(), any(), any());
 
         PurchaseRequest request = new PurchaseRequest(denomId, "081234567890");
 
@@ -196,7 +194,7 @@ class PurchaseFlowIntegrationTest {
                 .sendTransaction(eq("081234567890"), eq("PULSA10"), eq(new BigDecimal("10000.00")));
 
         // deductBalance (purchase) + addBalance (refund) both called
-        verify(balanceManagementUseCase, times(1)).deductBalance(eq(walletId), any(), any(), any(), any());
+        verify(balanceManagementUseCase, times(1)).deductBalance(eq(walletId), any(), any(), any());
         verify(balanceManagementUseCase, times(1)).addBalance(eq(walletId), any(), any(), any(), any());
     }
 }

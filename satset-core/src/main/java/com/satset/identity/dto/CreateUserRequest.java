@@ -35,9 +35,4 @@ public class CreateUserRequest {
      */
     @NotEmpty(message = "Minimal 1 role harus dipilih")
     private List<String> roles;
-
-    /**
-     * Whether the user must change password on first login.
-     */
-    private boolean requirePasswordChange = true;
 }

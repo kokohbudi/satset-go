@@ -1,62 +1,27 @@
 package com.satset.onboarding.service;
 
-import com.satset.identity.model.Users;
-import com.satset.onboarding.model.Stores;
 import com.satset.identity.repository.UserRepository;
+import com.satset.onboarding.repository.StoreRepository;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-import java.util.List;
-import java.util.Map;
 
 @Service
 public class RegistrationDomainService {
-    private final UserRepository onboardingUserPort;
-    private final StoreDomainService storeService;
-    private final RegistrationHelper registrationBusiness;
+    private final UserRepository usersRepository;
+    private final StoreRepository storeRepository;
 
-    public RegistrationDomainService(UserRepository onboardingUserPort,
-            StoreDomainService storeService,
-            RegistrationHelper registrationBusiness) {
-        this.onboardingUserPort = onboardingUserPort;
-        this.storeService = storeService;
-        this.registrationBusiness = registrationBusiness;
+    public RegistrationDomainService(UserRepository usersRepository, StoreRepository storeRepository) {
+        this.usersRepository = usersRepository;
+        this.storeRepository = storeRepository;
     }
 
     /**
-     * Memeriksa apakah email sudah terdaftar
+     * Memeriksa apakah email sudah terdaftar di sistem.
+     * Email dianggap sudah terdaftar jika ditemukan di tabel Users atau Store.
      *
      * @param email Email yang akan diperiksa
-     * @return true jika email sudah terdaftar
+     * @return true jika email sudah terdaftar, false jika belum
      */
     public boolean isEmailRegistered(String email) {
-        return this.registrationBusiness.isEmailRegistered(email);
-    }
-
-    /**
-     * Mendaftarkan toko baru beserta usernya
-     *
-     * @param email               Email untuk toko dan user
-     * @param fullName            Nama pemilik
-     * @param roles               Peran user
-     * @param registrationChannel Channel registrasi
-     * @param providerUserId      ID provider (Keycloak)
-     * @return Map hasil registrasi
-     */
-    @Transactional
-    public Map<String, Object> registerNewStore(String email, String fullName,
-            List<String> roles,
-            String registrationChannel,
-            String providerUserId) {
-        Stores stores = this.registrationBusiness.prepareNewStore(email, fullName);
-
-        stores = this.storeService.createNewStore(stores);
-
-        Users user = this.registrationBusiness.prepareNewStoreUser(
-                email, fullName, roles, registrationChannel, providerUserId, stores);
-
-        user = this.onboardingUserPort.save(user);
-
-        return this.registrationBusiness.createRegistrationResponse(stores, user);
+        return this.usersRepository.findByEmail(email) != null || this.storeRepository.findByEmail(email) != null;
     }
 }

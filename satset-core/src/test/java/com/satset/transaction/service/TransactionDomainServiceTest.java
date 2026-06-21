@@ -3,6 +3,7 @@ package com.satset.transaction.service;
 import com.satset.catalog.repository.DenomRepository;
 import com.satset.shared.exception.InsufficientBalanceException;
 import com.satset.shared.model.DenomInfo;
+import com.satset.transaction.dto.TransactionDTO;
 import com.satset.transaction.repository.TransactionRepository;
 import com.satset.transaction.client.WalletClientAdapter;
 import com.satset.transaction.model.*;
@@ -78,20 +79,17 @@ class TransactionDomainServiceTest {
             return tx;
         });
 
-        when(balanceService.deductBalance(eq(walletId), eq(new BigDecimal("10000.00")),
-                eq(MutationReferenceType.PURCHASE), any(UUID.class), anyString()))
-                .thenReturn(new MutationResult(UUID.randomUUID(), BigDecimal.ZERO));
         when(providerService.sendTransaction(anyString(), anyString(), any(BigDecimal.class)))
                 .thenReturn(new ProviderResponse(true, "REF-123", "SN-123", "Success"));
 
-        TransactionSummary result = transactionService.createPurchase(storeId, walletId, denomId, "081234567890");
+        TransactionDTO result = transactionService.createPurchase(storeId, walletId, denomId, "081234567890");
 
         assertNotNull(result);
         assertEquals(TransactionStatus.SUCCESS, result.status());
         assertEquals(new BigDecimal("10000.00"), result.total());
 
         verify(balanceService, times(1)).deductBalance(eq(walletId), eq(new BigDecimal("10000.00")),
-                eq(MutationReferenceType.PURCHASE), any(UUID.class), anyString());
+                any(UUID.class), anyString());
         verify(providerService, times(1)).sendTransaction("081234567890", "TLKM10", new BigDecimal("10000.00"));
     }
 
@@ -114,7 +112,7 @@ class TransactionDomainServiceTest {
 
         doThrow(new InsufficientBalanceException("Saldo tidak mencukupi"))
                 .when(balanceService).deductBalance(eq(walletId), eq(new BigDecimal("10001.00")),
-                        eq(MutationReferenceType.PURCHASE), any(UUID.class), anyString());
+                        any(UUID.class), anyString());
 
         assertThrows(InsufficientBalanceException.class,
                 () -> transactionService.createPurchase(storeId, walletId, denomId, "081234567890"));
@@ -135,28 +133,18 @@ class TransactionDomainServiceTest {
             return tx;
         });
 
-        // Setup balanceService.deductBalance to return a MutationResult
-        when(balanceService.deductBalance(eq(walletId), eq(new BigDecimal("5000.00")),
-                eq(MutationReferenceType.PURCHASE), any(UUID.class), anyString()))
-                .thenReturn(new MutationResult(UUID.randomUUID(), new BigDecimal("5000")));
-
-        // Setup balanceService.addBalance for the refund to return a MutationResult
-        when(balanceService.addBalance(any(String.class), any(BigDecimal.class),
-                eq(MutationReferenceType.REFUND), any(UUID.class), anyString()))
-                .thenReturn(new MutationResult(UUID.randomUUID(), new BigDecimal("10000")));
-
         // Provider fails
         when(providerService.sendTransaction(anyString(), anyString(), any(BigDecimal.class)))
                 .thenReturn(new ProviderResponse(false, null, null, "Timeout API"));
 
-        TransactionSummary result = transactionService.createPurchase(storeId, walletId, denomId, "081234567890");
+        TransactionDTO result = transactionService.createPurchase(storeId, walletId, denomId, "081234567890");
 
         assertNotNull(result);
         assertEquals(TransactionStatus.REFUNDED, result.status());
 
         // Verify balance was deducted initially
         verify(balanceService, times(1)).deductBalance(eq(walletId), eq(new BigDecimal("5000.00")),
-                eq(MutationReferenceType.PURCHASE), any(UUID.class), anyString());
+                any(UUID.class), anyString());
 
         // Verify balance was added back (refunded)
         verify(balanceService, times(1)).addBalance(eq(walletId), eq(new BigDecimal("5000.00")),
@@ -176,7 +164,7 @@ class TransactionDomainServiceTest {
                 () -> transactionService.createPurchase(storeId, walletId, denomId, "081234567890"));
 
         verify(transactionRepository, never()).save(any());
-        verify(balanceService, never()).deductBalance(any(), any(), any(), any(), any());
+        verify(balanceService, never()).deductBalance(any(), any(), any(), any());
     }
 
     @Test
@@ -190,7 +178,7 @@ class TransactionDomainServiceTest {
                 () -> transactionService.createPurchase(storeId, walletId, denomId, "081234567890"));
 
         verify(transactionRepository, never()).save(any());
-        verify(balanceService, never()).deductBalance(any(), any(), any(), any(), any());
+        verify(balanceService, never()).deductBalance(any(), any(), any(), any());
     }
 
     @Test
@@ -205,10 +193,6 @@ class TransactionDomainServiceTest {
             return tx;
         });
 
-        when(balanceService.deductBalance(eq(walletId), eq(new BigDecimal("5000.00")),
-                eq(MutationReferenceType.PURCHASE), any(UUID.class), anyString()))
-                .thenReturn(new MutationResult(UUID.randomUUID(), new BigDecimal("5000")));
-
         when(providerService.sendTransaction(anyString(), anyString(), any(BigDecimal.class)))
                 .thenReturn(new ProviderResponse(false, null, null, "Timeout API"));
 
@@ -216,7 +200,7 @@ class TransactionDomainServiceTest {
                 .when(balanceService).addBalance(any(String.class), any(BigDecimal.class),
                 eq(MutationReferenceType.REFUND), any(UUID.class), anyString());
 
-        TransactionSummary result = transactionService.createPurchase(storeId, walletId, denomId, "081234567890");
+        TransactionDTO result = transactionService.createPurchase(storeId, walletId, denomId, "081234567890");
 
         assertNotNull(result);
         assertEquals(TransactionStatus.FAILED, result.status()); // Does not become REFUNDED
@@ -237,10 +221,6 @@ class TransactionDomainServiceTest {
 
     @Test
     void topUp_Success_CallsAddBalance() {
-        when(balanceService.addBalance(eq(walletId), eq(new BigDecimal("50000")),
-                eq(MutationReferenceType.TOP_UP), any(UUID.class), eq("Isi saldo")))
-                .thenReturn(new MutationResult(UUID.randomUUID(), new BigDecimal("60000")));
-
         transactionService.topUp(walletId, new BigDecimal("50000"), "Isi saldo");
 
         verify(balanceService).addBalance(eq(walletId), eq(new BigDecimal("50000")),
@@ -249,10 +229,6 @@ class TransactionDomainServiceTest {
 
     @Test
     void topUp_NullDescription_UsesDefaultDescription() {
-        when(balanceService.addBalance(eq(walletId), eq(new BigDecimal("50000")),
-                eq(MutationReferenceType.TOP_UP), any(UUID.class), eq("Manual top-up")))
-                .thenReturn(new MutationResult(UUID.randomUUID(), new BigDecimal("60000")));
-
         transactionService.topUp(walletId, new BigDecimal("50000"), null);
 
         verify(balanceService).addBalance(eq(walletId), eq(new BigDecimal("50000")),
@@ -266,10 +242,10 @@ class TransactionDomainServiceTest {
     void getTransaction_Found_ReturnsSummary() {
         UUID txId = UUID.randomUUID();
         Transactions tx = buildTransaction(txId);
-        when(transactionRepository.findByIdAndStoreIdWithDetails(txId, storeId))
+        when(transactionRepository.findByIdAndStoreId(txId, storeId))
                 .thenReturn(Optional.of(tx));
 
-        TransactionSummary result = transactionService.getTransaction(txId, storeId);
+        TransactionDTO result = transactionService.getTransaction(txId, storeId);
 
         assertNotNull(result);
         assertEquals(txId, result.id());
@@ -279,7 +255,7 @@ class TransactionDomainServiceTest {
     @Test
     void getTransaction_NotFound_ThrowsException() {
         UUID txId = UUID.randomUUID();
-        when(transactionRepository.findByIdAndStoreIdWithDetails(txId, storeId))
+        when(transactionRepository.findByIdAndStoreId(txId, storeId))
                 .thenReturn(Optional.empty());
 
         assertThrows(com.satset.shared.exception.ResourceNotFoundException.class,
@@ -296,9 +272,9 @@ class TransactionDomainServiceTest {
                 new org.springframework.data.domain.PageImpl<>(List.of(tx));
         org.springframework.data.domain.Pageable pageable =
                 org.springframework.data.domain.PageRequest.of(0, 10);
-        when(transactionRepository.findByStoreIdWithDetails(storeId, pageable)).thenReturn(page);
+        when(transactionRepository.findByStoreId(storeId, pageable)).thenReturn(page);
 
-        org.springframework.data.domain.Page<TransactionSummary> result =
+        org.springframework.data.domain.Page<TransactionDTO> result =
                 transactionService.getTransactionHistory(storeId, pageable);
 
         assertEquals(1, result.getTotalElements());
@@ -336,15 +312,15 @@ class TransactionDomainServiceTest {
         });
 
         // Setup balanceService to succeed once, then fail
-        when(balanceService.deductBalance(any(), any(), any(), any(), any()))
-                .thenReturn(new MutationResult(UUID.randomUUID(), new BigDecimal("5000")))
-                .thenThrow(new InsufficientBalanceException("Saldo tidak mencukupi"));
+        doNothing()
+                .doThrow(new InsufficientBalanceException("Saldo tidak mencukupi"))
+                .when(balanceService).deductBalance(any(), any(), any(), any());
 
         when(providerService.sendTransaction(anyString(), anyString(), any(BigDecimal.class)))
                 .thenReturn(new ProviderResponse(true, "REF-123", "SN-123", "Success"));
 
         // Call 1 - Succeeds
-        TransactionSummary tx1 = transactionService.createPurchase(storeId, walletId, denomId, "081234567890");
+        TransactionDTO tx1 = transactionService.createPurchase(storeId, walletId, denomId, "081234567890");
         assertEquals(TransactionStatus.SUCCESS, tx1.status());
 
         // Call 2 - Fails because balance service throws error on pseudo-concurrent request

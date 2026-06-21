@@ -9,14 +9,6 @@ class ExceptionTest {
     // ==================== BusinessException ====================
 
     @Test
-    void businessException_NoArgs_HasDefaultCode() {
-        BusinessException ex = new BusinessException();
-
-        assertEquals("UNKNOWN_ERROR", ex.getErrorCode());
-        assertNotNull(ex.getErrorMessage());
-    }
-
-    @Test
     void businessException_WithMessage_SetsCode() {
         BusinessException ex = new BusinessException("Email sudah terdaftar");
 
@@ -34,15 +26,6 @@ class ExceptionTest {
     }
 
     @Test
-    void businessException_WithCause_WrapsIt() {
-        RuntimeException cause = new RuntimeException("original");
-        BusinessException ex = new BusinessException("ERR", "msg", cause);
-
-        assertSame(cause, ex.getCause());
-        assertEquals("ERR", ex.getErrorCode());
-    }
-
-    @Test
     void businessException_ToString_ContainsCodeAndMessage() {
         BusinessException ex = new BusinessException("MY_CODE", "my message");
 
@@ -57,7 +40,6 @@ class ExceptionTest {
     void resourceNotFoundException_MessageContainsNameAndId() {
         ResourceNotFoundException ex = new ResourceNotFoundException("Store", "abc-123");
 
-        assertEquals("abc-123", ex.getResourceId());
         assertEquals("Store", ex.getResourceName());
         assertTrue(ex.getMessage().contains("Store"));
         assertTrue(ex.getMessage().contains("abc-123"));

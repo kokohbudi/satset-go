@@ -13,11 +13,20 @@
     <!-- Local Compiled CSS (Tailwind + DaisyUI) -->
     <link rel="stylesheet" th:href="@{/css/output.css}" />
 
-    <!-- Theme initialization -->
+    <!-- Theme + sidebar state initialization (before paint, prevents load-time content shift) -->
     <script>
         (function () {
             const theme = localStorage.getItem('theme') || 'omnip-light';
             document.documentElement.setAttribute('data-theme', theme);
+
+            // Pre-paint layout markers (cleared on alpine:initialized) so the first frame
+            // matches the resolved sidebar state — no content shift, no sidebar flash.
+            const root = document.documentElement;
+            root.classList.add('pre-alpine');
+            const sb = localStorage.getItem('sidebarOpen');
+            if ((sb === null || sb === 'true') && window.innerWidth >= 1024) {
+                root.classList.add('sidebar-initial-open');
+            }
         })();
     </script>
 
@@ -27,7 +36,9 @@
     <!-- Debug Alpine.js -->
     <script>
         document.addEventListener('alpine:initialized', () => {
-            console.log('Alpine.js initialized');
+            // Alpine now owns the sidebar + content margin via :class; drop the pre-paint
+            // markers so they never override the toggled state.
+            document.documentElement.classList.remove('pre-alpine', 'sidebar-initial-open');
         });
     </script>
 
@@ -35,6 +46,84 @@
     <style>
         [x-cloak] {
             display: none !important;
+        }
+
+        /* Skip-to-content link: hidden until keyboard-focused (a11y, WCAG 2.4.1) */
+        .skip-link {
+            position: absolute;
+            left: 0.75rem;
+            top: -4rem;
+            z-index: 70;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            background: hsl(var(--p));
+            color: hsl(var(--pc));
+            font-weight: 600;
+            transition: top 0.2s ease;
+        }
+
+        .skip-link:focus {
+            top: 0.75rem;
+        }
+
+        /* Skip-link target is programmatically focused; suppress the stray outline */
+        #app-content:focus {
+            outline: none;
+        }
+
+        /* Entrance: blocks settle in on load. backwards fill keeps the element hidden
+           only until its staggered turn, then reverts to base state so :hover transforms
+           (e.g. card lift) are not pinned by the animation's final frame. */
+        @keyframes rise-in {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .animate-rise {
+            animation: rise-in 0.45s cubic-bezier(0.25, 1, 0.5, 1) backwards;
+            animation-delay: calc(var(--i, 0) * 70ms);
+        }
+
+        /* Pre-Alpine layout: make the first paint match the resolved sidebar state so
+           there is no content shift and no sidebar flash. All scoped to .pre-alpine,
+           which alpine:initialized removes once Alpine owns the bindings. */
+        @media (min-width: 1024px) {
+            html.pre-alpine.sidebar-initial-open #app-content {
+                margin-left: 18rem;
+            }
+
+            html.pre-alpine:not(.sidebar-initial-open) #app-sidebar {
+                transform: translateX(-100%);
+            }
+
+            html.pre-alpine:not(.sidebar-initial-open) #app-breadcrumb {
+                padding-left: 3.5rem;
+            }
+        }
+
+        /* Reduced-motion: honor user preference globally (WCAG 2.3.3) */
+        @media (prefers-reduced-motion: reduce) {
+
+            *,
+            *::before,
+            *::after {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+                scroll-behavior: auto !important;
+            }
+
+            /* Kill the staggered entrance entirely so content is visible instantly */
+            .animate-rise {
+                animation: none !important;
+            }
         }
 
         /* Smooth transitions for sidebar */
@@ -69,11 +158,11 @@
         }
 
         .floating-input.input-error {
-            border-color: #ef4444 !important;
+            border-color: hsl(var(--er)) !important;
         }
 
         .floating-input.input-error:focus {
-            box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.25) !important;
+            box-shadow: 0 0 0 3px hsl(var(--er) / 0.25) !important;
         }
 
         .floating-label {
@@ -104,50 +193,7 @@
 
         .floating-input.input-error:focus~.floating-label,
         .floating-input.input-error:not(:placeholder-shown)~.floating-label {
-            color: #ef4444;
-        }
-
-        /* Textarea specific styles */
-        .floating-textarea {
-            min-height: 100px;
-            resize: vertical;
-        }
-
-        .floating-label-textarea {
-            top: 1rem;
-            transform: translateY(0);
-        }
-
-        .floating-textarea:focus~.floating-label-textarea,
-        .floating-textarea:not(:placeholder-shown)~.floating-label-textarea {
-            top: 0;
-            transform: translateY(-50%);
-        }
-
-        /* Select specific styles */
-        .floating-select {
-            appearance: none;
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%236b7280'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E");
-            background-repeat: no-repeat;
-            background-position: right 0.75rem center;
-            background-size: 1.25rem;
-            padding-right: 2.5rem;
-        }
-
-        .floating-label-select {
-            top: 50%;
-            transform: translateY(-50%);
-        }
-
-        .floating-select:focus~.floating-label-select,
-        .floating-select:not([value=""])~.floating-label-select,
-        .floating-select:valid~.floating-label-select {
-            top: 0;
-            transform: translateY(-50%);
-            font-size: 0.75rem;
-            color: hsl(var(--p));
-            background-color: hsl(var(--b1));
-            padding: 0 0.375rem;
+            color: hsl(var(--er));
         }
     </style>
 
@@ -157,12 +203,23 @@
 
 <body class="bg-base-200 min-h-screen font-sans antialiased">
 
+    <a href="#app-content" class="skip-link">Lewati ke konten utama</a>
+
+    <!-- Sidebar Toggle: body-level fixed button (no transformed/filtered ancestor) so it
+         resolves to the viewport and stays in one place whether the sidebar is open or closed.
+         z-[60] keeps it above the sidebar (z-50). Desktop only; mobile uses the bottom nav. -->
+    <button @click="sidebarOpen = !sidebarOpen"
+        class="btn btn-ghost btn-circle hidden lg:flex fixed top-2.5 left-3 z-[60]" title="Toggle Sidebar"
+        aria-label="Buka/tutup sidebar">
+        <svg th:replace="~{components/icons :: icon-menu(class='w-5 h-5')}"></svg>
+    </button>
+
     <div class="flex min-h-screen">
         <!-- Sidebar Component -->
         <div th:replace="~{components/sidebar :: sidebar}"></div>
 
         <!-- Main Content Area -->
-        <div class="flex-1 flex flex-col min-w-0 transition-all duration-300 ease-in-out"
+        <div id="app-content" tabindex="-1" class="flex-1 flex flex-col min-w-0 transition-all duration-300 ease-in-out focus:outline-none"
             :class="sidebarOpen ? 'lg:ml-72' : 'ml-0'">
 
             <!-- Header Component -->

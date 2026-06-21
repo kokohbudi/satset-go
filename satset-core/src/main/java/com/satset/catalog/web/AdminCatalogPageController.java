@@ -49,7 +49,7 @@ public class AdminCatalogPageController {
 
         // SSR: inject initial data for faster first paint
         List<CategoryDTO> categories = manageCategoriesUseCase.findAllForAdmin().stream()
-                .map(this::toCategoryDTO).toList();
+                .map(CatalogDtoMapper::toCategoryDTO).toList();
         model.addAttribute("initialCategories", categories);
 
         return "pages/admin/catalog/categories";
@@ -67,7 +67,7 @@ public class AdminCatalogPageController {
 
         // SSR: inject initial data
         List<CategoryDTO> categories = manageCategoriesUseCase.findAllForAdmin().stream()
-                .map(this::toCategoryDTO).toList();
+                .map(CatalogDtoMapper::toCategoryDTO).toList();
         model.addAttribute("initialCategories", categories);
 
         List<Products> products;
@@ -78,7 +78,7 @@ public class AdminCatalogPageController {
                     .flatMap(cat -> manageProductsUseCase.findByCategoryForAdmin(cat.getId()).stream())
                     .toList();
         }
-        model.addAttribute("initialProducts", products.stream().map(this::toProductDTO).toList());
+        model.addAttribute("initialProducts", products.stream().map(CatalogDtoMapper::toProductDTO).toList());
 
         return "pages/admin/catalog/products";
     }
@@ -92,66 +92,13 @@ public class AdminCatalogPageController {
 
         // SSR: inject initial data
         List<ProductDenomDTO> denoms = manageDenomsUseCase.findByProductForAdmin(productId).stream()
-                .map(this::toDenomDTO).toList();
+                .map(CatalogDtoMapper::toDenomDTO).toList();
         model.addAttribute("initialDenoms", denoms);
 
         manageProductsUseCase.findById(productId).ifPresent(prod -> {
-            model.addAttribute("initialProduct", toProductDTO(prod));
+            model.addAttribute("initialProduct", CatalogDtoMapper.toProductDTO(prod));
         });
 
         return "pages/admin/catalog/denoms";
-    }
-
-    // ==================== Mappers ====================
-
-    private CategoryDTO toCategoryDTO(Category entity) {
-        CategoryDTO dto = new CategoryDTO();
-        dto.setId(entity.getId());
-        dto.setCode(entity.getCode());
-        dto.setName(entity.getName());
-        dto.setCategoryType(entity.getCategoryType());
-        dto.setIconUrl(entity.getIconUrl());
-        dto.setSortOrder(entity.getSortOrder());
-        dto.setActive(entity.isActive());
-        dto.setDeleted(entity.isDeleted());
-        return dto;
-    }
-
-    private ProductDTO toProductDTO(Products entity) {
-        ProductDTO dto = new ProductDTO();
-        dto.setId(entity.getId());
-        dto.setCode(entity.getCode());
-        dto.setName(entity.getName());
-        dto.setProviderName(entity.getProviderName());
-        dto.setDescription(entity.getDescription());
-        dto.setIconUrl(entity.getIconUrl());
-        dto.setSortOrder(entity.getSortOrder());
-        dto.setActive(entity.isActive());
-        dto.setDeleted(entity.isDeleted());
-        dto.setCategoryId(entity.getCategoryId());
-        return dto;
-    }
-
-    private ProductDenomDTO toDenomDTO(ProductDenoms entity) {
-        ProductDenomDTO dto = new ProductDenomDTO();
-        dto.setId(entity.getId());
-        dto.setCode(entity.getCode());
-        dto.setName(entity.getName());
-        dto.setDenomType(entity.getDenomType());
-        dto.setNominal(entity.getNominal());
-        dto.setPrice(entity.getPrice());
-        dto.setBasePrice(entity.getBasePrice());
-        dto.setAdminFee(entity.getAdminFee());
-        dto.setValidityDays(entity.getValidityDays());
-        dto.setQuotaMb(entity.getQuotaMb());
-        dto.setMinAmount(entity.getMinAmount());
-        dto.setMaxAmount(entity.getMaxAmount());
-        dto.setRequiresInquiry(entity.isRequiresInquiry());
-        dto.setStockAvailable(entity.getStockAvailable());
-        dto.setSortOrder(entity.getSortOrder());
-        dto.setActive(entity.isActive());
-        dto.setDeleted(entity.isDeleted());
-        dto.setProductId(entity.getProductId());
-        return dto;
     }
 }

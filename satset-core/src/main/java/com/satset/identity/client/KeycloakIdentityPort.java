@@ -3,7 +3,6 @@ package com.satset.identity.client;
 import com.satset.identity.model.GroupMemberInfo;
 import com.satset.identity.model.KeycloakGroup;
 import com.satset.identity.model.KeycloakRole;
-import com.satset.shared.dto.GroupInfo;
 import com.satset.shared.dto.RoleInfo;
 import com.satset.shared.dto.UserDTO;
 import com.satset.shared.exception.BusinessException;
@@ -15,7 +14,7 @@ import java.util.Set;
  * Output port for identity provider operations (Keycloak).
  * Abstracts all Keycloak Admin Client interactions.
  * 
- * Note: Methods returning RoleInfo/GroupInfo are provided for shared layer
+ * Note: Methods returning RoleInfo are provided for shared layer
  * consumption to avoid coupling shared layer to domain models.
  */
 public interface KeycloakIdentityPort {
@@ -96,10 +95,4 @@ public interface KeycloakIdentityPort {
      * Use this method from shared layer components.
      */
     List<RoleInfo> getMenuRoleInfos(String userId) throws BusinessException;
-
-    /**
-     * Get user groups as shared DTOs.
-     * Use this method from shared layer components.
-     */
-    List<GroupInfo> getUserGroupInfos(String userId) throws BusinessException;
 }

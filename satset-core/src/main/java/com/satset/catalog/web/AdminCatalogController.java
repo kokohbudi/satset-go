@@ -49,7 +49,7 @@ public class AdminCatalogController {
     @PreAuthorize("hasRole('" + OmniConstants.PERM_VIEW_CATALOG + "')")
     public ResponseEntity<List<CategoryDTO>> listCategories() {
         List<CategoryDTO> dtos = manageCategoriesUseCase.findAllForAdmin().stream()
-                .map(this::toCategoryDTO).toList();
+                .map(CatalogDtoMapper::toCategoryDTO).toList();
         return ResponseEntity.ok(dtos);
     }
 
@@ -57,7 +57,7 @@ public class AdminCatalogController {
     @PreAuthorize("hasRole('" + OmniConstants.PERM_VIEW_CATALOG + "')")
     public ResponseEntity<CategoryDTO> getCategory(@PathVariable UUID id) {
         return manageCategoriesUseCase.findById(id)
-                .map(this::toCategoryDTO)
+                .map(CatalogDtoMapper::toCategoryDTO)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
@@ -67,7 +67,7 @@ public class AdminCatalogController {
     public ResponseEntity<?> createCategory(@Valid @RequestBody CreateCategoryRequest req)
             throws BusinessException {
         Category created = manageCategoriesUseCase.create(req);
-        return ResponseEntity.status(HttpStatus.CREATED).body(toCategoryDTO(created));
+        return ResponseEntity.status(HttpStatus.CREATED).body(CatalogDtoMapper.toCategoryDTO(created));
     }
 
     @PutMapping("/categories/{id}")
@@ -75,7 +75,7 @@ public class AdminCatalogController {
     public ResponseEntity<?> updateCategory(@PathVariable UUID id,
             @Valid @RequestBody UpdateCategoryRequest req) throws BusinessException {
         Category updated = manageCategoriesUseCase.update(id, req);
-        return ResponseEntity.ok(toCategoryDTO(updated));
+        return ResponseEntity.ok(CatalogDtoMapper.toCategoryDTO(updated));
     }
 
     @DeleteMapping("/categories/{id}")
@@ -99,7 +99,7 @@ public class AdminCatalogController {
                     .flatMap(cat -> manageProductsUseCase.findByCategoryForAdmin(cat.getId()).stream())
                     .toList();
         }
-        List<ProductDTO> dtos = products.stream().map(this::toProductDTO).toList();
+        List<ProductDTO> dtos = products.stream().map(CatalogDtoMapper::toProductDTO).toList();
         return ResponseEntity.ok(dtos);
     }
 
@@ -107,7 +107,7 @@ public class AdminCatalogController {
     @PreAuthorize("hasRole('" + OmniConstants.PERM_VIEW_CATALOG + "')")
     public ResponseEntity<ProductDTO> getProduct(@PathVariable UUID id) {
         return manageProductsUseCase.findById(id)
-                .map(this::toProductDTO)
+                .map(CatalogDtoMapper::toProductDTO)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
@@ -117,7 +117,7 @@ public class AdminCatalogController {
     public ResponseEntity<?> createProduct(@Valid @RequestBody CreateProductRequest req)
             throws BusinessException {
         Products created = manageProductsUseCase.create(req);
-        return ResponseEntity.status(HttpStatus.CREATED).body(toProductDTO(created));
+        return ResponseEntity.status(HttpStatus.CREATED).body(CatalogDtoMapper.toProductDTO(created));
     }
 
     @PutMapping("/products/{id}")
@@ -125,7 +125,7 @@ public class AdminCatalogController {
     public ResponseEntity<?> updateProduct(@PathVariable UUID id,
             @Valid @RequestBody UpdateProductRequest req) throws BusinessException {
         Products updated = manageProductsUseCase.update(id, req);
-        return ResponseEntity.ok(toProductDTO(updated));
+        return ResponseEntity.ok(CatalogDtoMapper.toProductDTO(updated));
     }
 
     @DeleteMapping("/products/{id}")
@@ -141,7 +141,7 @@ public class AdminCatalogController {
     @PreAuthorize("hasRole('" + OmniConstants.PERM_VIEW_CATALOG + "')")
     public ResponseEntity<List<ProductDenomDTO>> listDenoms(@PathVariable UUID productId) {
         List<ProductDenomDTO> dtos = manageDenomsUseCase.findByProductForAdmin(productId).stream()
-                .map(this::toDenomDTO).toList();
+                .map(CatalogDtoMapper::toDenomDTO).toList();
         return ResponseEntity.ok(dtos);
     }
 
@@ -149,7 +149,7 @@ public class AdminCatalogController {
     @PreAuthorize("hasRole('" + OmniConstants.PERM_VIEW_CATALOG + "')")
     public ResponseEntity<ProductDenomDTO> getDenom(@PathVariable UUID id) {
         return manageDenomsUseCase.findById(id)
-                .map(this::toDenomDTO)
+                .map(CatalogDtoMapper::toDenomDTO)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
@@ -159,7 +159,7 @@ public class AdminCatalogController {
     public ResponseEntity<?> createDenom(@PathVariable UUID productId,
             @Valid @RequestBody CreateDenomRequest req) throws BusinessException {
         ProductDenoms created = manageDenomsUseCase.create(productId, req);
-        return ResponseEntity.status(HttpStatus.CREATED).body(toDenomDTO(created));
+        return ResponseEntity.status(HttpStatus.CREATED).body(CatalogDtoMapper.toDenomDTO(created));
     }
 
     @PutMapping("/denoms/{id}")
@@ -167,7 +167,7 @@ public class AdminCatalogController {
     public ResponseEntity<?> updateDenom(@PathVariable UUID id,
             @Valid @RequestBody UpdateDenomRequest req) throws BusinessException {
         ProductDenoms updated = manageDenomsUseCase.update(id, req);
-        return ResponseEntity.ok(toDenomDTO(updated));
+        return ResponseEntity.ok(CatalogDtoMapper.toDenomDTO(updated));
     }
 
     @DeleteMapping("/denoms/{id}")
@@ -175,58 +175,5 @@ public class AdminCatalogController {
     public ResponseEntity<Void> deleteDenom(@PathVariable UUID id) {
         manageDenomsUseCase.softDelete(id);
         return ResponseEntity.noContent().build();
-    }
-
-    // ==================== Mappers ====================
-
-    private CategoryDTO toCategoryDTO(Category entity) {
-        CategoryDTO dto = new CategoryDTO();
-        dto.setId(entity.getId());
-        dto.setCode(entity.getCode());
-        dto.setName(entity.getName());
-        dto.setCategoryType(entity.getCategoryType());
-        dto.setIconUrl(entity.getIconUrl());
-        dto.setSortOrder(entity.getSortOrder());
-        dto.setActive(entity.isActive());
-        dto.setDeleted(entity.isDeleted());
-        return dto;
-    }
-
-    private ProductDTO toProductDTO(Products entity) {
-        ProductDTO dto = new ProductDTO();
-        dto.setId(entity.getId());
-        dto.setCode(entity.getCode());
-        dto.setName(entity.getName());
-        dto.setProviderName(entity.getProviderName());
-        dto.setDescription(entity.getDescription());
-        dto.setIconUrl(entity.getIconUrl());
-        dto.setSortOrder(entity.getSortOrder());
-        dto.setActive(entity.isActive());
-        dto.setDeleted(entity.isDeleted());
-        dto.setCategoryId(entity.getCategoryId());
-        return dto;
-    }
-
-    private ProductDenomDTO toDenomDTO(ProductDenoms entity) {
-        ProductDenomDTO dto = new ProductDenomDTO();
-        dto.setId(entity.getId());
-        dto.setCode(entity.getCode());
-        dto.setName(entity.getName());
-        dto.setDenomType(entity.getDenomType());
-        dto.setNominal(entity.getNominal());
-        dto.setPrice(entity.getPrice());
-        dto.setBasePrice(entity.getBasePrice());
-        dto.setAdminFee(entity.getAdminFee());
-        dto.setValidityDays(entity.getValidityDays());
-        dto.setQuotaMb(entity.getQuotaMb());
-        dto.setMinAmount(entity.getMinAmount());
-        dto.setMaxAmount(entity.getMaxAmount());
-        dto.setRequiresInquiry(entity.isRequiresInquiry());
-        dto.setStockAvailable(entity.getStockAvailable());
-        dto.setSortOrder(entity.getSortOrder());
-        dto.setActive(entity.isActive());
-        dto.setDeleted(entity.isDeleted());
-        dto.setProductId(entity.getProductId());
-        return dto;
     }
 }

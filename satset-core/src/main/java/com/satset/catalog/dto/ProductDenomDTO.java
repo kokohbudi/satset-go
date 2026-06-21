@@ -30,8 +30,6 @@ public class ProductDenomDTO {
 
     // Context
     private UUID productId;
-    private String productCode;
-    private String productName;
 
     // Admin fields
     private BigDecimal basePrice;

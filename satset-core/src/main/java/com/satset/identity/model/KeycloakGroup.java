@@ -12,9 +12,6 @@ import java.util.List;
 /**
  * Domain model untuk representasi Group dari Keycloak.
  * Mendukung hierarchical groups dengan parent/child relationship.
- * 
- * Dipindahkan dari adapter/in/web/dto untuk memenuhi hexagonal architecture:
- * Domain layer tidak boleh bergantung ke adapter layer.
  */
 @Data
 @Builder
@@ -61,31 +58,5 @@ public class KeycloakGroup {
                 .name(groupRep.getName())
                 .path(groupRep.getPath())
                 .build();
-    }
-
-    /**
-     * Factory method untuk membuat KeycloakGroup dengan hierarchy (recursive)
-     *
-     * @param groupRep GroupRepresentation dari Keycloak
-     * @param parentId ID dari parent group (null untuk top-level)
-     * @return KeycloakGroup dengan subGroups populated
-     */
-    public static KeycloakGroup fromGroupRepresentationWithHierarchy(GroupRepresentation groupRep, String parentId) {
-        KeycloakGroup dto = KeycloakGroup.builder()
-                .id(groupRep.getId())
-                .name(groupRep.getName())
-                .path(groupRep.getPath())
-                .parentId(parentId)
-                .subGroups(new ArrayList<>())
-                .build();
-
-        // Recursively process subgroups
-        if (groupRep.getSubGroups() != null && !groupRep.getSubGroups().isEmpty()) {
-            for (GroupRepresentation subGroup : groupRep.getSubGroups()) {
-                dto.getSubGroups().add(fromGroupRepresentationWithHierarchy(subGroup, groupRep.getId()));
-            }
-        }
-
-        return dto;
     }
 }

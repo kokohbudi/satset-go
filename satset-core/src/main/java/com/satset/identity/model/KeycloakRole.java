@@ -12,9 +12,6 @@ import java.util.Map;
 /**
  * Domain model untuk representasi Role dari Keycloak.
  * Digunakan untuk response API yang mengembalikan roles dari Keycloak Admin Client.
- * 
- * Dipindahkan dari adapter/in/web/dto untuk memenuhi hexagonal architecture:
- * Domain layer tidak boleh bergantung ke adapter layer.
  */
 @Data
 @Builder
