@@ -6,7 +6,7 @@ import com.satset.shared.exception.ResourceNotFoundException;
 import com.satset.transaction.dto.PurchaseRequest;
 import com.satset.transaction.dto.TopUpRequest;
 import com.satset.transaction.dto.TransactionDTO;
-import com.satset.transaction.client.WalletClientAdapter;
+import com.satset.transaction.client.WalletGateway;
 import com.satset.transaction.service.TransactionDomainService;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
@@ -27,11 +27,11 @@ import java.util.UUID;
 public class TransactionController {
 
     private final TransactionDomainService transactionService;
-    private final WalletClientAdapter balanceService;
+    private final WalletGateway balanceService;
     private final UserDTO userDTO;
 
     public TransactionController(TransactionDomainService transactionService,
-            WalletClientAdapter balanceService,
+            WalletGateway balanceService,
             UserDTO userDTO) {
         this.transactionService = transactionService;
         this.balanceService = balanceService;

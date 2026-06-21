@@ -6,7 +6,7 @@ import com.satset.shared.exception.ResourceNotFoundException;
 import com.satset.shared.model.DenomInfo;
 import com.satset.transaction.dto.TransactionDTO;
 import com.satset.transaction.repository.TransactionRepository;
-import com.satset.transaction.client.WalletClientAdapter;
+import com.satset.transaction.client.WalletGateway;
 import com.satset.transaction.model.*;
 import com.satset.transaction.client.ProviderPort;
 import lombok.extern.slf4j.Slf4j;
@@ -24,12 +24,12 @@ public class TransactionDomainService {
 
         private final TransactionRepository transactionRepository;
         private final DenomRepository denomRepository;
-        private final WalletClientAdapter balanceService;
+        private final WalletGateway balanceService;
         private final ProviderPort providerService;
 
         public TransactionDomainService(TransactionRepository transactionRepository,
                         DenomRepository denomRepository,
-                        WalletClientAdapter balanceService,
+                        WalletGateway balanceService,
                         ProviderPort providerService) {
                 this.transactionRepository = transactionRepository;
                 this.denomRepository = denomRepository;

@@ -11,7 +11,7 @@ import com.satset.shared.exception.InsufficientBalanceException;
 import com.satset.shared.model.DenomInfo;
 import com.satset.transaction.dto.PurchaseRequest;
 import com.satset.transaction.repository.TransactionRepository;
-import com.satset.transaction.client.WalletClientAdapter;
+import com.satset.transaction.client.WalletGateway;
 import com.satset.transaction.model.*;
 import com.satset.transaction.client.ProviderPort;
 import org.junit.jupiter.api.BeforeEach;
@@ -56,7 +56,7 @@ class PurchaseFlowIntegrationTest {
     private DenomRepository productDenomRepository;
 
     @MockitoBean
-    private WalletClientAdapter balanceManagementUseCase;
+    private WalletGateway balanceManagementUseCase;
 
     @MockitoBean
     private ProviderPort providerService;

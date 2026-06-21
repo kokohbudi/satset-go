@@ -2,18 +2,13 @@ package com.satset;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import org.springframework.data.web.config.EnableSpringDataWebSupport;
 
 import static org.springframework.data.web.config.EnableSpringDataWebSupport.PageSerializationMode.VIA_DTO;
 
+// JPA repositories are enabled per-datasource in CoreDataSourceConfig (core) and
+// WalletDataSourceConfig (wallet), each bound to its own EMF + transaction manager.
 @SpringBootApplication
-@EnableJpaRepositories(basePackages = {
-        "com.satset.catalog.repository",
-        "com.satset.transaction.repository",
-        "com.satset.identity.repository",
-        "com.satset.onboarding.repository"
-})
 @EnableSpringDataWebSupport(pageSerializationMode = VIA_DTO)
 public class OmnipAuthenticationServiceApplication {
 

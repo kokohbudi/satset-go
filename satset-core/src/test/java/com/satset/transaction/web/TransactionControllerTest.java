@@ -4,7 +4,7 @@ import com.satset.shared.dto.UserDTO;
 import com.satset.shared.exception.ResourceNotFoundException;
 import com.satset.transaction.dto.PurchaseRequest;
 import com.satset.transaction.dto.TopUpRequest;
-import com.satset.transaction.client.WalletClientAdapter;
+import com.satset.transaction.client.WalletGateway;
 import com.satset.transaction.dto.TransactionDTO;
 import com.satset.transaction.model.TransactionStatus;
 import com.satset.transaction.service.TransactionDomainService;
@@ -41,7 +41,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class TransactionControllerTest {
 
     @Mock private TransactionDomainService transactionService;
-    @Mock private WalletClientAdapter balanceService;
+    @Mock private WalletGateway balanceService;
 
     private MockMvc mockMvc;
     private final tools.jackson.databind.json.JsonMapper jsonMapper = tools.jackson.databind.json.JsonMapper.builder().build();

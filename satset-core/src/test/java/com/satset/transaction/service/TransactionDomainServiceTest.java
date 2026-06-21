@@ -5,7 +5,7 @@ import com.satset.shared.exception.InsufficientBalanceException;
 import com.satset.shared.model.DenomInfo;
 import com.satset.transaction.dto.TransactionDTO;
 import com.satset.transaction.repository.TransactionRepository;
-import com.satset.transaction.client.WalletClientAdapter;
+import com.satset.transaction.client.WalletGateway;
 import com.satset.transaction.model.*;
 import com.satset.transaction.client.ProviderPort;
 import org.junit.jupiter.api.BeforeEach;
@@ -32,7 +32,7 @@ class TransactionDomainServiceTest {
     @Mock
     private DenomRepository denomRepository;
     @Mock
-    private WalletClientAdapter balanceService;
+    private WalletGateway balanceService;
     @Mock
     private ProviderPort providerService;
 

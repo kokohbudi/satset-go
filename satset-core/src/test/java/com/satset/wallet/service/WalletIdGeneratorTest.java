@@ -14,6 +14,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.*;
@@ -117,9 +118,10 @@ class WalletIdGeneratorTest {
         CountDownLatch latch = new CountDownLatch(threadCount);
         ExecutorService executor = Executors.newFixedThreadPool(10);
 
-        // Mock sequence to return incrementing values
-        final long[] counter = {0};
-        when(walletAccountRepository.nextWalletIdSequence()).thenAnswer(inv -> ++counter[0]);
+        // Mock sequence to return incrementing values (atomic — the real DB
+        // sequence is atomic, so the test stub must be too under concurrency)
+        final AtomicLong counter = new AtomicLong(0);
+        when(walletAccountRepository.nextWalletIdSequence()).thenAnswer(inv -> counter.incrementAndGet());
 
         // Act
         for (int i = 0; i < threadCount; i++) {

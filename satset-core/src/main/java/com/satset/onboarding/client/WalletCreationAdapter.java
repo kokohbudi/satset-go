@@ -1,69 +1,38 @@
 package com.satset.onboarding.client;
 
+import com.satset.wallet.service.WalletService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.MediaType;
-import org.springframework.security.oauth2.client.OAuth2AuthorizedClientManager;
-import org.springframework.security.oauth2.client.web.client.OAuth2ClientHttpRequestInterceptor;
 import org.springframework.stereotype.Component;
-import org.springframework.web.client.RestClient;
-import org.springframework.web.client.RestClientException;
 
 import java.util.UUID;
 
 /**
- * Adapter for creating wallets via Wallet service REST API.
+ * Adapter for creating wallets via the in-process wallet service.
+ * ponytail: 1-impl port, inline into StoreDomainService if it ever bothers you
  */
 @Component
 public class WalletCreationAdapter implements WalletCreationPort {
 
     private static final Logger log = LoggerFactory.getLogger(WalletCreationAdapter.class);
 
-    private final RestClient restClient;
+    private final WalletService walletService;
 
-    public WalletCreationAdapter(
-            @Value("${wallet.base-url:http://localhost:8081}") String walletBaseUrl,
-            OAuth2AuthorizedClientManager authorizedClientManager) {
-
-        var interceptor = new OAuth2ClientHttpRequestInterceptor(authorizedClientManager);
-        interceptor.setClientRegistrationIdResolver(_ -> "wallet-service");
-
-        this.restClient = RestClient.builder()
-                .baseUrl(walletBaseUrl)
-                .defaultHeader("Accept", MediaType.APPLICATION_JSON_VALUE)
-                .requestInterceptor(interceptor)
-                .build();
+    public WalletCreationAdapter(WalletService walletService) {
+        this.walletService = walletService;
     }
 
     @Override
     public String createWallet(UUID storeId) {
-        log.info("Creating wallet for store {} via Wallet API", storeId);
+        log.info("Creating wallet for store {}", storeId);
 
         try {
-            WalletCreationResponse response = restClient.post()
-                    .uri("/internal/wallet/accounts")
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .body("{}")
-                    .retrieve()
-                    .body(WalletCreationResponse.class);
-
-            if (response == null || response.walletId() == null) {
-                throw new RuntimeException("Empty response from Wallet API");
-            }
-
-            log.info("Wallet created successfully: {} for store {}", response.walletId(), storeId);
-            return response.walletId();
-
-        } catch (RestClientException e) {
-            log.error("Failed to create wallet for store {}: {}", storeId, e.getMessage());
-            throw new RuntimeException("Wallet creation failed: " + e.getMessage(), e);
+            String walletId = walletService.createWallet().getWalletId();
+            log.info("Wallet created successfully: {} for store {}", walletId, storeId);
+            return walletId;
+        } catch (RuntimeException e) {
+            log.error("Failed to create wallet for store {}", storeId, e);
+            throw new RuntimeException("Wallet creation failed");
         }
-    }
-
-    /**
-     * Response DTO from wallet creation.
-     */
-    public record WalletCreationResponse(String walletId) {
     }
 }
