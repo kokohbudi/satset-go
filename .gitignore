@@ -70,3 +70,4 @@ satset-core/src/main/resources/static/css/output.css
 logs/
 .impeccable/
 .agent/
+.qwen/
