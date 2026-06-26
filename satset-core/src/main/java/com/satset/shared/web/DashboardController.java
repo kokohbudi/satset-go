@@ -1,8 +1,12 @@
 package com.satset.shared.web;
 
 import com.satset.onboarding.repository.StoreRepository;
+import com.satset.quickmenu.service.QuickMenuService;
+import com.satset.shared.dto.RoleInfo;
 import com.satset.shared.dto.UserDTO;
 import com.satset.transaction.client.WalletGateway;
+import jakarta.servlet.http.HttpSession;
+import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -23,11 +27,14 @@ public class DashboardController {
     private final WalletGateway walletGateway;
     private final UserDTO userDTO;
     private final StoreRepository storeRepository;
+    private final QuickMenuService quickMenuService;
 
-    public DashboardController(WalletGateway walletGateway, UserDTO userDTO, StoreRepository storeRepository) {
+    public DashboardController(WalletGateway walletGateway, UserDTO userDTO,
+            StoreRepository storeRepository, QuickMenuService quickMenuService) {
         this.walletGateway = walletGateway;
         this.userDTO = userDTO;
         this.storeRepository = storeRepository;
+        this.quickMenuService = quickMenuService;
     }
 
     @GetMapping("/")
@@ -55,7 +62,7 @@ public class DashboardController {
     }
 
     @GetMapping("/dashboard")
-    public String dashboard(Model model) {
+    public String dashboard(Model model, HttpSession session) {
         log.info("Accessing dashboard");
 
         // Set page info for sidebar and header
@@ -63,6 +70,11 @@ public class DashboardController {
         model.addAttribute("breadcrumb", "Dashboard");
         model.addAttribute("totalBalance", formatBalance(userDTO.getWalletId()));
         model.addAttribute("totalResellers", NumberFormat.getInstance(ID).format(storeRepository.count()));
+
+        @SuppressWarnings("unchecked")
+        List<RoleInfo> userRoles = (List<RoleInfo>) session.getAttribute("userRoles");
+        model.addAttribute("quickMenu",
+                quickMenuService.quickMenu(userDTO.getProviderUserId(), userRoles));
 
         return "pages/dashboard/index";
     }

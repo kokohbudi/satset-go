@@ -1,6 +1,7 @@
 package com.satset;
 
 import com.satset.identity.client.KeycloakIdentityPort;
+import com.satset.quickmenu.service.QuickMenuService;
 import com.satset.shared.dto.RoleInfo;
 import com.satset.shared.dto.UserDTO;
 import lombok.extern.slf4j.Slf4j;
@@ -25,10 +26,14 @@ import java.util.List;
 public class UserSessionControllerAdvice {
     private final UserDTO userDTO;
     private final KeycloakIdentityPort keycloakIdentityPort;
+    private final QuickMenuService quickMenuService;
 
-    public UserSessionControllerAdvice(UserDTO userDTO, KeycloakIdentityPort keycloakIdentityPort) {
+    public UserSessionControllerAdvice(UserDTO userDTO,
+            KeycloakIdentityPort keycloakIdentityPort,
+            QuickMenuService quickMenuService) {
         this.userDTO = userDTO;
         this.keycloakIdentityPort = keycloakIdentityPort;
+        this.quickMenuService = quickMenuService;
     }
 
     @ModelAttribute
@@ -38,32 +43,39 @@ public class UserSessionControllerAdvice {
         model.addAttribute("currentPath", request.getRequestURI());
 
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if (auth != null && auth.isAuthenticated() && !"anonymousUser".equals(auth.getPrincipal())) {
-            // Check if roles are already cached in session
-            @SuppressWarnings("unchecked")
-            List<RoleInfo> cachedRoles = (List<RoleInfo>) session.getAttribute("userRoles");
-            if (cachedRoles != null) {
-                model.addAttribute("userRoles", cachedRoles);
-                return;
-            }
+        if (auth == null || !auth.isAuthenticated() || "anonymousUser".equals(auth.getPrincipal())) {
+            return;
+        }
 
-            String userId = null;
-            if (auth.getPrincipal() instanceof OidcUser oidcUser) {
-                userId = oidcUser.getSubject();
-            } else if (auth.getPrincipal() instanceof Jwt jwt) {
-                userId = jwt.getClaim("sub");
-            }
-
+        @SuppressWarnings("unchecked")
+        List<RoleInfo> roles = (List<RoleInfo>) session.getAttribute("userRoles");
+        if (roles == null) {
+            String userId = extractUserId(auth);
             if (userId != null) {
                 try {
-                    // Use the new method that returns shared DTOs
-                    List<RoleInfo> roles = keycloakIdentityPort.getMenuRoleInfos(userId);
+                    roles = keycloakIdentityPort.getMenuRoleInfos(userId);
                     session.setAttribute("userRoles", roles);
-                    model.addAttribute("userRoles", roles);
                 } catch (Exception e) {
                     log.error("Failed to fetch user roles for sidebar", e);
                 }
             }
         }
+        if (roles != null) {
+            model.addAttribute("userRoles", roles);
+        }
+
+        String providerUserId = userDTO.getProviderUserId();
+        if (providerUserId != null) {
+            model.addAttribute("pinnedRoleNames", quickMenuService.pinnedRoleNames(providerUserId));
+        }
+    }
+
+    private String extractUserId(Authentication auth) {
+        if (auth.getPrincipal() instanceof OidcUser oidcUser) {
+            return oidcUser.getSubject();
+        } else if (auth.getPrincipal() instanceof Jwt jwt) {
+            return jwt.getClaim("sub");
+        }
+        return null;
     }
 }
