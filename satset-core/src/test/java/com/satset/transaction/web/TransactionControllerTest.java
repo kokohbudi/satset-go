@@ -3,7 +3,6 @@ package com.satset.transaction.web;
 import com.satset.shared.dto.UserDTO;
 import com.satset.shared.exception.ResourceNotFoundException;
 import com.satset.transaction.dto.PurchaseRequest;
-import com.satset.transaction.dto.TopUpRequest;
 import com.satset.transaction.client.WalletGateway;
 import com.satset.transaction.dto.TransactionDTO;
 import com.satset.transaction.model.TransactionStatus;
@@ -89,24 +88,6 @@ class TransactionControllerTest {
     }
 
     @Test
-    void topup_ReturnsOk_WithBalanceInResponse() throws Exception {
-        BigDecimal newBalance = new BigDecimal("50000");
-        when(balanceService.getBalance(walletId)).thenReturn(newBalance);
-
-        TopUpRequest request = new TopUpRequest(new BigDecimal("50000"), "Top-up manual");
-
-        mockMvc.perform(post("/api/transactions/topup")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(jsonMapper.writeValueAsString(request)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value("success"))
-                .andExpect(jsonPath("$.balance").value(50000));
-
-        verify(transactionService).topUp(eq(walletId), any(BigDecimal.class), any());
-        verify(balanceService).getBalance(walletId);
-    }
-
-    @Test
     void balance_ReturnsWalletIdAndBalance() throws Exception {
         when(balanceService.getBalance(walletId)).thenReturn(new BigDecimal("25000"));
 
@@ -114,6 +95,21 @@ class TransactionControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.walletId").value(walletId))
                 .andExpect(jsonPath("$.balance").value(25000));
+    }
+
+    @Test
+    void mutations_ReturnsLedger_ForSessionWallet() throws Exception {
+        var dto = new com.satset.wallet.dto.WalletMutationDTO(
+                com.satset.wallet.model.MutationType.DEBIT, new BigDecimal("10000"), new BigDecimal("40000"),
+                com.satset.wallet.model.MutationReferenceType.TRANSACTION, "beli pulsa", LocalDateTime.now());
+        when(balanceService.listMutations(walletId)).thenReturn(List.of(dto));
+
+        mockMvc.perform(get("/api/transactions/mutations"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].type").value("DEBIT"))
+                .andExpect(jsonPath("$[0].balanceAfter").value(40000));
+
+        verify(balanceService).listMutations(walletId);
     }
 
     @Test

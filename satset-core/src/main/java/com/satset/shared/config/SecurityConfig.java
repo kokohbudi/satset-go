@@ -45,24 +45,8 @@ public class SecurityConfig {
                                 "/images/**")
                         .permitAll()
 
-                        // Role management endpoints - require admin role
-                        .requestMatchers("/admin/roles/**").authenticated()
-                        .requestMatchers("/api/roles/**").authenticated()
-
-                        // User management endpoints - require authenticated with specific roles
-                        .requestMatchers("/api/users/**").authenticated()
-
-                        // Admin catalog management
-                        .requestMatchers("/admin/catalog/**").authenticated()
-                        .requestMatchers("/api/admin/catalog/**").authenticated()
-
-                        // Dashboard requires authentication
-                        .requestMatchers("/dashboard/**").authenticated()
-
-                        // All API endpoints require authentication
-                        .requestMatchers("/api/**").authenticated()
-
-                        // Any other request requires authentication
+                        // Everything else needs a login; fine-grained roles are enforced
+                        // per-endpoint via @PreAuthorize (method security).
                         .anyRequest().authenticated())
                 .exceptionHandling(ex -> ex
                         .authenticationEntryPoint(
@@ -73,8 +57,10 @@ public class SecurityConfig {
                 .oauth2ResourceServer(oauth2 -> oauth2
                         .jwt(jwt -> jwt
                                 .jwtAuthenticationConverter(jwtAuthenticationConverter)))
+                // CSRF protected for browser session endpoints; JS sends X-XSRF-TOKEN
+                // (see layouts/base.html). Only the logout endpoint is exempt.
                 .csrf(csrf -> csrf
-                        .ignoringRequestMatchers("/logout", "/api/logout", "/api/**"))
+                        .ignoringRequestMatchers("/logout", "/api/logout"))
                 .logout(logout -> logout
                         .logoutUrl("/api/logout")
                         .invalidateHttpSession(true)

@@ -1,10 +1,10 @@
 package com.satset.transaction.web;
 
+import com.satset.shared.constant.OmniConstants;
 import com.satset.shared.dto.UserDTO;
 import com.satset.shared.exception.InsufficientBalanceException;
 import com.satset.shared.exception.ResourceNotFoundException;
 import com.satset.transaction.dto.PurchaseRequest;
-import com.satset.transaction.dto.TopUpRequest;
 import com.satset.transaction.dto.TransactionDTO;
 import com.satset.transaction.client.WalletGateway;
 import com.satset.transaction.service.TransactionDomainService;
@@ -39,6 +39,7 @@ public class TransactionController {
     }
 
     @PostMapping("/purchase")
+    @PreAuthorize("hasRole('" + OmniConstants.PERM_PURCHASE + "')")
     public ResponseEntity<Map<String, Object>> purchase(@Valid @RequestBody PurchaseRequest request)
             throws InsufficientBalanceException {
 
@@ -55,23 +56,8 @@ public class TransactionController {
         return ResponseEntity.ok(response);
     }
 
-    @PostMapping("/topup")
-    public ResponseEntity<Map<String, Object>> topUp(@Valid @RequestBody TopUpRequest request) {
-
-        String walletId = getWalletId();
-        transactionService.topUp(walletId, request.amount(), request.description());
-
-        BigDecimal balance = balanceService.getBalance(walletId);
-
-        Map<String, Object> response = new HashMap<>();
-        response.put("status", "success");
-        response.put("message", "Top-up berhasil");
-        response.put("balance", balance);
-
-        return ResponseEntity.ok(response);
-    }
-
     @GetMapping("/balance")
+    @PreAuthorize("hasRole('" + OmniConstants.PERM_TRANSACTION + "')")
     public ResponseEntity<Map<String, Object>> getBalance() {
 
         String walletId = getWalletId();
@@ -84,12 +70,20 @@ public class TransactionController {
         return ResponseEntity.ok(response);
     }
 
+    @GetMapping("/mutations")
+    @PreAuthorize("hasRole('" + OmniConstants.PERM_TRANSACTION + "')")
+    public ResponseEntity<java.util.List<com.satset.wallet.dto.WalletMutationDTO>> mutations() {
+        return ResponseEntity.ok(balanceService.listMutations(getWalletId()));
+    }
+
     @GetMapping("/{id}")
+    @PreAuthorize("hasRole('" + OmniConstants.PERM_TRANSACTION + "')")
     public ResponseEntity<TransactionDTO> getTransaction(@PathVariable UUID id) {
         return ResponseEntity.ok(transactionService.getTransaction(id, getStoreId()));
     }
 
     @GetMapping("/history")
+    @PreAuthorize("hasRole('" + OmniConstants.PERM_TRANSACTION + "')")
     public ResponseEntity<Page<TransactionDTO>> getTransactionHistory(
             @PageableDefault(size = 20, sort = "createdAt", direction = org.springframework.data.domain.Sort.Direction.DESC) Pageable pageable) {
         Page<TransactionDTO> page = transactionService.getTransactionHistory(getStoreId(), pageable);

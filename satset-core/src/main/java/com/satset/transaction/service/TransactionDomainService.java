@@ -130,17 +130,6 @@ public class TransactionDomainService {
                 return toDTO(transaction);
         }
 
-        @Transactional
-        public void topUp(String walletId, BigDecimal amount, String description) {
-                UUID topUpId = UUID.randomUUID();
-
-                balanceService.addBalance(walletId, amount,
-                                MutationReferenceType.TOP_UP, topUpId,
-                                description != null ? description : "Manual top-up");
-
-                log.info("Top-up completed: wallet={} amount={} topUpId={}", walletId, amount, topUpId);
-        }
-
         @Transactional(readOnly = true)
         public TransactionDTO getTransaction(UUID id, UUID storeId) {
                 Transactions tx = transactionRepository.findByIdAndStoreId(id, storeId)

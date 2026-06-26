@@ -23,8 +23,9 @@
         <!-- Right Section: Actions + Profile -->
         <div class="flex items-center gap-4">
 
-            <!-- Saldo (balance) — global, fetched once -->
-            <div class="hidden sm:flex items-center gap-2.5 rounded-full bg-base-200 pl-2.5 pr-4 py-1.5"
+            <!-- Saldo (balance) — only for users with transaction role -->
+            <div sec:authorize="hasRole('CLIENT_transaction')"
+                class="hidden sm:flex items-center gap-2.5 rounded-full bg-base-200 pl-2.5 pr-4 py-1.5"
                 title="Saldo Anda"
                 x-data="{ bal: null }"
                 x-init="fetch('/api/transactions/balance').then(r => r.ok ? r.json() : null).then(d => { if (d) bal = d.balance }).catch(() => {})">

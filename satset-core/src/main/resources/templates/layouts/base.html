@@ -10,6 +10,27 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title layout:title-pattern="$CONTENT_TITLE - Omnip Dashboard">Dashboard</title>
 
+    <!-- CSRF token (Spring Security). Reading ${_csrf} here forces token generation per page. -->
+    <meta name="_csrf" th:content="${_csrf?.token}">
+    <meta name="_csrf_header" th:content="${_csrf?.headerName}">
+    <!-- Auto-attach CSRF header to mutating same-origin fetch — covers all page JS in one place. -->
+    <script>
+        (function () {
+            const origFetch = window.fetch;
+            const token = document.querySelector('meta[name="_csrf"]')?.content;
+            const header = document.querySelector('meta[name="_csrf_header"]')?.content;
+            window.fetch = function (input, init) {
+                init = init || {};
+                const method = (init.method || (typeof input === 'object' && input.method) || 'GET').toUpperCase();
+                if (token && header && !['GET', 'HEAD', 'OPTIONS', 'TRACE'].includes(method)) {
+                    init.headers = new Headers(init.headers || {});
+                    if (!init.headers.has(header)) init.headers.set(header, token);
+                }
+                return origFetch.call(this, input, init);
+            };
+        })();
+    </script>
+
     <!-- Local Compiled CSS (Tailwind + DaisyUI) -->
     <link rel="stylesheet" th:href="@{/css/output.css}" />
 

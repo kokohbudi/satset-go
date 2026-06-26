@@ -217,25 +217,6 @@ class TransactionDomainServiceTest {
         verify(transactionRepository, never()).save(any());
     }
 
-    // ==================== topUp ====================
-
-    @Test
-    void topUp_Success_CallsAddBalance() {
-        transactionService.topUp(walletId, new BigDecimal("50000"), "Isi saldo");
-
-        verify(balanceService).addBalance(eq(walletId), eq(new BigDecimal("50000")),
-                eq(MutationReferenceType.TOP_UP), any(UUID.class), eq("Isi saldo"));
-    }
-
-    @Test
-    void topUp_NullDescription_UsesDefaultDescription() {
-        transactionService.topUp(walletId, new BigDecimal("50000"), null);
-
-        verify(balanceService).addBalance(eq(walletId), eq(new BigDecimal("50000")),
-                eq(MutationReferenceType.TOP_UP), any(UUID.class), eq("Manual top-up"));
-    }
-
-
     // ==================== getTransaction ====================
 
     @Test

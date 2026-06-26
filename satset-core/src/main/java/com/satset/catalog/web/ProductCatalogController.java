@@ -7,7 +7,9 @@ import com.satset.catalog.model.*;
 import com.satset.catalog.service.CategoryDomainService;
 import com.satset.catalog.service.DenomDomainService;
 import com.satset.catalog.service.ProductDomainService;
+import com.satset.shared.constant.OmniConstants;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -17,6 +19,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api")
+@PreAuthorize("hasRole('" + OmniConstants.PERM_PURCHASE + "')")
 public class ProductCatalogController {
 
     private final CategoryDomainService browseCategoriesUseCase;

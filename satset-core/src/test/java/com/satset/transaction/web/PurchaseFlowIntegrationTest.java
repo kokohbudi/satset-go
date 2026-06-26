@@ -32,6 +32,7 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -134,7 +135,7 @@ class PurchaseFlowIntegrationTest {
         PurchaseRequest request = new PurchaseRequest(denomId, "081234567890");
 
         mockMvc.perform(post("/api/transactions/purchase")
-                .with(jwt())
+                .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_CLIENT_purchase")))
                 .with(csrf())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
@@ -159,7 +160,7 @@ class PurchaseFlowIntegrationTest {
         PurchaseRequest request = new PurchaseRequest(denomId, "081234567890");
 
         mockMvc.perform(post("/api/transactions/purchase")
-                .with(jwt())
+                .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_CLIENT_purchase")))
                 .with(csrf())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
@@ -183,7 +184,7 @@ class PurchaseFlowIntegrationTest {
         PurchaseRequest request = new PurchaseRequest(denomId, "081234567890");
 
         mockMvc.perform(post("/api/transactions/purchase")
-                .with(jwt())
+                .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_CLIENT_purchase")))
                 .with(csrf())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
