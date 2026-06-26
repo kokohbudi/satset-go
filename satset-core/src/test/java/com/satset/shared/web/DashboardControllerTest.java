@@ -1,5 +1,7 @@
 package com.satset.shared.web;
 
+import com.satset.shared.dto.UserDTO;
+import com.satset.transaction.client.WalletGateway;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
@@ -19,7 +21,9 @@ class DashboardControllerTest {
 
     @BeforeEach
     void setUp() {
-        mockMvc = MockMvcBuilders.standaloneSetup(new DashboardController()).build();
+        UserDTO userDTO = new UserDTO(); // no wallet -> formatBalance returns "Rp 0"
+        WalletGateway walletGateway = org.mockito.Mockito.mock(WalletGateway.class);
+        mockMvc = MockMvcBuilders.standaloneSetup(new DashboardController(walletGateway, userDTO)).build();
     }
 
     @Test

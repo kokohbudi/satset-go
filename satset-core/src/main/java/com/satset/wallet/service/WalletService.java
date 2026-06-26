@@ -140,4 +140,11 @@ public class WalletService {
     public List<WalletMutationEntity> getMutations(String walletId) {
         return walletMutationRepository.findByWalletIdOrderByCreatedAtDesc(walletId);
     }
+
+    /** All wallet accounts, newest first. Admin-facing (inject saldo page). */
+    public List<WalletAccountEntity> listAccounts() {
+        // ponytail: unpaged findAll; add pagination if wallet count grows past a screenful.
+        return walletAccountRepository.findAll(org.springframework.data.domain.Sort.by(
+                org.springframework.data.domain.Sort.Direction.DESC, "createdAt"));
+    }
 }

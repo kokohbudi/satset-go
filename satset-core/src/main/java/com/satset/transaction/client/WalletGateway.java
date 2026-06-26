@@ -65,4 +65,10 @@ public class WalletGateway {
             throw new ResourceNotFoundException("WalletAccount", walletId);
         }
     }
+
+    public java.util.List<com.satset.wallet.dto.WalletMutationDTO> listMutations(String walletId) {
+        return walletService.getMutations(walletId).stream()
+                .map(com.satset.wallet.dto.WalletMutationDTO::from)
+                .toList();
+    }
 }

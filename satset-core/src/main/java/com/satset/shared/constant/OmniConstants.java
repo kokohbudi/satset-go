@@ -22,4 +22,11 @@ public class OmniConstants {
     public static final String PERM_MANAGE_CATEGORIES = "REALM_manage_categories";
     public static final String PERM_MANAGE_PRODUCTS = "REALM_manage_products";
     public static final String PERM_MANAGE_DENOMS = "REALM_manage_denoms";
+
+    // Wallet admin
+    public static final String PERM_ADJUST_BALANCE = "REALM_adjust_balance";
+
+    // Client roles (satsetgo-client) — mapped to ROLE_CLIENT_<role> by JwtAuthenticationConverter
+    public static final String PERM_TRANSACTION = "CLIENT_transaction"; // view transaksi + balance
+    public static final String PERM_PURCHASE = "CLIENT_purchase"; // lakukan pembelian + browse katalog
 }

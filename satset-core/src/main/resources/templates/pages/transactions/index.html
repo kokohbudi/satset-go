@@ -25,6 +25,14 @@
             </div>
         </div>
 
+        <!-- Tabs -->
+        <div role="tablist" class="tabs tabs-bordered mb-6">
+            <a role="tab" class="tab" :class="view === 'trx' ? 'tab-active' : ''" @click="view = 'trx'">Transaksi</a>
+            <a role="tab" class="tab" :class="view === 'mutasi' ? 'tab-active' : ''" @click="switchToMutasi()">Mutasi Saldo</a>
+        </div>
+
+        <!-- ===== TAB: Transaksi ===== -->
+        <div x-show="view === 'trx'">
         <!-- Filters -->
         <div class="card bg-base-100 shadow-sm border border-base-300/50 mb-6">
             <div class="card-body py-4 flex flex-row items-center gap-4">
@@ -175,6 +183,53 @@
                 </div>
             </div>
         </div>
+        </div><!-- /TAB: Transaksi -->
+
+        <!-- ===== TAB: Mutasi Saldo ===== -->
+        <div x-show="view === 'mutasi'" x-cloak>
+            <div class="card bg-base-100 shadow-lg border border-base-300/50">
+                <div class="overflow-x-auto min-h-[400px]">
+                    <table class="table w-full">
+                        <thead class="bg-base-200/50">
+                            <tr>
+                                <th>Waktu</th>
+                                <th>Tipe</th>
+                                <th class="text-right">Jumlah</th>
+                                <th class="text-right">Saldo Akhir</th>
+                                <th>Keterangan</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <template x-if="mutasiLoading">
+                                <tr><td colspan="5" class="text-center py-16">
+                                    <span class="loading loading-spinner loading-lg text-primary"></span>
+                                </td></tr>
+                            </template>
+                            <template x-for="m in mutations" :key="m.createdAt + m.balanceAfter">
+                                <tr class="hover:bg-base-200/50 transition-colors">
+                                    <td class="whitespace-nowrap">
+                                        <div class="font-medium" x-text="formatDate(m.createdAt)"></div>
+                                        <div class="text-xs text-base-content/50" x-text="formatTime(m.createdAt)"></div>
+                                    </td>
+                                    <td>
+                                        <span class="badge" :class="isCredit(m.type) ? 'badge-success' : 'badge-error'"
+                                              x-text="mutationLabel(m)"></span>
+                                    </td>
+                                    <td class="text-right font-medium tabular-nums"
+                                        :class="isCredit(m.type) ? 'text-success' : 'text-error'"
+                                        x-text="(isCredit(m.type) ? '+' : '-') + formatCurrency(m.amount)"></td>
+                                    <td class="text-right tabular-nums" x-text="formatCurrency(m.balanceAfter)"></td>
+                                    <td class="text-sm text-base-content/70" x-text="m.description || '-'"></td>
+                                </tr>
+                            </template>
+                            <template x-if="!mutasiLoading && mutations.length === 0">
+                                <tr><td colspan="5" class="text-center py-16 text-base-content/60">Belum ada mutasi saldo.</td></tr>
+                            </template>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
 
         <!-- Detail Modal -->
         <dialog id="tx_detail_modal" class="modal modal-bottom sm:modal-middle">
@@ -278,6 +333,10 @@
                     currentPage: 0,
                     statusFilter: '',
                     selectedTx: null,
+                    view: 'trx',
+                    mutations: [],
+                    mutasiLoading: false,
+                    mutasiLoaded: false,
 
                     get filteredContent() {
                         if (!this.statusFilter) return this.content;
@@ -311,6 +370,28 @@
                     openDetail(tx) {
                         this.selectedTx = tx;
                         document.getElementById('tx_detail_modal').showModal();
+                    },
+
+                    async switchToMutasi() {
+                        this.view = 'mutasi';
+                        if (this.mutasiLoaded) return; // load once
+                        this.mutasiLoading = true;
+                        try {
+                            const res = await fetch('/api/transactions/mutations');
+                            if (res.ok) {
+                                this.mutations = await res.json();
+                                this.mutasiLoaded = true;
+                            }
+                        } catch (e) {
+                            Alpine.store('toast').error('Gagal memuat mutasi saldo');
+                        }
+                        this.mutasiLoading = false;
+                    },
+
+                    isCredit(type) { return type === 'CREDIT' || type === 'REFUND'; },
+                    mutationLabel(m) {
+                        const map = { TRANSACTION: 'Pembelian', TOPUP: 'Top-up', REFUND: 'Refund', ADJUSTMENT: 'Penyesuaian' };
+                        return map[m.referenceType] || m.type;
                     },
 
                     getStatusBadgeClass(status) {

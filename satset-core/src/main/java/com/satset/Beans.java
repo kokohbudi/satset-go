@@ -62,14 +62,14 @@ public class Beans {
         if (auth != null && auth.startsWith("Bearer ")) {
             String token = auth.substring(7);
             Jwt jwt = this.jwtDecoder.decode(token);
-            String email = (String) jwt.getClaims().get("email");
-            // Use port method that returns UserDTO instead of domain model
-            UserDTO userFromDb = this.usersRepository.findByEmailDTO(email);
+            // Resolve identity by the immutable Keycloak subject (sub), NOT email (mutable).
+            // walletId/storeId thus always belong to the verified JWT user → no IDOR.
+            String providerUserId = jwt.getClaimAsString("sub");
+            UserDTO userFromDb = this.usersRepository.findByProviderUserIdDTO(providerUserId);
             if (userFromDb != null) {
-                String providerUserId = jwt.getClaimAsString("sub");
                 dto.setProviderUserId(providerUserId);
                 dto.setUsername(userFromDb.getUsername());
-                dto.setEmail(email);
+                dto.setEmail(userFromDb.getEmail());
                 dto.setStoreId(userFromDb.getStoreId());
                 dto.setWalletId(userFromDb.getWalletId());
                 dto.setFullname(userFromDb.getFullname());

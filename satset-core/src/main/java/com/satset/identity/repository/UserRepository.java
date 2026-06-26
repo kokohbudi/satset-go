@@ -41,6 +41,28 @@ public interface UserRepository extends JpaRepository<Users, UUID> {
         return dto;
     }
 
+    /**
+     * DTO lookup by Keycloak subject (sub) — the immutable user id from the JWT.
+     * Preferred over email lookup: email is mutable in Keycloak, sub is not.
+     * Binds walletId/storeId to the authenticated identity (anti-IDOR).
+     */
+    default UserDTO findByProviderUserIdDTO(String providerUserId) {
+        Users u = findByProviderUserId(providerUserId);
+        if (u == null) {
+            return null;
+        }
+        UserDTO dto = new UserDTO();
+        dto.setEmail(u.getEmail());
+        dto.setUsername(u.getUsername());
+        dto.setFullname(u.getFullname());
+        dto.setRoles(u.getRoles());
+        dto.setStoreId(u.getStoreId());
+        dto.setWalletId(u.getWalletId());
+        dto.setProviderUserId(u.getProviderUserId());
+        dto.setActive(u.isActive());
+        return dto;
+    }
+
     /** Store id lookup for shared layer — avoids exposing entity. */
     default UUID findStoreIdByProviderUserId(String providerUserId) {
         Users u = findByProviderUserId(providerUserId);

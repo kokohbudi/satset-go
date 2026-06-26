@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 
 <body>
 
@@ -22,6 +22,23 @@
 
         <!-- Right Section: Actions + Profile -->
         <div class="flex items-center gap-4">
+
+            <!-- Saldo (balance) — global, fetched once -->
+            <div class="hidden sm:flex items-center gap-2.5 rounded-full bg-base-200 pl-2.5 pr-4 py-1.5"
+                title="Saldo Anda"
+                x-data="{ bal: null }"
+                x-init="fetch('/api/transactions/balance').then(r => r.ok ? r.json() : null).then(d => { if (d) bal = d.balance }).catch(() => {})">
+                <span class="w-7 h-7 rounded-full bg-primary/10 grid place-items-center text-primary shrink-0">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M7 15h.01M11 15h2M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                    </svg>
+                </span>
+                <span class="leading-tight">
+                    <span class="block text-[10px] text-base-content/55">Saldo</span>
+                    <span class="block text-sm font-bold tabular-nums text-base-content"
+                        x-text="bal == null ? '…' : ('Rp ' + bal.toLocaleString('id-ID'))">Rp 0</span>
+                </span>
+            </div>
 
             <!-- Search Button -->
             <button class="btn btn-ghost btn-circle" title="Pencarian (Ctrl+K)" aria-label="Pencarian">

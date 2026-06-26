@@ -1,5 +1,7 @@
 package com.satset.shared.web;
 
+import com.satset.shared.dto.UserDTO;
+import com.satset.transaction.client.WalletGateway;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -7,9 +9,23 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 
+import java.math.BigDecimal;
+import java.text.NumberFormat;
+import java.util.Locale;
+
 @Controller
 @Slf4j
 public class DashboardController {
+
+    private static final Locale ID = Locale.forLanguageTag("id-ID");
+
+    private final WalletGateway walletGateway;
+    private final UserDTO userDTO;
+
+    public DashboardController(WalletGateway walletGateway, UserDTO userDTO) {
+        this.walletGateway = walletGateway;
+        this.userDTO = userDTO;
+    }
 
     @GetMapping("/")
     public String landingPage(Authentication authentication) {
@@ -42,7 +58,22 @@ public class DashboardController {
         // Set page info for sidebar and header
         model.addAttribute("currentPage", "dashboard");
         model.addAttribute("breadcrumb", "Dashboard");
+        model.addAttribute("totalBalance", formatBalance(userDTO.getWalletId()));
 
         return "pages/dashboard/index";
+    }
+
+    /** Fetch wallet balance as "Rp 50.000". Falls back to "Rp 0" on no wallet / fetch error — dashboard must not 500. */
+    private String formatBalance(String walletId) {
+        if (walletId == null) {
+            return "Rp 0";
+        }
+        try {
+            BigDecimal balance = walletGateway.getBalance(walletId);
+            return "Rp " + NumberFormat.getInstance(ID).format(balance);
+        } catch (Exception e) {
+            log.error("Failed to fetch wallet balance for dashboard", e);
+            return "Rp 0";
+        }
     }
 }
