@@ -27,7 +27,8 @@ import java.util.Map;
                 "com.satset.catalog.repository",
                 "com.satset.identity.repository",
                 "com.satset.onboarding.repository",
-                "com.satset.transaction.repository"
+                "com.satset.transaction.repository",
+                "com.satset.quickmenu.repository"
         },
         entityManagerFactoryRef = "entityManagerFactory",
         transactionManagerRef = "transactionManager")
@@ -62,7 +63,8 @@ public class CoreDataSourceConfig {
                         "com.satset.catalog.model",
                         "com.satset.identity.model",
                         "com.satset.onboarding.model",
-                        "com.satset.transaction.model")
+                        "com.satset.transaction.model",
+                        "com.satset.quickmenu.model")
                 .persistenceUnit("core")
                 .properties(jpaProperties)
                 .build();

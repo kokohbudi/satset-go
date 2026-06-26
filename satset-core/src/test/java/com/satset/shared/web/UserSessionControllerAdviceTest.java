@@ -3,6 +3,7 @@ package com.satset.shared.web;
 import com.satset.UserSessionControllerAdvice;
 
 import com.satset.identity.client.KeycloakIdentityPort;
+import com.satset.quickmenu.service.QuickMenuService;
 import com.satset.shared.dto.RoleInfo;
 import com.satset.shared.dto.UserDTO;
 import org.junit.jupiter.api.AfterEach;
@@ -36,6 +37,9 @@ class UserSessionControllerAdviceTest {
     @Mock
     private KeycloakIdentityPort keycloakIdentityPort;
 
+    @Mock
+    private QuickMenuService quickMenuService;
+
     private UserDTO userDTO = new UserDTO();
 
     @AfterEach
@@ -48,7 +52,7 @@ class UserSessionControllerAdviceTest {
     @Test
     void addAttributes_NoAuthentication_AddsUserAndPathOnly() throws Exception {
         SecurityContextHolder.clearContext();
-        UserSessionControllerAdvice advice = new UserSessionControllerAdvice(userDTO, keycloakIdentityPort);
+        UserSessionControllerAdvice advice = new UserSessionControllerAdvice(userDTO, keycloakIdentityPort, quickMenuService);
         Model model = new ExtendedModelMap();
         MockHttpServletRequest request = new MockHttpServletRequest("GET", "/dashboard");
         MockHttpSession session = new MockHttpSession();
@@ -65,7 +69,7 @@ class UserSessionControllerAdviceTest {
     void addAttributes_AnonymousUser_SkipsRoleFetch() throws Exception {
         var auth = new UsernamePasswordAuthenticationToken("anonymousUser", null, List.of());
         SecurityContextHolder.getContext().setAuthentication(auth);
-        UserSessionControllerAdvice advice = new UserSessionControllerAdvice(userDTO, keycloakIdentityPort);
+        UserSessionControllerAdvice advice = new UserSessionControllerAdvice(userDTO, keycloakIdentityPort, quickMenuService);
         Model model = new ExtendedModelMap();
         MockHttpSession session = new MockHttpSession();
 
@@ -82,7 +86,7 @@ class UserSessionControllerAdviceTest {
         List<RoleInfo> roles = List.of(RoleInfo.builder().name("manage_users").build());
         when(keycloakIdentityPort.getMenuRoleInfos("kc-uuid")).thenReturn(roles);
 
-        UserSessionControllerAdvice advice = new UserSessionControllerAdvice(userDTO, keycloakIdentityPort);
+        UserSessionControllerAdvice advice = new UserSessionControllerAdvice(userDTO, keycloakIdentityPort, quickMenuService);
         Model model = new ExtendedModelMap();
         MockHttpSession session = new MockHttpSession();
 
@@ -99,7 +103,7 @@ class UserSessionControllerAdviceTest {
         MockHttpSession session = new MockHttpSession();
         session.setAttribute("userRoles", cached);
 
-        UserSessionControllerAdvice advice = new UserSessionControllerAdvice(userDTO, keycloakIdentityPort);
+        UserSessionControllerAdvice advice = new UserSessionControllerAdvice(userDTO, keycloakIdentityPort, quickMenuService);
         Model model = new ExtendedModelMap();
 
         advice.addAttributes(model, session, new MockHttpServletRequest());
@@ -113,7 +117,7 @@ class UserSessionControllerAdviceTest {
         setJwtAuth("kc-uuid");
         when(keycloakIdentityPort.getMenuRoleInfos("kc-uuid")).thenThrow(new RuntimeException("KC error"));
 
-        UserSessionControllerAdvice advice = new UserSessionControllerAdvice(userDTO, keycloakIdentityPort);
+        UserSessionControllerAdvice advice = new UserSessionControllerAdvice(userDTO, keycloakIdentityPort, quickMenuService);
         Model model = new ExtendedModelMap();
         MockHttpSession session = new MockHttpSession();
 
