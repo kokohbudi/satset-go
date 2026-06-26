@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Beli · Stepper Nomor-Dulu (Preview A)</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script>
+tailwind.config = {
+  theme: { extend: {
+    colors: {
+      brand: { 50:'#fff7ed',100:'#ffedd5',200:'#fed7aa',300:'#fdba74',400:'#fb923c',500:'#f97316',600:'#ea580c',700:'#c2410c',900:'#7c2d12' },
+      ink:'#1e293b', mist:'#f8fafc', line:'#e2e8f0', muted:'#475569', faint:'#64748b', ok:'#16a34a'
+    },
+    fontFamily: { sans:['Inter','ui-sans-serif','system-ui','sans-serif'], mono:['ui-monospace','Menlo','monospace'] },
+  }}
+}
+</script>
+<style>
+  body { font-family:'Inter',ui-sans-serif,system-ui,sans-serif; }
+  .tnum { font-variant-numeric: tabular-nums; }
+  [x-cloak]{ display:none !important; }
+  @keyframes rise { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:none} }
+  .rise { animation: rise .4s cubic-bezier(.22,1,.36,1) backwards; }
+  @media (prefers-reduced-motion: reduce){ .rise{ animation:none } }
+</style>
+</head>
+<body class="bg-mist text-ink antialiased">
+
+<div class="min-h-screen" x-data="{ open: window.innerWidth >= 1024 }">
+  <!-- Fixed sidebar toggle (stays put — matches app) -->
+  <button @click="open = !open" aria-label="Toggle sidebar"
+    class="fixed top-2.5 left-3 z-[60] w-10 h-10 grid place-items-center rounded-full text-ink hover:bg-line/70 transition">
+    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/></svg>
+  </button>
+
+  <!-- Sidebar (context) -->
+  <aside class="fixed left-0 top-0 z-40 h-screen w-64 flex flex-col bg-white border-r border-line transition-transform duration-300"
+    :class="open ? 'translate-x-0' : '-translate-x-full'">
+    <div class="h-16 flex items-center gap-2.5 pl-16 pr-4 border-b border-line">
+      <span class="w-8 h-8 rounded-lg bg-brand-600 grid place-items-center">
+        <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+      </span>
+      <span class="font-bold tracking-tight">satset<span class="text-brand-600">go</span></span>
+    </div>
+    <nav class="p-3 space-y-1 text-sm font-medium">
+      <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-muted hover:bg-mist"><span class="w-5">🏠</span>Dashboard</a>
+      <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-brand-600 text-white shadow-sm"><span class="w-5">🛒</span>Beli</a>
+      <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-muted hover:bg-mist"><span class="w-5">📊</span>Riwayat</a>
+      <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-muted hover:bg-mist"><span class="w-5">📋</span>Transaksi</a>
+      <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-muted hover:bg-mist"><span class="w-5">💲</span>Saldo</a>
+    </nav>
+    <a class="mt-auto m-3 flex items-center gap-3 px-3 py-2.5 rounded-lg text-red-600 hover:bg-red-50 text-sm font-medium"><span class="w-5">↩</span>Keluar</a>
+  </aside>
+
+  <!-- Mobile backdrop -->
+  <div x-show="open" x-cloak @click="open=false" class="fixed inset-0 bg-ink/40 z-30 lg:hidden"></div>
+
+  <!-- Main -->
+  <div class="min-h-screen flex flex-col transition-[margin] duration-300" :class="open ? 'lg:ml-64' : 'ml-0'">
+    <!-- Topbar -->
+    <header class="h-16 flex items-center justify-between pr-5 lg:pr-8 bg-white border-b border-line transition-[padding] duration-300"
+      :class="open ? 'pl-5 lg:pl-8' : 'pl-16'">
+      <div class="text-sm text-faint">Home <span class="mx-1">›</span> <span class="text-ink font-medium">Beli Pulsa</span></div>
+      <div class="flex items-center gap-3 rounded-xl border border-line bg-mist px-3.5 py-1.5">
+        <span class="text-xs text-faint">Saldo</span>
+        <span class="font-bold tnum">Rp 250.000</span>
+      </div>
+    </header>
+
+    <!-- ===== STEPPER FLOW ===== -->
+    <main class="flex-1 px-4 sm:px-6 py-8 pb-28" x-data="stepper()">
+      <div class="max-w-2xl mx-auto">
+
+        <!-- Step indicator -->
+        <ol class="flex items-center gap-2 mb-8 text-sm">
+          <template x-for="(s,i) in steps" :key="i">
+            <li class="flex items-center gap-2 shrink-0">
+              <span class="w-7 h-7 rounded-full grid place-items-center font-bold text-xs transition-colors"
+                :class="step>i ? 'bg-ok text-white' : step===i ? 'bg-brand-600 text-white' : 'bg-line text-faint'">
+                <span x-show="step<=i" x-text="i+1"></span>
+                <span x-show="step>i">✓</span>
+              </span>
+              <span class="font-medium" :class="step===i ? 'text-ink' : 'text-faint'" x-text="s"></span>
+              <span x-show="i<steps.length-1" class="w-6 h-px bg-line"></span>
+            </li>
+          </template>
+        </ol>
+
+        <!-- STEP 0: Number -->
+        <section x-show="step===0" class="rise">
+          <h1 class="text-2xl font-bold tracking-tight mb-1">Masukkan nomor tujuan</h1>
+          <p class="text-muted mb-6">Operator terdeteksi otomatis dari nomor.</p>
+
+          <div class="relative">
+            <input x-model="number" @input="detect" inputmode="numeric" maxlength="15" placeholder="0812 3456 7890"
+              class="w-full text-2xl font-semibold tnum tracking-wide bg-white border border-line rounded-2xl px-5 py-5 pr-14 outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-500/15 transition">
+            <span class="absolute right-5 top-1/2 -translate-y-1/2 text-2xl">📱</span>
+          </div>
+
+          <div class="mt-3 h-8 flex items-center" x-cloak>
+            <div x-show="operator" class="flex items-center gap-2 text-sm font-medium">
+              <span class="w-2.5 h-2.5 rounded-full bg-ok"></span>
+              <span x-text="operator + ' terdeteksi'"></span>
+            </div>
+            <div x-show="number.length>=4 && !operator" class="text-sm text-faint">Operator tidak dikenali — pilih manual nanti.</div>
+          </div>
+
+          <button @click="next()" :disabled="number.length<10"
+            class="mt-4 w-full rounded-2xl bg-brand-600 hover:bg-brand-500 disabled:opacity-40 disabled:cursor-not-allowed text-white font-semibold py-4 transition flex items-center justify-center gap-2">
+            Lanjut <span>→</span>
+          </button>
+        </section>
+
+        <!-- STEP 1: Product -->
+        <section x-show="step===1" x-cloak class="rise">
+          <h1 class="text-2xl font-bold tracking-tight mb-1">Pilih jenis produk</h1>
+          <p class="text-muted mb-6">Untuk <span class="font-semibold text-ink tnum" x-text="number"></span></p>
+          <div class="grid grid-cols-2 gap-3">
+            <template x-for="p in productsFor" :key="p">
+              <button @click="product=p; next()"
+                class="rounded-2xl border border-line bg-white px-5 py-5 text-left hover:border-brand-500 hover:bg-brand-50 transition font-semibold">
+                <span x-text="p"></span>
+                <span class="block text-xs font-normal text-faint mt-0.5">Prabayar</span>
+              </button>
+            </template>
+          </div>
+          <button @click="back()" class="mt-6 text-sm font-medium text-faint hover:text-ink">← Ganti nomor</button>
+        </section>
+
+        <!-- STEP 2: Nominal -->
+        <section x-show="step===2" x-cloak class="rise">
+          <h1 class="text-2xl font-bold tracking-tight mb-1">Pilih nominal</h1>
+          <p class="text-muted mb-6"><span class="font-semibold text-ink" x-text="operator||'Produk'"></span> · <span x-text="product"></span></p>
+          <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            <template x-for="d in denoms" :key="d.id">
+              <button @click="denom=d"
+                class="relative rounded-2xl border px-4 py-4 text-left transition"
+                :class="denom?.id===d.id ? 'border-brand-600 bg-brand-50 ring-2 ring-brand-500/30' : 'border-line bg-white hover:border-brand-500'">
+                <span x-show="denom?.id===d.id" class="absolute top-0 right-0 w-6 h-6 grid place-items-center bg-brand-600 text-white text-xs rounded-bl-xl">✓</span>
+                <span class="block font-semibold" x-text="d.label"></span>
+                <span class="block text-lg font-bold tnum text-brand-600 mt-1" x-text="rupiah(d.price)"></span>
+                <span class="block text-xs text-faint tnum">+ admin <span x-text="rupiah(d.admin)"></span></span>
+              </button>
+            </template>
+          </div>
+          <button @click="back()" class="mt-6 text-sm font-medium text-faint hover:text-ink">← Ganti produk</button>
+        </section>
+
+      </div>
+
+      <!-- Sticky pay bar -->
+      <div x-show="denom" x-cloak
+        class="fixed bottom-0 inset-x-0 bg-white/95 backdrop-blur border-t border-line px-5 lg:px-8 py-4 transition-[left] duration-300"
+        :class="open ? 'lg:left-64' : 'left-0'">
+        <div class="max-w-2xl mx-auto flex items-center justify-between gap-4">
+          <div>
+            <p class="text-xs text-faint">Total bayar</p>
+            <p class="text-xl font-bold tnum text-brand-600" x-text="rupiah(total)"></p>
+          </div>
+          <button class="rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-semibold px-8 py-3 transition flex items-center gap-2">
+            Bayar Sekarang <span>→</span>
+          </button>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<script>
+function stepper(){
+  return {
+    steps:['Nomor','Produk','Nominal'],
+    step:0, number:'', operator:'', product:'',
+    denom:null,
+    denoms:[
+      {id:1,label:'Pulsa 5.000',price:6000,admin:1000},
+      {id:2,label:'Pulsa 10.000',price:11000,admin:1000},
+      {id:3,label:'Pulsa 25.000',price:25500,admin:500},
+      {id:4,label:'Pulsa 50.000',price:50000,admin:0},
+      {id:5,label:'Pulsa 100.000',price:99500,admin:0},
+      {id:6,label:'Data 5GB / 30hr',price:55000,admin:0},
+    ],
+    get productsFor(){ return this.operator ? ['Pulsa','Paket Data'] : ['Pulsa','Paket Data','Voucher Game','Token PLN']; },
+    get total(){ return this.denom ? this.denom.price + this.denom.admin : 0; },
+    detect(){
+      const p = this.number.replace(/\D/g,'').slice(0,4);
+      const map={ '0811':'Telkomsel','0812':'Telkomsel','0813':'Telkomsel','0821':'Telkomsel','0852':'Telkomsel',
+        '0817':'XL','0818':'XL','0819':'XL','0859':'XL','0877':'XL',
+        '0814':'Indosat','0815':'Indosat','0816':'Indosat','0855':'Indosat','0856':'Indosat',
+        '0895':'Tri','0896':'Tri','0897':'Tri','0898':'Tri','0899':'Tri',
+        '0831':'Axis','0832':'Axis','0838':'Axis','0881':'Smartfren','0888':'Smartfren' };
+      this.operator = map[p] || '';
+    },
+    next(){ if(this.step<2) this.step++; },
+    back(){ if(this.step>0){ this.step--; this.denom=null; } },
+    rupiah(n){ return 'Rp '+(n||0).toLocaleString('id-ID'); }
+  }
+}
+</script>
+</body>
+</html>

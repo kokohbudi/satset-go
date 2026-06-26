@@ -7,6 +7,12 @@ module.exports = {
     theme: {
         extend: {
             colors: {
+                // Semantic tokens used by landing page
+                'ink':  '#1e293b',
+                'mist': '#f8fafc',
+                'line': '#e2e8f0',
+                'muted': '#475569',
+                'faint': '#64748b',
                 // Custom orange theme colors
                 'brand-orange': {
                     50: '#fff7ed',

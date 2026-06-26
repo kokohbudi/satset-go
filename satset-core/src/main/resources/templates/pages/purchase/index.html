@@ -3,383 +3,222 @@
       xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" xmlns:x-transition="http://www.w3.org/1999/xhtml">
 
 <head>
-    <title>Beli Pulsa & Paket Data</title>
+    <title>Beli Pulsa &amp; Paket Data</title>
+
+    <th:block layout:fragment="head">
+        <style>
+            /* Receipt torn bottom edge — Direction B/C showpiece (DESIGN.md) */
+            .receipt {
+                -webkit-mask:
+                    radial-gradient(7px 7px at 14px bottom, transparent 6.5px, #000 7px) repeat-x left bottom / 28px 14px,
+                    linear-gradient(#000, #000) top/100% calc(100% - 8px) no-repeat;
+                mask:
+                    radial-gradient(7px 7px at 14px bottom, transparent 6.5px, #000 7px) repeat-x left bottom / 28px 14px,
+                    linear-gradient(#000, #000) top/100% calc(100% - 8px) no-repeat;
+            }
+        </style>
+    </th:block>
 </head>
 
 <body>
     <div layout:fragment="content" x-data="purchaseFlow()">
 
-        <!-- Page Header -->
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
-            <div>
-                <h1 class="text-2xl font-bold text-base-content mb-2">Beli Pulsa & Paket Data</h1>
-                <p class="text-base-content/60">Pilih provider, produk, dan masukkan nomor tujuan</p>
+        <!-- ==================== VIEW: CATALOG GRID ==================== -->
+        <div x-show="view === 'grid'">
+            <div class="mb-7 animate-rise" style="--i: 0">
+                <h1 class="text-2xl font-bold tracking-tight text-base-content">Mau beli apa hari ini?</h1>
+                <p class="text-base-content/60 mt-1">Pilih layanan, sisanya cepat.</p>
             </div>
-            <div class="text-right">
-                <p class="text-sm text-base-content/60">Saldo Anda</p>
-                <p class="text-xl font-bold text-primary"
-                    x-text="loadingBalance ? '...' : formatCurrency(currentBalance)"></p>
+
+            <!-- Loading skeleton -->
+            <div x-show="loadingCats" class="grid grid-cols-2 lg:grid-cols-3 gap-4 max-w-4xl">
+                <template x-for="i in 6" :key="i">
+                    <div class="h-36 rounded-3xl bg-base-200 animate-pulse"></div>
+                </template>
+            </div>
+
+            <!-- Category cards -->
+            <div x-show="!loadingCats" class="grid grid-cols-2 lg:grid-cols-3 gap-4 max-w-4xl animate-rise" style="--i: 1">
+                <template x-for="cat in categories" :key="cat.id">
+                    <button @click="openCat(cat)"
+                        class="group relative overflow-hidden rounded-3xl p-6 text-left text-white transition-transform duration-200 hover:-translate-y-1 focus:outline-none focus:ring-4 focus:ring-primary/30"
+                        :class="catMeta(cat).bg">
+                        <span class="absolute -right-3 -bottom-3 text-7xl opacity-25 group-hover:opacity-40 transition" x-text="catMeta(cat).ic"></span>
+                        <span class="relative block text-lg font-bold" x-text="cat.name"></span>
+                        <span class="relative block text-sm text-white/80 mt-1"
+                            x-text="cat.categoryType === 'PREPAID' ? 'Prabayar' : 'Pascabayar'"></span>
+                        <span class="relative inline-flex items-center gap-1 mt-6 text-sm font-semibold">
+                            Pilih <span class="group-hover:translate-x-0.5 transition">→</span>
+                        </span>
+                    </button>
+                </template>
+                <div x-show="categories.length === 0" class="col-span-full py-16 text-center text-base-content/50">
+                    Belum ada layanan tersedia.
+                </div>
             </div>
         </div>
 
-        <!-- MAIN FLOW VIEWS -->
-        <div class="space-y-6">
+        <!-- ==================== MODAL (centered) ==================== -->
+        <div x-show="modalOpen" x-cloak class="fixed inset-0 z-[80] grid place-items-center p-4">
+            <div x-show="modalOpen" x-transition.opacity class="absolute inset-0 bg-black/50" @click="closeModal()"></div>
 
-            <!-- ==================== VIEW 1: SELECTION & INPUT ==================== -->
-            <div x-show="view === 'selection'" x-transition:enter="transition ease-out duration-300"
-                x-transition:enter-start="opacity-0 translate-y-4" x-transition:enter-end="opacity-100 translate-y-0"
-                class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div x-show="modalOpen"
+                x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 scale-95 translate-y-2"
+                x-transition:enter-end="opacity-100 scale-100 translate-y-0"
+                x-transition:leave="transition ease-in duration-200" x-transition:leave-start="opacity-100 scale-100"
+                x-transition:leave-end="opacity-0 scale-95"
+                class="relative w-full max-w-lg max-h-[88vh] overflow-y-auto bg-base-100 rounded-3xl shadow-2xl">
+                <div class="p-5 sm:p-7">
 
-                <!-- Left Column: Catalog Selection -->
-                <div class="lg:col-span-2 space-y-6">
-
-                    <!-- Breadcrumb Navigation -->
-                    <div class="text-sm breadcrumbs mb-4 card bg-base-100 shadow-sm border border-base-300/50 p-4">
-                        <ul>
-                            <li><a @click="showCategories()" class="cursor-pointer font-medium"
-                                    :class="catalogStep === 'categories' ? 'text-primary' : ''">Kategori</a></li>
-                            <li x-show="catalogStep === 'products' || catalogStep === 'denoms'">
-                                <a @click="catalogStep === 'denoms' ? showProducts(selectedCategory) : null"
-                                    class="cursor-pointer font-medium"
-                                    :class="catalogStep === 'products' ? 'text-primary' : ''"
-                                    x-text="selectedCategory?.name"></a>
-                            </li>
-                            <li x-show="catalogStep === 'denoms'">
-                                <span class="font-medium text-primary" x-text="selectedProduct?.name"></span>
-                            </li>
-                        </ul>
+                    <!-- Modal header -->
+                    <div class="flex items-center gap-3 mb-6">
+                        <span class="w-12 h-12 rounded-2xl grid place-items-center text-2xl text-white shrink-0"
+                            :class="activeCat ? catMeta(activeCat).bg : 'bg-base-300'" x-text="activeCat ? catMeta(activeCat).ic : ''"></span>
+                        <div class="min-w-0">
+                            <h2 class="text-xl font-bold truncate" x-text="activeCat?.name"></h2>
+                            <p class="text-sm text-base-content/55" x-text="activeCat?.categoryType === 'PREPAID' ? 'Prabayar' : 'Pascabayar'"></p>
+                        </div>
+                        <button @click="closeModal()"
+                            class="ml-auto w-9 h-9 rounded-full bg-base-200 hover:bg-base-300 grid place-items-center text-base-content/60 transition"
+                            aria-label="Tutup">✕</button>
                     </div>
 
-                    <!-- Catalog Content -->
-                    <div class="card bg-base-100 shadow-sm border border-base-300/50 min-h-[400px]">
-                        <div class="card-body p-0">
-                            <!-- Loading State -->
-                            <div x-show="loadingCatalog" class="flex justify-center items-center h-64">
-                                <span class="loading loading-spinner loading-lg text-primary"></span>
-                            </div>
+                    <!-- Target number -->
+                    <label class="block text-sm font-medium mb-1.5" x-text="activeCat ? catMeta(activeCat).field : 'Nomor Tujuan'"></label>
+                    <input x-model="number" @input="detect" inputmode="numeric" autocomplete="off" maxlength="20"
+                        placeholder="0812 3456 7890"
+                        class="w-full text-lg font-semibold tabular-nums bg-base-100 border border-base-300 rounded-xl px-4 py-3 outline-none focus:border-primary focus:ring-4 focus:ring-primary/15 transition">
+                    <div class="h-6 mt-1.5 flex items-center text-sm">
+                        <span x-show="operator" x-cloak class="flex items-center gap-1.5 font-medium text-success">
+                            <span class="w-2 h-2 rounded-full bg-success"></span><span x-text="operator + ' terdeteksi'"></span>
+                        </span>
+                    </div>
 
-                            <!-- Categories -->
-                            <div x-show="!loadingCatalog && catalogStep === 'categories'"
-                                class="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <template x-for="cat in categories" :key="cat.id">
-                                    <div @click="showProducts(cat)"
-                                        class="flex items-center gap-4 p-4 border border-base-300 rounded-xl hover:border-primary cursor-pointer transition-all hover:shadow-md bg-base-100 hover:bg-primary/5">
-                                        <div
-                                            class="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary font-bold text-xl">
-                                            <span x-text="cat.name.substring(0, 1).toUpperCase()"></span>
-                                        </div>
-                                        <div>
-                                            <h3 class="font-bold text-base-content" x-text="cat.name"></h3>
-                                            <p class="text-sm text-base-content/60"
-                                                x-text="cat.categoryType === 'PREPAID' ? 'Prabayar' : 'Pascabayar'"></p>
-                                        </div>
-                                        <div class="ml-auto">
-                                            <svg class="w-5 h-5 text-base-content/30" fill="none" stroke="currentColor"
-                                                viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                    d="M9 5l7 7-7 7" />
-                                            </svg>
-                                        </div>
-                                    </div>
-                                </template>
-                            </div>
-
-                            <!-- Products -->
-                            <div x-show="!loadingCatalog && catalogStep === 'products'"
-                                class="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <template x-for="prod in products" :key="prod.id">
-                                    <div @click="showDenoms(prod)"
-                                        class="flex items-start gap-4 p-4 border border-base-300 rounded-xl hover:border-primary cursor-pointer transition-all hover:shadow-md bg-base-100 hover:bg-primary/5">
-                                        <div
-                                            class="w-10 h-10 rounded-full bg-base-200 flex items-center justify-center font-bold text-base-content/70">
-                                            <span x-text="prod.name.substring(0, 1).toUpperCase()"></span>
-                                        </div>
-                                        <div class="flex-1">
-                                            <h3 class="font-bold text-base-content" x-text="prod.name"></h3>
-                                            <p class="text-xs badge badge-outline mt-1" x-text="prod.providerName"></p>
-                                        </div>
-                                    </div>
-                                </template>
-                                <div x-show="products.length === 0"
-                                    class="col-span-full py-12 text-center text-base-content/50">
-                                    Tidak ada produk di kategori ini.
-                                </div>
-                            </div>
-
-                            <!-- Denoms -->
-                            <div x-show="!loadingCatalog && catalogStep === 'denoms'" class="p-4">
-                                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                    <template x-for="denom in denoms" :key="denom.id">
-                                        <div @click="selectDenom(denom)"
-                                            class="border rounded-xl p-4 cursor-pointer transition-all hover:shadow-md relative overflow-hidden"
-                                            :class="selectedDenom?.id === denom.id ? 'border-primary bg-primary/5 shadow-md ring-1 ring-primary' : 'border-base-300 bg-base-100 hover:border-primary/50'">
-
-                                            <!-- Selected Checkmark -->
-                                            <div x-show="selectedDenom?.id === denom.id"
-                                                class="absolute top-0 right-0 w-8 h-8 flex items-center justify-center bg-primary rounded-bl-lg">
-                                                <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor"
-                                                    viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round"
-                                                        stroke-width="2" d="M5 13l4 4L19 7" />
-                                                </svg>
-                                            </div>
-
-                                            <h4 class="font-bold text-base-content mb-1 pr-6" x-text="denom.name"></h4>
-                                            <div class="flex flex-col gap-1 mb-3">
-                                                <span class="text-xl font-bold text-primary"
-                                                    x-text="formatCurrency(denom.price)"></span>
-                                                <span class="text-xs text-base-content/60"
-                                                    x-text="'Admin: ' + formatCurrency(denom.adminFee)"></span>
-                                            </div>
-
-                                            <div class="flex flex-wrap gap-1 mt-auto">
-                                                <span x-show="denom.validityDays" class="badge badge-sm badge-ghost"
-                                                    x-text="denom.validityDays + ' hari'"></span>
-                                                <span x-show="denom.quotaMb"
-                                                    class="badge badge-sm badge-info badge-outline"
-                                                    x-text="formatQuota(denom.quotaMb)"></span>
-                                            </div>
-                                        </div>
-                                    </template>
-                                </div>
-                                <div x-show="denoms.length === 0" class="py-12 text-center text-base-content/50">
-                                    Tidak ada pecahan untuk produk ini.
-                                </div>
-                            </div>
-
+                    <!-- Product selector (when >1 provider) -->
+                    <div x-show="products.length > 1" x-cloak class="mt-2">
+                        <label class="block text-sm font-medium mb-2">Pilih operator / produk</label>
+                        <div class="flex flex-wrap gap-2">
+                            <template x-for="p in products" :key="p.id">
+                                <button @click="selectProduct(p)"
+                                    class="px-3.5 py-2 rounded-full text-sm font-medium border transition"
+                                    :class="product?.id === p.id ? 'border-primary bg-primary/10 text-primary' : 'border-base-300 text-base-content/70 hover:border-primary/50'"
+                                    x-text="p.name"></button>
+                            </template>
                         </div>
                     </div>
+
+                    <!-- Nominal -->
+                    <div class="mt-5">
+                        <label class="block text-sm font-medium mb-2" x-show="product || loadingDenoms">Pilih nominal</label>
+
+                        <!-- skeleton -->
+                        <div x-show="loadingDenoms" class="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                            <template x-for="i in 6" :key="i"><div class="h-16 rounded-xl bg-base-200 animate-pulse"></div></template>
+                        </div>
+
+                        <!-- hint before product -->
+                        <p x-show="!product && !loadingDenoms" class="text-sm text-base-content/45 py-2">
+                            Masukkan nomor atau pilih produk untuk melihat nominal.
+                        </p>
+
+                        <!-- chips -->
+                        <div x-show="product && !loadingDenoms" class="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                            <template x-for="d in denoms" :key="d.id">
+                                <button @click="denom = d"
+                                    class="relative rounded-xl border px-4 py-3 text-left transition"
+                                    :class="denom?.id === d.id ? 'border-primary bg-primary/5 ring-2 ring-primary/30' : 'border-base-300 hover:border-primary/50'">
+                                    <span x-show="denom?.id === d.id" class="absolute top-0 right-0 w-6 h-6 grid place-items-center bg-primary text-primary-content text-xs rounded-bl-xl">✓</span>
+                                    <span class="block text-sm font-semibold truncate pr-5" x-text="d.name"></span>
+                                    <span class="block font-bold tabular-nums text-primary mt-0.5" x-text="formatCurrency(d.price)"></span>
+                                    <span class="flex flex-wrap gap-1 mt-1.5">
+                                        <span x-show="d.validityDays" class="text-[11px] px-1.5 py-0.5 rounded bg-base-200 text-base-content/60 tabular-nums" x-text="d.validityDays + ' hari'"></span>
+                                        <span x-show="d.quotaMb" class="text-[11px] px-1.5 py-0.5 rounded bg-primary/10 text-primary font-medium tabular-nums" x-text="formatQuota(d.quotaMb)"></span>
+                                    </span>
+                                </button>
+                            </template>
+                            <div x-show="denoms.length === 0" class="col-span-full py-6 text-center text-sm text-base-content/50">
+                                Tidak ada nominal untuk produk ini.
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Footer: balance + total + pay -->
+                    <div class="mt-6 pt-5 border-t border-base-300 sticky bottom-0 bg-base-100">
+                        <div x-show="isInsufficient" x-cloak class="flex items-center gap-2 rounded-lg bg-error/10 border border-error/20 px-3 py-2 mb-3 text-sm text-error">
+                            <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01M5.07 19h13.86c1.54 0 2.5-1.67 1.73-3L13.73 4c-.77-1.33-2.69-1.33-3.46 0L3.34 16c-.77 1.33.19 3 1.73 3z"/></svg>
+                            <span>Saldo tidak cukup. Saldo Anda <strong class="tabular-nums" x-text="formatCurrency(currentBalance)"></strong>.</span>
+                        </div>
+                        <div class="flex items-center justify-between gap-4">
+                            <div>
+                                <p class="text-xs text-base-content/55">Total bayar</p>
+                                <p class="text-xl font-bold tabular-nums" :class="total ? 'text-primary' : 'text-base-content/40'" x-text="formatCurrency(total)"></p>
+                            </div>
+                            <button @click="pay()" :disabled="!canPay || isSubmitting"
+                                class="rounded-xl bg-primary hover:brightness-95 disabled:opacity-40 disabled:cursor-not-allowed text-primary-content font-semibold px-8 py-3.5 transition min-w-[150px]">
+                                <span x-show="!isSubmitting">Bayar Sekarang</span>
+                                <span x-show="isSubmitting" class="loading loading-spinner loading-sm"></span>
+                            </button>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== VIEW: RESULT (receipt) ==================== -->
+        <div x-show="view === 'result'" x-cloak x-transition:enter="transition ease-out duration-500 delay-150"
+            x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100"
+            class="max-w-md mx-auto">
+
+            <div class="receipt bg-base-100 shadow-xl border border-base-300 overflow-hidden rounded-t-2xl">
+                <div x-show="resultData?.status === 'SUCCESS'" class="bg-success text-success-content p-8 text-center">
+                    <span class="w-16 h-16 rounded-full bg-white/20 grid place-items-center mx-auto mb-3 backdrop-blur-sm">
+                        <svg class="w-9 h-9" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                    </span>
+                    <h2 class="text-2xl font-bold">Transaksi Berhasil</h2>
+                    <p class="opacity-90 mt-1 text-sm">Pembelian telah diproses.</p>
+                </div>
+                <div x-show="resultData?.status !== 'SUCCESS'" class="bg-error text-error-content p-8 text-center">
+                    <span class="w-16 h-16 rounded-full bg-white/20 grid place-items-center mx-auto mb-3 backdrop-blur-sm">
+                        <svg class="w-9 h-9" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </span>
+                    <h2 class="text-2xl font-bold">Transaksi Gagal</h2>
+                    <p class="opacity-90 mt-1 text-sm" x-text="resultError || 'Terjadi kesalahan pada transaksi.'"></p>
                 </div>
 
-                <!-- Right Column: Input & Summary -->
-                <div class="space-y-6">
-                    <!-- Target Number Input -->
-                    <div class="card bg-base-100 shadow-sm border border-base-300/50">
-                        <div class="card-body">
-                            <h2 class="card-title text-lg mb-4">Nomor Tujuan</h2>
-
-                            <div class="floating-input-wrapper">
-                                <input type="text" x-model="targetNumber" @input="validateForm" class="floating-input"
-                                    :class="errors.targetNumber ? 'input-error' : ''" placeholder=" " id="targetNumber">
-                                <label for="targetNumber" class="floating-label">08xx / Nomor Pelanggan</label>
-                            </div>
-                            <p x-show="errors.targetNumber" class="text-error text-xs mt-1"
-                                x-text="errors.targetNumber"></p>
-                        </div>
+                <div class="p-6 pb-10">
+                    <div class="text-center pb-4 mb-4 border-b border-dashed border-base-300">
+                        <p class="text-3xl font-bold tabular-nums text-primary" x-text="formatCurrency(resultData?.total)"></p>
+                        <p class="text-xs text-base-content/45 mt-1 font-mono" x-text="'ID: ' + (resultData?.transactionId || '—')"></p>
                     </div>
-
-                    <!-- Summary & Actions -->
-                    <div class="card bg-base-100 shadow-md border border-primary/20 relative overflow-hidden">
-                        <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary to-accent"></div>
-                        <div class="card-body">
-                            <h2 class="card-title text-base mb-4">Ringkasan</h2>
-
-                            <div x-show="!selectedDenom" class="text-sm text-base-content/50 italic py-4">
-                                Silakan pilih produk terlebih dahulu
-                            </div>
-
-                            <div x-show="selectedDenom" class="space-y-3 text-sm">
-                                <div class="flex justify-between">
-                                    <span class="text-base-content/70">Produk</span>
-                                    <span class="font-medium text-right" x-text="selectedProduct?.name"></span>
-                                </div>
-                                <div class="flex justify-between">
-                                    <span class="text-base-content/70">Pecahan</span>
-                                    <span class="font-medium text-right" x-text="selectedDenom?.name"></span>
-                                </div>
-                                <div class="flex justify-between">
-                                    <span class="text-base-content/70">Nomor Tujuan</span>
-                                    <span class="font-medium text-right" x-text="targetNumber || '-'"></span>
-                                </div>
-                                <div class="divider my-1"></div>
-                                <div class="flex justify-between">
-                                    <span class="text-base-content/70">Harga Pokok</span>
-                                    <span x-text="selectedDenom ? formatCurrency(selectedDenom.price) : '-'"></span>
-                                </div>
-                                <div class="flex justify-between">
-                                    <span class="text-base-content/70">Biaya Admin</span>
-                                    <span x-text="selectedDenom ? formatCurrency(selectedDenom.adminFee) : '-'"></span>
-                                </div>
-                                <div class="divider my-1"></div>
-                                <div class="flex justify-between items-center bg-base-200/50 p-3 rounded-lg">
-                                    <span class="font-bold">Total Pembayaran</span>
-                                    <span class="font-bold text-lg text-primary"
-                                        x-text="selectedDenom ? formatCurrency(selectedDenom.price + (selectedDenom.adminFee || 0)) : '-'"></span>
-                                </div>
-
-                                <div x-show="isInsufficientBalance"
-                                    class="alert alert-error shadow-sm p-3 mt-4 text-sm rounded-lg flex items-start gap-2">
-                                    <svg class="w-5 h-5 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor"
-                                        viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                                    </svg>
-                                    <span>Saldo tidak cukup. Saldo Anda: <strong
-                                            x-text="formatCurrency(currentBalance)"></strong></span>
-                                </div>
-                            </div>
-
-                            <div class="mt-6">
-                                <button @click="openConfirmModal()" class="btn btn-primary w-full gap-2"
-                                    :disabled="!isValid || isInsufficientBalance">
-                                    Konfirmasi Pembelian
-                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                                    </svg>
-                                </button>
-                            </div>
+                    <div class="space-y-3 text-sm">
+                        <div class="flex justify-between gap-4">
+                            <span class="text-base-content/55">Nomor Tujuan</span>
+                            <span class="font-semibold tabular-nums tracking-wider" x-text="number"></span>
+                        </div>
+                        <div class="flex justify-between gap-4">
+                            <span class="text-base-content/55">Produk</span>
+                            <span class="font-medium text-right" x-text="(product?.name || '') + ' · ' + (denom?.name || '')"></span>
+                        </div>
+                        <div class="flex justify-between gap-4">
+                            <span class="text-base-content/55">Provider Ref</span>
+                            <span class="font-mono text-xs text-right break-all" x-text="resultData?.providerRef || '—'"></span>
+                        </div>
+                        <div x-show="resultData?.status === 'SUCCESS'" class="rounded-lg bg-success/10 border border-success/20 p-3 mt-2">
+                            <span class="block text-xs font-bold uppercase tracking-wide text-success mb-0.5">Serial Number</span>
+                            <span class="font-mono font-medium text-lg break-all" x-text="resultData?.serialNumber || 'Diproses'"></span>
+                        </div>
+                        <div x-show="resultData?.status === 'REFUNDED'" class="flex items-center gap-2 rounded-lg bg-warning/10 border border-warning/20 p-3 mt-2 text-warning-content text-sm">
+                            <svg class="w-5 h-5 shrink-0 text-warning" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/></svg>
+                            <span>Saldo telah dikembalikan otomatis ke akun Anda.</span>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- ==================== VIEW 2: CONFIRMATION MODAL ==================== -->
-            <!-- Handled safely via a dedicated custom modal, not just the confirm store -->
-            <dialog id="confirm_purchase_modal" class="modal modal-bottom sm:modal-middle">
-                <div class="modal-box">
-                    <h3 class="font-bold text-lg border-b pb-3 mb-4">Konfirmasi Pembelian</h3>
-
-                    <div class="p-4 bg-base-200 rounded-xl space-y-3 mb-6">
-                        <div class="grid grid-cols-3 gap-2 text-sm">
-                            <div class="text-base-content/60">Nomor Tujuan</div>
-                            <div class="col-span-2 font-bold font-mono text-lg tracking-wider" x-text="targetNumber">
-                            </div>
-
-                            <div class="col-span-3 divider my-1"></div>
-
-                            <div class="text-base-content/60">Produk</div>
-                            <div class="col-span-2 font-medium" x-text="selectedProduct?.name"></div>
-
-                            <div class="text-base-content/60">Pecahan</div>
-                            <div class="col-span-2 font-medium" x-text="selectedDenom?.name"></div>
-
-                            <div class="col-span-3 divider my-1"></div>
-
-                            <div class="text-base-content/60">Total Bayar</div>
-                            <div class="col-span-2 font-bold text-primary text-xl"
-                                x-text="formatCurrency(selectedDenom ? (selectedDenom.price + (selectedDenom.adminFee || 0)) : 0)">
-                            </div>
-                        </div>
-                    </div>
-
-                    <div
-                        class="alert bg-warning/10 text-warning-content border border-warning/20 p-3 rounded-lg text-sm flex gap-3 items-center">
-                        <svg class="w-6 h-6 flex-shrink-0 text-warning" fill="none" stroke="currentColor"
-                            viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        <span>Pastikan nomor tujuan sudah benar. Transaksi yang sukses tidak dapat dibatalkan.</span>
-                    </div>
-
-                    <div class="modal-action mt-6 gap-2">
-                        <button class="btn btn-ghost" @click="closeConfirmModal()"
-                            :disabled="isSubmitting">Batal</button>
-                        <button class="btn btn-primary min-w-[120px]" @click="submitPurchase()"
-                            :disabled="isSubmitting">
-                            <span x-show="!isSubmitting">Bayar Sekarang</span>
-                            <span x-show="isSubmitting" class="loading loading-spinner"></span>
-                        </button>
-                    </div>
-                </div>
-                <form method="dialog" class="modal-backdrop">
-                    <button @click="closeConfirmModal()" :disabled="isSubmitting">close</button>
-                </form>
-            </dialog>
-
-            <!-- ==================== VIEW 3: RESULT ==================== -->
-            <div x-show="view === 'result'" x-cloak x-transition:enter="transition ease-out duration-500 delay-200"
-                x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100"
-                class="max-w-2xl mx-auto">
-
-                <div class="card bg-base-100 shadow-xl border border-base-300">
-                    <!-- Success Header -->
-                    <div x-show="resultData?.status === 'SUCCESS'"
-                        class="bg-success text-success-content p-8 text-center rounded-t-xl">
-                        <div
-                            class="w-20 h-20 rounded-full bg-white/20 flex items-center justify-center mx-auto mb-4 backdrop-blur-sm">
-                            <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3"
-                                    d="M5 13l4 4L19 7" />
-                            </svg>
-                        </div>
-                        <h2 class="text-2xl font-bold">Transaksi Berhasil!</h2>
-                        <p class="opacity-90 mt-2">Pembelian produk telah sukses dilakukan.</p>
-                    </div>
-
-                    <!-- Failed Header -->
-                    <div x-show="resultData?.status !== 'SUCCESS'"
-                        class="bg-error text-error-content p-8 text-center rounded-t-xl">
-                        <div
-                            class="w-20 h-20 rounded-full bg-white/20 flex items-center justify-center mx-auto mb-4 backdrop-blur-sm">
-                            <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3"
-                                    d="M6 18L18 6M6 6l12 12" />
-                            </svg>
-                        </div>
-                        <h2 class="text-2xl font-bold">Transaksi Gagal</h2>
-                        <p class="opacity-90 mt-2" x-text="resultError || 'Terjadi kesalahan pada transaksi.'"></p>
-                    </div>
-
-                    <div class="card-body p-6 md:p-8">
-                        <!-- Receipt Details -->
-                        <div class="bg-base-200/50 rounded-xl p-6 space-y-4 mb-6 relative">
-                            <!-- Decorative zigzag lines for receipt feel effect -->
-                            <div class="absolute -top-1 left-0 right-0 h-2"
-                                style="background-image: radial-gradient(circle, transparent 4px, hsl(var(--b1)) 4px); background-size: 10px 10px; background-position: -5px -5px;">
-                            </div>
-
-                            <div class="text-center pb-4 border-b border-base-300 border-dashed">
-                                <p class="text-3xl font-bold text-primary" x-text="formatCurrency(resultData?.total)">
-                                </p>
-                                <p class="text-xs text-base-content/50 mt-1"
-                                    x-text="'ID: ' + (resultData?.transactionId || '-')"></p>
-                            </div>
-
-                            <div class="space-y-3 text-sm">
-                                <div class="flex justify-between">
-                                    <span class="text-base-content/60">Nomor Tujuan</span>
-                                    <span class="font-bold tracking-wider" x-text="targetNumber"></span>
-                                </div>
-                                <div class="flex justify-between">
-                                    <span class="text-base-content/60">Produk</span>
-                                    <span class="font-medium text-right"
-                                        x-text="selectedProduct?.name + ' - ' + selectedDenom?.name"></span>
-                                </div>
-                                <div class="flex justify-between">
-                                    <span class="text-base-content/60">Provider Ref</span>
-                                    <span class="font-mono text-xs mt-0.5"
-                                        x-text="resultData?.providerRef || '-'"></span>
-                                </div>
-
-                                <!-- Serial Number (Success only) -->
-                                <div x-show="resultData?.status === 'SUCCESS'"
-                                    class="flex flex-col gap-1 mt-4 p-3 bg-base-100 border border-success/20 rounded-lg">
-                                    <span class="text-xs text-success font-bold uppercase">Serial Number (SN)</span>
-                                    <span class="font-mono font-medium text-lg"
-                                        x-text="resultData?.serialNumber || 'Proses'"></span>
-                                </div>
-
-                                <!-- Refund Notice (Failed only) -->
-                                <div x-show="resultData?.status === 'REFUNDED'"
-                                    class="flex items-center gap-2 p-3 bg-warning/10 text-warning-content border border-warning/20 rounded-lg">
-                                    <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor"
-                                        viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
-                                    </svg>
-                                    <span>Saldo telah dikembalikan secara otomatis ke akun Anda.</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="flex flex-col sm:flex-row gap-3">
-                            <button class="btn btn-outline flex-1" @click="goToTransactions()">Lihat Riwayat</button>
-                            <button class="btn btn-primary flex-1" @click="resetForm()">Beli Lagi</button>
-                        </div>
-                    </div>
-                </div>
+            <div class="flex flex-col sm:flex-row gap-3 mt-4">
+                <button class="btn btn-outline flex-1" @click="goToTransactions()">Lihat Riwayat</button>
+                <button class="btn btn-primary flex-1" @click="resetForm()">Beli Lagi</button>
             </div>
         </div>
 
@@ -389,178 +228,138 @@
         <script>
             function purchaseFlow() {
                 return {
-                    view: 'selection', // selection, result
-                    catalogStep: 'categories', // categories, products, denoms
-
-                    // Data
+                    view: 'grid',
                     categories: [],
-                    products: [],
-                    denoms: [],
-
-                    // Selections
-                    selectedCategory: null,
-                    selectedProduct: null,
-                    selectedDenom: null,
-                    targetNumber: '',
-
-                    // State
-                    loadingCatalog: false,
-                    loadingBalance: false,
-                    isSubmitting: false,
+                    loadingCats: true,
                     currentBalance: 0,
 
-                    // Result
-                    resultData: null,
-                    resultError: '',
+                    // modal
+                    modalOpen: false,
+                    activeCat: null,
+                    products: [], loadingProducts: false,
+                    product: null,
+                    denoms: [], loadingDenoms: false,
+                    denom: null,
+                    number: '', operator: '',
+                    isSubmitting: false,
 
-                    // Validation
-                    errors: {},
-                    get isValid() {
-                        return this.selectedDenom !== null &&
-                            this.targetNumber !== '' &&
-                            Object.keys(this.errors).length === 0;
+                    // result
+                    resultData: null, resultError: '',
+
+                    // category visual identity (backend gives no icon — map by code/name)
+                    catMeta(c) {
+                        const key = ((c && (c.code || c.name)) || '').toUpperCase();
+                        const table = [
+                            { k: ['PULSA'],                                  ic: '📶', bg: 'bg-brand-orange-600', field: 'Nomor HP',       phone: true },
+                            { k: ['DATA', 'INTERNET', 'KUOTA'],              ic: '🌐', bg: 'bg-sky-600',          field: 'Nomor HP',       phone: true },
+                            { k: ['GAME', 'VOUCHER'],                        ic: '🎮', bg: 'bg-violet-600',       field: 'User ID',        phone: false },
+                            { k: ['PLN', 'LISTRIK', 'TOKEN'],                ic: '⚡', bg: 'bg-amber-500',        field: 'No. Meter',      phone: false },
+                            { k: ['WALLET', 'SALDO', 'OVO', 'DANA', 'GOPAY'],ic: '💳', bg: 'bg-emerald-600',      field: 'Nomor HP',       phone: true },
+                            { k: ['PASCA', 'POSTPAID', 'TAGIHAN'],           ic: '🧾', bg: 'bg-rose-600',         field: 'No. Pelanggan',  phone: false },
+                        ];
+                        for (const e of table) { if (e.k.some(x => key.includes(x))) return e; }
+                        return { ic: '🛒', bg: 'bg-slate-600', field: 'Nomor Tujuan', phone: false };
                     },
 
-                    get isInsufficientBalance() {
-                        if (!this.selectedDenom) return false;
-                        const total = this.selectedDenom.price + (this.selectedDenom.adminFee || 0);
-                        return this.currentBalance < total;
-                    },
+                    get total() { return this.denom ? this.denom.price + (this.denom.adminFee || 0) : 0; },
+                    get isInsufficient() { return this.denom ? this.currentBalance < this.total : false; },
+                    get canPay() { return !!this.denom && this.number.length >= 10 && !this.isInsufficient; },
 
-                    init() {
-                        this.loadCategories();
-                        this.fetchBalance();
-                    },
+                    init() { this.loadCategories(); this.fetchBalance(); },
 
-                    // API Calls
                     async loadCategories() {
-                        this.loadingCatalog = true;
+                        this.loadingCats = true;
                         try {
-                            const res = await fetch('/api/categories/type/PREPAID'); // Only prepaid for purchase
-                            if (res.ok) this.categories = await res.json();
-                        } catch (e) {
-                            Alpine.store('toast').error('Gagal memuat kategori');
-                        }
-                        this.loadingCatalog = false;
+                            const r = await fetch('/api/categories/type/PREPAID');
+                            if (r.ok) this.categories = await r.json();
+                        } catch (e) { Alpine.store('toast').error('Gagal memuat kategori'); }
+                        this.loadingCats = false;
                     },
 
                     async fetchBalance() {
-                        this.loadingBalance = true;
                         try {
-                            const res = await fetch('/api/transactions/balance');
-                            if (res.ok) {
-                                const data = await res.json();
-                                this.currentBalance = data.balance;
-                            }
-                        } catch (e) {
-                            console.error('Failed to fetch balance', e);
-                        }
-                        this.loadingBalance = false;
+                            const r = await fetch('/api/transactions/balance');
+                            if (r.ok) { const d = await r.json(); this.currentBalance = d.balance; }
+                        } catch (e) { console.error('Failed to fetch balance', e); }
                     },
 
-                    async showProducts(category) {
-                        this.selectedCategory = category;
-                        this.catalogStep = 'products';
-                        this.selectedProduct = null;
-                        this.selectedDenom = null;
-                        this.loadingCatalog = true;
+                    openCat(c) {
+                        this.activeCat = c;
+                        this.modalOpen = true;
+                        this.products = []; this.product = null;
+                        this.denoms = []; this.denom = null;
+                        this.number = ''; this.operator = '';
+                        this.loadProducts(c);
+                    },
+
+                    closeModal() { this.modalOpen = false; },
+
+                    async loadProducts(c) {
+                        this.loadingProducts = true;
                         try {
-                            const res = await fetch(`/api/categories/${category.code}/products`);
-                            if (res.ok) this.products = await res.json();
-                        } catch (e) {
-                            Alpine.store('toast').error('Gagal memuat produk');
-                        }
-                        this.loadingCatalog = false;
+                            const r = await fetch(`/api/categories/${c.code}/products`);
+                            if (r.ok) this.products = await r.json();
+                        } catch (e) { Alpine.store('toast').error('Gagal memuat produk'); }
+                        this.loadingProducts = false;
+                        // Single provider → pick it automatically
+                        if (this.products.length === 1) this.selectProduct(this.products[0]);
                     },
 
-                    async showDenoms(product) {
-                        this.selectedProduct = product;
-                        this.catalogStep = 'denoms';
-                        this.selectedDenom = null;
-                        this.loadingCatalog = true;
+                    async selectProduct(p) {
+                        this.product = p;
+                        this.denom = null; this.denoms = [];
+                        this.loadingDenoms = true;
                         try {
-                            const res = await fetch(`/api/products/${product.code}/denoms`);
-                            if (res.ok) this.denoms = await res.json();
-                        } catch (e) {
-                            Alpine.store('toast').error('Gagal memuat pecahan');
-                        }
-                        this.loadingCatalog = false;
+                            const r = await fetch(`/api/products/${p.code}/denoms`);
+                            if (r.ok) this.denoms = await r.json();
+                        } catch (e) { Alpine.store('toast').error('Gagal memuat nominal'); }
+                        this.loadingDenoms = false;
                     },
 
-                    showCategories() {
-                        this.catalogStep = 'categories';
-                        this.selectedCategory = null;
-                        this.selectedProduct = null;
-                        this.selectedDenom = null;
-                    },
-
-                    selectDenom(denom) {
-                        this.selectedDenom = denom;
-                    },
-
-                    // Validation
-                    validateForm() {
-                        this.errors = {};
-                        if (!this.targetNumber) {
-                            // Empty is fine while typing, button will be disabled anyway
-                            return;
-                        }
-                        if (this.targetNumber.length < 10) {
-                            this.errors.targetNumber = "Nomor terlalu pendek (min 10 digit)";
-                        } else if (!/^[0-9]+$/.test(this.targetNumber)) {
-                            this.errors.targetNumber = "Hanya boleh angka";
+                    detect() {
+                        if (!this.catMeta(this.activeCat).phone) { this.operator = ''; return; }
+                        const p = this.number.replace(/\D/g, '').slice(0, 4);
+                        const map = {
+                            '0811': 'Telkomsel', '0812': 'Telkomsel', '0813': 'Telkomsel', '0821': 'Telkomsel', '0822': 'Telkomsel', '0852': 'Telkomsel', '0853': 'Telkomsel',
+                            '0817': 'XL', '0818': 'XL', '0819': 'XL', '0859': 'XL', '0877': 'XL', '0878': 'XL',
+                            '0814': 'Indosat', '0815': 'Indosat', '0816': 'Indosat', '0855': 'Indosat', '0856': 'Indosat', '0857': 'Indosat', '0858': 'Indosat',
+                            '0895': 'Tri', '0896': 'Tri', '0897': 'Tri', '0898': 'Tri', '0899': 'Tri',
+                            '0831': 'Axis', '0832': 'Axis', '0833': 'Axis', '0838': 'Axis',
+                            '0881': 'Smartfren', '0882': 'Smartfren', '0883': 'Smartfren', '0888': 'Smartfren'
+                        };
+                        this.operator = map[p] || '';
+                        // Auto-select the matching provider product
+                        if (this.operator) {
+                            const m = this.products.find(x => (x.name || '').toUpperCase().includes(this.operator.toUpperCase()));
+                            if (m && m.id !== this.product?.id) this.selectProduct(m);
                         }
                     },
 
-                    // Flow Actions
-                    openConfirmModal() {
-                        this.validateForm();
-                        if (!this.isValid || this.isInsufficientBalance) return;
-
-                        document.getElementById('confirm_purchase_modal').showModal();
-                    },
-
-                    closeConfirmModal() {
-                        document.getElementById('confirm_purchase_modal').close();
-                    },
-
-                    async submitPurchase() {
+                    async pay() {
+                        if (!this.canPay) return;
                         this.isSubmitting = true;
-
                         try {
-                            const response = await fetch('/api/transactions/purchase', {
+                            const res = await fetch('/api/transactions/purchase', {
                                 method: 'POST',
                                 headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({
-                                    denomId: this.selectedDenom.id,
-                                    targetNumber: this.targetNumber
-                                })
+                                body: JSON.stringify({ denomId: this.denom.id, targetNumber: this.number })
                             });
-
-                            const data = await response.json();
-
-                            this.closeConfirmModal();
-
-                            if (response.ok) {
-                                this.resultData = data;
-                                this.resultError = '';
-                                this.view = 'result';
+                            const data = await res.json();
+                            this.closeModal();
+                            if (res.ok) {
+                                this.resultData = data; this.resultError = ''; this.view = 'result';
                                 Alpine.store('toast').success('Transaksi berhasil dimulai');
-                                this.fetchBalance(); // Refresh balance
+                                this.fetchBalance();
+                            } else if (res.status === 422) {
+                                Alpine.store('toast').error(data.message || 'Saldo tidak cukup');
+                                this.fetchBalance();
                             } else {
-                                if (response.status === 422) {
-                                    // Insufficient balance or similar
-                                    Alpine.store('toast').error(data.message || 'Saldo tidak cukup');
-                                    this.fetchBalance(); // Refresh balance specifically for 422
-                                } else {
-                                    // API failed logic, but let's show result view with FAILED status
-                                    this.resultData = { status: 'FAILED' };
-                                    this.resultError = data.message || 'Terjadi kesalahan sistem';
-                                    this.view = 'result';
-                                }
+                                this.resultData = { status: 'FAILED' };
+                                this.resultError = data.message || 'Terjadi kesalahan sistem';
+                                this.view = 'result';
                             }
                         } catch (e) {
-                            this.closeConfirmModal();
+                            this.closeModal();
                             Alpine.store('toast').error('Terjadi kesalahan jaringan');
                             this.resultData = { status: 'FAILED' };
                             this.resultError = 'Gagal menghubungi server';
@@ -571,24 +370,16 @@
                     },
 
                     resetForm() {
-                        this.view = 'selection';
-                        this.catalogStep = 'categories';
-                        this.selectedCategory = null;
-                        this.selectedProduct = null;
-                        this.selectedDenom = null;
-                        this.targetNumber = '';
-                        this.resultData = null;
-                        this.resultError = '';
-                        this.errors = {};
+                        this.view = 'grid';
+                        this.resultData = null; this.resultError = '';
+                        this.activeCat = null; this.product = null; this.denom = null;
+                        this.number = ''; this.operator = '';
                         this.fetchBalance();
                         window.scrollTo({ top: 0, behavior: 'smooth' });
                     },
 
-                    goToTransactions() {
-                        window.location.href = '/transactions';
-                    },
+                    goToTransactions() { window.location.href = '/transactions'; },
 
-                    // Formatters
                     formatCurrency(amount) {
                         if (amount == null) return '-';
                         return new Intl.NumberFormat('id-ID', {

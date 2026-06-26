@@ -1,430 +1,302 @@
 <!DOCTYPE html>
-<html lang="id" xmlns:th="http://www.thymeleaf.org" x-data="{ mobileMenuOpen: false }">
+<html lang="id" xmlns:th="http://www.thymeleaf.org">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Satset-Go Management Konter Pulsa</title>
-    <meta name="description"
-        content="Omnip adalah platform management server pulsa modern dengan fitur lengkap untuk mengelola transaksi, pengguna, dan laporan.">
+    <title>Satset Go · Top Up Pulsa &amp; Data</title>
+    <meta name="description" content="Top up pulsa, paket data, token PLN. Sepuluh detik kelar, struk langsung jadi.">
 
-    <!-- Local Compiled CSS (Tailwind + DaisyUI) -->
     <link rel="stylesheet" th:href="@{/css/output.css}" />
 
-    <!-- Theme initialization -->
     <script>
-        (function () {
-            const theme = localStorage.getItem('theme') || 'omnip-light';
-            document.documentElement.setAttribute('data-theme', theme);
-        })();
+        (function () { document.documentElement.setAttribute('data-theme', 'omnip-light'); })();
     </script>
 
-    <!-- Alpine.js -->
     <script defer th:src="@{/js/alpine.min.js}"></script>
 
     <style>
-        [x-cloak] {
-            display: none !important;
+        :root { color-scheme: light; }
+        [x-cloak] { display: none !important; }
+        .tnum { font-variant-numeric: tabular-nums; }
+        html { scroll-behavior: smooth; }
+        .receipt {
+            -webkit-mask: radial-gradient(7px 7px at 14px bottom, transparent 6.5px, #000 7px) repeat-x left bottom / 28px 14px,
+                          linear-gradient(#000,#000) top/100% calc(100% - 8px) no-repeat;
+            mask: radial-gradient(7px 7px at 14px bottom, transparent 6.5px, #000 7px) repeat-x left bottom / 28px 14px,
+                  linear-gradient(#000,#000) top/100% calc(100% - 8px) no-repeat;
         }
-
-        /* Smooth scroll behavior */
-        html {
-            scroll-behavior: smooth;
-        }
-
-        /* Hero gradient animation */
-        .hero-gradient {
-            background: linear-gradient(135deg, rgba(234, 88, 12, 0.1) 0%, rgba(249, 115, 22, 0.05) 50%, transparent 100%);
-        }
-
-        /* Floating animation */
-        @keyframes float {
-
-            0%,
-            100% {
-                transform: translateY(0px);
-            }
-
-            50% {
-                transform: translateY(-10px);
-            }
-        }
-
-        .float-animation {
-            animation: float 3s ease-in-out infinite;
-        }
-
-        /* Gradient text */
-        .gradient-text {
-            background: linear-gradient(135deg, #ea580c 0%, #f97316 50%, #fb923c 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
+        @keyframes rise { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:none} }
+        .rise { animation: rise .55s cubic-bezier(.22,1,.36,1) backwards; }
+        .d1{animation-delay:.05s}.d2{animation-delay:.12s}.d3{animation-delay:.2s}.d4{animation-delay:.28s}
+        @media (prefers-reduced-motion: reduce) { .rise{animation:none} html{scroll-behavior:auto} }
     </style>
 </head>
 
-<body class="bg-base-200 min-h-screen font-sans antialiased">
+<body class="bg-mist text-ink antialiased">
 
-    <!-- Navigation -->
-    <nav class="fixed top-0 left-0 right-0 z-50 bg-base-100/80 backdrop-blur-xl border-b border-base-300">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex items-center justify-between h-16">
-                <!-- Logo -->
-                <div class="flex items-center gap-3">
-                    <div
-                        class="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center">
-                        <svg class="w-6 h-6 text-primary-content" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M13 10V3L4 14h7v7l9-11h-7z" />
-                        </svg>
-                    </div>
-                    <span class="text-xl font-bold text-base-content">Omnip</span>
-                </div>
-
-                <!-- Desktop Menu -->
-                <div class="hidden md:flex items-center gap-8">
-                    <a href="#features"
-                        class="text-base-content/70 hover:text-primary transition-colors font-medium">Fitur</a>
-                    <a href="#pricing"
-                        class="text-base-content/70 hover:text-primary transition-colors font-medium">Harga</a>
-                    <a href="#about"
-                        class="text-base-content/70 hover:text-primary transition-colors font-medium">Tentang</a>
-                    <a href="#contact"
-                        class="text-base-content/70 hover:text-primary transition-colors font-medium">Kontak</a>
-                </div>
-
-                <!-- Actions -->
-                <div class="flex items-center gap-3">
-                    <!-- Theme Toggle -->
-                    <label class="swap swap-rotate btn btn-ghost btn-circle"
-                        x-data="{ isDark: localStorage.getItem('theme') === 'omnip-dark' }" x-init="$watch('isDark', val => { 
-                            const theme = val ? 'omnip-dark' : 'omnip-light';
-                            localStorage.setItem('theme', theme);
-                            document.documentElement.setAttribute('data-theme', theme);
-                        })">
-                        <input type="checkbox" x-model="isDark" />
-                        <svg class="swap-on fill-current w-5 h-5" xmlns="http://www.w3.org/2000/svg"
-                            viewBox="0 0 24 24">
-                            <path
-                                d="M5.64,17l-.71.71a1,1,0,0,0,0,1.41,1,1,0,0,0,1.41,0l.71-.71A1,1,0,0,0,5.64,17ZM5,12a1,1,0,0,0-1-1H3a1,1,0,0,0,0,2H4A1,1,0,0,0,5,12Zm7-7a1,1,0,0,0,1-1V3a1,1,0,0,0-2,0V4A1,1,0,0,0,12,5ZM5.64,7.05a1,1,0,0,0,.7.29,1,1,0,0,0,.71-.29,1,1,0,0,0,0-1.41l-.71-.71A1,1,0,0,0,4.93,6.34Zm12,.29a1,1,0,0,0,.7-.29l.71-.71a1,1,0,1,0-1.41-1.41L17,5.64a1,1,0,0,0,0,1.41A1,1,0,0,0,17.66,7.34ZM21,11H20a1,1,0,0,0,0,2h1a1,1,0,0,0,0-2Zm-9,8a1,1,0,0,0-1,1v1a1,1,0,0,0,2,0V20A1,1,0,0,0,12,19ZM18.36,17A1,1,0,0,0,17,18.36l.71.71a1,1,0,0,0,1.41,0,1,1,0,0,0,0-1.41ZM12,6.5A5.5,5.5,0,1,0,17.5,12,5.51,5.51,0,0,0,12,6.5Zm0,9A3.5,3.5,0,1,1,15.5,12,3.5,3.5,0,0,1,12,15.5Z" />
-                        </svg>
-                        <svg class="swap-off fill-current w-5 h-5" xmlns="http://www.w3.org/2000/svg"
-                            viewBox="0 0 24 24">
-                            <path
-                                d="M21.64,13a1,1,0,0,0-1.05-.14,8.05,8.05,0,0,1-3.37.73A8.15,8.15,0,0,1,9.08,5.49a8.59,8.59,0,0,1,.25-2A1,1,0,0,0,8,2.36,10.14,10.14,0,1,0,22,14.05,1,1,0,0,0,21.64,13Zm-9.5,6.69A8.14,8.14,0,0,1,7.08,5.22v.27A10.15,10.15,0,0,0,17.22,15.63a9.79,9.79,0,0,0,2.1-.22A8.11,8.11,0,0,1,12.14,19.73Z" />
-                        </svg>
-                    </label>
-
-                    <!-- Login Button -->
-                    <a th:href="@{/oauth2/authorization/keycloak}" class="btn btn-primary btn-sm gap-2">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
-                        </svg>
-                        <span class="hidden sm:inline">Masuk</span>
-                    </a>
-
-                    <!-- Mobile Menu Button -->
-                    <button @click="mobileMenuOpen = !mobileMenuOpen" class="btn btn-ghost btn-circle md:hidden">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path x-show="!mobileMenuOpen" stroke-linecap="round" stroke-linejoin="round"
-                                stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
-                            <path x-show="mobileMenuOpen" stroke-linecap="round" stroke-linejoin="round"
-                                stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                    </button>
-                </div>
-            </div>
-
-            <!-- Mobile Menu -->
-            <div x-show="mobileMenuOpen" x-cloak x-transition class="md:hidden py-4 border-t border-base-300">
-                <div class="flex flex-col gap-4">
-                    <a href="#features"
-                        class="text-base-content/70 hover:text-primary transition-colors font-medium">Fitur</a>
-                    <a href="#pricing"
-                        class="text-base-content/70 hover:text-primary transition-colors font-medium">Harga</a>
-                    <a href="#about"
-                        class="text-base-content/70 hover:text-primary transition-colors font-medium">Tentang</a>
-                    <a href="#contact"
-                        class="text-base-content/70 hover:text-primary transition-colors font-medium">Kontak</a>
-                </div>
-            </div>
+<!-- ===== NAV ===== -->
+<nav class="sticky top-0 z-40 bg-mist/85 backdrop-blur border-b border-line" x-data="{ open: false }">
+    <div class="max-w-6xl mx-auto px-5 sm:px-8 h-16 flex items-center justify-between">
+        <a th:href="@{/}" class="flex items-center gap-2.5">
+            <span class="w-8 h-8 rounded-lg bg-brand-orange-600 grid place-items-center">
+                <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+            </span>
+            <span class="font-bold tracking-tight">satset<span class="text-brand-orange-600">go</span></span>
+        </a>
+        <div class="hidden md:flex items-center gap-7 text-[15px] text-faint">
+            <a href="#produk" class="hover:text-ink transition">Produk</a>
+            <a href="#aman" class="hover:text-ink transition">Keamanan</a>
+            <a href="#tanya" class="hover:text-ink transition">Tanya jawab</a>
         </div>
-    </nav>
-
-    <!-- Hero Section -->
-    <section class="min-h-screen pt-16 flex items-center hero-gradient">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
-            <div class="grid lg:grid-cols-2 gap-12 items-center">
-                <!-- Hero Content -->
-                <div class="space-y-8">
-                    <div
-                        class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-medium">
-                        <span class="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
-                        Platform Server Pulsa #1 Indonesia
-                    </div>
-
-                    <h1 class="text-4xl sm:text-5xl lg:text-6xl font-bold text-base-content leading-tight">
-                        Kelola Server Pulsa dengan
-                        <span class="gradient-text">Lebih Mudah</span>
-                    </h1>
-
-                    <p class="text-lg text-base-content/60 max-w-xl">
-                        Omnip adalah platform management server pulsa modern yang membantu Anda mengelola transaksi,
-                        pengguna, dan laporan dengan mudah dan efisien.
-                    </p>
-
-                    <div class="flex flex-col sm:flex-row gap-4">
-                        <a th:href="@{/oauth2/authorization/keycloak}" class="btn btn-primary btn-lg gap-2">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M13 10V3L4 14h7v7l9-11h-7z" />
-                            </svg>
-                            Mulai Sekarang
-                        </a>
-                        <a href="#features" class="btn btn-outline btn-lg gap-2">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                            Lihat Demo
-                        </a>
-                    </div>
-
-                    <!-- Stats -->
-                    <div class="grid grid-cols-3 gap-6 pt-8 border-t border-base-300">
-                        <div>
-                            <p class="text-3xl font-bold text-primary">500+</p>
-                            <p class="text-sm text-base-content/60">Server Aktif</p>
-                        </div>
-                        <div>
-                            <p class="text-3xl font-bold text-primary">1M+</p>
-                            <p class="text-sm text-base-content/60">Transaksi/Bulan</p>
-                        </div>
-                        <div>
-                            <p class="text-3xl font-bold text-primary">99.9%</p>
-                            <p class="text-sm text-base-content/60">Uptime</p>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Hero Visual -->
-                <div class="relative hidden lg:block">
-                    <div class="float-animation">
-                        <!-- Dashboard Preview Card -->
-                        <div
-                            class="bg-base-100 rounded-3xl shadow-2xl border border-base-300 p-6 transform rotate-2 hover:rotate-0 transition-transform duration-500">
-                            <div class="flex items-center gap-2 mb-4">
-                                <div class="w-3 h-3 rounded-full bg-error"></div>
-                                <div class="w-3 h-3 rounded-full bg-warning"></div>
-                                <div class="w-3 h-3 rounded-full bg-success"></div>
-                            </div>
-                            <div class="space-y-4">
-                                <div class="h-4 w-32 bg-base-300 rounded"></div>
-                                <div class="grid grid-cols-2 gap-4">
-                                    <div class="bg-primary/10 rounded-xl p-4">
-                                        <div class="h-3 w-16 bg-primary/30 rounded mb-2"></div>
-                                        <div class="h-6 w-24 bg-primary rounded"></div>
-                                    </div>
-                                    <div class="bg-success/10 rounded-xl p-4">
-                                        <div class="h-3 w-16 bg-success/30 rounded mb-2"></div>
-                                        <div class="h-6 w-20 bg-success rounded"></div>
-                                    </div>
-                                </div>
-                                <div class="h-24 bg-gradient-to-r from-primary/20 to-accent/20 rounded-xl"></div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Decorative Elements -->
-                    <div class="absolute -top-10 -right-10 w-32 h-32 bg-primary/10 rounded-full blur-3xl"></div>
-                    <div class="absolute -bottom-10 -left-10 w-24 h-24 bg-accent/10 rounded-full blur-2xl"></div>
-                </div>
-            </div>
+        <div class="flex items-center gap-2">
+            <a th:href="@{/oauth2/authorization/keycloak}" class="bg-brand-orange-600 hover:bg-brand-orange-500 text-white text-[15px] font-semibold px-5 py-2 rounded-lg transition">Masuk</a>
+            <button @click="open = !open" class="md:hidden w-9 h-9 flex items-center justify-center rounded-lg hover:bg-line transition" aria-label="Menu">
+                <svg x-show="!open" class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/></svg>
+                <svg x-show="open" x-cloak class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
         </div>
-    </section>
+    </div>
+    <!-- mobile menu -->
+    <div x-show="open" x-cloak x-transition:enter="transition ease-out duration-150" x-transition:enter-start="opacity-0 -translate-y-1" x-transition:enter-end="opacity-100 translate-y-0" class="md:hidden border-t border-line bg-mist px-5 pb-4 pt-3 flex flex-col gap-3 text-[16px] font-medium text-faint">
+        <a href="#produk" @click="open=false" class="hover:text-ink transition">Produk</a>
+        <a href="#aman" @click="open=false" class="hover:text-ink transition">Keamanan</a>
+        <a href="#tanya" @click="open=false" class="hover:text-ink transition">Tanya jawab</a>
+    </div>
+</nav>
 
-    <!-- Features Section -->
-    <section id="features" class="py-20 bg-base-100">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="text-center mb-16">
-                <h2 class="text-3xl sm:text-4xl font-bold text-base-content mb-4">Fitur Unggulan</h2>
-                <p class="text-base-content/60 max-w-2xl mx-auto">
-                    Semua yang Anda butuhkan untuk mengelola server pulsa dengan profesional
-                </p>
-            </div>
-
-            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-                <!-- Feature 1 -->
-                <div class="group feature-card">
-                    <div class="feature-card-icon">
-                        <svg th:replace="~{components/icons :: icon-document(class='w-12 h-12 text-primary')}"></svg>
-                    </div>
-                    <h3 class="feature-card-title">Manajemen Transaksi</h3>
-                    <p class="feature-card-desc">
-                        Monitor dan kelola semua transaksi real-time dengan dashboard yang intuitif.
-                    </p>
-                </div>
-
-                <!-- Feature 2 -->
-                <div class="group feature-card">
-                    <div class="feature-card-icon">
-                        <svg th:replace="~{components/icons :: icon-users(class='w-12 h-12 text-primary')}"></svg>
-                    </div>
-                    <h3 class="feature-card-title">Multi-User & Role</h3>
-                    <p class="feature-card-desc">
-                        Kelola tim dengan berbagai level akses dan permission yang fleksibel.
-                    </p>
-                </div>
-
-                <!-- Feature 3 -->
-                <div class="group feature-card">
-                    <div class="feature-card-icon">
-                        <svg th:replace="~{components/icons :: icon-chart(class='w-12 h-12 text-primary')}"></svg>
-                    </div>
-                    <h3 class="feature-card-title">Laporan & Analitik</h3>
-                    <p class="feature-card-desc">
-                        Dapatkan insight bisnis dengan laporan detail dan visualisasi data.
-                    </p>
-                </div>
-
-                <!-- Feature 4 -->
-                <div class="group feature-card">
-                    <div class="feature-card-icon">
-                        <svg th:replace="~{components/icons :: icon-lock(class='w-12 h-12 text-primary')}"></svg>
-                    </div>
-                    <h3 class="feature-card-title">Keamanan Terjamin</h3>
-                    <p class="feature-card-desc">
-                        Enkripsi end-to-end dan autentikasi multi-faktor untuk keamanan maksimal.
-                    </p>
-                </div>
-
-                <!-- Feature 5 -->
-                <div class="group feature-card">
-                    <div class="feature-card-icon">
-                        <svg th:replace="~{components/icons :: icon-bolt(class='w-12 h-12 text-primary')}"></svg>
-                    </div>
-                    <h3 class="feature-card-title">Performa Tinggi</h3>
-                    <p class="feature-card-desc">
-                        Response time cepat dengan infrastruktur cloud yang handal.
-                    </p>
-                </div>
-
-                <!-- Feature 6 -->
-                <div class="group feature-card">
-                    <div class="feature-card-icon">
-                        <svg th:replace="~{components/icons :: icon-support(class='w-12 h-12 text-primary')}"></svg>
-                    </div>
-                    <h3 class="feature-card-title">Support 24/7</h3>
-                    <p class="feature-card-desc">
-                        Tim support kami siap membantu kapanpun Anda membutuhkan.
-                    </p>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- CTA Section -->
-    <section class="py-20 bg-gradient-to-br from-primary to-primary/80">
-        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <h2 class="text-3xl sm:text-4xl font-bold text-primary-content mb-6">
-                Siap untuk Memulai?
-            </h2>
-            <p class="text-primary-content/80 text-lg mb-8 max-w-2xl mx-auto">
-                Bergabung dengan ratusan server pulsa yang sudah menggunakan Omnip untuk mengelola bisnis mereka dengan
-                lebih efisien.
+<!-- ===== HERO ===== -->
+<section class="max-w-6xl mx-auto px-5 sm:px-8 pt-10 pb-12 sm:pb-16 lg:pt-20 lg:pb-24">
+    <div class="grid lg:grid-cols-[1.05fr_0.95fr] gap-10 lg:gap-14 items-center">
+        <div>
+            <span class="rise d1 inline-flex items-center gap-2 text-[13px] font-medium text-brand-orange-700 bg-brand-orange-50 rounded-full px-3.5 py-1.5">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                Selalu real-time
+            </span>
+            <h1 class="rise d2 mt-6 font-extrabold tracking-[-0.03em] leading-[1.04] text-balance" style="font-size:clamp(2.2rem,5.5vw,4.5rem)">
+                Top up pulsa &amp; data. <span class="text-brand-orange-600">Sepuluh detik, kelar.</span>
+            </h1>
+            <p class="rise d3 mt-6 text-faint text-lg leading-relaxed max-w-md">
+                Pulsa, paket data, token PLN, sampai voucher game. Bayar sekali, saldo masuk seketika, struk langsung jadi sebagai bukti.
             </p>
-            <div class="flex flex-col sm:flex-row gap-4 justify-center">
-                <a th:href="@{/oauth2/authorization/keycloak}"
-                    class="btn btn-lg bg-white text-primary hover:bg-base-200 gap-2">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
-                    </svg>
-                    Masuk ke Dashboard
+
+            <div class="rise d3 mt-7 max-w-md">
+                <p class="text-xs font-semibold uppercase tracking-wider text-faint">Coba pilih nominal</p>
+                <div id="quick" class="mt-2 flex flex-wrap gap-2"></div>
+            </div>
+
+            <div class="rise d4 mt-7 flex flex-col sm:flex-row gap-3 max-w-md">
+                <a th:href="@{/oauth2/authorization/keycloak}" class="inline-flex justify-center items-center gap-2 bg-brand-orange-600 hover:bg-brand-orange-500 text-white font-semibold px-6 py-3.5 rounded-xl transition shadow-lg shadow-brand-orange-600/25">
+                    Masuk &amp; mulai
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5-5 5M6 12h12"/></svg>
                 </a>
-                <a href="#contact"
-                    class="btn btn-lg btn-outline border-primary-content text-primary-content hover:bg-primary-content hover:text-primary">
-                    Hubungi Kami
-                </a>
+                <a href="#produk" class="inline-flex justify-center items-center gap-2 ring-1 ring-line bg-white text-ink font-semibold px-6 py-3.5 rounded-xl hover:ring-brand-orange-300 transition">Lihat produk</a>
             </div>
         </div>
-    </section>
 
-    <!-- Footer -->
-    <footer id="contact" class="bg-base-200 py-16">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="grid md:grid-cols-4 gap-8 mb-12">
-                <!-- Brand -->
-                <div class="md:col-span-2">
-                    <div class="flex items-center gap-3 mb-4">
-                        <div
-                            class="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center">
-                            <svg class="w-6 h-6 text-primary-content" fill="none" stroke="currentColor"
-                                viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M13 10V3L4 14h7v7l9-11h-7z" />
-                            </svg>
-                        </div>
-                        <span class="text-xl font-bold text-base-content">Omnip</span>
+        <!-- showpiece: struk / receipt -->
+        <div class="rise d2 lg:justify-self-end w-full max-w-[340px]">
+            <div class="receipt bg-white shadow-[0_30px_60px_-25px_rgba(15,23,42,0.35)] border border-line border-b-0 px-6 pt-7 pb-9">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                        <span class="w-7 h-7 rounded-md bg-brand-orange-600 grid place-items-center">
+                            <svg class="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                        </span>
+                        <span class="font-bold text-sm">satset<span class="text-brand-orange-600">go</span></span>
                     </div>
-                    <p class="text-base-content/60 max-w-sm">
-                        Platform management server pulsa modern untuk bisnis Anda. Kelola transaksi, pengguna, dan
-                        laporan dengan mudah.
-                    </p>
+                    <span class="inline-flex items-center gap-1.5 text-[12px] font-semibold text-green-600 bg-green-50 px-2 py-1 rounded-md">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.6" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                        Berhasil
+                    </span>
                 </div>
-
-                <!-- Links -->
-                <div>
-                    <h4 class="font-bold text-base-content mb-4">Produk</h4>
-                    <ul class="space-y-2">
-                        <li><a href="#features"
-                                class="text-base-content/60 hover:text-primary transition-colors">Fitur</a></li>
-                        <li><a href="#pricing"
-                                class="text-base-content/60 hover:text-primary transition-colors">Harga</a></li>
-                        <li><a href="#"
-                                class="text-base-content/60 hover:text-primary transition-colors">Dokumentasi</a></li>
-                    </ul>
+                <div class="mt-5 font-mono text-[13px] text-faint space-y-2.5">
+                    <div class="flex justify-between"><span>Produk</span><span class="text-ink">Telkomsel 25rb</span></div>
+                    <div class="flex justify-between"><span>Tujuan</span><span class="text-ink tnum">0812-3456-7890</span></div>
+                    <div class="flex justify-between"><span>Waktu</span><span class="text-ink tnum">26/06 19:04</span></div>
+                    <div class="flex justify-between"><span>ID</span><span class="text-ink tnum">TRX-9F4C21</span></div>
+                    <div class="border-t border-dashed border-line my-3"></div>
+                    <div class="flex justify-between"><span>Harga</span><span class="text-ink tnum">Rp25.000</span></div>
+                    <div class="flex justify-between"><span>Admin</span><span class="text-ink tnum">Rp500</span></div>
                 </div>
-
-                <div>
-                    <h4 class="font-bold text-base-content mb-4">Perusahaan</h4>
-                    <ul class="space-y-2">
-                        <li><a href="#about" class="text-base-content/60 hover:text-primary transition-colors">Tentang
-                                Kami</a></li>
-                        <li><a href="#" class="text-base-content/60 hover:text-primary transition-colors">Kebijakan
-                                Privasi</a></li>
-                        <li><a href="#" class="text-base-content/60 hover:text-primary transition-colors">Syarat &
-                                Ketentuan</a></li>
-                    </ul>
+                <div class="mt-3 flex justify-between items-baseline">
+                    <span class="font-semibold">Total</span>
+                    <span class="font-mono font-bold text-lg tnum text-brand-orange-700">Rp25.500</span>
                 </div>
             </div>
+            <p class="text-center text-[12px] text-faint mt-5">Tiap transaksi menghasilkan struk seperti ini</p>
+        </div>
+    </div>
+</section>
 
-            <div class="border-t border-base-300 pt-8 flex flex-col sm:flex-row items-center justify-between gap-4">
-                <p class="text-base-content/60 text-sm">
-                    &copy; 2026 Satset System. All rights reserved.
-                </p>
-                <div class="flex items-center gap-4">
-                    <a href="#" class="text-base-content/60 hover:text-primary transition-colors">
-                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                            <path
-                                d="M24 4.557c-.883.392-1.832.656-2.828.775 1.017-.609 1.798-1.574 2.165-2.724-.951.564-2.005.974-3.127 1.195-.897-.957-2.178-1.555-3.594-1.555-3.179 0-5.515 2.966-4.797 6.045-4.091-.205-7.719-2.165-10.148-5.144-1.29 2.213-.669 5.108 1.523 6.574-.806-.026-1.566-.247-2.229-.616-.054 2.281 1.581 4.415 3.949 4.89-.693.188-1.452.232-2.224.084.626 1.956 2.444 3.379 4.6 3.419-2.07 1.623-4.678 2.348-7.29 2.04 2.179 1.397 4.768 2.212 7.548 2.212 9.142 0 14.307-7.721 13.995-14.646.962-.695 1.797-1.562 2.457-2.549z" />
-                        </svg>
-                    </a>
-                    <a href="#" class="text-base-content/60 hover:text-primary transition-colors">
-                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                            <path
-                                d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" />
-                        </svg>
-                    </a>
+<!-- ===== PRODUK ===== -->
+<section id="produk" class="bg-white border-y border-line py-12 sm:py-20">
+    <div class="max-w-6xl mx-auto px-5 sm:px-8">
+        <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+            <div class="max-w-lg">
+                <h2 class="font-extrabold tracking-tight" style="font-size:clamp(1.6rem,3.2vw,2.4rem)">Semua yang sering dicari, ada.</h2>
+                <p class="mt-3 text-faint text-lg">Satu tempat untuk semua kebutuhan top up harian pelanggan.</p>
+            </div>
+            <a th:href="@{/oauth2/authorization/keycloak}" class="text-brand-orange-700 font-semibold inline-flex items-center gap-1.5 hover:gap-2.5 transition-all shrink-0">Lihat semua katalog
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5-5 5M6 12h12"/></svg>
+            </a>
+        </div>
+
+        <div class="mt-8 grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div class="rounded-2xl bg-mist border border-line p-4 sm:p-5">
+                <div class="w-10 h-10 rounded-xl bg-brand-orange-600 text-white grid place-items-center">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
                 </div>
+                <h3 class="mt-4 font-bold">Pulsa</h3>
+                <p class="text-sm text-faint mt-1">Semua operator, segala nominal.</p>
+            </div>
+            <div class="rounded-2xl bg-mist border border-line p-4 sm:p-5">
+                <div class="w-10 h-10 rounded-xl bg-ink text-white grid place-items-center">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8.111 16.404a5.5 5.5 0 017.778 0M12 20h.01m-7.08-7.071c3.904-3.905 10.236-3.905 14.141 0M1.394 9.393c5.857-5.857 15.355-5.857 21.213 0"/></svg>
+                </div>
+                <h3 class="mt-4 font-bold">Paket data</h3>
+                <p class="text-sm text-faint mt-1">Harian sampai bulanan.</p>
+            </div>
+            <div class="rounded-2xl bg-mist border border-line p-4 sm:p-5">
+                <div class="w-10 h-10 rounded-xl bg-brand-orange-600 text-white grid place-items-center">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                </div>
+                <h3 class="mt-4 font-bold">Token PLN</h3>
+                <p class="text-sm text-faint mt-1">Prabayar &amp; tagihan.</p>
+            </div>
+            <div class="rounded-2xl bg-mist border border-line p-4 sm:p-5">
+                <div class="w-10 h-10 rounded-xl bg-ink text-white grid place-items-center">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/><path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                </div>
+                <h3 class="mt-4 font-bold">Voucher game</h3>
+                <p class="text-sm text-faint mt-1">Diamond, UC, sampai top up.</p>
             </div>
         </div>
-    </footer>
 
+        <div class="mt-5 flex flex-wrap items-center gap-2.5">
+            <span class="text-sm text-faint mr-1">Operator:</span>
+            <span class="text-sm font-medium bg-mist border border-line rounded-full px-3.5 py-1.5">Telkomsel</span>
+            <span class="text-sm font-medium bg-mist border border-line rounded-full px-3.5 py-1.5">XL</span>
+            <span class="text-sm font-medium bg-mist border border-line rounded-full px-3.5 py-1.5">Indosat</span>
+            <span class="text-sm font-medium bg-mist border border-line rounded-full px-3.5 py-1.5">Tri</span>
+            <span class="text-sm font-medium bg-mist border border-line rounded-full px-3.5 py-1.5">Smartfren</span>
+            <span class="text-sm font-medium bg-mist border border-line rounded-full px-3.5 py-1.5">Axis</span>
+        </div>
+    </div>
+</section>
+
+<!-- ===== KEAMANAN ===== -->
+<section id="aman" class="py-12 sm:py-20">
+    <div class="max-w-6xl mx-auto px-5 sm:px-8 grid lg:grid-cols-[0.9fr_1.1fr] gap-10 lg:gap-16 items-start">
+        <div class="lg:sticky lg:top-24">
+            <h2 class="font-extrabold tracking-tight text-balance" style="font-size:clamp(1.6rem,3.2vw,2.4rem)">Uang berputar, jadi harus jelas.</h2>
+            <p class="mt-3 text-faint text-lg leading-relaxed">Tiap angka kelihatan, tiap transaksi tercatat. Tidak ada yang kabur.</p>
+        </div>
+        <ul class="space-y-1">
+            <li class="flex gap-4 py-5 border-b border-line">
+                <span class="shrink-0 w-9 h-9 rounded-lg bg-brand-orange-50 text-brand-orange-600 grid place-items-center mt-0.5">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                </span>
+                <div><h3 class="font-bold">Saldo cuma berkurang kalau berhasil</h3><p class="text-faint mt-1 leading-relaxed">Transaksi gagal? Saldo otomatis kembali utuh. Tidak pernah hangus diam-diam.</p></div>
+            </li>
+            <li class="flex gap-4 py-5 border-b border-line">
+                <span class="shrink-0 w-9 h-9 rounded-lg bg-brand-orange-50 text-brand-orange-600 grid place-items-center mt-0.5">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 4H7a2 2 0 01-2-2V6a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V18a2 2 0 01-2 2z"/></svg>
+                </span>
+                <div><h3 class="font-bold">Harga tampil sebelum bayar</h3><p class="text-faint mt-1 leading-relaxed">Total beserta admin terlihat di muka. Konfirmasi sekali, jumlahnya final.</p></div>
+            </li>
+            <li class="flex gap-4 py-5 border-b border-line">
+                <span class="shrink-0 w-9 h-9 rounded-lg bg-brand-orange-50 text-brand-orange-600 grid place-items-center mt-0.5">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                </span>
+                <div><h3 class="font-bold">Riwayat tersimpan permanen</h3><p class="text-faint mt-1 leading-relaxed">Tiap transaksi punya struk dan ID. Gampang dicari saat rekap atau ada komplain.</p></div>
+            </li>
+            <li class="flex gap-4 py-5">
+                <span class="shrink-0 w-9 h-9 rounded-lg bg-brand-orange-50 text-brand-orange-600 grid place-items-center mt-0.5">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+                </span>
+                <div><h3 class="font-bold">Akses terkunci per peran</h3><p class="text-faint mt-1 leading-relaxed">Login aman lewat akun terverifikasi. Kasir, admin, dan pemilik punya hak akses sendiri.</p></div>
+            </li>
+        </ul>
+    </div>
+</section>
+
+<!-- ===== FAQ ===== -->
+<section id="tanya" class="bg-white border-t border-line py-12 sm:py-20">
+    <div class="max-w-3xl mx-auto px-5 sm:px-8">
+        <h2 class="font-extrabold tracking-tight text-center" style="font-size:clamp(1.6rem,3.2vw,2.4rem)">Pertanyaan yang sering muncul</h2>
+        <div class="mt-8 sm:mt-10 divide-y divide-line border-y border-line">
+            <details class="group py-5">
+                <summary class="flex items-center justify-between cursor-pointer list-none font-semibold">Berapa lama saldo masuk?
+                    <svg class="w-5 h-5 text-faint transition-transform group-open:rotate-45 shrink-0 ml-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+                </summary>
+                <p class="mt-3 text-faint leading-relaxed">Hampir selalu di bawah lima detik. Transaksi langsung diteruskan ke operator tanpa antrean manual.</p>
+            </details>
+            <details class="group py-5">
+                <summary class="flex items-center justify-between cursor-pointer list-none font-semibold">Kalau transaksi gagal, uang saya bagaimana?
+                    <svg class="w-5 h-5 text-faint transition-transform group-open:rotate-45 shrink-0 ml-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+                </summary>
+                <p class="mt-3 text-faint leading-relaxed">Saldo otomatis dikembalikan utuh. Saldo hanya terpotong saat transaksi benar-benar berhasil.</p>
+            </details>
+            <details class="group py-5">
+                <summary class="flex items-center justify-between cursor-pointer list-none font-semibold">Apakah ada biaya pendaftaran?
+                    <svg class="w-5 h-5 text-faint transition-transform group-open:rotate-45 shrink-0 ml-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+                </summary>
+                <p class="mt-3 text-faint leading-relaxed">Tidak ada. Daftar gratis, isi saldo sesuai kebutuhan, langsung bisa transaksi.</p>
+            </details>
+            <details class="group py-5">
+                <summary class="flex items-center justify-between cursor-pointer list-none font-semibold">Bisa dipakai untuk jualan ke pelanggan?
+                    <svg class="w-5 h-5 text-faint transition-transform group-open:rotate-45 shrink-0 ml-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+                </summary>
+                <p class="mt-3 text-faint leading-relaxed">Bisa. Harga yang kamu dapat adalah harga agen, jadi setiap transaksi menyisakan margin untukmu.</p>
+            </details>
+        </div>
+    </div>
+</section>
+
+<!-- ===== CTA ===== -->
+<section class="py-10 sm:py-16">
+    <div class="max-w-5xl mx-auto px-5 sm:px-8">
+        <div class="rounded-3xl bg-ink text-white px-6 py-10 sm:px-14 sm:py-14 text-center">
+            <h2 class="font-extrabold tracking-[-0.02em] text-balance" style="font-size:clamp(1.7rem,3.6vw,2.8rem)">Siap top up pertama kamu?</h2>
+            <p class="mt-3 text-white/70 text-lg max-w-xl mx-auto">Masuk, isi saldo, dan transaksi pertama kamu kelar dalam hitungan detik.</p>
+            <div class="mt-7 flex flex-col sm:flex-row gap-3 justify-center">
+                <a th:href="@{/oauth2/authorization/keycloak}" class="inline-flex justify-center items-center gap-2 bg-brand-orange-600 hover:bg-brand-orange-500 text-white font-semibold px-7 py-3.5 rounded-xl transition">Masuk sekarang</a>
+                <a href="mailto:support@satset.go.id" class="inline-flex justify-center items-center gap-2 ring-1 ring-white/25 text-white font-semibold px-7 py-3.5 rounded-xl hover:bg-white/10 transition">Hubungi kami</a>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ===== FOOTER ===== -->
+<footer class="border-t border-line py-10 sm:py-12">
+    <div class="max-w-6xl mx-auto px-5 sm:px-8 flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+        <a th:href="@{/}" class="flex items-center gap-2.5">
+            <span class="w-8 h-8 rounded-lg bg-brand-orange-600 grid place-items-center">
+                <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+            </span>
+            <span class="font-bold">satset<span class="text-brand-orange-600">go</span></span>
+        </a>
+        <div class="flex flex-wrap gap-x-6 gap-y-2 text-[15px] text-faint">
+            <a href="#produk" class="hover:text-ink transition">Produk</a>
+            <a href="#aman" class="hover:text-ink transition">Keamanan</a>
+            <a href="#tanya" class="hover:text-ink transition">Tanya jawab</a>
+            <a href="mailto:support@satset.go.id" class="hover:text-ink transition">Bantuan</a>
+        </div>
+        <p class="text-sm text-faint">&copy; 2026 Satset Go</p>
+    </div>
+</footer>
+
+<script th:inline="none">
+    const DENOMS = [5000,10000,25000,50000,100000];
+    const quick = document.getElementById('quick');
+    let active = 25000;
+    const render = () => {
+        quick.innerHTML = DENOMS.map(d => `
+            <button data-d="${d}" class="text-sm font-semibold px-4 py-2.5 rounded-xl border transition tnum ${active===d?'border-brand-orange-600 text-brand-orange-700 bg-brand-orange-50':'border-line text-ink bg-white hover:border-brand-orange-300'}">${(d/1000)}rb</button>`).join('');
+    };
+    quick.addEventListener('click', e => { const b=e.target.closest('[data-d]'); if(!b)return; active=+b.dataset.d; render(); });
+    render();
+</script>
 </body>
 
 </html>

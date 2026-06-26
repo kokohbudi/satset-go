@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Satset Go · Split Agen (Preview C)</title>
+<meta name="description" content="Jadi agen pulsa. Kelola konter dari HP, untung tiap transaksi.">
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<script>
+tailwind.config = {
+  theme: { extend: {
+    colors: {
+      brand: { 50:'#fff7ed',100:'#ffedd5',200:'#fed7aa',300:'#fdba74',400:'#fb923c',500:'#f97316',600:'#ea580c',700:'#c2410c',800:'#9a3412',900:'#7c2d12' },
+      ink:'#1e293b', mist:'#f8fafc', line:'#e2e8f0', muted:'#475569', faint:'#64748b', ok:'#22c55e'
+    },
+    fontFamily: { sans:['Inter','ui-sans-serif','system-ui','sans-serif'] },
+  }}
+}
+</script>
+<style>
+  :root { color-scheme: light; }
+  body { font-family:'Inter',ui-sans-serif,system-ui,sans-serif; }
+  .tnum { font-variant-numeric: tabular-nums; }
+  html { scroll-behavior: smooth; }
+  .field { background:
+      radial-gradient(110% 80% at 80% 10%, rgba(249,115,22,0.5) 0%, rgba(249,115,22,0) 45%),
+      radial-gradient(90% 90% at 0% 100%, rgba(124,45,18,0.6) 0%, rgba(124,45,18,0) 55%),
+      #c2410c; }
+  @keyframes rise { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:none} }
+  .rise { animation: rise .55s cubic-bezier(.22,1,.36,1) backwards; }
+  .d1{animation-delay:.05s}.d2{animation-delay:.13s}.d3{animation-delay:.21s}.d4{animation-delay:.29s}
+  @media (prefers-reduced-motion: reduce){ .rise{animation:none} html{scroll-behavior:auto} }
+</style>
+</head>
+<body class="bg-mist text-ink antialiased">
+
+<!-- ===== NAV (overlays split) ===== -->
+<nav class="absolute top-0 inset-x-0 z-30">
+  <div class="max-w-6xl mx-auto px-5 sm:px-8 h-18 flex items-center justify-between py-4">
+    <a href="#" class="flex items-center gap-2.5 text-white">
+      <span class="w-8 h-8 rounded-lg bg-white text-brand-700 grid place-items-center font-black">S</span>
+      <span class="font-bold tracking-tight">Satset Go</span>
+    </a>
+    <a href="#" class="bg-white text-brand-700 text-[15px] font-semibold px-5 py-2 rounded-lg hover:bg-brand-50 transition">Masuk</a>
+  </div>
+</nav>
+
+<!-- ===== HERO SPLIT ===== -->
+<section class="grid lg:grid-cols-2 min-h-[640px] lg:min-h-screen">
+  <!-- left: orange pitch -->
+  <div class="field text-white flex items-center">
+    <div class="w-full max-w-xl ml-auto px-5 sm:px-8 lg:pl-8 lg:pr-16 pt-28 pb-16 lg:py-0">
+      <span class="rise d1 inline-flex items-center gap-2 text-[13px] font-medium bg-white/12 ring-1 ring-white/20 rounded-full px-3.5 py-1.5">
+        <span class="w-2 h-2 rounded-full bg-white"></span> Untuk agen &amp; pemilik konter
+      </span>
+      <h1 class="rise d2 mt-6 font-extrabold tracking-[-0.03em] leading-[1.03] text-balance" style="font-size:clamp(2.4rem,4.8vw,4.3rem)">
+        Buka konter pulsa, kelola dari HP.
+      </h1>
+      <p class="rise d3 mt-6 text-white/90 text-lg leading-relaxed max-w-md">
+        Pulsa, data, PLN, dan voucher game dalam satu aplikasi. Harga agen di tiap produk, untung balik ke kamu setiap transaksi.
+      </p>
+      <div class="rise d4 mt-8 flex flex-col sm:flex-row gap-3">
+        <a href="#" class="inline-flex justify-center items-center gap-2 bg-white text-brand-700 font-semibold px-6 py-3.5 rounded-xl hover:bg-brand-50 transition">
+          Mulai jadi agen
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5-5 5M6 12h12"/></svg>
+        </a>
+        <a href="#untung" class="inline-flex justify-center items-center gap-2 ring-1 ring-white/35 text-white font-semibold px-6 py-3.5 rounded-xl hover:bg-white/10 transition">Lihat untungnya</a>
+      </div>
+      <dl class="rise d4 mt-10 flex gap-8">
+        <div><dt class="text-white/70 text-sm">Biaya daftar</dt><dd class="font-bold text-lg mt-0.5">Gratis</dd></div>
+        <div><dt class="text-white/70 text-sm">Biaya bulanan</dt><dd class="font-bold text-lg mt-0.5">Tidak ada</dd></div>
+        <div><dt class="text-white/70 text-sm">Tarik saldo</dt><dd class="font-bold text-lg mt-0.5">Kapan saja</dd></div>
+      </dl>
+    </div>
+  </div>
+
+  <!-- right: light, phone frame -->
+  <div class="bg-mist flex items-center justify-center px-5 sm:px-8 pt-8 pb-20 lg:py-0 relative overflow-hidden">
+    <div class="absolute w-72 h-72 rounded-full bg-brand-100 blur-3xl -z-0 opacity-70"></div>
+    <!-- phone -->
+    <div class="rise d3 relative z-10 w-[290px] rounded-[2.4rem] bg-ink p-2.5 shadow-[0_40px_80px_-30px_rgba(15,23,42,0.5)]">
+      <div class="rounded-[1.9rem] bg-white overflow-hidden">
+        <!-- app header -->
+        <div class="bg-brand-600 text-white px-5 pt-6 pb-7">
+          <div class="flex items-center justify-between">
+            <div><p class="text-white/80 text-xs">Saldo agen</p><p class="font-extrabold text-2xl tnum mt-0.5">Rp1.480.500</p></div>
+            <span class="w-9 h-9 rounded-full bg-white/15 grid place-items-center">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+            </span>
+          </div>
+          <div class="mt-5 grid grid-cols-2 gap-2.5">
+            <button class="bg-white text-brand-700 text-sm font-semibold rounded-xl py-2.5">Top up</button>
+            <button class="bg-white/15 text-white text-sm font-semibold rounded-xl py-2.5">Isi saldo</button>
+          </div>
+        </div>
+        <!-- riwayat -->
+        <div class="px-5 py-4">
+          <p class="text-xs font-semibold uppercase tracking-wider text-faint">Transaksi terbaru</p>
+          <ul class="mt-3 space-y-3.5">
+            <li class="flex items-center gap-3">
+              <span class="w-9 h-9 rounded-lg bg-brand-50 text-brand-600 grid place-items-center shrink-0"><svg class="w-4.5 h-4.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg></span>
+              <div class="min-w-0 flex-1"><p class="text-sm font-semibold truncate">Telkomsel 25rb</p><p class="text-xs text-faint tnum">0812-3456-7890</p></div>
+              <div class="text-right"><p class="text-sm font-semibold tnum">Rp25.500</p><p class="text-[11px] text-ok font-medium">Berhasil</p></div>
+            </li>
+            <li class="flex items-center gap-3">
+              <span class="w-9 h-9 rounded-lg bg-brand-50 text-brand-600 grid place-items-center shrink-0"><svg class="w-4.5 h-4.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg></span>
+              <div class="min-w-0 flex-1"><p class="text-sm font-semibold truncate">Token PLN 50rb</p><p class="text-xs text-faint tnum">32198800xxxx</p></div>
+              <div class="text-right"><p class="text-sm font-semibold tnum">Rp51.000</p><p class="text-[11px] text-ok font-medium">Berhasil</p></div>
+            </li>
+            <li class="flex items-center gap-3">
+              <span class="w-9 h-9 rounded-lg bg-brand-50 text-brand-600 grid place-items-center shrink-0"><svg class="w-4.5 h-4.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8.111 16.404a5.5 5.5 0 017.778 0M12 20h.01m-7.08-7.071c3.904-3.905 10.236-3.905 14.141 0M1.394 9.393c5.857-5.857 15.355-5.857 21.213 0"/></svg></span>
+              <div class="min-w-0 flex-1"><p class="text-sm font-semibold truncate">Paket data 10GB</p><p class="text-xs text-faint tnum">0857-9988-2211</p></div>
+              <div class="text-right"><p class="text-sm font-semibold tnum">Rp48.500</p><p class="text-[11px] text-ok font-medium">Berhasil</p></div>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== UNTUNG / MARGIN ===== -->
+<section id="untung" class="py-20 sm:py-24 bg-white border-y border-line">
+  <div class="max-w-6xl mx-auto px-5 sm:px-8">
+    <div class="max-w-xl">
+      <h2 class="font-extrabold tracking-tight text-balance" style="font-size:clamp(1.8rem,3.5vw,2.6rem)">Untung di tiap produk, bukan cuma janji.</h2>
+      <p class="mt-3 text-faint text-lg">Kamu beli di harga agen, jual di harga pelanggan. Selisihnya jadi milikmu.</p>
+    </div>
+    <!-- bento: differentiated sizes, not identical grid -->
+    <div class="mt-10 grid md:grid-cols-3 gap-4">
+      <div class="md:col-span-2 rounded-2xl bg-mist border border-line p-6 flex flex-col justify-between">
+        <div>
+          <h3 class="font-bold text-lg">Margin transparan</h3>
+          <p class="text-faint mt-1.5 max-w-md">Harga agen dan harga jual sama-sama kelihatan sebelum transaksi. Tidak ada potongan tersembunyi.</p>
+        </div>
+        <table class="w-full text-[15px] mt-6">
+          <tbody class="divide-y divide-line">
+            <tr><td class="py-3 text-muted">Pulsa 25.000</td><td class="py-3 text-right tnum text-faint">agen 24.300</td><td class="py-3 text-right font-semibold tnum text-brand-700">+Rp700</td></tr>
+            <tr><td class="py-3 text-muted">Token PLN 50.000</td><td class="py-3 text-right tnum text-faint">agen 49.800</td><td class="py-3 text-right font-semibold tnum text-brand-700">+Rp1.200</td></tr>
+            <tr><td class="py-3 text-muted">Paket data 10GB</td><td class="py-3 text-right tnum text-faint">agen 48.500</td><td class="py-3 text-right font-semibold tnum text-brand-700">+Rp1.500</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="rounded-2xl bg-brand-600 text-white p-6 flex flex-col justify-between">
+        <div class="w-11 h-11 rounded-xl bg-white/15 grid place-items-center">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/></svg>
+        </div>
+        <div class="mt-8">
+          <p class="text-white/80 text-sm">Saldo langsung bertambah</p>
+          <p class="font-extrabold text-3xl tnum mt-1">+Rp700</p>
+          <p class="text-white/80 text-sm mt-1">tiap jual pulsa 25rb</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== KELOLA (capabilities, varied not identical) ===== -->
+<section class="py-20 sm:py-24">
+  <div class="max-w-6xl mx-auto px-5 sm:px-8 grid lg:grid-cols-3 gap-12 lg:gap-16">
+    <div class="lg:col-span-1">
+      <h2 class="font-extrabold tracking-tight text-balance" style="font-size:clamp(1.8rem,3.5vw,2.6rem)">Toko di saku, kendali penuh.</h2>
+      <p class="mt-3 text-faint text-lg leading-relaxed">Semua yang dulu butuh komputer konter, sekarang muat di satu layar HP.</p>
+      <a href="#" class="mt-6 inline-flex items-center gap-2 text-brand-700 font-semibold hover:gap-3 transition-all">Masuk untuk coba
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5-5 5M6 12h12"/></svg></a>
+    </div>
+    <div class="lg:col-span-2 grid sm:grid-cols-2 gap-x-8 gap-y-9">
+      <div>
+        <h3 class="font-bold flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-brand-500"></span>Transaksi kilat</h3>
+        <p class="text-faint mt-2 leading-relaxed">Cari produk, ketuk nominal, bayar. Saldo pelanggan masuk dalam hitungan detik.</p>
+      </div>
+      <div>
+        <h3 class="font-bold flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-brand-500"></span>Riwayat &amp; rekap</h3>
+        <p class="text-faint mt-2 leading-relaxed">Tiap transaksi tercatat dengan struk dan ID. Rekap harian tinggal buka, bukan dihitung manual.</p>
+      </div>
+      <div>
+        <h3 class="font-bold flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-brand-500"></span>Saldo terkendali</h3>
+        <p class="text-faint mt-2 leading-relaxed">Pantau saldo kapan saja. Berkurang hanya saat transaksi berhasil, gagal otomatis kembali.</p>
+      </div>
+      <div>
+        <h3 class="font-bold flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-brand-500"></span>Akses per peran</h3>
+        <p class="text-faint mt-2 leading-relaxed">Pemilik, admin, dan kasir punya hak akses masing-masing. Aman dipakai bareng tim.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== TESTIMONI (one strong quote) ===== -->
+<section class="bg-ink text-white py-20">
+  <div class="max-w-3xl mx-auto px-5 sm:px-8 text-center">
+    <p class="font-semibold leading-snug text-balance" style="font-size:clamp(1.5rem,3vw,2.1rem)">
+      "Dulu rekap transaksi makan waktu tiap malam. Sekarang tinggal buka HP, semua sudah tercatat rapi."
+    </p>
+    <div class="mt-6 flex items-center justify-center gap-3">
+      <span class="w-10 h-10 rounded-full bg-brand-600 grid place-items-center font-bold">R</span>
+      <div class="text-left"><p class="font-semibold text-sm">Rudi</p><p class="text-white/60 text-sm">Konter Berkah, Bandung</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== CTA ===== -->
+<section class="field text-white py-20">
+  <div class="max-w-3xl mx-auto px-5 sm:px-8 text-center">
+    <h2 class="font-extrabold tracking-[-0.02em] text-balance" style="font-size:clamp(2rem,4vw,3.2rem)">Jadi agen mulai hari ini.</h2>
+    <p class="mt-4 text-white/90 text-lg max-w-xl mx-auto">Daftar gratis, isi saldo, langsung jualan. Tanpa kontrak, tanpa biaya bulanan.</p>
+    <div class="mt-8 flex flex-col sm:flex-row gap-3 justify-center">
+      <a href="#" class="inline-flex justify-center items-center gap-2 bg-white text-brand-700 font-semibold px-7 py-3.5 rounded-xl hover:bg-brand-50 transition">Masuk ke dashboard</a>
+      <a href="#" class="inline-flex justify-center items-center gap-2 ring-1 ring-white/35 text-white font-semibold px-7 py-3.5 rounded-xl hover:bg-white/10 transition">Hubungi kami</a>
+    </div>
+  </div>
+</section>
+
+<!-- ===== FOOTER ===== -->
+<footer class="bg-ink text-white/70 py-12 border-t border-white/10">
+  <div class="max-w-6xl mx-auto px-5 sm:px-8 flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+    <div class="flex items-center gap-2.5 text-white">
+      <span class="w-8 h-8 rounded-lg bg-brand-600 grid place-items-center font-black">S</span>
+      <span class="font-bold">Satset Go</span>
+    </div>
+    <div class="flex flex-wrap gap-x-6 gap-y-2 text-[15px]">
+      <a href="#untung" class="hover:text-white transition">Untung</a>
+      <a href="#" class="hover:text-white transition">Cara kerja</a>
+      <a href="#" class="hover:text-white transition">Bantuan</a>
+    </div>
+    <p class="text-sm">&copy; 2026 Satset Go</p>
+  </div>
+</footer>
+
+</body>
+</html>

@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Redesign /purchase · Proposal</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script>
+tailwind.config = { theme:{ extend:{ colors:{
+  brand:{50:'#fff7ed',500:'#f97316',600:'#ea580c',700:'#c2410c'}, ink:'#1e293b', mist:'#f8fafc', line:'#e2e8f0', muted:'#475569', faint:'#64748b'
+}, fontFamily:{ sans:['Inter','sans-serif'] } } } }
+</script>
+<style>body{font-family:'Inter',sans-serif}</style>
+</head>
+<body class="bg-mist text-ink antialiased min-h-screen">
+<div class="max-w-4xl mx-auto px-5 py-12">
+  <span class="inline-flex items-center gap-2 text-sm font-semibold text-brand-600 mb-3">
+    <span class="w-7 h-7 rounded-lg bg-brand-600 grid place-items-center text-white">⚡</span>
+    satset<span class="text-brand-600">go</span>
+  </span>
+  <h1 class="text-3xl font-bold tracking-tight">Redesign <span class="font-mono text-brand-600">/purchase</span></h1>
+  <p class="text-muted mt-2 mb-8 max-w-xl">Tiga arah, struktur &amp; alur beda — bukan poles. Buka tiap preview, klik-klik, lalu pilih satu untuk ku jadikan produksi.</p>
+
+  <div class="space-y-4">
+    <a href="a-stepper.html" class="block group rounded-2xl border border-line bg-white p-6 hover:border-brand-500 hover:shadow-md transition">
+      <div class="flex items-start gap-4">
+        <span class="w-11 h-11 rounded-xl bg-brand-50 text-brand-600 grid place-items-center font-bold text-lg shrink-0">A</span>
+        <div class="flex-1">
+          <h2 class="text-lg font-bold group-hover:text-brand-600 transition">Stepper Nomor-Dulu</h2>
+          <p class="text-sm text-muted mt-1">Satu kolom fokus. Nomor → produk → nominal, bertahap. Operator auto-detect dari prefix. Sticky pay-bar. Alur tercepat, paling beda dari layout lama.</p>
+        </div>
+        <span class="text-faint group-hover:translate-x-1 group-hover:text-brand-600 transition">→</span>
+      </div>
+    </a>
+
+    <a href="b-pos.html" class="block group rounded-2xl border border-line bg-white p-6 hover:border-brand-500 hover:shadow-md transition">
+      <div class="flex items-start gap-4">
+        <span class="w-11 h-11 rounded-xl bg-brand-50 text-brand-600 grid place-items-center font-bold text-lg shrink-0">B</span>
+        <div class="flex-1">
+          <h2 class="text-lg font-bold group-hover:text-brand-600 transition">POS Terminal</h2>
+          <p class="text-sm text-muted mt-1">Dua pane padat. Numpad gelap kiri + tab kategori &amp; grid nominal kanan. Buat reseller transaksi cepat berulang. Semua kelihatan sekaligus, nol scroll.</p>
+        </div>
+        <span class="text-faint group-hover:translate-x-1 group-hover:text-brand-600 transition">→</span>
+      </div>
+    </a>
+
+    <a href="c-marketplace.html" class="block group rounded-2xl border border-line bg-white p-6 hover:border-brand-500 hover:shadow-md transition">
+      <div class="flex items-start gap-4">
+        <span class="w-11 h-11 rounded-xl bg-brand-50 text-brand-600 grid place-items-center font-bold text-lg shrink-0">C</span>
+        <div class="flex-1">
+          <h2 class="text-lg font-bold group-hover:text-brand-600 transition">Marketplace Cards</h2>
+          <p class="text-sm text-muted mt-1">Kartu layanan besar penuh identitas → bottom-sheet slide-up buat nomor + nominal. Feel toko digital, ramah end-user. <span class="text-brand-700 font-medium">Catatan: pakai warna per-kategori (di luar palet orange).</span></p>
+        </div>
+        <span class="text-faint group-hover:translate-x-1 group-hover:text-brand-600 transition">→</span>
+      </div>
+    </a>
+  </div>
+
+  <p class="text-xs text-faint mt-8">Preview dummy — data &amp; saldo statis. Produksi tetap Thymeleaf + Alpine, ikut <span class="font-mono">DESIGN.md</span>.</p>
+</div>
+</body>
+</html>

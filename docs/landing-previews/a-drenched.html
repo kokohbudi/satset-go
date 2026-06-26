@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Satset Go · Drenched (Preview A)</title>
+<meta name="description" content="Buka konter pulsa langsung dari HP. Real-time, struk tiap transaksi, saldo aman.">
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<script>
+tailwind.config = {
+  theme: { extend: {
+    colors: {
+      brand: { 50:'#fff7ed',100:'#ffedd5',200:'#fed7aa',300:'#fdba74',400:'#fb923c',500:'#f97316',600:'#ea580c',700:'#c2410c',800:'#9a3412',900:'#7c2d12' },
+      ink:'#1e293b', mist:'#f8fafc', line:'#e2e8f0', muted:'#475569'
+    },
+    fontFamily: { sans:['Inter','ui-sans-serif','system-ui','sans-serif'] },
+  }}
+}
+</script>
+<style>
+  :root { color-scheme: light; }
+  body { font-family:'Inter',ui-sans-serif,system-ui,sans-serif; }
+  .tnum { font-variant-numeric: tabular-nums; }
+  /* deep burnt field + vivid glow (bg only, no gradient text) */
+  .field {
+    background:
+      radial-gradient(120% 90% at 78% 18%, rgba(249,115,22,0.55) 0%, rgba(249,115,22,0) 42%),
+      radial-gradient(90% 80% at 12% 110%, rgba(124,45,18,0.65) 0%, rgba(124,45,18,0) 55%),
+      #c2410c;
+  }
+  .glow { box-shadow: 0 40px 90px -30px rgba(124,45,18,0.85), 0 0 0 1px rgba(255,255,255,0.04); }
+  /* entrance */
+  @keyframes rise { from{opacity:0;transform:translateY(14px)} to{opacity:1;transform:none} }
+  .rise { animation: rise .6s cubic-bezier(.22,1,.36,1) backwards; }
+  .d1{animation-delay:.05s}.d2{animation-delay:.13s}.d3{animation-delay:.21s}.d4{animation-delay:.29s}.d5{animation-delay:.37s}
+  /* marquee */
+  @keyframes scroll { from{transform:translateX(0)} to{transform:translateX(-50%)} }
+  .marquee { animation: scroll 28s linear infinite; }
+  .marquee:hover { animation-play-state: paused; }
+  .chip-active { box-shadow: 0 0 0 2px #ea580c, 0 8px 18px -8px rgba(234,88,12,.45); }
+  @media (prefers-reduced-motion: reduce) {
+    .rise { animation: none; }
+    .marquee { animation: none; }
+    html { scroll-behavior: auto; }
+  }
+  html { scroll-behavior: smooth; }
+</style>
+</head>
+<body class="bg-mist text-ink antialiased">
+
+<!-- ============ HERO (drenched) ============ -->
+<header class="field text-white relative overflow-hidden">
+  <!-- nav -->
+  <nav class="relative z-10 max-w-6xl mx-auto px-5 sm:px-8">
+    <div class="flex items-center justify-between h-20">
+      <a href="#" class="flex items-center gap-2.5">
+        <span class="w-9 h-9 rounded-xl bg-white text-brand-700 grid place-items-center font-black text-lg">S</span>
+        <span class="text-lg font-bold tracking-tight">Satset Go</span>
+      </a>
+      <div class="hidden md:flex items-center gap-8 text-[15px] text-white/85">
+        <a href="#produk" class="hover:text-white transition">Produk</a>
+        <a href="#cara" class="hover:text-white transition">Cara kerja</a>
+        <a href="#agen" class="hover:text-white transition">Jadi agen</a>
+      </div>
+      <a href="#" class="inline-flex items-center gap-2 bg-white text-brand-700 font-semibold text-[15px] px-5 py-2.5 rounded-full hover:bg-brand-50 transition">
+        Masuk
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5-5 5M6 12h12"/></svg>
+      </a>
+    </div>
+  </nav>
+
+  <div class="relative z-10 max-w-6xl mx-auto px-5 sm:px-8 pt-10 pb-24 lg:pt-16 lg:pb-32">
+    <div class="grid lg:grid-cols-[1.05fr_0.95fr] gap-12 lg:gap-10 items-center">
+      <!-- copy -->
+      <div>
+        <span class="rise d1 inline-flex items-center gap-2 text-[13px] font-medium bg-white/12 ring-1 ring-white/20 rounded-full pl-2.5 pr-3.5 py-1.5">
+          <span class="relative flex h-2 w-2"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-white/70"></span><span class="relative inline-flex rounded-full h-2 w-2 bg-white"></span></span>
+          Transaksi real-time, 24 jam
+        </span>
+        <h1 class="rise d2 mt-6 font-extrabold tracking-[-0.03em] leading-[1.02] text-balance" style="font-size:clamp(2.6rem,6vw,5rem)">
+          Buka konter pulsa<br>langsung dari HP.
+        </h1>
+        <p class="rise d3 mt-6 text-white/90 text-lg leading-relaxed max-w-md">
+          Jual pulsa, paket data, token PLN, sampai voucher game. Satu aplikasi, harga agen, untung balik ke kamu tiap transaksi.
+        </p>
+        <div class="rise d4 mt-8 flex flex-col sm:flex-row gap-3">
+          <a href="#" class="inline-flex justify-center items-center gap-2 bg-white text-brand-700 font-semibold px-6 py-3.5 rounded-xl hover:bg-brand-50 transition shadow-lg shadow-black/10">
+            Mulai jadi agen
+            <svg class="w-4.5 h-4.5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5-5 5M6 12h12"/></svg>
+          </a>
+          <a href="#cara" class="inline-flex justify-center items-center gap-2 ring-1 ring-white/35 text-white font-semibold px-6 py-3.5 rounded-xl hover:bg-white/10 transition">
+            Lihat cara kerja
+          </a>
+        </div>
+        <div class="rise d5 mt-9 flex flex-wrap items-center gap-x-6 gap-y-2 text-[13px] text-white/80">
+          <span class="inline-flex items-center gap-1.5"><svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.4" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg> Tanpa biaya pendaftaran</span>
+          <span class="inline-flex items-center gap-1.5"><svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.4" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg> Saldo bisa ditarik kapan saja</span>
+        </div>
+      </div>
+
+      <!-- showpiece: interactive counter -->
+      <div class="rise d3 lg:justify-self-end w-full max-w-sm">
+        <div class="glow bg-white text-ink rounded-3xl p-5 sm:p-6">
+          <div class="flex items-center justify-between">
+            <p class="text-sm font-semibold text-muted">Top up cepat</p>
+            <span class="text-[11px] font-semibold text-brand-700 bg-brand-50 px-2 py-1 rounded-md">DEMO</span>
+          </div>
+
+          <p class="mt-4 text-xs font-semibold uppercase tracking-wider text-muted">Pilih operator</p>
+          <div id="brands" class="mt-2 grid grid-cols-4 gap-2"></div>
+
+          <p class="mt-4 text-xs font-semibold uppercase tracking-wider text-muted">Nominal</p>
+          <div id="denoms" class="mt-2 grid grid-cols-3 gap-2"></div>
+
+          <div class="mt-5 rounded-2xl bg-mist border border-line p-4">
+            <div class="flex items-center justify-between text-sm">
+              <span class="text-muted">Harga</span>
+              <span class="text-muted tnum" id="face">Rp25.000</span>
+            </div>
+            <div class="flex items-center justify-between text-sm mt-1">
+              <span class="text-muted">Biaya admin</span>
+              <span class="text-muted tnum" id="fee">Rp500</span>
+            </div>
+            <div class="flex items-center justify-between mt-3 pt-3 border-t border-line">
+              <span class="font-semibold">Total bayar</span>
+              <span class="font-extrabold text-xl tnum text-brand-700" id="total">Rp25.500</span>
+            </div>
+          </div>
+
+          <button class="mt-4 w-full bg-brand-600 hover:bg-brand-500 text-white font-semibold py-3.5 rounded-xl transition shadow-lg shadow-brand-600/35">
+            Bayar sekarang
+          </button>
+          <p class="mt-3 text-center text-[12px] text-muted">Saldo masuk &lt; 5 detik · struk otomatis</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- wave divider into light -->
+  <div class="absolute bottom-0 left-0 right-0 h-px bg-white/10"></div>
+</header>
+
+<!-- ============ BRAND TICKER ============ -->
+<section id="produk" class="bg-white border-y border-line py-6 overflow-hidden">
+  <div class="max-w-6xl mx-auto px-5 sm:px-8 mb-4">
+    <p class="text-sm text-muted text-center">Mendukung produk yang paling sering laku</p>
+  </div>
+  <div class="relative">
+    <div class="flex gap-3 w-max marquee">
+      <!-- track duplicated for seamless loop -->
+      <div class="flex gap-3 shrink-0" id="track-a"></div>
+      <div class="flex gap-3 shrink-0" id="track-b"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ CARA KERJA (real 3-step sequence, numbers earned) ============ -->
+<section id="cara" class="bg-mist py-20 sm:py-24">
+  <div class="max-w-6xl mx-auto px-5 sm:px-8">
+    <div class="max-w-xl">
+      <h2 class="font-extrabold tracking-tight text-balance" style="font-size:clamp(1.8rem,3.5vw,2.6rem)">Tiga langkah, saldo masuk.</h2>
+      <p class="mt-3 text-muted text-lg">Sesimpel transaksi di konter sebelah rumah. Bedanya, ini dari genggaman.</p>
+    </div>
+    <ol class="mt-12 grid md:grid-cols-3 gap-6">
+      <li class="relative bg-white rounded-2xl p-6 border border-line">
+        <span class="text-brand-600 font-extrabold text-3xl tnum">01</span>
+        <h3 class="mt-3 text-lg font-bold">Pilih produk</h3>
+        <p class="mt-2 text-muted leading-relaxed">Pulsa, data, PLN, atau game. Cari operator, ketuk nominal, harga langsung kelihatan tanpa biaya tersembunyi.</p>
+      </li>
+      <li class="relative bg-white rounded-2xl p-6 border border-line">
+        <span class="text-brand-600 font-extrabold text-3xl tnum">02</span>
+        <h3 class="mt-3 text-lg font-bold">Bayar dari saldo</h3>
+        <p class="mt-2 text-muted leading-relaxed">Potong dari saldo agen kamu. Konfirmasi sekali, jumlahnya jelas dan final, tidak ada kejutan.</p>
+      </li>
+      <li class="relative bg-white rounded-2xl p-6 border border-line">
+        <span class="text-brand-600 font-extrabold text-3xl tnum">03</span>
+        <h3 class="mt-3 text-lg font-bold">Saldo pelanggan masuk</h3>
+        <p class="mt-2 text-muted leading-relaxed">Dalam hitungan detik. Struk otomatis tersimpan di riwayat, siap jadi bukti kapan pun dibutuhkan.</p>
+      </li>
+    </ol>
+  </div>
+</section>
+
+<!-- ============ TRUST FACTS (honest, not inflated metrics) ============ -->
+<section class="bg-white border-t border-line py-16">
+  <div class="max-w-6xl mx-auto px-5 sm:px-8">
+    <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-x-8 gap-y-10">
+      <div>
+        <div class="w-11 h-11 rounded-xl bg-brand-50 text-brand-600 grid place-items-center">
+          <svg class="w-5.5 h-5.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+        </div>
+        <h3 class="mt-4 font-bold">Real-time</h3>
+        <p class="mt-1.5 text-muted text-[15px] leading-relaxed">Transaksi diproses langsung ke operator. Tidak ada antrean, tidak ada "diproses besok".</p>
+      </div>
+      <div>
+        <div class="w-11 h-11 rounded-xl bg-brand-50 text-brand-600 grid place-items-center">
+          <svg class="w-5.5 h-5.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 4H7a2 2 0 01-2-2V6a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V18a2 2 0 01-2 2z"/></svg>
+        </div>
+        <h3 class="mt-4 font-bold">Struk tiap transaksi</h3>
+        <p class="mt-1.5 text-muted text-[15px] leading-relaxed">Setiap top up menghasilkan bukti. Tersimpan rapi di riwayat, bisa dibuka ulang kapan saja.</p>
+      </div>
+      <div>
+        <div class="w-11 h-11 rounded-xl bg-brand-50 text-brand-600 grid place-items-center">
+          <svg class="w-5.5 h-5.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+        </div>
+        <h3 class="mt-4 font-bold">Saldo aman</h3>
+        <p class="mt-1.5 text-muted text-[15px] leading-relaxed">Saldo cuma berkurang saat transaksi benar-benar berhasil. Gagal? Saldo kembali utuh.</p>
+      </div>
+      <div>
+        <div class="w-11 h-11 rounded-xl bg-brand-50 text-brand-600 grid place-items-center">
+          <svg class="w-5.5 h-5.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 17v-2a4 4 0 014-4h0a4 4 0 014 4v2M7 21h10M12 7a3 3 0 100-6 3 3 0 000 6z"/></svg>
+        </div>
+        <h3 class="mt-4 font-bold">Riwayat lengkap</h3>
+        <p class="mt-1.5 text-muted text-[15px] leading-relaxed">Semua transaksi tercatat per pelanggan. Mudah dicari, mudah direkap saat tutup buku.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ AGEN / MARGIN ============ -->
+<section id="agen" class="bg-mist py-20 sm:py-24">
+  <div class="max-w-6xl mx-auto px-5 sm:px-8 grid lg:grid-cols-2 gap-12 items-center">
+    <div>
+      <h2 class="font-extrabold tracking-tight text-balance" style="font-size:clamp(1.8rem,3.5vw,2.6rem)">Tiap transaksi, untungnya balik ke kamu.</h2>
+      <p class="mt-4 text-muted text-lg leading-relaxed max-w-md">Harga agen di setiap produk. Selisihnya jadi margin kamu. Makin ramai konter, makin tebal. Kelola semuanya dari satu HP, di mana pun.</p>
+      <div class="mt-7 flex flex-col sm:flex-row gap-3">
+        <a href="#" class="inline-flex justify-center items-center gap-2 bg-brand-600 hover:bg-brand-500 text-white font-semibold px-6 py-3.5 rounded-xl transition shadow-lg shadow-brand-600/30">Mulai sekarang</a>
+        <a href="#" class="inline-flex justify-center items-center gap-2 ring-1 ring-line text-ink font-semibold px-6 py-3.5 rounded-xl hover:bg-white transition">Hubungi kami</a>
+      </div>
+    </div>
+    <!-- dummy margin table -->
+    <div class="bg-white rounded-2xl border border-line overflow-hidden">
+      <div class="px-5 py-4 border-b border-line flex items-center justify-between">
+        <p class="font-semibold">Contoh margin per transaksi</p>
+        <span class="text-[11px] font-semibold text-brand-700 bg-brand-50 px-2 py-1 rounded-md">ILUSTRASI</span>
+      </div>
+      <table class="w-full text-[15px]">
+        <tbody class="divide-y divide-line">
+          <tr><td class="px-5 py-3.5 text-muted">Pulsa 25.000</td><td class="px-5 py-3.5 text-right tnum text-muted">harga 24.300</td><td class="px-5 py-3.5 text-right font-semibold tnum text-brand-700">+Rp700</td></tr>
+          <tr><td class="px-5 py-3.5 text-muted">Paket data 10GB</td><td class="px-5 py-3.5 text-right tnum text-muted">harga 48.500</td><td class="px-5 py-3.5 text-right font-semibold tnum text-brand-700">+Rp1.500</td></tr>
+          <tr><td class="px-5 py-3.5 text-muted">Token PLN 50.000</td><td class="px-5 py-3.5 text-right tnum text-muted">harga 49.800</td><td class="px-5 py-3.5 text-right font-semibold tnum text-brand-700">+Rp1.200</td></tr>
+          <tr><td class="px-5 py-3.5 text-muted">Voucher game</td><td class="px-5 py-3.5 text-right tnum text-muted">harga 19.300</td><td class="px-5 py-3.5 text-right font-semibold tnum text-brand-700">+Rp900</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ============ FINAL CTA (bookend orange) ============ -->
+<section class="field text-white py-20">
+  <div class="max-w-3xl mx-auto px-5 sm:px-8 text-center">
+    <h2 class="font-extrabold tracking-[-0.02em] text-balance" style="font-size:clamp(2rem,4vw,3.2rem)">Konter kamu, mulai hari ini.</h2>
+    <p class="mt-4 text-white/90 text-lg max-w-xl mx-auto">Daftar gratis, isi saldo, langsung jualan. Tidak ada kontrak, tidak ada biaya bulanan.</p>
+    <div class="mt-8 flex flex-col sm:flex-row gap-3 justify-center">
+      <a href="#" class="inline-flex justify-center items-center gap-2 bg-white text-brand-700 font-semibold px-7 py-3.5 rounded-xl hover:bg-brand-50 transition">Masuk ke dashboard</a>
+      <a href="#" class="inline-flex justify-center items-center gap-2 ring-1 ring-white/35 text-white font-semibold px-7 py-3.5 rounded-xl hover:bg-white/10 transition">Hubungi kami</a>
+    </div>
+  </div>
+</section>
+
+<!-- ============ FOOTER ============ -->
+<footer class="bg-ink text-white/70 py-14">
+  <div class="max-w-6xl mx-auto px-5 sm:px-8">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+      <a href="#" class="flex items-center gap-2.5 text-white">
+        <span class="w-9 h-9 rounded-xl bg-brand-600 grid place-items-center font-black text-lg">S</span>
+        <span class="text-lg font-bold">Satset Go</span>
+      </a>
+      <div class="flex flex-wrap gap-x-7 gap-y-2 text-[15px]">
+        <a href="#produk" class="hover:text-white transition">Produk</a>
+        <a href="#cara" class="hover:text-white transition">Cara kerja</a>
+        <a href="#agen" class="hover:text-white transition">Jadi agen</a>
+        <a href="#" class="hover:text-white transition">Bantuan</a>
+      </div>
+    </div>
+    <div class="mt-10 pt-7 border-t border-white/10 text-sm">&copy; 2026 Satset Go · Konter pulsa management system</div>
+  </div>
+</footer>
+
+<script>
+  // --- counter demo data (dummy) ---
+  const BRANDS = [
+    { id:'tsel', name:'Telkomsel' },
+    { id:'xl',   name:'XL' },
+    { id:'isat', name:'Indosat' },
+    { id:'tri',  name:'Tri' },
+  ];
+  const DENOMS = [10000, 25000, 50000, 100000];
+  const FEE = { 10000:500, 25000:500, 50000:800, 100000:1000 };
+  const feePerBrand = { tsel:0, xl:-100, isat:-200, tri:-300 }; // dummy variation
+
+  let sel = { brand:'tsel', denom:25000 };
+  const rp = n => 'Rp' + n.toLocaleString('id-ID');
+
+  const brandsEl = document.getElementById('brands');
+  const denomsEl = document.getElementById('denoms');
+
+  function renderBrands(){
+    brandsEl.innerHTML = BRANDS.map(b => `
+      <button data-b="${b.id}" class="brand-btn text-[11px] font-semibold py-2 rounded-lg border transition ${sel.brand===b.id?'chip-active border-brand-600 text-brand-700 bg-brand-50':'border-line text-muted hover:border-brand-300'}">${b.name}</button>`).join('');
+  }
+  function renderDenoms(){
+    denomsEl.innerHTML = DENOMS.map(d => `
+      <button data-d="${d}" class="denom-btn text-sm font-semibold py-2.5 rounded-lg border transition tnum ${sel.denom===d?'chip-active border-brand-600 text-brand-700 bg-brand-50':'border-line text-ink hover:border-brand-300'}">${(d/1000)}rb</button>`).join('');
+  }
+  function renderTotal(){
+    const face = sel.denom;
+    const fee = Math.max(0, (FEE[sel.denom]||500) + (feePerBrand[sel.brand]||0));
+    document.getElementById('face').textContent = rp(face);
+    document.getElementById('fee').textContent = rp(fee);
+    document.getElementById('total').textContent = rp(face + fee);
+  }
+  brandsEl.addEventListener('click', e => { const b=e.target.closest('[data-b]'); if(!b)return; sel.brand=b.dataset.b; renderBrands(); renderTotal(); });
+  denomsEl.addEventListener('click', e => { const d=e.target.closest('[data-d]'); if(!d)return; sel.denom=+d.dataset.d; renderDenoms(); renderTotal(); });
+  renderBrands(); renderDenoms(); renderTotal();
+
+  // --- marquee track ---
+  const PRODUCTS = ['Pulsa','Paket Data','Token PLN','Voucher Game','E-Money','Telkomsel','XL','Indosat','Tri','Smartfren','PLN Pascabayar','Free Fire','Mobile Legends'];
+  const pill = t => `<span class="inline-flex items-center gap-2 bg-mist border border-line rounded-full px-4 py-2.5 text-[15px] font-medium text-ink whitespace-nowrap"><span class="w-1.5 h-1.5 rounded-full bg-brand-500"></span>${t}</span>`;
+  const html = PRODUCTS.map(pill).join('');
+  document.getElementById('track-a').innerHTML = html;
+  document.getElementById('track-b').innerHTML = html;
+</script>
+</body>
+</html>

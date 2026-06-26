@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Beli · Marketplace Cards (Preview C)</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script>
+tailwind.config = {
+  theme: { extend: {
+    colors: {
+      brand: { 50:'#fff7ed',100:'#ffedd5',200:'#fed7aa',300:'#fdba74',400:'#fb923c',500:'#f97316',600:'#ea580c',700:'#c2410c',900:'#7c2d12' },
+      ink:'#1e293b', mist:'#f8fafc', line:'#e2e8f0', muted:'#475569', faint:'#64748b', ok:'#16a34a'
+    },
+    fontFamily: { sans:['Inter','ui-sans-serif','system-ui','sans-serif'], mono:['ui-monospace','Menlo','monospace'] },
+  }}
+}
+</script>
+<style>
+  body { font-family:'Inter',ui-sans-serif,system-ui,sans-serif; }
+  .tnum { font-variant-numeric: tabular-nums; }
+  [x-cloak]{ display:none !important; }
+  .sheet-enter{ transition: transform .35s cubic-bezier(.22,1,.36,1); }
+</style>
+</head>
+<body class="bg-mist text-ink antialiased">
+
+<div class="min-h-screen" x-data="{ open: window.innerWidth >= 1024 }">
+  <!-- Fixed sidebar toggle (stays put — matches app) -->
+  <button @click="open = !open" aria-label="Toggle sidebar"
+    class="fixed top-2.5 left-3 z-[60] w-10 h-10 grid place-items-center rounded-full text-ink hover:bg-line/70 transition">
+    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/></svg>
+  </button>
+
+  <!-- Sidebar -->
+  <aside class="fixed left-0 top-0 z-40 h-screen w-64 flex flex-col bg-white border-r border-line transition-transform duration-300"
+    :class="open ? 'translate-x-0' : '-translate-x-full'">
+    <div class="h-16 flex items-center gap-2.5 pl-16 pr-4 border-b border-line">
+      <span class="w-8 h-8 rounded-lg bg-brand-600 grid place-items-center">
+        <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+      </span>
+      <span class="font-bold tracking-tight">satset<span class="text-brand-600">go</span></span>
+    </div>
+    <nav class="p-3 space-y-1 text-sm font-medium">
+      <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-muted hover:bg-mist"><span class="w-5">🏠</span>Dashboard</a>
+      <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-brand-600 text-white shadow-sm"><span class="w-5">🛒</span>Beli</a>
+      <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-muted hover:bg-mist"><span class="w-5">📊</span>Riwayat</a>
+      <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-muted hover:bg-mist"><span class="w-5">📋</span>Transaksi</a>
+      <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-muted hover:bg-mist"><span class="w-5">💲</span>Saldo</a>
+    </nav>
+    <a class="mt-auto m-3 flex items-center gap-3 px-3 py-2.5 rounded-lg text-red-600 hover:bg-red-50 text-sm font-medium"><span class="w-5">↩</span>Keluar</a>
+  </aside>
+
+  <!-- Mobile backdrop -->
+  <div x-show="open" x-cloak @click="open=false" class="fixed inset-0 bg-ink/40 z-30 lg:hidden"></div>
+
+  <!-- Main -->
+  <div class="min-h-screen flex flex-col transition-[margin] duration-300" :class="open ? 'lg:ml-64' : 'ml-0'">
+    <header class="h-16 flex items-center justify-between pr-5 lg:pr-8 bg-white border-b border-line transition-[padding] duration-300"
+      :class="open ? 'pl-5 lg:pl-8' : 'pl-16'">
+      <div class="text-sm text-faint">Home <span class="mx-1">›</span> <span class="text-ink font-medium">Beli Pulsa</span></div>
+      <div class="flex items-center gap-3 rounded-xl border border-line bg-mist px-3.5 py-1.5">
+        <span class="text-xs text-faint">Saldo</span><span class="font-bold tnum">Rp 250.000</span>
+      </div>
+    </header>
+
+    <main class="flex-1 p-4 sm:p-6 lg:p-8" x-data="market()">
+      <h1 class="text-2xl font-bold tracking-tight mb-1">Mau beli apa hari ini?</h1>
+      <p class="text-muted mb-7">Pilih layanan, sisanya cepat.</p>
+
+      <div class="grid grid-cols-2 lg:grid-cols-3 gap-4 max-w-4xl">
+        <template x-for="c in cats" :key="c.name">
+          <button @click="open(c)"
+            class="group relative overflow-hidden rounded-3xl p-6 text-left text-white transition-transform hover:-translate-y-1"
+            :class="c.bg">
+            <span class="absolute -right-4 -bottom-4 text-7xl opacity-25 group-hover:opacity-40 transition" x-text="c.icon"></span>
+            <span class="relative block text-lg font-bold" x-text="c.name"></span>
+            <span class="relative block text-sm text-white/80 mt-1" x-text="c.desc"></span>
+            <span class="relative inline-flex items-center gap-1 mt-6 text-sm font-semibold">Pilih <span class="group-hover:translate-x-0.5 transition">→</span></span>
+          </button>
+        </template>
+      </div>
+
+      <!-- ===== MODAL (centered) ===== -->
+      <div x-show="sheet" x-cloak class="fixed inset-0 z-50 grid place-items-center p-4">
+        <div x-show="sheet" x-transition.opacity class="absolute inset-0 bg-ink/50" @click="close()"></div>
+        <div x-show="sheet"
+          x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 scale-95 translate-y-2" x-transition:enter-end="opacity-100 scale-100 translate-y-0"
+          x-transition:leave="transition ease-in duration-200" x-transition:leave-start="opacity-100 scale-100" x-transition:leave-end="opacity-0 scale-95"
+          class="relative w-full max-w-lg max-h-[88vh] overflow-y-auto bg-white rounded-3xl shadow-2xl">
+          <div class="p-5 sm:p-7">
+
+            <div class="flex items-center gap-3 mb-6">
+              <span class="w-12 h-12 rounded-2xl grid place-items-center text-2xl text-white" :class="active?.bg" x-text="active?.icon"></span>
+              <div>
+                <h2 class="text-xl font-bold" x-text="active?.name"></h2>
+                <p class="text-sm text-faint" x-text="active?.desc"></p>
+              </div>
+              <button @click="close()" class="ml-auto w-9 h-9 rounded-full bg-mist hover:bg-line grid place-items-center text-faint">✕</button>
+            </div>
+
+            <!-- number + operator -->
+            <label class="block text-sm font-medium mb-1.5" x-text="active?.field || 'Nomor Tujuan'"></label>
+            <div class="relative mb-1">
+              <input x-model="number" @input="detect" inputmode="numeric" maxlength="15" placeholder="0812 3456 7890"
+                class="w-full text-lg font-semibold tnum bg-white border border-line rounded-xl px-4 py-3 outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-500/15 transition">
+            </div>
+            <div class="h-6 mb-4 flex items-center text-sm" x-cloak>
+              <span x-show="operator" class="flex items-center gap-1.5 font-medium text-ok"><span class="w-2 h-2 rounded-full bg-ok"></span><span x-text="operator + ' terdeteksi'"></span></span>
+            </div>
+
+            <!-- nominal chips -->
+            <label class="block text-sm font-medium mb-2">Pilih nominal</label>
+            <div class="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+              <template x-for="d in denoms" :key="d.id">
+                <button @click="denom=d"
+                  class="relative rounded-xl border px-4 py-3 text-left transition"
+                  :class="denom?.id===d.id ? 'border-brand-600 bg-brand-50 ring-2 ring-brand-500/30' : 'border-line hover:border-brand-500'">
+                  <span x-show="denom?.id===d.id" class="absolute top-0 right-0 w-6 h-6 grid place-items-center bg-brand-600 text-white text-xs rounded-bl-xl">✓</span>
+                  <span class="block text-sm font-semibold" x-text="d.label"></span>
+                  <span class="block font-bold tnum text-brand-600 mt-0.5" x-text="rupiah(d.price)"></span>
+                </button>
+              </template>
+            </div>
+
+            <!-- pay -->
+            <div class="flex items-center justify-between gap-4 mt-6 pt-5 border-t border-line sticky bottom-0 bg-white">
+              <div>
+                <p class="text-xs text-faint">Total bayar</p>
+                <p class="text-xl font-bold tnum" :class="total?'text-brand-600':'text-faint'" x-text="rupiah(total)"></p>
+              </div>
+              <button :disabled="!denom || number.length<10"
+                class="rounded-xl bg-brand-600 hover:bg-brand-500 disabled:opacity-40 disabled:cursor-not-allowed text-white font-semibold px-8 py-3.5 transition">
+                Bayar Sekarang
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<script>
+function market(){
+  return {
+    sheet:false, active:null, number:'', operator:'', denom:null,
+    cats:[
+      {name:'Pulsa',icon:'📶',desc:'Semua operator',bg:'bg-brand-600',field:'Nomor HP',key:'Pulsa'},
+      {name:'Paket Data',icon:'🌐',desc:'Kuota internet',bg:'bg-sky-600',field:'Nomor HP',key:'Data'},
+      {name:'Voucher Game',icon:'🎮',desc:'Diamond & UC',bg:'bg-violet-600',field:'User ID',key:'Game'},
+      {name:'Token PLN',icon:'⚡',desc:'Listrik prabayar',bg:'bg-amber-500',field:'No. Meter',key:'PLN'},
+      {name:'E-Wallet',icon:'💳',desc:'OVO, Dana, GoPay',bg:'bg-emerald-600',field:'Nomor HP',key:'EW'},
+      {name:'Pascabayar',icon:'🧾',desc:'Tagihan bulanan',bg:'bg-rose-600',field:'No. Pelanggan',key:'Post'},
+    ],
+    all:[
+      {id:1,key:'Pulsa',label:'5.000',price:6000},{id:2,key:'Pulsa',label:'10.000',price:11000},
+      {id:3,key:'Pulsa',label:'25.000',price:25500},{id:4,key:'Pulsa',label:'50.000',price:50000},
+      {id:5,key:'Pulsa',label:'100.000',price:99500},
+      {id:6,key:'Data',label:'2GB/7hr',price:18000},{id:7,key:'Data',label:'5GB/30hr',price:55000},{id:8,key:'Data',label:'10GB/30hr',price:92000},
+      {id:9,key:'Game',label:'70 Diamond',price:20000},{id:10,key:'Game',label:'140 Diamond',price:39000},
+      {id:11,key:'PLN',label:'Token 20rb',price:21500},{id:12,key:'PLN',label:'Token 50rb',price:51500},
+      {id:13,key:'EW',label:'Saldo 25rb',price:26000},{id:14,key:'EW',label:'Saldo 50rb',price:51000},
+      {id:15,key:'Post',label:'Cek Tagihan',price:0},
+    ],
+    get denoms(){ return this.all.filter(d=>d.key===(this.active?.key)); },
+    get total(){ return this.denom ? this.denom.price : 0; },
+    open(c){ this.active=c; this.sheet=true; this.number=''; this.operator=''; this.denom=null; },
+    close(){ this.sheet=false; },
+    detect(){
+      const p=this.number.replace(/\D/g,'').slice(0,4);
+      const map={ '0811':'Telkomsel','0812':'Telkomsel','0813':'Telkomsel','0821':'Telkomsel','0852':'Telkomsel',
+        '0817':'XL','0818':'XL','0819':'XL','0859':'XL','0877':'XL',
+        '0814':'Indosat','0815':'Indosat','0816':'Indosat','0855':'Indosat',
+        '0895':'Tri','0896':'Tri','0897':'Tri','0898':'Tri','0831':'Axis','0881':'Smartfren' };
+      this.operator = (this.active?.field==='Nomor HP') ? (map[p]||'') : '';
+    },
+    rupiah(n){ return 'Rp '+(n||0).toLocaleString('id-ID'); }
+  }
+}
+</script>
+</body>
+</html>

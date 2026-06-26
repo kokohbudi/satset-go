@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Satset Go · Landing redesign — 3 proposal</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script>
+tailwind.config = { theme: { extend: {
+  colors: { brand:{50:'#fff7ed',600:'#ea580c',700:'#c2410c'}, ink:'#1e293b', mist:'#f8fafc', line:'#e2e8f0', faint:'#64748b' },
+  fontFamily: { sans:['Inter','ui-sans-serif','system-ui','sans-serif'] } }}}
+</script>
+<style>body{font-family:'Inter',ui-sans-serif,system-ui,sans-serif}</style>
+</head>
+<body class="bg-mist text-ink antialiased">
+<div class="max-w-5xl mx-auto px-6 py-16">
+  <header class="max-w-2xl">
+    <span class="inline-flex items-center gap-2 text-[13px] font-medium text-brand-700 bg-brand-50 rounded-full px-3.5 py-1.5">Preview · data dummy</span>
+    <h1 class="mt-5 font-extrabold tracking-[-0.02em] leading-tight" style="font-size:clamp(2rem,4vw,3rem)">Redesign landing page — 3 arah.</h1>
+    <p class="mt-4 text-faint text-lg leading-relaxed">Tiga proposal lengkap, identitas brand tetap (burnt orange, Inter, cool slate). Buka satu per satu, bandingin, lalu pilih yang mau dijadikan produksi (ganti ke Thymeleaf + <code class="text-sm bg-white border border-line rounded px-1.5 py-0.5">output.css</code>).</p>
+  </header>
+
+  <div class="mt-12 grid gap-5">
+    <a href="a-drenched.html" class="group block bg-white rounded-2xl border border-line p-6 hover:border-brand-300 hover:shadow-lg transition">
+      <div class="flex items-start justify-between gap-4">
+        <div>
+          <div class="flex items-center gap-3">
+            <span class="text-xs font-bold tracking-wider text-brand-700 bg-brand-50 rounded-md px-2 py-1">A</span>
+            <h2 class="text-xl font-bold">Drenched Counter</h2>
+          </div>
+          <p class="mt-2 text-faint leading-relaxed max-w-xl">Hero penuh burnt-orange, paling berani. Showpiece counter interaktif (pilih operator + nominal, harga jalan real-time). Copy reseller-led. Paling jauh dari SaaS-slop.</p>
+          <div class="mt-3 flex flex-wrap gap-2 text-[13px]">
+            <span class="bg-mist border border-line rounded-full px-2.5 py-1">Drenched orange</span>
+            <span class="bg-mist border border-line rounded-full px-2.5 py-1">Counter interaktif</span>
+            <span class="bg-mist border border-line rounded-full px-2.5 py-1">Reseller-led</span>
+          </div>
+        </div>
+        <span class="shrink-0 w-14 h-14 rounded-xl bg-brand-600 grid place-items-center text-white group-hover:scale-105 transition">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5-5 5M6 12h12"/></svg>
+        </span>
+      </div>
+    </a>
+
+    <a href="b-counter-light.html" class="group block bg-white rounded-2xl border border-line p-6 hover:border-brand-300 hover:shadow-lg transition">
+      <div class="flex items-start justify-between gap-4">
+        <div>
+          <div class="flex items-center gap-3">
+            <span class="text-xs font-bold tracking-wider text-brand-700 bg-brand-50 rounded-md px-2 py-1">B</span>
+            <h2 class="text-xl font-bold">Counter Light</h2>
+          </div>
+          <p class="mt-2 text-faint leading-relaxed max-w-xl">Base terang cool-slate, orange jadi aksen aja, restrained. Showpiece struk/receipt realistis (bukti transaksi). Copy buyer-led, banyak whitespace, fokus trust.</p>
+          <div class="mt-3 flex flex-wrap gap-2 text-[13px]">
+            <span class="bg-mist border border-line rounded-full px-2.5 py-1">Clean light</span>
+            <span class="bg-mist border border-line rounded-full px-2.5 py-1">Struk / receipt</span>
+            <span class="bg-mist border border-line rounded-full px-2.5 py-1">Buyer-led</span>
+          </div>
+        </div>
+        <span class="shrink-0 w-14 h-14 rounded-xl bg-ink grid place-items-center text-white group-hover:scale-105 transition">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5-5 5M6 12h12"/></svg>
+        </span>
+      </div>
+    </a>
+
+    <a href="c-split-agen.html" class="group block bg-white rounded-2xl border border-line p-6 hover:border-brand-300 hover:shadow-lg transition">
+      <div class="flex items-start justify-between gap-4">
+        <div>
+          <div class="flex items-center gap-3">
+            <span class="text-xs font-bold tracking-wider text-brand-700 bg-brand-50 rounded-md px-2 py-1">C</span>
+            <h2 class="text-xl font-bold">Split Agen</h2>
+          </div>
+          <p class="mt-2 text-faint leading-relaxed max-w-xl">Hero terbelah: panel orange (pitch jadi agen) + panel terang dengan frame HP berisi dashboard reseller (saldo, riwayat). Fokus B2B, margin, kelola dari mana saja.</p>
+          <div class="mt-3 flex flex-wrap gap-2 text-[13px]">
+            <span class="bg-mist border border-line rounded-full px-2.5 py-1">Split panel</span>
+            <span class="bg-mist border border-line rounded-full px-2.5 py-1">Frame HP</span>
+            <span class="bg-mist border border-line rounded-full px-2.5 py-1">B2B agen</span>
+          </div>
+        </div>
+        <span class="shrink-0 w-14 h-14 rounded-xl bg-brand-700 grid place-items-center text-white group-hover:scale-105 transition">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5-5 5M6 12h12"/></svg>
+        </span>
+      </div>
+    </a>
+  </div>
+
+  <p class="mt-10 text-sm text-faint">Semua dummy: Tailwind via CDN, data hardcoded, belum nyolok backend. Pilih satu, nanti aku porting ke <code class="bg-white border border-line rounded px-1.5 py-0.5">landing.html</code> produksi (Thymeleaf, icon fragment, compiled CSS).</p>
+</div>
+</body>
+</html>
