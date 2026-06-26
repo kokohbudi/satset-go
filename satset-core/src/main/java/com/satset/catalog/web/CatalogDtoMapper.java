@@ -13,12 +13,12 @@ import com.satset.catalog.model.Products;
  * Shared entity -> DTO mapping for the catalog web layer.
  * Hoisted from the (previously duplicated) private mappers in the catalog controllers.
  */
-final class CatalogDtoMapper {
+public final class CatalogDtoMapper {
 
     private CatalogDtoMapper() {
     }
 
-    static CategoryDTO toCategoryDTO(Category entity) {
+    public static CategoryDTO toCategoryDTO(Category entity) {
         CategoryDTO dto = new CategoryDTO();
         dto.setId(entity.getId());
         dto.setCode(entity.getCode());

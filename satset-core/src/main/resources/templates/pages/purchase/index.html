@@ -225,13 +225,15 @@
     </div>
 
     <div layout:fragment="scripts">
-        <script>
+        <script th:inline="javascript">
+            const INITIAL_CATEGORIES = /*[[${initialCategories}]]*/ [];
+            const INITIAL_BALANCE = /*[[${initialBalance}]]*/ 0;
             function purchaseFlow() {
                 return {
                     view: 'grid',
-                    categories: [],
-                    loadingCats: true,
-                    currentBalance: 0,
+                    categories: INITIAL_CATEGORIES,
+                    loadingCats: false,
+                    currentBalance: INITIAL_BALANCE,
 
                     // modal
                     modalOpen: false,
@@ -265,7 +267,7 @@
                     get isInsufficient() { return this.denom ? this.currentBalance < this.total : false; },
                     get canPay() { return !!this.denom && this.number.length >= 10 && !this.isInsufficient; },
 
-                    init() { this.loadCategories(); this.fetchBalance(); },
+                    // categories + balance SSR-seeded; methods kept for post-purchase refresh
 
                     async loadCategories() {
                         this.loadingCats = true;

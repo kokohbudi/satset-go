@@ -1,5 +1,6 @@
 package com.satset.shared.web;
 
+import com.satset.onboarding.repository.StoreRepository;
 import com.satset.shared.dto.UserDTO;
 import com.satset.transaction.client.WalletGateway;
 import lombok.extern.slf4j.Slf4j;
@@ -21,10 +22,12 @@ public class DashboardController {
 
     private final WalletGateway walletGateway;
     private final UserDTO userDTO;
+    private final StoreRepository storeRepository;
 
-    public DashboardController(WalletGateway walletGateway, UserDTO userDTO) {
+    public DashboardController(WalletGateway walletGateway, UserDTO userDTO, StoreRepository storeRepository) {
         this.walletGateway = walletGateway;
         this.userDTO = userDTO;
+        this.storeRepository = storeRepository;
     }
 
     @GetMapping("/")
@@ -59,6 +62,7 @@ public class DashboardController {
         model.addAttribute("currentPage", "dashboard");
         model.addAttribute("breadcrumb", "Dashboard");
         model.addAttribute("totalBalance", formatBalance(userDTO.getWalletId()));
+        model.addAttribute("totalResellers", NumberFormat.getInstance(ID).format(storeRepository.count()));
 
         return "pages/dashboard/index";
     }

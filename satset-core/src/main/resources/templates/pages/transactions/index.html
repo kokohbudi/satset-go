@@ -324,13 +324,14 @@
     </div>
 
     <div layout:fragment="scripts">
-        <script>
+        <script th:inline="javascript">
+            const INITIAL_HISTORY = /*[[${initialHistory}]]*/ { content: [], number: 0 };
             function transactionHistory() {
                 return {
-                    loading: true,
-                    content: [],
-                    pageData: {},
-                    currentPage: 0,
+                    loading: false,
+                    content: INITIAL_HISTORY.content,
+                    pageData: INITIAL_HISTORY,
+                    currentPage: INITIAL_HISTORY.number,
                     statusFilter: '',
                     selectedTx: null,
                     view: 'trx',
@@ -343,9 +344,7 @@
                         return this.content.filter(tx => tx.status === this.statusFilter);
                     },
 
-                    init() {
-                        this.fetchPage(0);
-                    },
+                    // page 0 already SSR-seeded; fetchPage only for pagination/refresh clicks
 
                     async fetchPage(pageNumber) {
                         if (pageNumber < 0) return;
