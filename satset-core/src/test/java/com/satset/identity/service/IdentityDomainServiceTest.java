@@ -143,13 +143,15 @@ class IdentityDomainServiceTest {
     // ==================== getBackofficeUsers ====================
 
     @Test
-    void getBackofficeUsers_NoFilter_ReturnsAllUsers() {
-        List<UserDTO> allUsers = List.of(new UserDTO(), new UserDTO());
-        when(keycloakPort.getUsersWithRolesBatch(100)).thenReturn(allUsers);
+    void getBackofficeUsers_NoFilter_ReturnsOnlyUsersWithRealmRole() {
+        UserDTO withRole = new UserDTO();
+        withRole.setRoleDetails(List.of(com.satset.shared.dto.RoleInfo.builder().name("manage_users").build()));
+        UserDTO konter = new UserDTO(); // no realm role → excluded
+        when(keycloakPort.getUsersWithRolesBatch(100)).thenReturn(List.of(withRole, konter));
 
         List<UserDTO> result = service.getBackofficeUsers(null);
 
-        assertEquals(2, result.size());
+        assertEquals(1, result.size());
     }
 
     @Test
@@ -169,13 +171,16 @@ class IdentityDomainServiceTest {
     }
 
     @Test
-    void getBackofficeUsers_WithAllFilter_ReturnsEveryone() {
-        List<UserDTO> allUsers = List.of(new UserDTO(), new UserDTO(), new UserDTO());
-        when(keycloakPort.getUsersWithRolesBatch(100)).thenReturn(allUsers);
+    void getBackofficeUsers_WithAllFilter_ReturnsEveryoneWithRealmRole() {
+        UserDTO a = new UserDTO();
+        a.setRoleDetails(List.of(com.satset.shared.dto.RoleInfo.builder().name("manage_users").build()));
+        UserDTO b = new UserDTO();
+        b.setRoleDetails(List.of(com.satset.shared.dto.RoleInfo.builder().name("view_catalog").build()));
+        when(keycloakPort.getUsersWithRolesBatch(100)).thenReturn(List.of(a, b, new UserDTO()));
 
         List<UserDTO> result = service.getBackofficeUsers("all");
 
-        assertEquals(3, result.size());
+        assertEquals(2, result.size());
         verify(keycloakPort, never()).getCompositeRoleChildNames(any());
     }
 

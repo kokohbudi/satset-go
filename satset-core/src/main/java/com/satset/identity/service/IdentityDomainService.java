@@ -361,6 +361,12 @@ public class IdentityDomainService {
         // OPTIMIZED: Use batch method with parallel execution instead of N+1 loop
         List<UserDTO> users = keycloakAdminClientService.getUsersWithRolesBatch(100);
 
+        // Backoffice = users with at least one (non-system) realm role.
+        // Konter/store users have no realm role → empty roleDetails → excluded.
+        users = users.stream()
+                .filter(user -> user.getRoleDetails() != null && !user.getRoleDetails().isEmpty())
+                .toList();
+
         // Apply filter if provided
         if (roleFilter != null && !roleFilter.isEmpty() && !"all".equalsIgnoreCase(roleFilter)) {
             // Get child role names from composite role (defensive copy — cached result may be unmodifiable)

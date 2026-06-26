@@ -70,10 +70,14 @@ public class StoreOnboardingDomainService {
             user.setStoreId(store.getId());
             usersRepository.save(user);
 
-            // 5. Set session hasStore = true
+            // 5. Set session hasStore = true; drop stale userRoles cache so the
+            // sidebar re-fetches the freshly-assigned org_owner roles on next request.
+            // (UserSessionControllerAdvice caches userRoles on first request — before
+            // onboarding — so without this the owner sees an empty menu until re-login.)
             if (RequestContextHolder.getRequestAttributes() != null) {
-                RequestContextHolder.currentRequestAttributes()
-                        .setAttribute("hasStore", true, RequestAttributes.SCOPE_SESSION);
+                var requestAttributes = RequestContextHolder.currentRequestAttributes();
+                requestAttributes.setAttribute("hasStore", true, RequestAttributes.SCOPE_SESSION);
+                requestAttributes.removeAttribute("userRoles", RequestAttributes.SCOPE_SESSION);
             }
 
             log.info("Successfully onboarded store '{}' (orgId: {}) for user '{}'", orgName, orgId, userId);
