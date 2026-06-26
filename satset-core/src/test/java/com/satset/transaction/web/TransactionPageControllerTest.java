@@ -1,7 +1,10 @@
 package com.satset.transaction.web;
 
+import com.satset.shared.dto.UserDTO;
+import com.satset.transaction.service.TransactionDomainService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
@@ -14,7 +17,9 @@ class TransactionPageControllerTest {
 
     @BeforeEach
     void setUp() {
-        mockMvc = MockMvcBuilders.standaloneSetup(new TransactionPageController()).build();
+        TransactionDomainService transactionService = Mockito.mock(TransactionDomainService.class);
+        UserDTO userDTO = new UserDTO();
+        mockMvc = MockMvcBuilders.standaloneSetup(new TransactionPageController(transactionService, userDTO)).build();
     }
 
     @Test

@@ -1,7 +1,11 @@
 package com.satset.shared.web;
 
+import com.satset.catalog.service.CategoryDomainService;
+import com.satset.shared.dto.UserDTO;
+import com.satset.transaction.client.WalletGateway;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
@@ -14,7 +18,10 @@ class PurchasePageControllerTest {
 
     @BeforeEach
     void setUp() {
-        mockMvc = MockMvcBuilders.standaloneSetup(new PurchasePageController()).build();
+        CategoryDomainService categoryService = Mockito.mock(CategoryDomainService.class);
+        WalletGateway walletGateway = Mockito.mock(WalletGateway.class);
+        UserDTO userDTO = new UserDTO();
+        mockMvc = MockMvcBuilders.standaloneSetup(new PurchasePageController(categoryService, walletGateway, userDTO)).build();
     }
 
     @Test

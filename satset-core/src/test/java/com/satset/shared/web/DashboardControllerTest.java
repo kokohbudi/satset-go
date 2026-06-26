@@ -1,5 +1,6 @@
 package com.satset.shared.web;
 
+import com.satset.onboarding.repository.StoreRepository;
 import com.satset.shared.dto.UserDTO;
 import com.satset.transaction.client.WalletGateway;
 import org.junit.jupiter.api.BeforeEach;
@@ -23,7 +24,8 @@ class DashboardControllerTest {
     void setUp() {
         UserDTO userDTO = new UserDTO(); // no wallet -> formatBalance returns "Rp 0"
         WalletGateway walletGateway = org.mockito.Mockito.mock(WalletGateway.class);
-        mockMvc = MockMvcBuilders.standaloneSetup(new DashboardController(walletGateway, userDTO)).build();
+        StoreRepository storeRepository = org.mockito.Mockito.mock(StoreRepository.class);
+        mockMvc = MockMvcBuilders.standaloneSetup(new DashboardController(walletGateway, userDTO, storeRepository)).build();
     }
 
     @Test
