@@ -132,6 +132,14 @@
                         if (!d) return;
                         btn.classList.toggle('text-primary', d.pinned);
                         btn.classList.toggle('text-base-content/30', !d.pinned);
+                        // Live-sync the dashboard "Menu Cepat" card if it's on this page.
+                        const slot = document.getElementById('quickMenuSlot');
+                        if (slot) {
+                            fetch('/quick-menu/card')
+                                .then(r => r.ok ? r.text() : null)
+                                .then(html => { if (html !== null) slot.innerHTML = html; })
+                                .catch(() => {});
+                        }
                     })
                     .catch(() => {});
             }

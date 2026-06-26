@@ -1,0 +1,21 @@
+<!--
+  Quick-menu ("Menu Cepat") card fragment. Single source of truth for the
+  dashboard pinned-menu grid: rendered server-side on dashboard load AND
+  re-fetched via GET /quick-menu/card for live sync after a pin toggle.
+  Renders nothing when quickMenu is empty (th:if), so the slot collapses.
+-->
+<div xmlns:th="http://www.thymeleaf.org/" th:fragment="card" th:remove="tag">
+    <div th:if="${quickMenu != null and !quickMenu.isEmpty()}"
+        class="card bg-base-100 shadow-lg border border-base-300/50 lg:col-span-2">
+        <div class="card-body">
+            <h2 class="card-title text-lg font-bold mb-4">Menu Cepat</h2>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <a th:each="item : ${quickMenu}" th:href="${item.url}"
+                    class="flex flex-col items-center justify-center gap-2 py-4 min-h-[82px] rounded-xl border border-base-300 text-base-content/70 hover:border-primary hover:text-primary hover:bg-primary/10 transition-all duration-200">
+                    <svg th:replace="~{components/icons :: __${item.icon}__(class='w-6 h-6')}"></svg>
+                    <span class="text-xs font-semibold" th:text="${item.displayName}">Menu</span>
+                </a>
+            </div>
+        </div>
+    </div>
+</div>

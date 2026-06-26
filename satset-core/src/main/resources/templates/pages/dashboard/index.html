@@ -93,19 +93,10 @@
         <!-- Secondary zone: Aksi Cepat (wider, primary) + Status Sistem (glanceable, narrow) -->
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8 animate-rise" style="--i: 3">
 
-        <!-- Quick Menu (user-pinned). Hidden entirely when nothing is pinned. -->
-        <div th:if="${quickMenu != null and !quickMenu.isEmpty()}"
-            class="card bg-base-100 shadow-lg border border-base-300/50 lg:col-span-2">
-            <div class="card-body">
-                <h2 class="card-title text-lg font-bold mb-4">Menu Cepat</h2>
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <a th:each="item : ${quickMenu}" th:href="${item.url}"
-                        class="flex flex-col items-center justify-center gap-2 py-4 min-h-[82px] rounded-xl border border-base-300 text-base-content/70 hover:border-primary hover:text-primary hover:bg-primary/10 transition-all duration-200">
-                        <svg th:replace="~{components/icons :: __${item.icon}__(class='w-6 h-6')}"></svg>
-                        <span class="text-xs font-semibold" th:text="${item.displayName}">Menu</span>
-                    </a>
-                </div>
-            </div>
+        <!-- Quick Menu (user-pinned). Live-synced on pin toggle via GET /quick-menu/card.
+             `contents` wrapper generates no box, so the card (or nothing) sits directly in the grid. -->
+        <div id="quickMenuSlot" class="contents">
+            <div th:replace="~{components/quick-menu-card :: card}"></div>
         </div>
 
         <!-- System Status -->
