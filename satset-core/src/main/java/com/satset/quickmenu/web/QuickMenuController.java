@@ -24,7 +24,11 @@ public class QuickMenuController {
         if (roleName == null || roleName.isBlank()) {
             return ResponseEntity.badRequest().build();
         }
-        boolean pinned = service.toggle(userDTO.getProviderUserId(), roleName);
+        String userId = userDTO.getProviderUserId();
+        if (userId == null) {
+            return ResponseEntity.status(401).build();
+        }
+        boolean pinned = service.toggle(userId, roleName);
         return ResponseEntity.ok(new ToggleResponse(pinned));
     }
 

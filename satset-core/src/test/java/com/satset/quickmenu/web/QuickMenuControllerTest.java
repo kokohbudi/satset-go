@@ -41,4 +41,12 @@ class QuickMenuControllerTest {
         var resp = controller.toggle(new QuickMenuController.ToggleRequest("  "));
         assertThat(resp.getStatusCode().value()).isEqualTo(400);
     }
+
+    @Test
+    void toggle_noUserIdIsUnauthorized() {
+        // userDTO without providerUserId (e.g. session lacking a sub) -> 401, never hits the service
+        var anon = new QuickMenuController(service, new UserDTO());
+        var resp = anon.toggle(new QuickMenuController.ToggleRequest("users"));
+        assertThat(resp.getStatusCode().value()).isEqualTo(401);
+    }
 }
