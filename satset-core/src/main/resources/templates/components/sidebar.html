@@ -62,30 +62,50 @@
 
                         <!-- Children: muncul berdasarkan sidebar flag masing-masing -->
                         <th:block th:each="child : ${role.children}">
-                            <a th:if="${child.attributes != null and child.attributes['sidebar'] == '1' and child.attributes['url'] != null and !child.attributes['url'].isEmpty()}"
-                                th:href="${child.attributes['url']}"
-                                th:with="iconName=${child.attributes['icon'] != null and !child.attributes['icon'].isEmpty() ? child.attributes['icon'] : 'icon-document'}"
-                                class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all"
-                                th:classappend="${currentPath != null and currentPath.startsWith(child.attributes['url'])} ? 'bg-primary text-primary-content shadow-lg' : 'hover:bg-primary/10 hover:text-primary'">
-                                <svg th:replace="~{components/icons :: __${iconName}__(class='w-5 h-5')}"></svg>
-                                <span
-                                    th:text="${child.attributes['display_name'] != null and !child.attributes['display_name'].isEmpty()} ? ${child.attributes['display_name']} : ${child.name}">Menu
-                                    Item</span>
-                            </a>
+                            <div class="relative group"
+                                th:if="${child.attributes != null and child.attributes['sidebar'] == '1' and child.attributes['url'] != null and !child.attributes['url'].isEmpty()}">
+                                <a th:href="${child.attributes['url']}"
+                                    th:with="iconName=${child.attributes['icon'] != null and !child.attributes['icon'].isEmpty() ? child.attributes['icon'] : 'icon-document'}"
+                                    class="flex items-center gap-3 px-4 py-3 pr-10 rounded-xl transition-all"
+                                    th:classappend="${currentPath != null and currentPath.startsWith(child.attributes['url'])} ? 'bg-primary text-primary-content shadow-lg' : 'hover:bg-primary/10 hover:text-primary'">
+                                    <svg th:replace="~{components/icons :: __${iconName}__(class='w-5 h-5')}"></svg>
+                                    <span
+                                        th:text="${child.attributes['display_name'] != null and !child.attributes['display_name'].isEmpty()} ? ${child.attributes['display_name']} : ${child.name}">Menu
+                                        Item</span>
+                                </a>
+                                <button type="button" th:data-role="${child.name}" onclick="toggleQuickMenu(this)"
+                                    title="Pin ke menu cepat"
+                                    class="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                                    th:classappend="${pinnedRoleNames != null and pinnedRoleNames.contains(child.name)} ? 'text-primary' : 'text-base-content/30'">
+                                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                                        <path d="M9.05 2.93c.3-.92 1.6-.92 1.9 0l1.42 4.36a1 1 0 00.95.69h4.59c.97 0 1.37 1.24.59 1.81l-3.71 2.7a1 1 0 00-.36 1.12l1.41 4.36c.3.92-.75 1.69-1.54 1.12l-3.71-2.7a1 1 0 00-1.18 0l-3.71 2.7c-.79.57-1.84-.2-1.54-1.12l1.41-4.36a1 1 0 00-.36-1.12l-3.71-2.7c-.78-.57-.38-1.81.59-1.81h4.59a1 1 0 00.95-.69l1.42-4.36z"/>
+                                    </svg>
+                                </button>
+                            </div>
                         </th:block>
                     </th:block>
 
                     <!-- CASE 2: Role tanpa children tapi punya sidebar=1 dan url (sebagai standalone menu item) -->
-                    <a th:if="${role.attributes != null and role.attributes['sidebar'] == '1' and role.attributes['url'] != null and !role.attributes['url'].isEmpty() and (role.children == null or role.children.isEmpty())}"
-                        th:href="${role.attributes['url']}"
-                        th:with="iconName=${role.attributes['icon'] != null and !role.attributes['icon'].isEmpty() ? role.attributes['icon'] : 'icon-document'}"
-                        class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all"
-                        th:classappend="${currentPath != null and currentPath.startsWith(role.attributes['url'])} ? 'bg-primary text-primary-content shadow-lg' : 'hover:bg-primary/10 hover:text-primary'">
-                        <svg th:replace="~{components/icons :: __${iconName}__(class='w-5 h-5')}"></svg>
-                        <span
-                            th:text="${role.attributes['display_name'] != null and !role.attributes['display_name'].isEmpty()} ? ${role.attributes['display_name']} : ${role.name}">Menu
-                            Item</span>
-                    </a>
+                    <div class="relative group"
+                        th:if="${role.attributes != null and role.attributes['sidebar'] == '1' and role.attributes['url'] != null and !role.attributes['url'].isEmpty() and (role.children == null or role.children.isEmpty())}">
+                        <a th:href="${role.attributes['url']}"
+                            th:with="iconName=${role.attributes['icon'] != null and !role.attributes['icon'].isEmpty() ? role.attributes['icon'] : 'icon-document'}"
+                            class="flex items-center gap-3 px-4 py-3 pr-10 rounded-xl transition-all"
+                            th:classappend="${currentPath != null and currentPath.startsWith(role.attributes['url'])} ? 'bg-primary text-primary-content shadow-lg' : 'hover:bg-primary/10 hover:text-primary'">
+                            <svg th:replace="~{components/icons :: __${iconName}__(class='w-5 h-5')}"></svg>
+                            <span
+                                th:text="${role.attributes['display_name'] != null and !role.attributes['display_name'].isEmpty()} ? ${role.attributes['display_name']} : ${role.name}">Menu
+                                Item</span>
+                        </a>
+                        <button type="button" th:data-role="${role.name}" onclick="toggleQuickMenu(this)"
+                            title="Pin ke menu cepat"
+                            class="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                            th:classappend="${pinnedRoleNames != null and pinnedRoleNames.contains(role.name)} ? 'text-primary' : 'text-base-content/30'">
+                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                                <path d="M9.05 2.93c.3-.92 1.6-.92 1.9 0l1.42 4.36a1 1 0 00.95.69h4.59c.97 0 1.37 1.24.59 1.81l-3.71 2.7a1 1 0 00-.36 1.12l1.41 4.36c.3.92-.75 1.69-1.54 1.12l-3.71-2.7a1 1 0 00-1.18 0l-3.71 2.7c-.79.57-1.84-.2-1.54-1.12l1.41-4.36a1 1 0 00-.36-1.12l-3.71-2.7c-.78-.57-.38-1.81.59-1.81h4.59a1 1 0 00.95-.69l1.42-4.36z"/>
+                            </svg>
+                        </button>
+                    </div>
                 </th:block>
             </div>
 
@@ -99,6 +119,23 @@
                 Keluar
             </a>
         </div>
+        <script>
+            function toggleQuickMenu(btn) {
+                const roleName = btn.dataset.role;
+                fetch('/quick-menu/toggle', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ roleName })
+                })
+                    .then(r => r.ok ? r.json() : null)
+                    .then(d => {
+                        if (!d) return;
+                        btn.classList.toggle('text-primary', d.pinned);
+                        btn.classList.toggle('text-base-content/30', !d.pinned);
+                    })
+                    .catch(() => {});
+            }
+        </script>
     </aside>
 
 </body>
