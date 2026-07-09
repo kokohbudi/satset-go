@@ -39,9 +39,10 @@
 
             <!-- Category cards -->
             <div x-show="!loadingCats" class="grid grid-cols-2 lg:grid-cols-3 gap-4 max-w-4xl animate-rise" style="--i: 1">
-                <template x-for="cat in categories" :key="cat.id">
+                <template x-for="(cat, idx) in categories" :key="cat.id">
                     <button @click="openCat(cat)"
-                        class="group relative overflow-hidden rounded-3xl p-6 text-left text-white transition-transform duration-200 hover:-translate-y-1 focus:outline-none focus:ring-4 focus:ring-primary/30"
+                        class="group lift press animate-rise relative overflow-hidden rounded-3xl p-6 text-left text-white transition-transform duration-200 focus:outline-none focus:ring-4 focus:ring-primary/30"
+                        :style="'--i: ' + idx"
                         :class="catMeta(cat).bg">
                         <span class="absolute -right-3 -bottom-3 text-7xl opacity-25 group-hover:opacity-40 transition" x-text="catMeta(cat).ic"></span>
                         <span class="relative block text-lg font-bold" x-text="cat.name"></span>
@@ -79,7 +80,7 @@
                             <p class="text-sm text-base-content/55" x-text="activeCat?.categoryType === 'PREPAID' ? 'Prabayar' : 'Pascabayar'"></p>
                         </div>
                         <button @click="closeModal()"
-                            class="ml-auto w-9 h-9 rounded-full bg-base-200 hover:bg-base-300 grid place-items-center text-base-content/60 transition"
+                            class="tap ml-auto w-9 h-9 rounded-full bg-base-200 hover:bg-base-300 grid place-items-center text-base-content/60 transition"
                             aria-label="Tutup">✕</button>
                     </div>
 
@@ -95,12 +96,14 @@
                     </div>
 
                     <!-- Product selector (when >1 provider) -->
-                    <div x-show="products.length > 1" x-cloak class="mt-2">
+                    <div x-show="products.length > 1" x-cloak
+                        x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 -translate-y-1" x-transition:enter-end="opacity-100 translate-y-0"
+                        class="mt-2">
                         <label class="block text-sm font-medium mb-2">Pilih operator / produk</label>
                         <div class="flex flex-wrap gap-2">
                             <template x-for="p in products" :key="p.id">
                                 <button @click="selectProduct(p)"
-                                    class="px-3.5 py-2 rounded-full text-sm font-medium border transition"
+                                    class="press px-3.5 py-2 rounded-full text-sm font-medium border transition"
                                     :class="product?.id === p.id ? 'border-primary bg-primary/10 text-primary' : 'border-base-300 text-base-content/70 hover:border-primary/50'"
                                     x-text="p.name"></button>
                             </template>
@@ -123,9 +126,10 @@
 
                         <!-- chips -->
                         <div x-show="product && !loadingDenoms" class="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
-                            <template x-for="d in denoms" :key="d.id">
+                            <template x-for="(d, idx) in denoms" :key="d.id">
                                 <button @click="denom = d"
-                                    class="relative rounded-xl border px-4 py-3 text-left transition"
+                                    class="lift press animate-rise relative rounded-xl border px-4 py-3 text-left transition"
+                                    :style="'--i: ' + idx"
                                     :class="denom?.id === d.id ? 'border-primary bg-primary/5 ring-2 ring-primary/30' : 'border-base-300 hover:border-primary/50'">
                                     <span x-show="denom?.id === d.id" class="absolute top-0 right-0 w-6 h-6 grid place-items-center bg-primary text-primary-content text-xs rounded-bl-xl">✓</span>
                                     <span class="block text-sm font-semibold truncate pr-5" x-text="d.name"></span>

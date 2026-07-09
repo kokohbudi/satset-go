@@ -17,7 +17,7 @@
 
             <!-- Dashboard -->
             <a th:href="@{/dashboard}"
-                class="flex-none w-20 flex flex-col items-center justify-center h-full text-xs gap-1 rounded-xl transition-colors snap-center"
+                class="flex-none w-20 flex flex-col items-center justify-center h-full text-xs gap-1 rounded-xl transition-colors snap-center tap"
                 th:classappend="${currentPage == 'dashboard'} ? 'text-primary bg-primary/5' : 'text-base-content/60 hover:text-base-content'">
                 <svg th:replace="~{components/icons :: icon-home(class='w-6 h-6')}"></svg>
                 <span>Home</span>
@@ -25,7 +25,7 @@
 
             <!-- Users -->
             <a th:href="@{/users}"
-                class="flex-none w-20 flex flex-col items-center justify-center h-full text-xs gap-1 rounded-xl transition-colors snap-center"
+                class="flex-none w-20 flex flex-col items-center justify-center h-full text-xs gap-1 rounded-xl transition-colors snap-center tap"
                 th:classappend="${currentPage == 'users'} ? 'text-primary bg-primary/5' : 'text-base-content/60 hover:text-base-content'">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -36,7 +36,7 @@
 
             <!-- Groups -->
             <a th:href="@{/groups}"
-                class="flex-none w-20 flex flex-col items-center justify-center h-full text-xs gap-1 rounded-xl transition-colors snap-center"
+                class="flex-none w-20 flex flex-col items-center justify-center h-full text-xs gap-1 rounded-xl transition-colors snap-center tap"
                 th:classappend="${currentPage == 'groups'} ? 'text-primary bg-primary/5' : 'text-base-content/60 hover:text-base-content'">
                 <svg th:replace="~{components/icons :: icon-group(class='w-6 h-6')}"></svg>
                 <span>Groups</span>
@@ -44,7 +44,7 @@
 
             <!-- Assign User -->
             <a th:href="@{/user-groups}"
-                class="flex-none w-20 flex flex-col items-center justify-center h-full text-xs gap-1 rounded-xl transition-colors snap-center"
+                class="flex-none w-20 flex flex-col items-center justify-center h-full text-xs gap-1 rounded-xl transition-colors snap-center tap"
                 th:classappend="${currentPage == 'user-groups'} ? 'text-primary bg-primary/5' : 'text-base-content/60 hover:text-base-content'">
                 <svg th:replace="~{components/icons :: icon-user-add(class='w-6 h-6')}"></svg>
                 <span>Assign</span>
@@ -55,7 +55,7 @@
 
             <!-- Transactions -->
             <a th:href="@{/transactions}"
-                class="flex-none w-20 flex flex-col items-center justify-center h-full text-xs gap-1 rounded-xl transition-colors snap-center"
+                class="flex-none w-20 flex flex-col items-center justify-center h-full text-xs gap-1 rounded-xl transition-colors snap-center tap"
                 th:classappend="${currentPage == 'transactions'} ? 'text-primary bg-primary/5' : 'text-base-content/60 hover:text-base-content'">
                 <svg th:replace="~{components/icons :: icon-document(class='w-6 h-6')}"></svg>
                 <span>History</span>
@@ -63,7 +63,7 @@
 
             <!-- Deposit -->
             <a th:href="@{/deposit}"
-                class="flex-none w-20 flex flex-col items-center justify-center h-full text-xs gap-1 rounded-xl transition-colors snap-center"
+                class="flex-none w-20 flex flex-col items-center justify-center h-full text-xs gap-1 rounded-xl transition-colors snap-center tap"
                 th:classappend="${currentPage == 'deposit'} ? 'text-primary bg-primary/5' : 'text-base-content/60 hover:text-base-content'">
                 <svg th:replace="~{components/icons :: icon-money(class='w-6 h-6')}"></svg>
                 <span>Deposit</span>
@@ -77,7 +77,7 @@
                         <th:block th:each="child : ${role.children}">
                             <a th:if="${child.attributes != null and child.attributes['sidebar'] == '1' and child.attributes['url'] != null and !child.attributes['url'].isEmpty()}"
                                 th:href="${child.attributes['url']}"
-                                class="flex-none w-20 flex flex-col items-center justify-center h-full text-xs gap-1 rounded-xl transition-colors snap-center text-base-content/60 hover:text-base-content">
+                                class="flex-none w-20 flex flex-col items-center justify-center h-full text-xs gap-1 rounded-xl transition-colors snap-center text-base-content/60 hover:text-base-content tap">
                                 <svg class="w-6 h-6 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                         d="M4 6h16M4 12h16M4 18h16" />
@@ -91,7 +91,7 @@
                     <!-- Standalone items -->
                     <a th:if="${role.attributes != null and role.attributes['sidebar'] == '1' and role.attributes['url'] != null and !role.attributes['url'].isEmpty() and (role.children == null or role.children.isEmpty())}"
                         th:href="${role.attributes['url']}"
-                        class="flex-none w-20 flex flex-col items-center justify-center h-full text-xs gap-1 rounded-xl transition-colors snap-center text-base-content/60 hover:text-base-content">
+                        class="flex-none w-20 flex flex-col items-center justify-center h-full text-xs gap-1 rounded-xl transition-colors snap-center text-base-content/60 hover:text-base-content tap">
                         <svg class="w-6 h-6 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                 d="M4 6h16M4 12h16M4 18h16" />
@@ -107,7 +107,7 @@
 
             <!-- Settings (Admin) -->
             <a sec:authorize="hasRole('ADMIN')" th:href="@{/settings}"
-                class="flex-none w-20 flex flex-col items-center justify-center h-full text-xs gap-1 rounded-xl transition-colors snap-center"
+                class="flex-none w-20 flex flex-col items-center justify-center h-full text-xs gap-1 rounded-xl transition-colors snap-center tap"
                 th:classappend="${currentPage == 'settings'} ? 'text-primary bg-primary/5' : 'text-base-content/60 hover:text-base-content'">
                 <svg th:replace="~{components/icons :: icon-settings(class='w-6 h-6')}"></svg>
                 <span>Settings</span>
@@ -115,7 +115,7 @@
 
             <!-- Logout -->
             <a th:href="@{/logout}"
-                class="flex-none w-20 flex flex-col items-center justify-center h-full text-xs gap-1 rounded-xl transition-colors snap-center text-error/80 hover:text-error hover:bg-error/5">
+                class="flex-none w-20 flex flex-col items-center justify-center h-full text-xs gap-1 rounded-xl transition-colors snap-center text-error/80 hover:text-error hover:bg-error/5 tap">
                 <svg th:replace="~{components/icons :: icon-logout(class='w-6 h-6')}"></svg>
                 <span>Keluar</span>
             </a>

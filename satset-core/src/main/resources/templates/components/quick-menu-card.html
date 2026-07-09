@@ -10,8 +10,9 @@
         <div class="card-body">
             <h2 class="card-title text-lg font-bold mb-4">Menu Cepat</h2>
             <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <a th:each="item : ${quickMenu}" th:href="${item.url}"
-                    class="flex flex-col items-center justify-center gap-2 py-4 min-h-[82px] rounded-xl border border-base-300 text-base-content/70 hover:border-primary hover:text-primary hover:bg-primary/10 transition-all duration-200">
+                <a th:each="item, iter : ${quickMenu}" th:href="${item.url}"
+                    th:style="'--i: ' + ${iter.index}"
+                    class="animate-rise lift press flex flex-col items-center justify-center gap-2 py-4 min-h-[82px] rounded-xl border border-base-300 text-base-content/70 hover:border-primary hover:text-primary hover:bg-primary/10 transition-all duration-200">
                     <svg th:replace="~{components/icons :: __${item.icon}__(class='w-6 h-6')}"></svg>
                     <span class="text-xs font-semibold" th:text="${item.displayName}">Menu</span>
                 </a>

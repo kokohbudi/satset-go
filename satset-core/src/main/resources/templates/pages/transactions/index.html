@@ -34,7 +34,7 @@
         <!-- ===== TAB: Transaksi ===== -->
         <div x-show="view === 'trx'">
         <!-- Filters -->
-        <div class="card bg-base-100 shadow-sm border border-base-300/50 mb-6">
+        <div class="card bg-base-100 shadow-sm border border-base-300/50 mb-6 animate-rise" style="--i:1">
             <div class="card-body py-4 flex flex-row items-center gap-4">
                 <!-- Filter Dropdown -->
                 <div class="flex-none">
@@ -50,7 +50,7 @@
                 </div>
 
                 <div class="flex-1 text-right">
-                    <button @click="fetchPage(currentPage)" class="btn btn-ghost btn-circle" title="Refresh">
+                    <button @click="fetchPage(currentPage)" class="btn btn-ghost btn-circle tap" title="Refresh">
                         <svg class="w-5 h-5" :class="loading ? 'animate-spin' : ''" fill="none" stroke="currentColor"
                             viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -62,7 +62,7 @@
         </div>
 
         <!-- Data Table -->
-        <div class="card bg-base-100 shadow-lg border border-base-300/50 overflow-visible">
+        <div class="card bg-base-100 shadow-lg border border-base-300/50 overflow-visible animate-rise" style="--i:2">
             <div class="overflow-x-auto min-h-[400px]">
                 <table class="table w-full">
                     <thead class="bg-base-200/50">
@@ -113,7 +113,7 @@
                                         class="text-base-content/30">-</span>
                                 </td>
                                 <td>
-                                    <button @click="openDetail(tx)" class="btn btn-sm btn-ghost btn-circle">
+                                    <button @click="openDetail(tx)" class="btn btn-sm btn-ghost btn-circle tap">
                                         <svg class="w-5 h-5 text-base-content/70" fill="none" stroke="currentColor"
                                             viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -158,10 +158,10 @@
                 </div>
 
                 <div class="join">
-                    <button class="join-item btn btn-sm" :disabled="pageData.first || loading" @click="fetchPage(0)">
+                    <button class="join-item btn btn-sm tap" :disabled="pageData.first || loading" @click="fetchPage(0)">
                         «
                     </button>
-                    <button class="join-item btn btn-sm" :disabled="pageData.first || loading"
+                    <button class="join-item btn btn-sm tap" :disabled="pageData.first || loading"
                         @click="fetchPage(currentPage - 1)">
                         ‹
                     </button>
@@ -170,12 +170,12 @@
                         Hal <span x-text="(currentPage + 1)"></span> / <span x-text="pageData.totalPages || 1"></span>
                     </button>
 
-                    <button class="join-item btn btn-sm"
+                    <button class="join-item btn btn-sm tap"
                         :disabled="pageData.last || loading || pageData.totalPages === 0"
                         @click="fetchPage(currentPage + 1)">
                         ›
                     </button>
-                    <button class="join-item btn btn-sm"
+                    <button class="join-item btn btn-sm tap"
                         :disabled="pageData.last || loading || pageData.totalPages === 0"
                         @click="fetchPage(pageData.totalPages - 1)">
                         »
@@ -187,7 +187,7 @@
 
         <!-- ===== TAB: Mutasi Saldo ===== -->
         <div x-show="view === 'mutasi'" x-cloak>
-            <div class="card bg-base-100 shadow-lg border border-base-300/50">
+            <div class="card bg-base-100 shadow-lg border border-base-300/50 animate-rise" style="--i:1">
                 <div class="overflow-x-auto min-h-[400px]">
                     <table class="table w-full">
                         <thead class="bg-base-200/50">

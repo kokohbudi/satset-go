@@ -9,11 +9,11 @@
 <body>
     <div layout:fragment="content">
 
-        <h1 class="text-2xl font-semibold text-base-content mb-6">Profil & Pengaturan Akun</h1>
+        <h1 class="text-2xl font-semibold text-base-content mb-6 animate-rise" style="--i:0">Profil & Pengaturan Akun</h1>
 
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
             <!-- Left Column: User Info -->
-            <div class="md:col-span-1">
+            <div class="md:col-span-1 animate-rise" style="--i:1">
                 <div class="card bg-base-100 shadow rounded-lg p-6">
                     <div class="text-center mb-4">
                         <div class="h-24 w-24 rounded-full bg-primary mx-auto flex items-center justify-center text-primary-content text-3xl font-bold uppercase">
@@ -28,7 +28,7 @@
             </div>
 
             <!-- Right Column: Password Change Form -->
-            <div class="md:col-span-2">
+            <div class="md:col-span-2 animate-rise" style="--i:2">
                 <div class="card bg-base-100 shadow rounded-lg p-6">
                     <h3 class="text-lg font-medium text-base-content mb-4">Ganti Password</h3>
 
@@ -45,7 +45,7 @@
                             <label class="input input-bordered flex items-center gap-2 focus-within:input-primary">
                                 <input type="password" id="newPassword" name="newPassword" required minlength="8"
                                        class="grow bg-transparent outline-none" placeholder="Masukkan password baru" />
-                                <button type="button" onclick="togglePassword('newPassword', this)" class="text-base-content/40 hover:text-base-content/70">
+                                <button type="button" onclick="togglePassword('newPassword', this)" class="tap text-base-content/40 hover:text-base-content/70">
                                     <svg class="eye-open h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
                                     <svg class="eye-closed h-5 w-5 hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878l4.242 4.242M21 21l-3.12-3.12"/></svg>
                                 </button>
@@ -60,7 +60,7 @@
                             <label class="input input-bordered flex items-center gap-2 focus-within:input-primary">
                                 <input type="password" id="confirmPassword" name="confirmPassword" required minlength="8"
                                        class="grow bg-transparent outline-none" placeholder="Konfirmasi password baru" />
-                                <button type="button" onclick="togglePassword('confirmPassword', this)" class="text-base-content/40 hover:text-base-content/70">
+                                <button type="button" onclick="togglePassword('confirmPassword', this)" class="tap text-base-content/40 hover:text-base-content/70">
                                     <svg class="eye-open h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
                                     <svg class="eye-closed h-5 w-5 hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878l4.242 4.242M21 21l-3.12-3.12"/></svg>
                                 </button>

@@ -71,3 +71,6 @@ logs/
 .impeccable/
 .agent/
 .qwen/
+graphify-out/
+.claude/
+.superpowers/

@@ -42,13 +42,13 @@
             </div>
 
             <!-- Search Button -->
-            <button class="btn btn-ghost btn-circle" title="Pencarian (Ctrl+K)" aria-label="Pencarian">
+            <button class="btn btn-ghost btn-circle tap" title="Pencarian (Ctrl+K)" aria-label="Pencarian">
                 <svg th:replace="~{components/icons :: icon-search(class='w-5 h-5')}"></svg>
             </button>
 
             <!-- Notifications Dropdown -->
             <div class="dropdown dropdown-end">
-                <button tabindex="0" class="btn btn-ghost btn-circle indicator" aria-label="Notifikasi">
+                <button tabindex="0" class="btn btn-ghost btn-circle indicator tap" aria-label="Notifikasi">
                     <svg th:replace="~{components/icons :: icon-bell(class='w-5 h-5')}"></svg>
                     <span class="badge badge-xs badge-primary indicator-item"></span>
                 </button>
@@ -82,7 +82,7 @@
             </div>
 
             <!-- Theme Toggle (Light: omnip-light / Dark: omnip-dark) -->
-            <label class="swap swap-rotate btn btn-ghost btn-circle"
+            <label class="swap swap-rotate btn btn-ghost btn-circle tap"
                 x-data="{ isDark: localStorage.getItem('theme') === 'omnip-dark' }" x-init="$watch('isDark', val => { 
                        const theme = val ? 'omnip-dark' : 'omnip-light';
                        localStorage.setItem('theme', theme);
@@ -104,7 +104,7 @@
             <!-- User Profile Dropdown -->
             <div class="dropdown dropdown-end">
                 <button tabindex="0"
-                    class="flex items-center gap-3 pl-4 pr-2 py-1.5 rounded-full bg-base-200 hover:bg-base-300 transition-colors">
+                    class="flex items-center gap-3 pl-4 pr-2 py-1.5 rounded-full bg-base-200 hover:bg-base-300 transition-colors tap">
                     <div class="hidden sm:block text-right">
                         <p th:text="${user != null ? (user.fullname != null and user.fullname != '') ? user.fullname : user.username : 'User'}"
                             class="text-sm font-medium leading-tight">User</p>

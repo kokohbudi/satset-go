@@ -153,6 +153,47 @@
         }
 
         /* ============================================
+           Shared interaction motion (product register)
+           Conveys state — hover/press/row — at 150–250ms.
+           Opt-in via class so static surfaces stay still.
+           The global prefers-reduced-motion rule above already
+           neutralizes these transitions; no extra guard needed.
+           ============================================ */
+
+        /* Clickable cards / tiles lift on hover, settle on press */
+        .lift {
+            transition: transform 0.2s cubic-bezier(0.25, 1, 0.5, 1), box-shadow 0.2s cubic-bezier(0.25, 1, 0.5, 1);
+        }
+        .lift:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 16px 28px -18px rgba(15, 23, 42, 0.35);
+        }
+        .lift:active {
+            transform: translateY(-1px);
+        }
+
+        /* Clickable non-button elements give a press cue */
+        .press {
+            transition: transform 0.12s ease-out;
+        }
+        .press:active {
+            transform: scale(0.97);
+        }
+
+        /* Icon / ghost buttons: snappier tap feel */
+        .tap {
+            transition: transform 0.12s ease-out, background-color 0.15s ease;
+        }
+        .tap:active {
+            transform: scale(0.92);
+        }
+
+        /* Table rows fade their hover state instead of snapping */
+        .table tbody tr {
+            transition: background-color 0.15s ease, color 0.15s ease;
+        }
+
+        /* ============================================
            Floating Label Input Component Styles
            ============================================ */
         .floating-input-wrapper {

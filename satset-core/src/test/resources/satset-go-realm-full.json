@@ -613,6 +613,22 @@
             "claim.name": "realm_access.roles",
             "jsonType.label": "String"
           }
+        },
+        {
+          "id": "7c2f0a11-9b3e-4d52-bf08-2a6c1d4e8f90",
+          "name": "client roles",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-client-role-mapper",
+          "consentRequired": false,
+          "config": {
+            "introspection.token.claim": "true",
+            "multivalued": "true",
+            "userinfo.token.claim": "false",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "claim.name": "resource_access.${client_id}.roles",
+            "jsonType.label": "String"
+          }
         }
       ],
       "defaultClientScopes": [

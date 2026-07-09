@@ -10,14 +10,14 @@
     <div layout:fragment="content">
 
         <!-- Page Header -->
-        <div class="mb-8">
+        <div class="mb-8 animate-rise" style="--i:0">
             <h1 class="text-2xl font-bold text-base-content mb-2">Tambah Reseller Baru</h1>
             <p class="text-base-content/60">Buat akun reseller baru beserta organisasi toko-nya. User akan menerima
                 email untuk set password.</p>
         </div>
 
         <!-- Form Card -->
-        <div class="max-w-2xl">
+        <div class="max-w-2xl animate-rise" style="--i:1">
             <div class="card bg-base-100 shadow-lg border border-base-300/50">
                 <div class="card-body" x-data="resellerForm()">
                     <form @submit.prevent="submitForm">

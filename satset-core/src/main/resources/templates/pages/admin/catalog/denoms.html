@@ -13,7 +13,7 @@
      th:data-can-manage="${#authorization.expression('hasRole(''REALM_manage_denoms'')')}">
 
     <!-- Breadcrumb -->
-    <div class="text-sm breadcrumbs mb-4">
+    <div class="text-sm breadcrumbs mb-4 animate-rise" style="--i:0">
         <ul>
             <li><a href="/admin/catalog/categories">Katalog</a></li>
             <li>
@@ -27,12 +27,12 @@
     </div>
 
     <!-- Page Header -->
-    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-4">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-4 animate-rise" style="--i:1">
         <div>
             <h1 class="text-2xl font-bold" x-text="productName ? 'Denom: ' + productName : 'Denominasi'"></h1>
             <p class="text-base-content/60 text-sm mt-1">Kelola denominasi (harga, nominal, tipe)</p>
         </div>
-        <button sec:authorize="hasRole('REALM_manage_denoms')" class="btn btn-primary" @click="openCreateModal()">
+        <button sec:authorize="hasRole('REALM_manage_denoms')" class="btn btn-primary tap" @click="openCreateModal()">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                 <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"/>
             </svg>
@@ -41,7 +41,7 @@
     </div>
 
     <!-- Search -->
-    <div class="mb-4">
+    <div class="mb-4 animate-rise" style="--i:2">
         <label class="input input-bordered input-sm flex items-center gap-2 w-full max-w-xs">
             <svg class="w-4 h-4 text-base-content/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
@@ -51,7 +51,7 @@
     </div>
 
     <!-- Table -->
-    <div class="card bg-base-100 shadow-sm">
+    <div class="card bg-base-100 shadow-sm animate-rise" style="--i:3">
         <div class="overflow-x-auto">
             <table class="table table-zebra table-sm">
                 <thead>
@@ -87,10 +87,10 @@
                         <td class="text-center">
                             <div class="flex justify-center gap-1">
                                 <template x-if="canManage">
-                                    <button class="btn btn-ghost btn-xs" @click="openEditModal(d)" :disabled="d.deleted">Edit</button>
+                                    <button class="btn btn-ghost btn-xs tap" @click="openEditModal(d)" :disabled="d.deleted">Edit</button>
                                 </template>
                                 <template x-if="canManage">
-                                    <button class="btn btn-ghost btn-xs text-error" @click="confirmDelete(d)" :disabled="d.deleted">Hapus</button>
+                                    <button class="btn btn-ghost btn-xs text-error tap" @click="confirmDelete(d)" :disabled="d.deleted">Hapus</button>
                                 </template>
                             </div>
                         </td>

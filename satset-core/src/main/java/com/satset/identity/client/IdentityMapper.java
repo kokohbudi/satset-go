@@ -7,12 +7,7 @@ import org.springframework.stereotype.Component;
 import java.util.List;
 
 /**
- * Mapper for converting domain models to shared DTOs.
- * This mapper lives in the adapter layer and bridges the gap between:
- * - identity.domain.model (KeycloakRole, KeycloakGroup)
- * - shared.dto (RoleInfo, GroupInfo)
- * 
- * This allows the shared layer to remain independent from domain models.
+ * Maps identity models (KeycloakRole) to shared DTOs (RoleInfo).
  */
 @Component
 public class IdentityMapper {

@@ -44,7 +44,7 @@ and NOT one-impl use-case interfaces. (Migrated from Hexagonal, 2026-06.)
 - **Soft Delete** (`deleted` flag) — preserve data for audit
 - **Optimistic Locking** (`@Version`)
 - **Entity == domain model** — one `@Entity` class, no separate domain/entity split or mappers
-- **Balance is remote-only** — all balance ops go to the wallet service over HTTP (`WalletClientAdapter`)
+- **Balance via wallet module** — balance ops go through `WalletGateway` → `WalletService` **in-process** (same JVM, JPA-backed). `WalletGateway` is the anti-corruption boundary; swap for a remote HTTP impl behind config when the wallet is split out (see `docs/designs/wallet-split-auth.md`). No network call today.
 - **Mock First** — for external boundaries (e.g. `MockProviderAdapter` → real impl later)
 
 ---
@@ -78,3 +78,13 @@ and NOT one-impl use-case interfaces. (Migrated from Hexagonal, 2026-06.)
 - `pom.xml` — dependencies & build
 - `application.yml` — config (profiles: default, dev, prod)
 - `.env` — local env vars (DB credentials, secrets)
+
+## graphify
+
+This project has a knowledge graph at graphify-out/ with god nodes, community structure, and cross-file relationships.
+
+Rules:
+- For codebase questions, first run `graphify query "<question>"` when graphify-out/graph.json exists. Use `graphify path "<A>" "<B>"` for relationships and `graphify explain "<concept>"` for focused concepts. These return a scoped subgraph, usually much smaller than GRAPH_REPORT.md or raw grep output.
+- If graphify-out/wiki/index.md exists, use it for broad navigation instead of raw source browsing.
+- Read graphify-out/GRAPH_REPORT.md only for broad architecture review or when query/path/explain do not surface enough context.
+- After modifying code, run `graphify update .` to keep the graph current (AST-only, no API cost).
