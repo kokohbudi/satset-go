@@ -66,6 +66,8 @@ class DenomDomainServiceTest {
         product.setId(productId);
         product.setCode("TELKOMSEL");
         product.setName("Telkomsel");
+        product.setActive(true);
+        product.setDeleted(false);
 
         existingDenom = new ProductDenoms();
         existingDenom.setId(denomId);
@@ -110,6 +112,31 @@ class DenomDomainServiceTest {
         List<ProductDenoms> result = denomService.findByProduct("PULSA", "UNKNOWN");
 
         assertTrue(result.isEmpty());
+    }
+
+    @Test
+    void findByProduct_ProductInactive_ReturnsEmpty() {
+        product.setActive(false);
+        when(categoryRepository.findByCode("PULSA")).thenReturn(Optional.of(category));
+        when(productRepository.findByCategoryIdAndCode(categoryId, "TELKOMSEL")).thenReturn(Optional.of(product));
+
+        List<ProductDenoms> result = denomService.findByProduct("PULSA", "TELKOMSEL");
+
+        assertTrue(result.isEmpty());
+        verify(denomRepository, never()).findByProductIdAndActiveTrueAndDeletedFalseOrderBySortOrder(any());
+    }
+
+    @Test
+    void findByProduct_ProductDeleted_ReturnsEmpty() {
+        product.setActive(true);
+        product.setDeleted(true);
+        when(categoryRepository.findByCode("PULSA")).thenReturn(Optional.of(category));
+        when(productRepository.findByCategoryIdAndCode(categoryId, "TELKOMSEL")).thenReturn(Optional.of(product));
+
+        List<ProductDenoms> result = denomService.findByProduct("PULSA", "TELKOMSEL");
+
+        assertTrue(result.isEmpty());
+        verify(denomRepository, never()).findByProductIdAndActiveTrueAndDeletedFalseOrderBySortOrder(any());
     }
 
     @Test

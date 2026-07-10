@@ -108,9 +108,10 @@ class ProductCatalogControllerTest {
     @Test
     void getDenomsByCategoryAndProduct_returnsList() throws Exception {
         when(browseDenomsUseCase.findByProduct("DATA", "TELKOMSEL"))
-                .thenReturn(List.of());
+                .thenReturn(List.of(buildDenom("TELKOMSEL10K", "Telkomsel 10K")));
         mockMvc.perform(get("/api/categories/DATA/products/TELKOMSEL/denoms"))
-                .andExpect(status().isOk());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].code").value("TELKOMSEL10K"));
     }
 
     @Test

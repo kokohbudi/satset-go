@@ -46,7 +46,8 @@ public class DenomDomainService {
         Optional<Category> category = categoryRepository.findByCode(categoryCode);
         if (category.isEmpty()) return List.of();
         Optional<Products> product =
-                productRepository.findByCategoryIdAndCode(category.get().getId(), productCode);
+                productRepository.findByCategoryIdAndCode(category.get().getId(), productCode)
+                        .filter(p -> p.isActive() && !p.isDeleted());
         if (product.isEmpty()) return List.of();
         return denomRepository
                 .findByProductIdAndActiveTrueAndDeletedFalseOrderBySortOrder(product.get().getId());

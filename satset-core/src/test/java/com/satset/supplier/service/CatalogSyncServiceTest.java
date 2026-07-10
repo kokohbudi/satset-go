@@ -101,11 +101,14 @@ class CatalogSyncServiceTest {
         assertThat(r.added()).isEqualTo(1);
     }
 
-    // ---- reconcileForProduct (unchanged) ----
+    // ---- reconcileForProduct ----
     @Test void reconcileForProduct_filtersByBrandCode_computesStatus() {
         UUID pid = UUID.randomUUID();
-        Products p = new Products(); p.setId(pid); p.setCode("XL");
+        UUID catId = UUID.randomUUID();
+        Products p = new Products(); p.setId(pid); p.setCode("XL"); p.setCategoryId(catId);
+        Category pulsa = new Category(); pulsa.setId(catId); pulsa.setCode("PULSA");
         when(productService.findById(pid)).thenReturn(Optional.of(p));
+        when(categoryService.findById(catId)).thenReturn(Optional.of(pulsa));
         when(digiflazz.fetchPriceList()).thenReturn(List.of(
                 df("x100","XL 100","XL",98000),   // matched->NAIK
                 df("x5","XL 5","XL",5500),         // BARU
@@ -122,8 +125,11 @@ class CatalogSyncServiceTest {
 
     @Test void reconcileForProduct_noDfBrandMatch_returnsEmpty() {
         UUID pid = UUID.randomUUID();
-        Products p = new Products(); p.setId(pid); p.setCode("XL");
+        UUID catId = UUID.randomUUID();
+        Products p = new Products(); p.setId(pid); p.setCode("XL"); p.setCategoryId(catId);
+        Category pulsa = new Category(); pulsa.setId(catId); pulsa.setCode("PULSA");
         when(productService.findById(pid)).thenReturn(Optional.of(p));
+        when(categoryService.findById(catId)).thenReturn(Optional.of(pulsa));
         when(digiflazz.fetchPriceList()).thenReturn(List.of(
                 dfCat("dana20","D","E-Money","DANA",20000))); // beda brand, no match utk XL
         // lenient: guard fix short-circuits before this is ever consulted
@@ -133,11 +139,29 @@ class CatalogSyncServiceTest {
         assertThat(service().reconcileForProduct(pid)).isEmpty();
     }
 
+    @Test void reconcileForProduct_filtersByCategory_excludesOtherCategorySkus() {
+        UUID pid = UUID.randomUUID();
+        UUID catId = UUID.randomUUID();
+        Products p = new Products(); p.setId(pid); p.setCode("TELKOMSEL"); p.setCategoryId(catId);
+        Category pulsa = new Category(); pulsa.setId(catId); pulsa.setCode("PULSA");
+        when(productService.findById(pid)).thenReturn(Optional.of(p));
+        when(categoryService.findById(catId)).thenReturn(Optional.of(pulsa));
+        when(digiflazz.fetchPriceList()).thenReturn(List.of(
+                df("tsel5", "Tsel 5K", "TELKOMSEL", 5500),                       // category "Pulsa" -> PULSA (keep)
+                dfCat("tselv10", "Tsel Voucher 10", "Voucher", "TELKOMSEL", 10000))); // category "Voucher" (drop)
+        when(denomService.findActiveByProductId(pid)).thenReturn(List.of());
+        List<PriceCompareRow> rows = service().reconcileForProduct(pid);
+        assertThat(rows).extracting(PriceCompareRow::buyerSku).containsExactly("tsel5");
+    }
+
     // ---- applyDenoms (delete = softDelete) ----
     @Test void applyDenoms_appliesSelected_hilangUsesSoftDelete() {
         UUID pid = UUID.randomUUID();
-        Products p = new Products(); p.setId(pid); p.setCode("XL");
+        UUID catId = UUID.randomUUID();
+        Products p = new Products(); p.setId(pid); p.setCode("XL"); p.setCategoryId(catId);
+        Category pulsa = new Category(); pulsa.setId(catId); pulsa.setCode("PULSA");
         when(productService.findById(pid)).thenReturn(Optional.of(p));
+        when(categoryService.findById(catId)).thenReturn(Optional.of(pulsa));
         when(digiflazz.fetchPriceList()).thenReturn(List.of(
                 df("x5","XL 5","XL",5500)));                  // BARU (sku x5)
         UUID dOld = UUID.randomUUID();
@@ -153,8 +177,11 @@ class CatalogSyncServiceTest {
 
     @Test void applyDenoms_unselected_skipped() {
         UUID pid = UUID.randomUUID();
-        Products p = new Products(); p.setId(pid); p.setCode("XL");
+        UUID catId = UUID.randomUUID();
+        Products p = new Products(); p.setId(pid); p.setCode("XL"); p.setCategoryId(catId);
+        Category pulsa = new Category(); pulsa.setId(catId); pulsa.setCode("PULSA");
         when(productService.findById(pid)).thenReturn(Optional.of(p));
+        when(categoryService.findById(catId)).thenReturn(Optional.of(pulsa));
         when(digiflazz.fetchPriceList()).thenReturn(List.of(df("x5","XL 5","XL",5500)));
         when(denomService.findActiveByProductId(pid)).thenReturn(List.of());
         SyncResult r = service().applyDenoms(pid, List.of());  // pilih kosong
@@ -166,7 +193,7 @@ class CatalogSyncServiceTest {
     @Test void syncAll_addsDenom_setsFlags_neverDeletes() throws Exception {
         UUID catId = UUID.randomUUID(), pid = UUID.randomUUID();
         Category pulsa = new Category(); pulsa.setId(catId); pulsa.setCode("PULSA"); pulsa.setName("Pulsa");
-        Products xl = new Products(); xl.setId(pid); xl.setCode("XL"); xl.setName("XL");
+        Products xl = new Products(); xl.setId(pid); xl.setCode("XL"); xl.setName("XL"); xl.setCategoryId(catId);
 
         when(digiflazz.fetchPriceList()).thenReturn(List.of(df("xl5","XL 5K","XL",5000)));
         when(categoryService.findAllForAdmin()).thenReturn(List.of(pulsa));

@@ -204,11 +204,15 @@ public class CatalogSyncService {
         Products product = productService.findById(productId)
                 .orElseThrow(() -> new ResourceNotFoundException("Product", productId));
         String productCode = product.getCode();
+        String catCode = categoryService.findById(product.getCategoryId())
+                .map(Category::getCode).orElse(null);
+        if (catCode == null) return List.of();
 
-        // SKU DF utk brand produk ini (dedup by sku, harga terendah)
+        // SKU DF utk brand produk ini DI KATEGORI INI (dedup by sku, harga terendah)
         Map<String, PriceListItem> uniq = new LinkedHashMap<>();
         for (PriceListItem it : digiflazz.fetchPriceList()) {
             if (!CatalogCodeUtil.toCode(it.brand()).equals(productCode)) continue;
+            if (!CatalogCodeUtil.toCode(it.category()).equals(catCode)) continue;
             uniq.merge(it.buyerSkuCode().toUpperCase(), it, (a, b) -> a.price() <= b.price() ? a : b);
         }
         // guard — brand tak match DF sama sekali -> jangan mass-deactivate; produk ini
