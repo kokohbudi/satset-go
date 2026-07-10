@@ -98,24 +98,6 @@ class ProductDomainServiceTest {
     }
 
     @Test
-    void findByCode_ActiveProduct_ReturnsOptional() {
-        when(productRepository.findByCode("TELKOMSEL")).thenReturn(Optional.of(existingProduct));
-
-        Optional<Products> result = productService.findByCode("TELKOMSEL");
-
-        assertTrue(result.isPresent());
-        assertEquals("TELKOMSEL", result.get().getCode());
-    }
-
-    @Test
-    void findByCode_InactiveProduct_ReturnsEmpty() {
-        existingProduct.setActive(false);
-        when(productRepository.findByCode("TELKOMSEL")).thenReturn(Optional.of(existingProduct));
-
-        assertTrue(productService.findByCode("TELKOMSEL").isEmpty());
-    }
-
-    @Test
     void findByCategoryForAdmin_ReturnsList() {
         when(productRepository.findByCategoryIdOrderBySortOrder(categoryId))
                 .thenReturn(List.of(existingProduct));
@@ -150,7 +132,7 @@ class ProductDomainServiceTest {
         CreateProductRequest req = new CreateProductRequest(
                 categoryId, "xl", "XL Axiata", "XL", "Paket XL", null, true, 2);
         when(categoryRepository.findById(categoryId)).thenReturn(Optional.of(category));
-        when(productRepository.findByCode("XL")).thenReturn(Optional.empty());
+        when(productRepository.findByCategoryIdAndCode(categoryId, "XL")).thenReturn(Optional.empty());
         when(productRepository.save(any(Products.class))).thenAnswer(inv -> {
             Products p = inv.getArgument(0);
             p.setId(UUID.randomUUID());
@@ -189,13 +171,26 @@ class ProductDomainServiceTest {
         CreateProductRequest req = new CreateProductRequest(
                 categoryId, "TELKOMSEL", "Telkomsel Lagi", null, null, null, true, 1);
         when(categoryRepository.findById(categoryId)).thenReturn(Optional.of(category));
-        when(productRepository.findByCode("TELKOMSEL")).thenReturn(Optional.of(existingProduct));
+        when(productRepository.findByCategoryIdAndCode(categoryId, "TELKOMSEL")).thenReturn(Optional.of(existingProduct));
 
         // Act & Assert
         BusinessException ex = assertThrows(BusinessException.class,
                 () -> productService.create(req));
         assertEquals("DUPLICATE_CODE", ex.getErrorCode());
         verify(productRepository, never()).save(any());
+    }
+
+    @Test
+    void create_duplicateCodeInSameCategory_throws() {
+        UUID catId = UUID.randomUUID();
+        Category cat = new Category(); cat.setId(catId);
+        when(categoryRepository.findById(catId)).thenReturn(Optional.of(cat));
+        when(productRepository.findByCategoryIdAndCode(catId, "XL"))
+                .thenReturn(Optional.of(new Products()));
+        CreateProductRequest req = new CreateProductRequest(
+                catId, "XL", "XL", null, null, null, true, 0);
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> productService.create(req))
+                .isInstanceOf(BusinessException.class);
     }
 
     // === UPDATE ===
@@ -207,7 +202,7 @@ class ProductDomainServiceTest {
                 categoryId, "TSEL", "Tsel Updated", "Telkomsel", "Updated desc", "icon.png", false, 10);
         when(productRepository.findById(productId)).thenReturn(Optional.of(existingProduct));
         when(categoryRepository.findById(categoryId)).thenReturn(Optional.of(category));
-        when(productRepository.existsByCodeAndIdNot("TSEL", productId)).thenReturn(false);
+        when(productRepository.existsByCategoryIdAndCodeAndIdNot(categoryId, "TSEL", productId)).thenReturn(false);
         when(productRepository.save(any(Products.class))).thenAnswer(inv -> inv.getArgument(0));
 
         // Act
@@ -257,7 +252,7 @@ class ProductDomainServiceTest {
                 categoryId, "XL", "XL Clash", null, null, null, true, 1);
         when(productRepository.findById(productId)).thenReturn(Optional.of(existingProduct));
         when(categoryRepository.findById(categoryId)).thenReturn(Optional.of(category));
-        when(productRepository.existsByCodeAndIdNot("XL", productId)).thenReturn(true);
+        when(productRepository.existsByCategoryIdAndCodeAndIdNot(categoryId, "XL", productId)).thenReturn(true);
 
         // Act & Assert
         BusinessException ex = assertThrows(BusinessException.class,

@@ -11,8 +11,6 @@ import java.util.UUID;
 @Repository
 public interface ProductRepository extends JpaRepository<Products, UUID> {
 
-    Optional<Products> findByCode(String code);
-
     Optional<Products> findByCategoryIdAndCode(UUID categoryId, String code);
 
     boolean existsByCategoryIdAndCodeAndIdNot(UUID categoryId, String code, UUID id);
@@ -24,6 +22,4 @@ public interface ProductRepository extends JpaRepository<Products, UUID> {
     boolean existsByCategoryIdAndDeletedFalse(UUID categoryId);
 
     List<Products> findByActiveTrueAndDeletedFalseOrderBySortOrder();
-
-    boolean existsByCodeAndIdNot(String code, UUID id);
 }

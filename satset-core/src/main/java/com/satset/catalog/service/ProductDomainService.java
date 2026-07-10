@@ -50,11 +50,6 @@ public class ProductDomainService {
         return productRepository.findByActiveTrueAndDeletedFalseOrderBySortOrder();
     }
 
-    public Optional<Products> findByCode(String code) {
-        return productRepository.findByCode(code)
-                .filter(p -> p.isActive() && !p.isDeleted());
-    }
-
     public Optional<Products> findByCategoryAndCode(String categoryCode, String code) {
         Optional<Category> category = categoryRepository.findByCode(categoryCode);
         if (category.isEmpty()) return Optional.empty();
@@ -77,7 +72,7 @@ public class ProductDomainService {
     public Products create(CreateProductRequest req) throws BusinessException {
         Category category = categoryRepository.findById(req.categoryId())
             .orElseThrow(() -> new ResourceNotFoundException("Category", req.categoryId()));
-        if (productRepository.findByCode(req.code().toUpperCase().trim()).isPresent()) {
+        if (productRepository.findByCategoryIdAndCode(category.getId(), req.code().toUpperCase().trim()).isPresent()) {
             throw new BusinessException("DUPLICATE_CODE", "Product code already exists: " + req.code());
         }
         Products product = new Products();
@@ -100,7 +95,7 @@ public class ProductDomainService {
             .orElseThrow(() -> new ResourceNotFoundException("Product", id));
         Category category = categoryRepository.findById(req.categoryId())
             .orElseThrow(() -> new ResourceNotFoundException("Category", req.categoryId()));
-        if (productRepository.existsByCodeAndIdNot(req.code().toUpperCase().trim(), id)) {
+        if (productRepository.existsByCategoryIdAndCodeAndIdNot(category.getId(), req.code().toUpperCase().trim(), id)) {
             throw new BusinessException("DUPLICATE_CODE", "Product code already exists: " + req.code());
         }
         product.setCategoryId(category.getId());
