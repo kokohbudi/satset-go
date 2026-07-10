@@ -37,6 +37,7 @@ public class ProductDenomDTO {
     private int sortOrder;
     private boolean active;
     private boolean deleted;
+    private boolean inSupplier;
 
     // Metadata (populated when getDenomWithMeta is called)
     private List<ProductDenomMetaDTO> metadata;

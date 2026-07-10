@@ -63,7 +63,7 @@ class CatalogSyncServiceTest {
         assertThat(items).noneMatch(i -> "Pulsa".equals(i.key()));
     }
 
-    @Test void applyCategories_appliesOnlySelected() {
+    @Test void applyCategories_appliesOnlySelected() throws Exception {
         Category orphan = new Category(); orphan.setId(UUID.randomUUID()); orphan.setCode("GAME"); orphan.setName("Game Lama");
         when(categoryService.findAllForAdmin()).thenReturn(List.of(orphan));
         when(digiflazz.fetchPriceList()).thenReturn(List.of(dfCat("b","B","E-Money","DANA",2)));
@@ -160,5 +160,32 @@ class CatalogSyncServiceTest {
         SyncResult r = service().applyDenoms(pid, List.of());  // pilih kosong
         verify(denomService, never()).createFromSupplier(any(), any(), any(), any());
         assertThat(r.added()).isZero();
+    }
+
+    // ---- syncAll: tambah + update + set flag, TANPA delete ----
+    @Test void syncAll_addsDenom_setsFlags_neverDeletes() throws Exception {
+        UUID catId = UUID.randomUUID(), pid = UUID.randomUUID();
+        Category pulsa = new Category(); pulsa.setId(catId); pulsa.setCode("PULSA"); pulsa.setName("Pulsa");
+        Products xl = new Products(); xl.setId(pid); xl.setCode("XL"); xl.setName("XL");
+
+        when(digiflazz.fetchPriceList()).thenReturn(List.of(df("xl5","XL 5K","XL",5000)));
+        when(categoryService.findAllForAdmin()).thenReturn(List.of(pulsa));
+        when(categoryService.findById(catId)).thenReturn(Optional.of(pulsa));
+        when(productService.findByCategoryForAdmin(catId)).thenReturn(List.of(xl));
+        when(productService.findByCode("XL")).thenReturn(Optional.of(xl));
+        when(productService.findById(pid)).thenReturn(Optional.of(xl));
+        when(denomService.findActiveByProductId(pid)).thenReturn(List.of());  // denom baru → BARU
+
+        SyncResult r = service().syncAll();
+
+        verify(denomService).createFromSupplier(eq(pid), eq("xl5"), any(), any());
+        assertThat(r.added()).isEqualTo(1);
+        assertThat(r.deleted()).isZero();
+        verify(categoryService).reconcileSupplierFlags(argThat(s -> s.contains("PULSA")));
+        verify(productService).reconcileSupplierFlags(eq(catId), argThat(s -> s.contains("XL")));
+        verify(denomService).reconcileSupplierFlags(eq(pid), argThat(s -> s.contains("XL5")));
+        verify(categoryService, never()).softDelete(any());
+        verify(productService, never()).softDelete(any());
+        verify(denomService, never()).softDelete(any());
     }
 }

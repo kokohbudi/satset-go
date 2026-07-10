@@ -25,10 +25,15 @@
             <p class="text-base-content/60 text-sm mt-1">Kelola kategori produk (Pulsa, Data, Game, PLN, dll)</p>
         </div>
         <div class="flex gap-2">
+            <button sec:authorize="hasRole('REALM_manage_categories')" class="btn btn-secondary tap"
+                    @click="syncAll()" :disabled="syncing">
+                <span x-show="syncing" class="loading loading-spinner loading-xs"></span>
+                Sync Supplier
+            </button>
             <button sec:authorize="hasRole('REALM_manage_categories')" class="btn btn-outline tap"
                     @click="openSync('/api/admin/catalog/sync/categories/preview', 'Sync Kategori')" :disabled="syncing">
                 <span x-show="syncing" class="loading loading-spinner loading-xs"></span>
-                Sync Kategori DF
+                Sync Kategori
             </button>
             <button sec:authorize="hasRole('REALM_manage_categories')" class="btn btn-primary tap" @click="openCreateModal()">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -76,6 +81,8 @@
                             <span class="badge badge-sm"
                                   :class="cat.deleted ? 'badge-error' : (cat.active ? 'badge-success' : 'badge-warning')"
                                   x-text="cat.deleted ? 'Deleted' : (cat.active ? 'Active' : 'Inactive')"></span>
+                            <span x-show="cat.inSupplier === false" class="badge badge-warning badge-outline badge-sm ml-1"
+                                  title="Hilang dari supplier">⚠ supplier</span>
                         </td>
                         <td class="text-center">
                             <div class="flex justify-center gap-1">
@@ -269,6 +276,24 @@
                 finally { this.syncing = false; }
             },
 
+            async syncAll() {
+                const ok = await Alpine.store('confirm').open({
+                    title: 'Sync dengan Supplier',
+                    message: 'Sinkronkan kategori, produk, dan denom dengan supplier? Item baru ditambahkan & harga diperbarui. Yang hilang dari supplier hanya ditandai, tidak dihapus.',
+                    confirmText: 'Sync', confirmClass: 'btn-primary'
+                });
+                if (!ok) return;
+                this.syncing = true;
+                try {
+                    const res = await fetch('/api/admin/catalog/sync/all', { method: 'POST' });
+                    if (!res.ok) throw new Error('gagal');
+                    const r = await res.json();
+                    Alpine.store('toast').success(`Sync selesai: +${r.added} baru, ${r.updated} update, ${r.failed} gagal`);
+                    await this.loadCategories();
+                } catch (e) { Alpine.store('toast').error('Gagal sync supplier'); }
+                finally { this.syncing = false; }
+            },
+
             openCreateModal() {
                 this.editMode = false;
                 this.editId = null;
@@ -312,14 +337,17 @@
             async confirmDelete(cat) {
                 const ok = await Alpine.store('confirm').open({
                     title: 'Hapus Kategori',
-                    message: `Yakin hapus kategori "${cat.name}"? Semua produk & denominasi di bawahnya akan ikut dihapus.`,
+                    message: `Yakin hapus kategori "${cat.name}"? Kategori yang masih punya produk aktif tidak bisa dihapus — pindahkan produknya dulu.`,
                     confirmText: 'Hapus',
                     confirmClass: 'btn-error'
                 });
                 if (!ok) return;
                 try {
                     const res = await fetch(`/api/admin/catalog/categories/${cat.id}`, { method: 'DELETE' });
-                    if (!res.ok) throw new Error('Gagal menghapus');
+                    if (!res.ok) {
+                        const err = await res.json().catch(() => ({}));
+                        throw new Error(err.message || err.errorMessage || 'Gagal menghapus');
+                    }
                     await this.loadCategories();
                     Alpine.store('toast').success('Kategori dihapus');
                 } catch (e) {

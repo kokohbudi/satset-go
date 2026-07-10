@@ -70,12 +70,15 @@ public class DenomDomainService {
     public ProductDenoms create(UUID productId, CreateDenomRequest req) throws BusinessException {
         Products product = productRepository.findById(productId)
             .orElseThrow(() -> new ResourceNotFoundException("Product", productId));
-        if (denomRepository.findByCode(req.code().toUpperCase().trim()).isPresent()) {
-            throw new BusinessException("DUPLICATE_CODE", "Denom code already exists: " + req.code());
+        String code = (req.code() == null || req.code().isBlank())
+            ? generateSku(product, req.nominal())
+            : req.code().toUpperCase().trim();
+        if (denomRepository.findByCode(code).isPresent()) {
+            throw new BusinessException("DUPLICATE_CODE", "Denom code already exists: " + code);
         }
         ProductDenoms denom = new ProductDenoms();
         denom.setProductId(product.getId());
-        denom.setCode(req.code().toUpperCase().trim());
+        denom.setCode(code);
         denom.setName(req.name());
         denom.setDenomType(req.denomType());
         denom.setNominal(req.nominal());
@@ -92,6 +95,22 @@ public class DenomDomainService {
         denom.setSortOrder(req.sortOrder());
         denom.setDeleted(false);
         return denomRepository.save(denom);
+    }
+
+    /**
+     * SKU otomatis: PRODUCT+NOMINAL tanpa dash (mis. TELKOMSEL10000). Open amount (nominal null)
+     * pakai nomor urut (TELKOMSEL1). Bentrok → tambah angka di belakang.
+     * ponytail: pada bentrok, suffix numerik bisa ambigu (TELKOMSEL10000 + 2 = TELKOMSEL100002);
+     * kasus langka, tambahkan separator kalau ini pernah jadi masalah.
+     */
+    private String generateSku(Products product, BigDecimal nominal) {
+        String base = product.getCode();
+        String candidate = nominal != null ? base + nominal.toBigInteger() : base + "1";
+        int n = 2;
+        while (denomRepository.findByCode(candidate).isPresent()) {
+            candidate = (nominal != null ? base + nominal.toBigInteger() : base) + n++;
+        }
+        return candidate;
     }
 
     @Transactional
@@ -162,5 +181,17 @@ public class DenomDomainService {
                 .orElseThrow(() -> new ResourceNotFoundException("Denom", denomId));
         d.setActive(false);
         denomRepository.save(d);
+    }
+
+    /** Set flag inSupplier tiap denom produk: true kalau code (uppercase) ada di {@code supplierCodesUpper}. */
+    @Transactional
+    public int reconcileSupplierFlags(UUID productId, java.util.Set<String> supplierCodesUpper) {
+        int changed = 0;
+        for (ProductDenoms d : denomRepository.findByProductIdOrderBySortOrder(productId)) {
+            if (d.isDeleted()) continue;
+            boolean present = supplierCodesUpper.contains(d.getCode().toUpperCase());
+            if (d.isInSupplier() != present) { d.setInSupplier(present); denomRepository.save(d); changed++; }
+        }
+        return changed;
     }
 }

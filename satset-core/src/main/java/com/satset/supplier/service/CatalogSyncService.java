@@ -127,6 +127,60 @@ public class CatalogSyncService {
         return new SyncResult(added, 0, deleted, skipped, failed);
     }
 
+    // ===== Sync semua (kategori + produk + denom) =====
+
+    /**
+     * Sync penuh dengan supplier dalam satu aksi: tambah item baru + update harga (TANPA hapus).
+     * Item yang hilang dari supplier TIDAK dihapus — cuma ditandai {@code inSupplier=false};
+     * kalau muncul lagi, flag balik true.
+     * ponytail: recompute preview/reconcile per level (fetchPriceList di-cache 5 jam jadi murah);
+     * kalau katalog membengkak & terasa lambat, cache pricelist di memori sekali per run.
+     */
+    public SyncResult syncAll() {
+        List<PriceListItem> pl = digiflazz.fetchPriceList();
+
+        // --- kategori: tambah yang baru, set flag ---
+        List<String> catAdds = previewCategories().stream()
+                .filter(i -> i.action() == SyncAction.ADD).map(SyncPreviewItem::key).toList();
+        SyncResult catRes = applyCategories(catAdds);
+        Set<String> dfCatCodes = pl.stream()
+                .map(i -> CatalogCodeUtil.toCode(i.category())).collect(Collectors.toSet());
+        categoryService.reconcileSupplierFlags(dfCatCodes);
+
+        int added = catRes.added(), updated = 0, failed = catRes.failed();
+
+        for (Category c : categoryService.findAllForAdmin()) {
+            if (c.isDeleted()) continue;
+            UUID catId = c.getId();
+
+            // --- produk: tambah baru, set flag ---
+            List<String> prodAdds = previewProducts(catId).stream()
+                    .filter(i -> i.action() == SyncAction.ADD).map(SyncPreviewItem::key).toList();
+            SyncResult pr = applyProducts(catId, prodAdds);
+            added += pr.added(); failed += pr.failed();
+            Set<String> dfBrandCodes = pl.stream()
+                    .filter(i -> CatalogCodeUtil.toCode(i.category()).equals(c.getCode()))
+                    .map(i -> CatalogCodeUtil.toCode(i.brand())).collect(Collectors.toSet());
+            productService.reconcileSupplierFlags(catId, dfBrandCodes);
+
+            // --- denom per produk: tambah baru + update harga, set flag (HILANG tak dihapus) ---
+            for (Products p : productService.findByCategoryForAdmin(catId)) {
+                if (p.isDeleted()) continue;
+                List<PriceCompareRow> rows = reconcileForProduct(p.getId());
+                List<String> skus = rows.stream()
+                        .filter(r -> r.status() != CompareStatus.SAMA && r.status() != CompareStatus.HILANG)
+                        .map(PriceCompareRow::buyerSku).toList();
+                SyncResult dr = applyDenoms(p.getId(), skus);
+                added += dr.added(); updated += dr.updated(); failed += dr.failed();
+                Set<String> dfSkuUpper = rows.stream()
+                        .filter(r -> r.status() != CompareStatus.HILANG)
+                        .map(r -> r.buyerSku().toUpperCase()).collect(Collectors.toSet());
+                denomService.reconcileSupplierFlags(p.getId(), dfSkuUpper);
+            }
+        }
+        return new SyncResult(added, updated, 0, 0, failed);
+    }
+
     // ===== Denoms (preview = reconcileForProduct; UI map status->action) =====
     public SyncResult applyDenoms(UUID productId, List<String> selectedSkus) {
         Set<String> sel = new HashSet<>(selectedSkus);

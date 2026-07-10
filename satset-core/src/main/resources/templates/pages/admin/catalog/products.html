@@ -96,12 +96,17 @@
                                class="link link-hover link-primary" x-text="prod.name"></a>
                         </td>
                         <td x-text="prod.providerName || '-'"></td>
-                        <td><span class="badge badge-outline badge-sm" x-text="catName(prod.categoryId)"></span></td>
+                        <td>
+                            <span x-show="catName(prod.categoryId)" class="badge badge-outline badge-sm" x-text="catName(prod.categoryId)"></span>
+                            <span x-show="!catName(prod.categoryId)" class="text-base-content/40">-</span>
+                        </td>
                         <td class="text-center" x-text="prod.sortOrder"></td>
                         <td class="text-center">
                             <span class="badge badge-sm"
                                   :class="prod.deleted ? 'badge-error' : (prod.active ? 'badge-success' : 'badge-warning')"
                                   x-text="prod.deleted ? 'Deleted' : (prod.active ? 'Active' : 'Inactive')"></span>
+                            <span x-show="prod.inSupplier === false" class="badge badge-warning badge-outline badge-sm ml-1"
+                                  title="Hilang dari supplier">⚠ supplier</span>
                         </td>
                         <td class="text-center">
                             <div class="flex justify-center gap-1">

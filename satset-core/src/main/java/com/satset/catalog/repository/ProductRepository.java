@@ -17,6 +17,8 @@ public interface ProductRepository extends JpaRepository<Products, UUID> {
 
     List<Products> findByCategoryIdOrderBySortOrder(UUID categoryId);
 
+    boolean existsByCategoryIdAndDeletedFalse(UUID categoryId);
+
     List<Products> findByActiveTrueAndDeletedFalseOrderBySortOrder();
 
     boolean existsByCodeAndIdNot(String code, UUID id);

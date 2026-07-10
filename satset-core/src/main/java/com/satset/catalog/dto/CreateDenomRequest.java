@@ -9,7 +9,8 @@ import jakarta.validation.constraints.Size;
 import java.math.BigDecimal;
 
 public record CreateDenomRequest(
-    @NotBlank @Size(max = 100) String code,
+    // code boleh kosong → auto-generate PRODUCT+NOMINAL (lihat DenomDomainService.create)
+    @Size(max = 100) String code,
     @NotBlank @Size(max = 150) String name,
     @NotNull DenomType denomType,
     BigDecimal nominal,

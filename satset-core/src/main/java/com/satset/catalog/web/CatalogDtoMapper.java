@@ -28,6 +28,7 @@ public final class CatalogDtoMapper {
         dto.setSortOrder(entity.getSortOrder());
         dto.setActive(entity.isActive());
         dto.setDeleted(entity.isDeleted());
+        dto.setInSupplier(entity.isInSupplier());
         return dto;
     }
 
@@ -42,6 +43,7 @@ public final class CatalogDtoMapper {
         dto.setSortOrder(entity.getSortOrder());
         dto.setActive(entity.isActive());
         dto.setDeleted(entity.isDeleted());
+        dto.setInSupplier(entity.isInSupplier());
         dto.setCategoryId(entity.getCategoryId());
         return dto;
     }
@@ -65,6 +67,7 @@ public final class CatalogDtoMapper {
         dto.setSortOrder(entity.getSortOrder());
         dto.setActive(entity.isActive());
         dto.setDeleted(entity.isDeleted());
+        dto.setInSupplier(entity.isInSupplier());
         dto.setProductId(entity.getProductId());
         return dto;
     }

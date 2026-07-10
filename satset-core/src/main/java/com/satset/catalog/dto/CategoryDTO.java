@@ -15,4 +15,5 @@ public class CategoryDTO {
     private int sortOrder;
     private boolean active;
     private boolean deleted;
+    private boolean inSupplier;
 }

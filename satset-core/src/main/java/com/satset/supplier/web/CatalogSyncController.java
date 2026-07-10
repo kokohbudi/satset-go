@@ -19,6 +19,11 @@ public class CatalogSyncController {
     private final CatalogSyncService sync;
     public CatalogSyncController(CatalogSyncService sync) { this.sync = sync; }
 
+    // Sync semua (kategori + produk + denom) sekaligus
+    @PostMapping("/sync/all")
+    @PreAuthorize("hasRole('" + OmniConstants.PERM_MANAGE_CATEGORIES + "')")
+    public SyncResult syncAll() { return sync.syncAll(); }
+
     // Categories
     @GetMapping("/sync/categories/preview")
     @PreAuthorize("hasRole('" + OmniConstants.PERM_MANAGE_CATEGORIES + "')")

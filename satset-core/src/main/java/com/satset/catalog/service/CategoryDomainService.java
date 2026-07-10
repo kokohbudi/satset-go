@@ -1,6 +1,7 @@
 package com.satset.catalog.service;
 
 import com.satset.catalog.repository.CategoryRepository;
+import com.satset.catalog.repository.ProductRepository;
 import com.satset.catalog.model.Category;
 import com.satset.catalog.model.CategoryType;
 import com.satset.catalog.dto.CreateCategoryRequest;
@@ -15,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 @Service
@@ -22,9 +24,11 @@ import java.util.UUID;
 public class CategoryDomainService {
 
     private final CategoryRepository categoryRepository;
+    private final ProductRepository productRepository;
 
-    public CategoryDomainService(CategoryRepository categoryRepository) {
+    public CategoryDomainService(CategoryRepository categoryRepository, ProductRepository productRepository) {
         this.categoryRepository = categoryRepository;
+        this.productRepository = productRepository;
     }
 
     // === Browse (read-only, cached) ===
@@ -117,14 +121,34 @@ public class CategoryDomainService {
         });
     }
 
+    /** Set flag inSupplier tiap kategori hidup: true kalau code-nya ada di {@code supplierCodes}. */
     @Transactional
     @Caching(evict = {
         @CacheEvict(value = "categoriesAll", allEntries = true, cacheManager = "standardCacheManager"),
         @CacheEvict(value = "categoriesByType", allEntries = true, cacheManager = "standardCacheManager")
     })
-    public void softDelete(UUID id) {
+    public int reconcileSupplierFlags(Set<String> supplierCodes) {
+        int changed = 0;
+        for (Category c : categoryRepository.findAllByOrderBySortOrder()) {
+            if (c.isDeleted()) continue;
+            boolean present = supplierCodes.contains(c.getCode());
+            if (c.isInSupplier() != present) { c.setInSupplier(present); categoryRepository.save(c); changed++; }
+        }
+        return changed;
+    }
+
+    @Transactional
+    @Caching(evict = {
+        @CacheEvict(value = "categoriesAll", allEntries = true, cacheManager = "standardCacheManager"),
+        @CacheEvict(value = "categoriesByType", allEntries = true, cacheManager = "standardCacheManager")
+    })
+    public void softDelete(UUID id) throws BusinessException {
         Category cat = categoryRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Category", id));
+        if (productRepository.existsByCategoryIdAndDeletedFalse(id)) {
+            throw new BusinessException("CATEGORY_HAS_PRODUCTS",
+                "Kategori masih punya produk aktif; pindahkan atau hapus produknya dulu");
+        }
         cat.setDeleted(true);
         cat.setActive(false);
         categoryRepository.save(cat);

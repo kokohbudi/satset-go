@@ -5,6 +5,7 @@ import com.satset.catalog.model.CategoryType;
 import com.satset.catalog.dto.CreateCategoryRequest;
 import com.satset.catalog.dto.UpdateCategoryRequest;
 import com.satset.catalog.repository.CategoryRepository;
+import com.satset.catalog.repository.ProductRepository;
 import com.satset.shared.exception.BusinessException;
 import com.satset.shared.exception.ResourceNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
@@ -28,6 +29,9 @@ class CategoryDomainServiceTest {
 
     @Mock
     private CategoryRepository categoryRepository;
+
+    @Mock
+    private ProductRepository productRepository;
 
     @InjectMocks
     private CategoryDomainService categoryService;
@@ -235,7 +239,7 @@ class CategoryDomainServiceTest {
     // === SOFT DELETE ===
 
     @Test
-    void softDelete_Success() {
+    void softDelete_Success() throws BusinessException {
         // Arrange
         when(categoryRepository.findById(categoryId)).thenReturn(Optional.of(existingCategory));
         when(categoryRepository.save(any(Category.class))).thenAnswer(inv -> inv.getArgument(0));
@@ -249,6 +253,33 @@ class CategoryDomainServiceTest {
         Category saved = captor.getValue();
         assertTrue(saved.isDeleted());
         assertFalse(saved.isActive());
+    }
+
+    @Test
+    void softDelete_HasActiveProducts_ThrowsBusinessException() {
+        when(categoryRepository.findById(categoryId)).thenReturn(Optional.of(existingCategory));
+        when(productRepository.existsByCategoryIdAndDeletedFalse(categoryId)).thenReturn(true);
+
+        BusinessException ex = assertThrows(BusinessException.class,
+                () -> categoryService.softDelete(categoryId));
+        assertEquals("CATEGORY_HAS_PRODUCTS", ex.getErrorCode());
+        verify(categoryRepository, never()).save(any());
+    }
+
+    @Test
+    void reconcileSupplierFlags_flipsFlag_forMissingAndReappeared() {
+        Category present = new Category(); present.setCode("PULSA"); present.setInSupplier(false); // muncul lagi
+        Category missing = new Category(); missing.setCode("GAME");  missing.setInSupplier(true);  // hilang
+        Category deleted = new Category(); deleted.setCode("OLD");   deleted.setDeleted(true);
+        when(categoryRepository.findAllByOrderBySortOrder()).thenReturn(List.of(present, missing, deleted));
+        when(categoryRepository.save(any(Category.class))).thenAnswer(i -> i.getArgument(0));
+
+        int changed = categoryService.reconcileSupplierFlags(java.util.Set.of("PULSA"));
+
+        assertEquals(2, changed);
+        assertTrue(present.isInSupplier());
+        assertFalse(missing.isInSupplier());
+        verify(categoryRepository, never()).save(deleted);
     }
 
     @Test

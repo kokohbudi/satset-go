@@ -173,6 +173,52 @@ class DenomDomainServiceTest {
     }
 
     @Test
+    void create_BlankCode_GeneratesProductNominal() throws BusinessException {
+        CreateDenomRequest req = new CreateDenomRequest(
+                "", "Telkomsel 10K", DenomType.FIXED_DENOM,
+                new BigDecimal("10000"), new BigDecimal("10500"), null, null,
+                null, null, null, null, false, null, true, 1);
+        when(productRepository.findById(productId)).thenReturn(Optional.of(product));
+        when(denomRepository.findByCode("TELKOMSEL10000")).thenReturn(Optional.empty());
+        when(denomRepository.save(any(ProductDenoms.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        ProductDenoms result = denomService.create(productId, req);
+
+        assertEquals("TELKOMSEL10000", result.getCode());
+    }
+
+    @Test
+    void create_BlankCode_OpenAmount_GeneratesSeq() throws BusinessException {
+        CreateDenomRequest req = new CreateDenomRequest(
+                null, "Token bebas", DenomType.OPEN_AMOUNT,
+                null, new BigDecimal("1"), null, null,
+                null, null, null, null, false, null, true, 1);
+        when(productRepository.findById(productId)).thenReturn(Optional.of(product));
+        when(denomRepository.findByCode("TELKOMSEL1")).thenReturn(Optional.empty());
+        when(denomRepository.save(any(ProductDenoms.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        ProductDenoms result = denomService.create(productId, req);
+
+        assertEquals("TELKOMSEL1", result.getCode());
+    }
+
+    @Test
+    void create_BlankCode_Collision_AppendsNumber() throws BusinessException {
+        CreateDenomRequest req = new CreateDenomRequest(
+                "", "Telkomsel 10K", DenomType.FIXED_DENOM,
+                new BigDecimal("10000"), new BigDecimal("10500"), null, null,
+                null, null, null, null, false, null, true, 1);
+        when(productRepository.findById(productId)).thenReturn(Optional.of(product));
+        when(denomRepository.findByCode("TELKOMSEL10000")).thenReturn(Optional.of(existingDenom));
+        when(denomRepository.findByCode("TELKOMSEL100002")).thenReturn(Optional.empty());
+        when(denomRepository.save(any(ProductDenoms.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        ProductDenoms result = denomService.create(productId, req);
+
+        assertEquals("TELKOMSEL100002", result.getCode());
+    }
+
+    @Test
     void create_ProductNotFound_ThrowsResourceNotFoundException() {
         // Arrange
         UUID unknownProductId = UUID.randomUUID();

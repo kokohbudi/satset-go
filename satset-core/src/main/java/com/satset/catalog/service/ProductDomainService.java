@@ -144,4 +144,17 @@ public class ProductDomainService {
         product.setActive(false);
         productRepository.save(product);
     }
+
+    /** Set flag inSupplier tiap produk hidup di kategori: true kalau code-nya ada di {@code supplierCodes}. */
+    @Transactional
+    @CacheEvict(value = "products", allEntries = true, cacheManager = "standardCacheManager")
+    public int reconcileSupplierFlags(UUID categoryId, java.util.Set<String> supplierCodes) {
+        int changed = 0;
+        for (Products p : productRepository.findByCategoryIdOrderBySortOrder(categoryId)) {
+            if (p.isDeleted()) continue;
+            boolean present = supplierCodes.contains(p.getCode());
+            if (p.isInSupplier() != present) { p.setInSupplier(present); productRepository.save(p); changed++; }
+        }
+        return changed;
+    }
 }

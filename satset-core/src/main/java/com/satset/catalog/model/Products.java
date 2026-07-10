@@ -43,6 +43,10 @@ public class Products {
 
     private boolean deleted;
 
+    /** true = masih ada di supplier; di-set false oleh sync saat item hilang dari supplier. */
+    @Column(nullable = false, columnDefinition = "boolean default true")
+    private boolean inSupplier = true;
+
     private int sortOrder;
 
     @CreatedDate

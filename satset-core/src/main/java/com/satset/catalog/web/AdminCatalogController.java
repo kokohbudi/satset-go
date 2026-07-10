@@ -80,7 +80,7 @@ public class AdminCatalogController {
 
     @DeleteMapping("/categories/{id}")
     @PreAuthorize("hasRole('" + OmniConstants.PERM_MANAGE_CATEGORIES + "')")
-    public ResponseEntity<Void> deleteCategory(@PathVariable UUID id) {
+    public ResponseEntity<Void> deleteCategory(@PathVariable UUID id) throws BusinessException {
         manageCategoriesUseCase.softDelete(id);
         return ResponseEntity.noContent().build();
     }
