@@ -82,7 +82,7 @@ class CatalogSyncServiceTest {
         when(categoryService.findById(catId)).thenReturn(Optional.of(cat));
         Products orphan = new Products(); orphan.setId(UUID.randomUUID()); orphan.setCode("OLDBRAND"); orphan.setName("Old");
         when(productService.findByCategoryForAdmin(catId)).thenReturn(List.of(orphan));
-        when(productService.findByCode("XL")).thenReturn(Optional.empty());
+        when(productService.findByCategoryAndCode("PULSA", "XL")).thenReturn(Optional.empty());
         when(digiflazz.fetchPriceList()).thenReturn(List.of(df("a","A","XL",1)));   // category "Pulsa" -> PULSA
         List<SyncPreviewItem> items = service().previewProducts(catId);
         assertThat(items).anySatisfy(i -> { assertThat(i.action()).isEqualTo(SyncAction.ADD); assertThat(i.key()).isEqualTo("XL"); });
@@ -94,7 +94,7 @@ class CatalogSyncServiceTest {
         Category cat = new Category(); cat.setId(catId); cat.setCode("PULSA");
         when(categoryService.findById(catId)).thenReturn(Optional.of(cat));
         when(productService.findByCategoryForAdmin(catId)).thenReturn(List.of());
-        when(productService.findByCode("XL")).thenReturn(Optional.empty());
+        when(productService.findByCategoryAndCode("PULSA", "XL")).thenReturn(Optional.empty());
         when(digiflazz.fetchPriceList()).thenReturn(List.of(df("a","A","XL",1)));
         SyncResult r = service().applyProducts(catId, List.of("XL"));
         verify(productService).findOrCreateByBrand("XL", catId);
@@ -172,7 +172,7 @@ class CatalogSyncServiceTest {
         when(categoryService.findAllForAdmin()).thenReturn(List.of(pulsa));
         when(categoryService.findById(catId)).thenReturn(Optional.of(pulsa));
         when(productService.findByCategoryForAdmin(catId)).thenReturn(List.of(xl));
-        when(productService.findByCode("XL")).thenReturn(Optional.of(xl));
+        when(productService.findByCategoryAndCode("PULSA", "XL")).thenReturn(Optional.of(xl));
         when(productService.findById(pid)).thenReturn(Optional.of(xl));
         when(denomService.findActiveByProductId(pid)).thenReturn(List.of());  // denom baru → BARU
 

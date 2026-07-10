@@ -55,6 +55,13 @@ public class ProductDomainService {
                 .filter(p -> p.isActive() && !p.isDeleted());
     }
 
+    public Optional<Products> findByCategoryAndCode(String categoryCode, String code) {
+        Optional<Category> category = categoryRepository.findByCode(categoryCode);
+        if (category.isEmpty()) return Optional.empty();
+        return productRepository.findByCategoryIdAndCode(category.get().getId(), code)
+                .filter(p -> p.isActive() && !p.isDeleted());
+    }
+
     // === Manage (admin CRUD) ===
 
     public List<Products> findByCategoryForAdmin(UUID categoryId) {
@@ -111,7 +118,7 @@ public class ProductDomainService {
     @CacheEvict(value = "products", allEntries = true, cacheManager = "standardCacheManager")
     public Products findOrCreateByBrand(String brand, UUID categoryId) {
         String code = CatalogCodeUtil.toCode(brand);
-        return productRepository.findByCode(code).map(existing -> {
+        return productRepository.findByCategoryIdAndCode(categoryId, code).map(existing -> {
             if (existing.isDeleted()) {          // revive soft-deleted, jangan biarin stale
                 existing.setDeleted(false);
                 existing.setActive(true);

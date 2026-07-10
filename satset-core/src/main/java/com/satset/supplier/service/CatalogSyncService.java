@@ -99,7 +99,7 @@ public class CatalogSyncService {
             if (!CatalogCodeUtil.toCode(it.category()).equals(cat.getCode())) continue;
             String code = CatalogCodeUtil.toCode(it.brand());
             dfBrandCodes.add(code);
-            if (seen.add(code) && productService.findByCode(code).isEmpty()) {
+            if (seen.add(code) && productService.findByCategoryAndCode(cat.getCode(), code).isEmpty()) {
                 items.add(new SyncPreviewItem(SyncAction.ADD, it.brand(), it.brand(), null));
             }
         }

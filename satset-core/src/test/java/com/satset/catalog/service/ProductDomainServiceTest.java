@@ -348,7 +348,7 @@ class ProductDomainServiceTest {
     @Test
     void findOrCreateByBrand_absent_createsUnderCategory() {
         UUID catId = UUID.randomUUID();
-        when(productRepository.findByCode("DANA")).thenReturn(Optional.empty());
+        when(productRepository.findByCategoryIdAndCode(catId, "DANA")).thenReturn(Optional.empty());
         when(productRepository.save(any(Products.class))).thenAnswer(i -> i.getArgument(0));
         Products p = productService.findOrCreateByBrand("DANA", catId);
         org.assertj.core.api.Assertions.assertThat(p.getCode()).isEqualTo("DANA");
@@ -359,22 +359,52 @@ class ProductDomainServiceTest {
 
     @Test
     void findOrCreateByBrand_existing_returnsIt() {
-        Products e = new Products(); e.setCode("DANA");
-        when(productRepository.findByCode("DANA")).thenReturn(Optional.of(e));
-        org.assertj.core.api.Assertions.assertThat(productService.findOrCreateByBrand("DANA", UUID.randomUUID())).isSameAs(e);
+        UUID catId = UUID.randomUUID();
+        Products e = new Products(); e.setCode("DANA"); e.setCategoryId(catId);
+        when(productRepository.findByCategoryIdAndCode(catId, "DANA")).thenReturn(Optional.of(e));
+        org.assertj.core.api.Assertions.assertThat(productService.findOrCreateByBrand("DANA", catId)).isSameAs(e);
         verify(productRepository, never()).save(any());
     }
 
     @Test
     void findOrCreateByBrand_softDeleted_revives() {
+        UUID catId = UUID.randomUUID();
         Products deleted = new Products();
-        deleted.setCode("DANA"); deleted.setName("old");
+        deleted.setCode("DANA"); deleted.setName("old"); deleted.setCategoryId(catId);
         deleted.setDeleted(true); deleted.setActive(false);
-        when(productRepository.findByCode("DANA")).thenReturn(Optional.of(deleted));
+        when(productRepository.findByCategoryIdAndCode(catId, "DANA")).thenReturn(Optional.of(deleted));
         when(productRepository.save(any(Products.class))).thenAnswer(i -> i.getArgument(0));
-        Products p = productService.findOrCreateByBrand("DANA", UUID.randomUUID());
+        Products p = productService.findOrCreateByBrand("DANA", catId);
         org.assertj.core.api.Assertions.assertThat(p.isDeleted()).isFalse();
         org.assertj.core.api.Assertions.assertThat(p.isActive()).isTrue();
         verify(productRepository).save(deleted);
+    }
+
+    @Test
+    void findOrCreateByBrand_sameBrandOtherCategory_createsNewRowForThisCategory() {
+        UUID dataCatId = UUID.randomUUID();
+        // TELKOMSEL exists in some OTHER category; must NOT be reused for dataCatId
+        when(productRepository.findByCategoryIdAndCode(dataCatId, "TELKOMSEL"))
+                .thenReturn(Optional.empty());
+        when(productRepository.save(any(Products.class)))
+                .thenAnswer(inv -> inv.getArgument(0));
+
+        Products created = productService.findOrCreateByBrand("TELKOMSEL", dataCatId);
+
+        org.assertj.core.api.Assertions.assertThat(created.getCode()).isEqualTo("TELKOMSEL");
+        org.assertj.core.api.Assertions.assertThat(created.getCategoryId()).isEqualTo(dataCatId);
+        verify(productRepository).save(argThat(p -> p.getCategoryId().equals(dataCatId)));
+    }
+
+    @Test
+    void findByCategoryAndCode_resolvesCategoryThenLooksUp() {
+        UUID catId = UUID.randomUUID();
+        Category cat = new Category(); cat.setId(catId); cat.setCode("DATA");
+        Products p = new Products(); p.setCode("TELKOMSEL"); p.setCategoryId(catId);
+        p.setActive(true); p.setDeleted(false);
+        when(categoryRepository.findByCode("DATA")).thenReturn(Optional.of(cat));
+        when(productRepository.findByCategoryIdAndCode(catId, "TELKOMSEL")).thenReturn(Optional.of(p));
+
+        org.assertj.core.api.Assertions.assertThat(productService.findByCategoryAndCode("DATA", "TELKOMSEL")).contains(p);
     }
 }
