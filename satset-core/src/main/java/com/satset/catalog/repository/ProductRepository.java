@@ -13,6 +13,10 @@ public interface ProductRepository extends JpaRepository<Products, UUID> {
 
     Optional<Products> findByCode(String code);
 
+    Optional<Products> findByCategoryIdAndCode(UUID categoryId, String code);
+
+    boolean existsByCategoryIdAndCodeAndIdNot(UUID categoryId, String code, UUID id);
+
     List<Products> findByCategoryIdAndActiveTrueAndDeletedFalseOrderBySortOrder(UUID categoryId);
 
     List<Products> findByCategoryIdOrderBySortOrder(UUID categoryId);

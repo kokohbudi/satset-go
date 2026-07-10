@@ -13,7 +13,8 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
-@Table(name = "products")
+@Table(name = "products", uniqueConstraints =
+        @UniqueConstraint(name = "uq_products_category_code", columnNames = {"category_id", "code"}))
 @EntityListeners(AuditingEntityListener.class)
 @Data
 public class Products {
@@ -25,7 +26,7 @@ public class Products {
     @Column(name = "category_id", nullable = false, columnDefinition = "uuid")
     private UUID categoryId;
 
-    @Column(unique = true, nullable = false, length = 50)
+    @Column(nullable = false, length = 50)
     private String code;
 
     @Column(nullable = false, length = 100)
