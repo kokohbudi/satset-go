@@ -113,11 +113,13 @@
 
         <!-- Bottom Section - Logout -->
         <div class="absolute bottom-0 left-0 right-0 p-4 border-t border-base-300 bg-base-100">
-            <a th:href="@{/logout}"
-                class="flex items-center gap-3 px-4 py-3 rounded-xl text-error hover:bg-error/10 transition-all">
-                <svg th:replace="~{components/icons :: icon-logout(class='w-5 h-5')}"></svg>
-                Keluar
-            </a>
+            <form th:action="@{/api/logout}" method="post" class="contents">
+                <button type="submit"
+                    class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-error hover:bg-error/10 transition-all">
+                    <svg th:replace="~{components/icons :: icon-logout(class='w-5 h-5')}"></svg>
+                    Keluar
+                </button>
+            </form>
         </div>
         <script>
             function toggleQuickMenu(btn) {

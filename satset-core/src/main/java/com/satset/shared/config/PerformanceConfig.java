@@ -56,6 +56,23 @@ public class PerformanceConfig {
         }
 
         /**
+         * Cache manager umur panjang untuk Digiflazz price-list.
+         * TTL: 5 jam. DF nge-rate-limit endpoint ini (rc 83) & datanya lag 10-15 menit,
+         * jadi cukup 1 hit / 5 jam — flow preview+apply reuse hasil cache.
+         * Used for: digiflazzPriceList
+         */
+        @Bean
+        public CacheManager digiflazzCacheManager() {
+                CaffeineCacheManager cacheManager = new CaffeineCacheManager(
+                                "digiflazzPriceList");
+                cacheManager.setCaffeine(Caffeine.newBuilder()
+                                .expireAfterWrite(5, TimeUnit.HOURS)
+                                .maximumSize(10)
+                                .recordStats());
+                return cacheManager;
+        }
+
+        /**
          * Standard cache manager untuk data yang jarang berubah.
          * TTL: 30 menit, Max size: 2000 entries.
          * Used for: operators, vouchers, prices, categories, products, denoms

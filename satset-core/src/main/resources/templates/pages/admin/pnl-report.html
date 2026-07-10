@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="id" xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layouts/base}">
+
+<head>
+    <title>Laba Rugi</title>
+</head>
+
+<body>
+<div layout:fragment="content">
+
+    <!-- Page Header -->
+    <div class="mb-6 animate-rise" style="--i:0">
+        <h1 class="text-2xl font-bold">Laba Rugi</h1>
+        <p class="text-base-content/60 text-sm mt-1">Ringkasan pendapatan, modal, dan margin dari transaksi sukses
+            pada rentang tanggal terpilih.</p>
+    </div>
+
+    <!-- Date filter -->
+    <form method="get" action="/admin/reports/pnl"
+          class="mb-6 flex flex-wrap items-end gap-3 animate-rise" style="--i:1">
+        <div class="form-control">
+            <label class="label pb-1"><span class="label-text">Dari</span></label>
+            <input type="date" name="from" th:value="${from}" class="input input-bordered input-sm"/>
+        </div>
+        <div class="form-control">
+            <label class="label pb-1"><span class="label-text">Sampai</span></label>
+            <input type="date" name="to" th:value="${to}" class="input input-bordered input-sm"/>
+        </div>
+        <button type="submit" class="btn btn-primary btn-sm">Terapkan</button>
+    </form>
+
+    <!-- Summary tiles -->
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6 animate-rise" style="--i:2">
+        <div class="card bg-base-100 shadow-sm">
+            <div class="card-body p-4">
+                <div class="text-sm text-base-content/60">Pendapatan</div>
+                <div class="text-2xl font-semibold"
+                     th:text="${'Rp ' + #numbers.formatInteger(report.summary().revenue(), 0, 'POINT')}">Rp 0</div>
+            </div>
+        </div>
+        <div class="card bg-base-100 shadow-sm">
+            <div class="card-body p-4">
+                <div class="text-sm text-base-content/60">Modal (COGS)</div>
+                <div class="text-2xl font-semibold"
+                     th:text="${'Rp ' + #numbers.formatInteger(report.summary().cogs(), 0, 'POINT')}">Rp 0</div>
+            </div>
+        </div>
+        <div class="card bg-base-100 shadow-sm">
+            <div class="card-body p-4">
+                <div class="text-sm text-base-content/60">Margin</div>
+                <div class="text-2xl font-semibold text-primary"
+                     th:text="${'Rp ' + #numbers.formatInteger(report.summary().margin(), 0, 'POINT')}">Rp 0</div>
+                <div class="text-xs text-base-content/50"
+                     th:text="${report.summary().count() + ' transaksi'}">0 transaksi</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Per-product table -->
+    <div class="card bg-base-100 shadow-sm animate-rise" style="--i:3">
+        <div class="overflow-x-auto">
+            <table class="table table-zebra">
+                <thead>
+                <tr>
+                    <th>Produk</th>
+                    <th class="text-right">Pendapatan</th>
+                    <th class="text-right">Modal</th>
+                    <th class="text-right">Margin</th>
+                    <th class="text-right">Transaksi</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="row : ${report.byProduct()}">
+                    <td th:text="${row.label()}">Produk</td>
+                    <td class="text-right font-mono tabular-nums"
+                        th:text="${#numbers.formatInteger(row.revenue(), 0, 'POINT')}">0</td>
+                    <td class="text-right font-mono tabular-nums"
+                        th:text="${#numbers.formatInteger(row.cogs(), 0, 'POINT')}">0</td>
+                    <td class="text-right font-mono tabular-nums text-primary"
+                        th:text="${#numbers.formatInteger(row.margin(), 0, 'POINT')}">0</td>
+                    <td class="text-right" th:text="${row.count()}">0</td>
+                </tr>
+                <tr th:if="${report.byProduct().isEmpty()}">
+                    <td colspan="5" class="text-center py-8 text-base-content/50">Belum ada transaksi sukses pada
+                        rentang ini.
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+</body>
+</html>

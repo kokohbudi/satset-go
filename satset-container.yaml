@@ -1,9 +1,8 @@
-version: '3.9'
 
 services:
-  postgres-omnia:
+  postgres-satset:
     image: postgres:15-alpine
-    container_name: postgres-omnia
+    container_name: postgres-satset
     ports:
       - "5432:5432"
     environment:
@@ -15,24 +14,24 @@ services:
     networks:
       - ${NETWORK}
 
-  keycloak-omnia:
+  keycloak-satset:
     image: quay.io/keycloak/keycloak:26.2.1
-    container_name: keycloak-omnia
+    container_name: keycloak-satset
     command: start-dev
     ports:
       - "9999:8080"
     environment:
       KC_FEATURES: organization
       KC_DB: postgres
-      KC_DB_URL_HOST: postgres-omnia
+      KC_DB_URL_HOST: postgres-satset
       KC_DB_URL_PORT: 5432
       KC_DB_URL_DATABASE: ${KEYCLOAK_DB}
       KC_DB_USERNAME: ${POSTGRES_USER}
       KC_DB_PASSWORD: ${POSTGRES_PASSWORD}
-      KEYCLOAK_ADMIN: admin
-      KEYCLOAK_ADMIN_PASSWORD: kozaninja
+      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN:-admin}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
     depends_on:
-      - postgres-omnia
+      - postgres-satset
     networks:
       - ${NETWORK}
     volumes:
@@ -40,5 +39,5 @@ services:
 
 
 networks:
-  omnia-network:
+  satset-network:
     name: ${NETWORK}

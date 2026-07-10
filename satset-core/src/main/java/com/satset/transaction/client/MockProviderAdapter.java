@@ -2,6 +2,7 @@ package com.satset.transaction.client;
 
 import com.satset.transaction.model.ProviderResponse;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -9,6 +10,7 @@ import java.util.UUID;
 
 @Slf4j
 @Service
+@ConditionalOnProperty(name = "supplier.mode", havingValue = "mock", matchIfMissing = true)
 public class MockProviderAdapter implements ProviderPort {
 
     @Override
@@ -27,10 +29,10 @@ public class MockProviderAdapter implements ProviderPort {
             String ref = "REF-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
             String sn = "SN" + System.currentTimeMillis();
             log.info("Mock provider: SUCCESS ref={} sn={}", ref, sn);
-            return new ProviderResponse(true, ref, sn, "Transaksi berhasil");
+            return new ProviderResponse(true, ref, sn, "Transaksi berhasil", null);
         }
 
         log.warn("Mock provider: FAILED for target={}", targetNumber);
-        return new ProviderResponse(false, null, null, "Transaksi gagal dari provider");
+        return new ProviderResponse(false, null, null, "Transaksi gagal dari provider", null);
     }
 }

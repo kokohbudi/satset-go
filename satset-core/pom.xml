@@ -168,6 +168,17 @@
             <artifactId>lombok</artifactId>
             <optional>true</optional>
         </dependency>
+        <!-- Dev-only: classpath watch + auto-restart + LiveReload. Excluded from prod jar (optional). -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-devtools</artifactId>
+            <optional>true</optional>
+        </dependency>
+        <!-- AspectJ (Boot 4 renamed starter-aop → starter-aspectj): @LogContext aspect -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-aspectj</artifactId>
+        </dependency>
         <!-- Thymeleaf Layout Dialect for reusable layouts -->
         <dependency>
             <groupId>nz.net.ultraq.thymeleaf</groupId>
@@ -334,7 +345,7 @@
                         <!-- LogoutController — tightly coupled to OIDC infrastructure -->
                         <exclude>com/satset/identity/adapter/in/web/LogoutController.class</exclude>
                         <!-- Spring Boot entry point -->
-                        <exclude>com/satset/OmnipAuthenticationServiceApplication.class</exclude>
+                        <exclude>com/satset/SatsetGoApplication.class</exclude>
                         <!-- JPA repository interfaces (Spring-generated) -->
                         <!--                        <exclude>com/satset/**/adapter/out/persistence/**Repository.class</exclude>-->
                     </excludes>

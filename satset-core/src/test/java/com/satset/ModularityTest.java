@@ -9,7 +9,7 @@ import org.springframework.modulith.core.ApplicationModules;
  */
 class ModularityTest {
 
-    static final ApplicationModules modules = ApplicationModules.of(OmnipAuthenticationServiceApplication.class);
+    static final ApplicationModules modules = ApplicationModules.of(SatsetGoApplication.class);
 
     @Test
     void verifiesModularStructure() {

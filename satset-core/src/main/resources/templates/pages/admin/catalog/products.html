@@ -34,12 +34,21 @@
             <h1 class="text-2xl font-bold">Produk</h1>
             <p class="text-base-content/60 text-sm mt-1">Kelola produk per kategori (Telkomsel, XL, PLN, dll)</p>
         </div>
-        <button sec:authorize="hasRole('REALM_manage_products')" class="btn btn-primary tap" @click="openCreateModal()">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"/>
-            </svg>
-            Tambah Produk
-        </button>
+        <div class="flex gap-2">
+            <button sec:authorize="hasRole('REALM_manage_products')" class="btn btn-outline tap"
+                    @click="openSync('/api/admin/catalog/categories/' + filterCategoryId + '/sync/products/preview', 'Sync Produk')"
+                    :disabled="syncing || !filterCategoryId"
+                    :title="filterCategoryId ? '' : 'Pilih kategori dulu'">
+                <span x-show="syncing" class="loading loading-spinner loading-xs"></span>
+                Sync Produk DF
+            </button>
+            <button sec:authorize="hasRole('REALM_manage_products')" class="btn btn-primary tap" @click="openCreateModal()">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"/>
+                </svg>
+                Tambah Produk
+            </button>
+        </div>
     </div>
 
     <!-- Filter & Search -->
@@ -87,7 +96,7 @@
                                class="link link-hover link-primary" x-text="prod.name"></a>
                         </td>
                         <td x-text="prod.providerName || '-'"></td>
-                        <td><span class="badge badge-outline badge-sm" x-text="prod.categoryName"></span></td>
+                        <td><span class="badge badge-outline badge-sm" x-text="catName(prod.categoryId)"></span></td>
                         <td class="text-center" x-text="prod.sortOrder"></td>
                         <td class="text-center">
                             <span class="badge badge-sm"
@@ -186,6 +195,42 @@
             </form>
         </div>
     </div>
+
+    <!-- Sync Preview Modal -->
+    <div class="modal" :class="{ 'modal-open': showSyncModal }">
+        <div class="modal-box max-w-2xl">
+            <h3 class="font-bold text-lg" x-text="syncTitle">Preview Sync</h3>
+            <template x-for="grp in ['ADD','UPDATE','DELETE']" :key="grp">
+                <div x-show="syncGroup(grp).length" class="mt-4">
+                    <div class="flex items-center justify-between">
+                        <span class="font-semibold text-sm"
+                              x-text="grp === 'ADD' ? '➕ Tambah' : grp === 'UPDATE' ? '✏️ Update harga' : '🗑️ Hapus'"></span>
+                        <label class="label cursor-pointer gap-2 text-xs">
+                            <span>pilih semua</span>
+                            <input type="checkbox" class="checkbox checkbox-xs"
+                                   :checked="syncGroup(grp).every(i => i.checked)"
+                                   @change="toggleGroup(grp, $event.target.checked)">
+                        </label>
+                    </div>
+                    <div class="max-h-48 overflow-y-auto mt-1">
+                        <template x-for="it in syncGroup(grp)" :key="it.key">
+                            <label class="flex items-center gap-2 py-1 text-sm cursor-pointer">
+                                <input type="checkbox" class="checkbox checkbox-sm" x-model="it.checked">
+                                <span x-text="it.label"></span>
+                                <span class="text-xs text-base-content/50" x-show="it.detail" x-text="it.detail"></span>
+                            </label>
+                        </template>
+                    </div>
+                </div>
+            </template>
+            <div class="modal-action">
+                <button class="btn btn-ghost" @click="showSyncModal = false" :disabled="syncing">Batal</button>
+                <button class="btn btn-primary" @click="confirmSync('/api/admin/catalog/categories/' + filterCategoryId + '/sync/products', () => loadProducts())" :disabled="syncing">
+                    <span x-show="syncing" class="loading loading-spinner loading-xs"></span> Terapkan
+                </button>
+            </div>
+        </div>
+    </div>
 </div>
 
 <th:block layout:fragment="scripts">
@@ -206,6 +251,10 @@
             editMode: false,
             saving: false,
             editId: null,
+            syncing: false,
+            showSyncModal: false,
+            syncItems: [],
+            syncTitle: '',
             form: { categoryId: '', code: '', name: '', providerName: '', description: '', iconUrl: '', sortOrder: 0, active: true },
 
             get filteredProducts() {
@@ -215,9 +264,11 @@
                     p.code.toLowerCase().includes(q) ||
                     p.name.toLowerCase().includes(q) ||
                     (p.providerName && p.providerName.toLowerCase().includes(q)) ||
-                    (p.categoryName && p.categoryName.toLowerCase().includes(q))
+                    this.catName(p.categoryId).toLowerCase().includes(q)
                 );
             },
+
+            catName(id) { return (this.categories.find(c => c.id === id) || {}).name || ''; },
 
             async loadProducts() {
                 this.loading = true;
@@ -232,6 +283,34 @@
                 } finally {
                     this.loading = false;
                 }
+            },
+
+            async openSync(previewUrl, title) {
+                this.syncing = true; this.syncTitle = title;
+                try {
+                    const res = await fetch(previewUrl);
+                    if (!res.ok) throw new Error('gagal');
+                    const raw = await res.json();
+                    this.syncItems = raw.map(i => ({ ...i, checked: i.action !== 'DELETE' })); // DELETE default off
+                    if (this.syncItems.length === 0) { Alpine.store('toast').success('Sudah sinkron dengan Digiflazz'); return; }
+                    this.showSyncModal = true;
+                } catch (e) { Alpine.store('toast').error('Gagal ambil preview'); }
+                finally { this.syncing = false; }
+            },
+            syncGroup(action) { return this.syncItems.filter(i => i.action === action); },
+            toggleGroup(action, val) { this.syncItems.forEach(i => { if (i.action === action) i.checked = val; }); },
+            async confirmSync(applyUrl, reload) {
+                const keys = this.syncItems.filter(i => i.checked).map(i => i.key);
+                this.syncing = true;
+                try {
+                    const res = await fetch(applyUrl, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(keys) });
+                    if (!res.ok) throw new Error('gagal');
+                    const r = await res.json();
+                    Alpine.store('toast').success(`Selesai: +${r.added} baru, ${r.updated} update, ${r.deleted} hapus, ${r.failed} gagal`);
+                    this.showSyncModal = false;
+                    await reload();
+                } catch (e) { Alpine.store('toast').error('Gagal sync'); }
+                finally { this.syncing = false; }
             },
 
             openCreateModal() {

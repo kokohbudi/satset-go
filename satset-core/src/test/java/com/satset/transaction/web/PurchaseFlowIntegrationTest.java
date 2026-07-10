@@ -92,7 +92,7 @@ class PurchaseFlowIntegrationTest {
 
         // Setup denom info (shared kernel value object used by TransactionDomainService)
         denomInfo = new DenomInfo(denomId, "PULSA10", "Telkomsel 10K", "Telkomsel",
-                new BigDecimal("10000.00"), BigDecimal.ZERO, true, false);
+                new BigDecimal("10000.00"), BigDecimal.ZERO, new BigDecimal("9000.00"), true, false);
 
         // BalanceManagementUseCase mock — TransactionDomainService uses this for balance operations
         doNothing().when(balanceManagementUseCase).deductBalance(any(), any(), any(), any());
@@ -130,7 +130,7 @@ class PurchaseFlowIntegrationTest {
     @Test
     void whenPurchase_withSufficientBalance_andProviderSuccess_thenTransactionSuccess() throws Exception {
         when(providerService.sendTransaction(anyString(), anyString(), any(BigDecimal.class)))
-                .thenReturn(new ProviderResponse(true, "REF-123", "SN-123", "Success"));
+                .thenReturn(new ProviderResponse(true, "REF-123", "SN-123", "Success", null));
 
         PurchaseRequest request = new PurchaseRequest(denomId, "081234567890");
 
@@ -179,7 +179,7 @@ class PurchaseFlowIntegrationTest {
     @Test
     void whenPurchase_withProviderFailure_thenTransactionRefunded() throws Exception {
         when(providerService.sendTransaction(anyString(), anyString(), any(BigDecimal.class)))
-                .thenReturn(new ProviderResponse(false, null, null, "Timeout Biller"));
+                .thenReturn(new ProviderResponse(false, null, null, "Timeout Biller", null));
 
         PurchaseRequest request = new PurchaseRequest(denomId, "081234567890");
 

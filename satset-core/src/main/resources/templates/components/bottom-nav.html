@@ -114,11 +114,13 @@
             </a>
 
             <!-- Logout -->
-            <a th:href="@{/logout}"
-                class="flex-none w-20 flex flex-col items-center justify-center h-full text-xs gap-1 rounded-xl transition-colors snap-center text-error/80 hover:text-error hover:bg-error/5 tap">
-                <svg th:replace="~{components/icons :: icon-logout(class='w-6 h-6')}"></svg>
-                <span>Keluar</span>
-            </a>
+            <form th:action="@{/api/logout}" method="post" class="contents">
+                <button type="submit"
+                    class="flex-none w-20 flex flex-col items-center justify-center h-full text-xs gap-1 rounded-xl transition-colors snap-center text-error/80 hover:text-error hover:bg-error/5 tap">
+                    <svg th:replace="~{components/icons :: icon-logout(class='w-6 h-6')}"></svg>
+                    <span>Keluar</span>
+                </button>
+            </form>
 
             <!-- Spacer for right padding -->
             <div class="flex-none w-2"></div>

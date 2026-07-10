@@ -39,7 +39,7 @@ module.exports = {
         themes: [
             {
                 // Custom light theme with orange primary
-                "omnip-light": {
+                "satset-light": {
                     "primary": "#ea580c",
                     "primary-focus": "#f97316",
                     "primary-content": "#ffffff",
@@ -62,7 +62,7 @@ module.exports = {
                     "error": "#ef4444",
                 },
                 // Custom dark theme with orange primary
-                "omnip-dark": {
+                "satset-dark": {
                     "primary": "#ea580c",
                     "primary-focus": "#f97316",
                     "primary-content": "#ffffff",
@@ -88,7 +88,7 @@ module.exports = {
             "autumn",    // Fallback light theme
             "halloween", // Fallback dark theme
         ],
-        darkTheme: "omnip-dark",
+        darkTheme: "satset-dark",
         base: true,
         styled: true,
         utils: true,

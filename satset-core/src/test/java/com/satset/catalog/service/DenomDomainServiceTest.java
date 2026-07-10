@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
@@ -319,5 +320,62 @@ class DenomDomainServiceTest {
         assertThrows(ResourceNotFoundException.class,
                 () -> denomService.softDelete(unknownId));
         verify(denomRepository, never()).save(any());
+    }
+
+    // === SUPPLIER SYNC ===
+
+    @Test
+    void createFromSupplier_keepsCodeLowercase() {
+        UUID pid = UUID.randomUUID();
+        when(denomRepository.save(any(ProductDenoms.class))).thenAnswer(i -> i.getArgument(0));
+        ProductDenoms d = denomService.createFromSupplier(pid, "dana20", "DANA 20.000", new BigDecimal("20500"));
+        assertThat(d.getCode()).isEqualTo("dana20");
+        assertThat(d.getProductId()).isEqualTo(pid);
+        assertThat(d.getBasePrice()).isEqualByComparingTo("20500");
+        assertThat(d.getPrice()).isNull();
+        assertThat(d.getDenomType()).isEqualTo(DenomType.FIXED_DENOM);
+        assertThat(d.isActive()).isTrue();
+    }
+
+    @Test
+    void createFromSupplier_softDeletedCode_revives() {
+        UUID pid = UUID.randomUUID();
+        ProductDenoms old = new ProductDenoms();
+        old.setId(UUID.randomUUID());
+        old.setCode("dana20");
+        old.setDeleted(true);
+        old.setActive(false);
+        when(denomRepository.findByCode("dana20")).thenReturn(Optional.of(old));
+        when(denomRepository.save(any(ProductDenoms.class))).thenAnswer(i -> i.getArgument(0));
+        ProductDenoms d = denomService.createFromSupplier(pid, "dana20", "DANA 20.000", new BigDecimal("20500"));
+        assertThat(d.getId()).isEqualTo(old.getId()); // row lama di-revive, bukan bikin baru (hindari UNIQUE code)
+        assertThat(d.isDeleted()).isFalse();
+        assertThat(d.isActive()).isTrue();
+        assertThat(d.getBasePrice()).isEqualByComparingTo("20500");
+        assertThat(d.getProductId()).isEqualTo(pid);
+    }
+
+    @Test
+    void updateCostById_setsBasePrice() {
+        UUID id = UUID.randomUUID();
+        ProductDenoms e = new ProductDenoms();
+        e.setId(id);
+        e.setBasePrice(new BigDecimal("5000"));
+        when(denomRepository.findById(id)).thenReturn(Optional.of(e));
+        when(denomRepository.save(any(ProductDenoms.class))).thenAnswer(i -> i.getArgument(0));
+        denomService.updateCostById(id, new BigDecimal("5450"));
+        assertThat(e.getBasePrice()).isEqualByComparingTo("5450");
+    }
+
+    @Test
+    void deactivateById_setsInactive() {
+        UUID id = UUID.randomUUID();
+        ProductDenoms e = new ProductDenoms();
+        e.setId(id);
+        e.setActive(true);
+        when(denomRepository.findById(id)).thenReturn(Optional.of(e));
+        when(denomRepository.save(any(ProductDenoms.class))).thenAnswer(i -> i.getArgument(0));
+        denomService.deactivateById(id);
+        assertThat(e.isActive()).isFalse();
     }
 }

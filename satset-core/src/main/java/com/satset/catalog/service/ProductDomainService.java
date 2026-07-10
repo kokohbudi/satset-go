@@ -109,6 +109,25 @@ public class ProductDomainService {
 
     @Transactional
     @CacheEvict(value = "products", allEntries = true, cacheManager = "standardCacheManager")
+    public Products findOrCreateByBrand(String brand, UUID categoryId) {
+        String code = CatalogCodeUtil.toCode(brand);
+        return productRepository.findByCode(code).map(existing -> {
+            if (existing.isDeleted()) {          // revive soft-deleted, jangan biarin stale
+                existing.setDeleted(false);
+                existing.setActive(true);
+                return productRepository.save(existing);
+            }
+            return existing;
+        }).orElseGet(() -> {
+            Products p = new Products();
+            p.setCode(code); p.setName(brand); p.setCategoryId(categoryId);
+            p.setActive(true); p.setDeleted(false);
+            return productRepository.save(p);
+        });
+    }
+
+    @Transactional
+    @CacheEvict(value = "products", allEntries = true, cacheManager = "standardCacheManager")
     public void softDelete(UUID id) {
         Products product = productRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Product", id));

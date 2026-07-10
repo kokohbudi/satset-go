@@ -101,6 +101,9 @@ public class TransactionDomainService {
                         transaction.setStatus(TransactionStatus.SUCCESS);
                         transaction.setProviderRef(response.referenceNumber());
                         transaction.setSerialNumber(response.serialNumber());
+                        BigDecimal costPrice = response.cost() != null ? response.cost() : denom.basePrice();
+                        transaction.setCostPrice(costPrice);
+                        transaction.setMargin(costPrice != null ? total.subtract(costPrice) : null);
                         transaction = transactionRepository.save(transaction);
 
                         log.info("Transaction SUCCESS: id={} ref={} sn={}",

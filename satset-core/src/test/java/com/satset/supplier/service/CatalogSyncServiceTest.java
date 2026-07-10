@@ -1,0 +1,164 @@
+package com.satset.supplier.service;
+
+import com.satset.catalog.model.Category;
+import com.satset.catalog.model.ProductDenoms;
+import com.satset.catalog.model.Products;
+import com.satset.catalog.service.CategoryDomainService;
+import com.satset.catalog.service.DenomDomainService;
+import com.satset.catalog.service.ProductDomainService;
+import com.satset.supplier.client.DigiflazzClient;
+import com.satset.supplier.model.CompareStatus;
+import com.satset.supplier.model.PriceCompareRow;
+import com.satset.supplier.model.PriceListItem;
+import com.satset.supplier.model.SyncAction;
+import com.satset.supplier.model.SyncPreviewItem;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.math.BigDecimal;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
+
+@ExtendWith(MockitoExtension.class)
+class CatalogSyncServiceTest {
+
+    @Mock DigiflazzClient digiflazz;
+    @Mock CategoryDomainService categoryService;
+    @Mock ProductDomainService productService;
+    @Mock DenomDomainService denomService;
+
+    private CatalogSyncService service() {
+        return new CatalogSyncService(digiflazz, categoryService, productService, denomService);
+    }
+
+    private static PriceListItem df(String sku, String name, String brand, long price) {
+        return dfCat(sku, name, "Pulsa", brand, price);
+    }
+    private static PriceListItem dfCat(String sku, String name, String category, String brand, long price) {
+        return new PriceListItem(name, category, brand, "Umum", sku, price, true, true, false, "0", "Ki***", "");
+    }
+    private static ProductDenoms denom(String code, BigDecimal base) {
+        ProductDenoms d = new ProductDenoms(); d.setCode(code); d.setName("n"+code);
+        d.setBasePrice(base); d.setActive(true); return d;
+    }
+
+    // ---- previewCategories ----
+    @Test void previewCategories_addsMissing_deletesNotInDf() {
+        Category existing = new Category(); existing.setId(UUID.randomUUID()); existing.setCode("PULSA"); existing.setName("Pulsa");
+        Category orphan = new Category(); orphan.setId(UUID.randomUUID()); orphan.setCode("GAME"); orphan.setName("Game Lama");
+        when(categoryService.findAllForAdmin()).thenReturn(List.of(existing, orphan));
+        when(digiflazz.fetchPriceList()).thenReturn(List.of(
+                df("a","A","XL",1),                          // category "Pulsa" -> PULSA (exists)
+                dfCat("b","B","E-Money","DANA",2)));          // category "E-Money" -> EMONEY (new)
+        List<SyncPreviewItem> items = service().previewCategories();
+        assertThat(items).anySatisfy(i -> { assertThat(i.action()).isEqualTo(SyncAction.ADD); assertThat(i.key()).isEqualTo("E-Money"); });
+        assertThat(items).anySatisfy(i -> { assertThat(i.action()).isEqualTo(SyncAction.DELETE); assertThat(i.key()).isEqualTo(orphan.getId().toString()); });
+        assertThat(items).noneMatch(i -> "Pulsa".equals(i.key()));
+    }
+
+    @Test void applyCategories_appliesOnlySelected() {
+        Category orphan = new Category(); orphan.setId(UUID.randomUUID()); orphan.setCode("GAME"); orphan.setName("Game Lama");
+        when(categoryService.findAllForAdmin()).thenReturn(List.of(orphan));
+        when(digiflazz.fetchPriceList()).thenReturn(List.of(dfCat("b","B","E-Money","DANA",2)));
+        // pilih hanya ADD "E-Money", TIDAK pilih DELETE orphan
+        SyncResult r = service().applyCategories(List.of("E-Money"));
+        verify(categoryService).findOrCreateByName("E-Money");
+        verify(categoryService, never()).softDelete(any());
+        assertThat(r.added()).isEqualTo(1);
+        assertThat(r.deleted()).isZero();
+    }
+
+    // ---- previewProducts ----
+    @Test void previewProducts_addsMissingBrand_deletesOrphan() {
+        UUID catId = UUID.randomUUID();
+        Category cat = new Category(); cat.setId(catId); cat.setCode("PULSA");
+        when(categoryService.findById(catId)).thenReturn(Optional.of(cat));
+        Products orphan = new Products(); orphan.setId(UUID.randomUUID()); orphan.setCode("OLDBRAND"); orphan.setName("Old");
+        when(productService.findByCategoryForAdmin(catId)).thenReturn(List.of(orphan));
+        when(productService.findByCode("XL")).thenReturn(Optional.empty());
+        when(digiflazz.fetchPriceList()).thenReturn(List.of(df("a","A","XL",1)));   // category "Pulsa" -> PULSA
+        List<SyncPreviewItem> items = service().previewProducts(catId);
+        assertThat(items).anySatisfy(i -> { assertThat(i.action()).isEqualTo(SyncAction.ADD); assertThat(i.key()).isEqualTo("XL"); });
+        assertThat(items).anySatisfy(i -> { assertThat(i.action()).isEqualTo(SyncAction.DELETE); assertThat(i.key()).isEqualTo(orphan.getId().toString()); });
+    }
+
+    @Test void applyProducts_appliesOnlySelected() {
+        UUID catId = UUID.randomUUID();
+        Category cat = new Category(); cat.setId(catId); cat.setCode("PULSA");
+        when(categoryService.findById(catId)).thenReturn(Optional.of(cat));
+        when(productService.findByCategoryForAdmin(catId)).thenReturn(List.of());
+        when(productService.findByCode("XL")).thenReturn(Optional.empty());
+        when(digiflazz.fetchPriceList()).thenReturn(List.of(df("a","A","XL",1)));
+        SyncResult r = service().applyProducts(catId, List.of("XL"));
+        verify(productService).findOrCreateByBrand("XL", catId);
+        assertThat(r.added()).isEqualTo(1);
+    }
+
+    // ---- reconcileForProduct (unchanged) ----
+    @Test void reconcileForProduct_filtersByBrandCode_computesStatus() {
+        UUID pid = UUID.randomUUID();
+        Products p = new Products(); p.setId(pid); p.setCode("XL");
+        when(productService.findById(pid)).thenReturn(Optional.of(p));
+        when(digiflazz.fetchPriceList()).thenReturn(List.of(
+                df("x100","XL 100","XL",98000),   // matched->NAIK
+                df("x5","XL 5","XL",5500),         // BARU
+                dfCat("dana20","D","E-Money","DANA",20000))); // beda brand, di-skip
+        ProductDenoms d1 = denom("X100", new BigDecimal("97000")); d1.setId(UUID.randomUUID());
+        when(denomService.findActiveByProductId(pid)).thenReturn(List.of(
+                d1,        // matched
+                denom("XOLD", new BigDecimal("1000")))); // HILANG
+        List<PriceCompareRow> rows = service().reconcileForProduct(pid);
+        assertThat(rows).extracting(PriceCompareRow::status)
+                .containsExactlyInAnyOrder(CompareStatus.NAIK, CompareStatus.BARU, CompareStatus.HILANG);
+        assertThat(rows).noneMatch(r -> "dana20".equals(r.buyerSku()));
+    }
+
+    @Test void reconcileForProduct_noDfBrandMatch_returnsEmpty() {
+        UUID pid = UUID.randomUUID();
+        Products p = new Products(); p.setId(pid); p.setCode("XL");
+        when(productService.findById(pid)).thenReturn(Optional.of(p));
+        when(digiflazz.fetchPriceList()).thenReturn(List.of(
+                dfCat("dana20","D","E-Money","DANA",20000))); // beda brand, no match utk XL
+        // lenient: guard fix short-circuits before this is ever consulted
+        lenient().when(denomService.findActiveByProductId(pid)).thenReturn(List.of(
+                denom("X100", new BigDecimal("97000")),
+                denom("X5", new BigDecimal("5500"))));
+        assertThat(service().reconcileForProduct(pid)).isEmpty();
+    }
+
+    // ---- applyDenoms (delete = softDelete) ----
+    @Test void applyDenoms_appliesSelected_hilangUsesSoftDelete() {
+        UUID pid = UUID.randomUUID();
+        Products p = new Products(); p.setId(pid); p.setCode("XL");
+        when(productService.findById(pid)).thenReturn(Optional.of(p));
+        when(digiflazz.fetchPriceList()).thenReturn(List.of(
+                df("x5","XL 5","XL",5500)));                  // BARU (sku x5)
+        UUID dOld = UUID.randomUUID();
+        ProductDenoms old = denom("XOLD", new BigDecimal("1000")); old.setId(dOld);
+        when(denomService.findActiveByProductId(pid)).thenReturn(List.of(old));  // XOLD -> HILANG
+        // pilih BARU x5 dan HILANG XOLD (key HILANG = denom.code "XOLD")
+        SyncResult r = service().applyDenoms(pid, List.of("x5", "XOLD"));
+        verify(denomService).createFromSupplier(pid, "x5", "XL 5", new BigDecimal("5500"));
+        verify(denomService).softDelete(dOld);
+        assertThat(r.added()).isEqualTo(1);
+        assertThat(r.deleted()).isEqualTo(1);
+    }
+
+    @Test void applyDenoms_unselected_skipped() {
+        UUID pid = UUID.randomUUID();
+        Products p = new Products(); p.setId(pid); p.setCode("XL");
+        when(productService.findById(pid)).thenReturn(Optional.of(p));
+        when(digiflazz.fetchPriceList()).thenReturn(List.of(df("x5","XL 5","XL",5500)));
+        when(denomService.findActiveByProductId(pid)).thenReturn(List.of());
+        SyncResult r = service().applyDenoms(pid, List.of());  // pilih kosong
+        verify(denomService, never()).createFromSupplier(any(), any(), any(), any());
+        assertThat(r.added()).isZero();
+    }
+}

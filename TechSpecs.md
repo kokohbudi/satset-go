@@ -230,7 +230,7 @@ KEYCLOAK_REALM=satset-go
 KEYCLOAK_BASE_URL=http://localhost:9999
 KEYCLOAK_CLIENT_ID=satsetgo-client
 KEYCLOAK_CLIENT_SECRET=<secret>
-DB_URL=jdbc:postgresql://localhost:5432/omni_pulsa
+DB_URL=jdbc:postgresql://localhost:5432/satset_go
 DB_USERNAME=admin
 DB_PASSWORD=password
 
@@ -1357,7 +1357,7 @@ Sequential — MR-1 protects the backend, MR-2 fixes the crash, MR-3 fixes the U
 
 | Data | Current Location | After Separation |
 |------|-----------------|------------------|
-| `store_mutations` table | Core DB (`omni_pulsa`) | **Wallet DB** (terpisah) |
+| `store_mutations` table | Core DB (`satset_go`) | **Wallet DB** (terpisah) |
 | `stores.balance` field | Core DB (`Stores` entity) | **Deprecated** — Wallet = single source of truth |
 | `Transactions` table | Core DB | Tetap di Core |
 | Payment gateway callbacks | (belum ada) | **Wallet Service** — bukan Core |

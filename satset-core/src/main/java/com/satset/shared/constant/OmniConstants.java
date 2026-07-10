@@ -26,6 +26,9 @@ public class OmniConstants {
     // Wallet admin
     public static final String PERM_ADJUST_BALANCE = "REALM_adjust_balance";
 
+    // Accounting / reports
+    public static final String PERM_VIEW_REPORTS = "REALM_view_reports";
+
     // Client roles (satsetgo-client) — mapped to ROLE_CLIENT_<role> by JwtAuthenticationConverter
     public static final String PERM_TRANSACTION = "CLIENT_transaction"; // view transaksi + balance
     public static final String PERM_PURCHASE = "CLIENT_purchase"; // lakukan pembelian + browse katalog

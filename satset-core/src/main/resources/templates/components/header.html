@@ -81,10 +81,10 @@
                 </ul>
             </div>
 
-            <!-- Theme Toggle (Light: omnip-light / Dark: omnip-dark) -->
+            <!-- Theme Toggle (Light: satset-light / Dark: satset-dark) -->
             <label class="swap swap-rotate btn btn-ghost btn-circle tap"
-                x-data="{ isDark: localStorage.getItem('theme') === 'omnip-dark' }" x-init="$watch('isDark', val => { 
-                       const theme = val ? 'omnip-dark' : 'omnip-light';
+                x-data="{ isDark: localStorage.getItem('theme') === 'satset-dark' }" x-init="$watch('isDark', val => { 
+                       const theme = val ? 'satset-dark' : 'satset-light';
                        localStorage.setItem('theme', theme);
                        document.documentElement.setAttribute('data-theme', theme);
                    })">
@@ -130,10 +130,12 @@
                         </a>
                     </li>
                     <li class="border-t border-base-300 mt-2 pt-2">
-                        <a th:href="@{/logout}" class="text-error flex items-center gap-2">
-                            <svg th:replace="~{components/icons :: icon-logout(class='w-4 h-4')}"></svg>
-                            Keluar
-                        </a>
+                        <form th:action="@{/api/logout}" method="post" class="contents">
+                            <button type="submit" class="text-error flex items-center gap-2 w-full">
+                                <svg th:replace="~{components/icons :: icon-logout(class='w-4 h-4')}"></svg>
+                                Keluar
+                            </button>
+                        </form>
                     </li>
                 </ul>
             </div>

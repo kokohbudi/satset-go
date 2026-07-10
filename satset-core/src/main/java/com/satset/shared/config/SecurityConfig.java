@@ -52,6 +52,9 @@ public class SecurityConfig {
                         .authenticationEntryPoint(
                                 new LoginUrlAuthenticationEntryPoint("/oauth2/authorization/keycloak")))
                 .oauth2Login(oauth2 -> oauth2
+                        // Selalu ke /dashboard setelah login; abaikan saved-request
+                        // agar bookmark/deep-link basi tidak mengembalikan 404.
+                        .defaultSuccessUrl("/dashboard", true)
                         .userInfoEndpoint(userInfo -> userInfo
                                 .userAuthoritiesMapper(userAuthoritiesMapper())))
                 .oauth2ResourceServer(oauth2 -> oauth2

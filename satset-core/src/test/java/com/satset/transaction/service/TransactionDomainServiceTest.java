@@ -11,6 +11,7 @@ import com.satset.transaction.client.ProviderPort;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -57,6 +58,7 @@ class TransactionDomainServiceTest {
             "Telkomsel",
             new BigDecimal("5000.00"),
             BigDecimal.ZERO,
+            new BigDecimal("4600.00"),
             true,
             false
         );
@@ -67,7 +69,7 @@ class TransactionDomainServiceTest {
         // "Saldo pas-pasan → SUCCESS, balance = 0"
         DenomInfo expensiveDenom = new DenomInfo(
             denomId, "TLKM10", "Telkomsel 10K", "Telkomsel",
-            new BigDecimal("10000.00"), BigDecimal.ZERO, true, false
+            new BigDecimal("10000.00"), BigDecimal.ZERO, new BigDecimal("9000.00"), true, false
         );
 
         when(denomRepository.findDenomInfoById(denomId)).thenReturn(Optional.of(expensiveDenom));
@@ -80,7 +82,7 @@ class TransactionDomainServiceTest {
         });
 
         when(providerService.sendTransaction(anyString(), anyString(), any(BigDecimal.class)))
-                .thenReturn(new ProviderResponse(true, "REF-123", "SN-123", "Success"));
+                .thenReturn(new ProviderResponse(true, "REF-123", "SN-123", "Success", null));
 
         TransactionDTO result = transactionService.createPurchase(storeId, walletId, denomId, "081234567890");
 
@@ -98,7 +100,7 @@ class TransactionDomainServiceTest {
         // "Saldo kurang Rp 1 → REJECTED, balance unchanged"
         DenomInfo expensiveDenom = new DenomInfo(
             denomId, "TLKM10", "Telkomsel 10K", "Telkomsel",
-            new BigDecimal("10001.00"), BigDecimal.ZERO, true, false
+            new BigDecimal("10001.00"), BigDecimal.ZERO, new BigDecimal("9000.00"), true, false
         );
 
         when(denomRepository.findDenomInfoById(denomId)).thenReturn(Optional.of(expensiveDenom));
@@ -135,7 +137,7 @@ class TransactionDomainServiceTest {
 
         // Provider fails
         when(providerService.sendTransaction(anyString(), anyString(), any(BigDecimal.class)))
-                .thenReturn(new ProviderResponse(false, null, null, "Timeout API"));
+                .thenReturn(new ProviderResponse(false, null, null, "Timeout API", null));
 
         TransactionDTO result = transactionService.createPurchase(storeId, walletId, denomId, "081234567890");
 
@@ -152,11 +154,72 @@ class TransactionDomainServiceTest {
     }
 
     @Test
+    void createPurchase_Success_SnapshotsMargin_FallbackToBasePrice() throws InsufficientBalanceException {
+        when(denomRepository.findDenomInfoById(denomId)).thenReturn(Optional.of(denom)); // basePrice 4600, total 5000
+        when(transactionRepository.save(any(Transactions.class))).thenAnswer(inv -> {
+            Transactions tx = inv.getArgument(0);
+            if (tx.getId() == null) tx.setId(UUID.randomUUID());
+            return tx;
+        });
+        // provider reports no cost -> fallback to basePrice
+        when(providerService.sendTransaction(anyString(), anyString(), any(BigDecimal.class)))
+                .thenReturn(new ProviderResponse(true, "REF-1", "SN-1", "OK", null));
+
+        transactionService.createPurchase(storeId, walletId, denomId, "081234567890");
+
+        ArgumentCaptor<Transactions> captor = ArgumentCaptor.forClass(Transactions.class);
+        verify(transactionRepository, atLeastOnce()).save(captor.capture());
+        Transactions saved = captor.getValue(); // last save = SUCCESS state
+        assertEquals(new BigDecimal("4600.00"), saved.getCostPrice());
+        assertEquals(new BigDecimal("400.00"), saved.getMargin());
+    }
+
+    @Test
+    void createPurchase_Success_ProviderCostOverridesBasePrice() throws InsufficientBalanceException {
+        when(denomRepository.findDenomInfoById(denomId)).thenReturn(Optional.of(denom));
+        when(transactionRepository.save(any(Transactions.class))).thenAnswer(inv -> {
+            Transactions tx = inv.getArgument(0);
+            if (tx.getId() == null) tx.setId(UUID.randomUUID());
+            return tx;
+        });
+        when(providerService.sendTransaction(anyString(), anyString(), any(BigDecimal.class)))
+                .thenReturn(new ProviderResponse(true, "REF-2", "SN-2", "OK", new BigDecimal("4800.00")));
+
+        transactionService.createPurchase(storeId, walletId, denomId, "081234567890");
+
+        ArgumentCaptor<Transactions> captor = ArgumentCaptor.forClass(Transactions.class);
+        verify(transactionRepository, atLeastOnce()).save(captor.capture());
+        Transactions saved = captor.getValue();
+        assertEquals(new BigDecimal("4800.00"), saved.getCostPrice());
+        assertEquals(new BigDecimal("200.00"), saved.getMargin());
+    }
+
+    @Test
+    void createPurchase_Failed_LeavesCostAndMarginNull() throws InsufficientBalanceException {
+        when(denomRepository.findDenomInfoById(denomId)).thenReturn(Optional.of(denom));
+        when(transactionRepository.save(any(Transactions.class))).thenAnswer(inv -> {
+            Transactions tx = inv.getArgument(0);
+            if (tx.getId() == null) tx.setId(UUID.randomUUID());
+            return tx;
+        });
+        when(providerService.sendTransaction(anyString(), anyString(), any(BigDecimal.class)))
+                .thenReturn(new ProviderResponse(false, null, null, "Timeout", null));
+
+        transactionService.createPurchase(storeId, walletId, denomId, "081234567890");
+
+        ArgumentCaptor<Transactions> captor = ArgumentCaptor.forClass(Transactions.class);
+        verify(transactionRepository, atLeastOnce()).save(captor.capture());
+        Transactions saved = captor.getValue();
+        assertNull(saved.getCostPrice());
+        assertNull(saved.getMargin());
+    }
+
+    @Test
     void createPurchase_DenomInactive_ThrowsException() throws InsufficientBalanceException {
         // "Purchase denom inactive/deleted → REJECTED"
         DenomInfo inactiveDenom = new DenomInfo(
             denomId, "TLKM5", "Telkomsel 5K", "Telkomsel",
-            new BigDecimal("5000.00"), BigDecimal.ZERO, false, false
+            new BigDecimal("5000.00"), BigDecimal.ZERO, new BigDecimal("4600.00"), false, false
         );
         when(denomRepository.findDenomInfoById(denomId)).thenReturn(Optional.of(inactiveDenom));
 
@@ -194,7 +257,7 @@ class TransactionDomainServiceTest {
         });
 
         when(providerService.sendTransaction(anyString(), anyString(), any(BigDecimal.class)))
-                .thenReturn(new ProviderResponse(false, null, null, "Timeout API"));
+                .thenReturn(new ProviderResponse(false, null, null, "Timeout API", null));
 
         doThrow(new RuntimeException("Database error during refund"))
                 .when(balanceService).addBalance(any(String.class), any(BigDecimal.class),
@@ -298,7 +361,7 @@ class TransactionDomainServiceTest {
                 .when(balanceService).deductBalance(any(), any(), any(), any());
 
         when(providerService.sendTransaction(anyString(), anyString(), any(BigDecimal.class)))
-                .thenReturn(new ProviderResponse(true, "REF-123", "SN-123", "Success"));
+                .thenReturn(new ProviderResponse(true, "REF-123", "SN-123", "Success", null));
 
         // Call 1 - Succeeds
         TransactionDTO tx1 = transactionService.createPurchase(storeId, walletId, denomId, "081234567890");

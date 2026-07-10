@@ -342,4 +342,39 @@ class ProductDomainServiceTest {
         verify(productRepository, never()).save(any());
         verify(denomRepository, never()).save(any());
     }
+
+    // === FIND OR CREATE ===
+
+    @Test
+    void findOrCreateByBrand_absent_createsUnderCategory() {
+        UUID catId = UUID.randomUUID();
+        when(productRepository.findByCode("DANA")).thenReturn(Optional.empty());
+        when(productRepository.save(any(Products.class))).thenAnswer(i -> i.getArgument(0));
+        Products p = productService.findOrCreateByBrand("DANA", catId);
+        org.assertj.core.api.Assertions.assertThat(p.getCode()).isEqualTo("DANA");
+        org.assertj.core.api.Assertions.assertThat(p.getName()).isEqualTo("DANA");
+        org.assertj.core.api.Assertions.assertThat(p.getCategoryId()).isEqualTo(catId);
+        org.assertj.core.api.Assertions.assertThat(p.isActive()).isTrue();
+    }
+
+    @Test
+    void findOrCreateByBrand_existing_returnsIt() {
+        Products e = new Products(); e.setCode("DANA");
+        when(productRepository.findByCode("DANA")).thenReturn(Optional.of(e));
+        org.assertj.core.api.Assertions.assertThat(productService.findOrCreateByBrand("DANA", UUID.randomUUID())).isSameAs(e);
+        verify(productRepository, never()).save(any());
+    }
+
+    @Test
+    void findOrCreateByBrand_softDeleted_revives() {
+        Products deleted = new Products();
+        deleted.setCode("DANA"); deleted.setName("old");
+        deleted.setDeleted(true); deleted.setActive(false);
+        when(productRepository.findByCode("DANA")).thenReturn(Optional.of(deleted));
+        when(productRepository.save(any(Products.class))).thenAnswer(i -> i.getArgument(0));
+        Products p = productService.findOrCreateByBrand("DANA", UUID.randomUUID());
+        org.assertj.core.api.Assertions.assertThat(p.isDeleted()).isFalse();
+        org.assertj.core.api.Assertions.assertThat(p.isActive()).isTrue();
+        verify(productRepository).save(deleted);
+    }
 }

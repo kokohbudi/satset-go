@@ -99,6 +99,29 @@ public class CategoryDomainService {
         @CacheEvict(value = "categoriesAll", allEntries = true, cacheManager = "standardCacheManager"),
         @CacheEvict(value = "categoriesByType", allEntries = true, cacheManager = "standardCacheManager")
     })
+    public Category findOrCreateByName(String dfName) {
+        String code = CatalogCodeUtil.toCode(dfName);
+        return categoryRepository.findByCode(code).map(existing -> {
+            if (existing.isDeleted()) {          // revive soft-deleted, jangan biarin stale
+                existing.setDeleted(false);
+                existing.setActive(true);
+                return categoryRepository.save(existing);
+            }
+            return existing;
+        }).orElseGet(() -> {
+            Category c = new Category();
+            c.setCode(code); c.setName(dfName);
+            c.setCategoryType(CategoryType.PREPAID);
+            c.setActive(true); c.setDeleted(false);
+            return categoryRepository.save(c);
+        });
+    }
+
+    @Transactional
+    @Caching(evict = {
+        @CacheEvict(value = "categoriesAll", allEntries = true, cacheManager = "standardCacheManager"),
+        @CacheEvict(value = "categoriesByType", allEntries = true, cacheManager = "standardCacheManager")
+    })
     public void softDelete(UUID id) {
         Category cat = categoryRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Category", id));

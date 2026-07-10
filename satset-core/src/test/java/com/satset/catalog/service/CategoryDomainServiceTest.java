@@ -262,4 +262,38 @@ class CategoryDomainServiceTest {
                 () -> categoryService.softDelete(unknownId));
         verify(categoryRepository, never()).save(any());
     }
+
+    // === FIND OR CREATE ===
+
+    @org.junit.jupiter.api.Test
+    void findOrCreateByName_existing_returnsIt() {
+        Category e = new Category(); e.setCode("EMONEY");
+        when(categoryRepository.findByCode("EMONEY")).thenReturn(java.util.Optional.of(e));
+        org.assertj.core.api.Assertions.assertThat(categoryService.findOrCreateByName("E-Money")).isSameAs(e);
+        verify(categoryRepository, never()).save(any());
+    }
+
+    @org.junit.jupiter.api.Test
+    void findOrCreateByName_absent_createsPrepaidActive() {
+        when(categoryRepository.findByCode("EMONEY")).thenReturn(java.util.Optional.empty());
+        when(categoryRepository.save(any(Category.class))).thenAnswer(i -> i.getArgument(0));
+        Category r = categoryService.findOrCreateByName("E-Money");
+        org.assertj.core.api.Assertions.assertThat(r.getCode()).isEqualTo("EMONEY");
+        org.assertj.core.api.Assertions.assertThat(r.getName()).isEqualTo("E-Money");
+        org.assertj.core.api.Assertions.assertThat(r.getCategoryType()).isEqualTo(CategoryType.PREPAID);
+        org.assertj.core.api.Assertions.assertThat(r.isActive()).isTrue();
+    }
+
+    @org.junit.jupiter.api.Test
+    void findOrCreateByName_softDeleted_revives() {
+        Category deleted = new Category();
+        deleted.setCode("EMONEY"); deleted.setName("old");
+        deleted.setDeleted(true); deleted.setActive(false);
+        when(categoryRepository.findByCode("EMONEY")).thenReturn(java.util.Optional.of(deleted));
+        when(categoryRepository.save(any(Category.class))).thenAnswer(i -> i.getArgument(0));
+        Category r = categoryService.findOrCreateByName("E-Money");
+        org.assertj.core.api.Assertions.assertThat(r.isDeleted()).isFalse();
+        org.assertj.core.api.Assertions.assertThat(r.isActive()).isTrue();
+        verify(categoryRepository).save(deleted);
+    }
 }

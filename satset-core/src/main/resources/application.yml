@@ -30,7 +30,7 @@ spring:
         jwt:
           issuer-uri: ${keycloak.base-server-url}/realms/${keycloak.realm}
   datasource:
-    url: ${DB_URL:jdbc:postgresql://localhost:5432/omni_pulsa}
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/satset_go}
     username: ${DB_USERNAME:admin}
     password: ${DB_PASSWORD:password}
     driver-class-name: org.postgresql.Driver
@@ -67,6 +67,12 @@ keycloak:
   base-server-url: ${KEYCLOAK_BASE_URL:http://localhost:9999}
   client-id: ${KEYCLOAK_CLIENT_ID:satsetgo-client}
   client-secret: ${KEYCLOAK_CLIENT_SECRET:dummy-secret}
+
+supplier:
+  digiflazz:
+    base-url: ${DIGIFLAZZ_BASE_URL:https://api.digiflazz.com/v1}
+    username: ${DIGIFLAZZ_USERNAME:}
+    api-key: ${DIGIFLAZZ_DEV_KEY:}
 
 wallet:
   datasource:

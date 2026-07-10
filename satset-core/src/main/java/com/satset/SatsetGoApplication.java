@@ -10,10 +10,10 @@ import static org.springframework.data.web.config.EnableSpringDataWebSupport.Pag
 // WalletDataSourceConfig (wallet), each bound to its own EMF + transaction manager.
 @SpringBootApplication
 @EnableSpringDataWebSupport(pageSerializationMode = VIA_DTO)
-public class OmnipAuthenticationServiceApplication {
+public class SatsetGoApplication {
 
     static void main(String[] args) {
-        SpringApplication app = new SpringApplication(OmnipAuthenticationServiceApplication.class);
+        SpringApplication app = new SpringApplication(SatsetGoApplication.class);
 
         // Optimize startup time
         app.setRegisterShutdownHook(false);

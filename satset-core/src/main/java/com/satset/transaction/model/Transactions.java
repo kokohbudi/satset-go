@@ -49,6 +49,12 @@ public class Transactions {
     @Column(precision = 15, scale = 2, nullable = false)
     private BigDecimal total;
 
+    @Column(name = "cost_price", precision = 15, scale = 2)
+    private BigDecimal costPrice;
+
+    @Column(precision = 15, scale = 2)
+    private BigDecimal margin;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private TransactionStatus status = TransactionStatus.PENDING;

@@ -17,6 +17,7 @@ public record DenomInfo(
     String productName,
     BigDecimal price,
     BigDecimal adminFee,
+    BigDecimal basePrice,
     boolean active,
     boolean deleted
 ) {

@@ -27,7 +27,7 @@ public interface DenomRepository extends JpaRepository<ProductDenoms, UUID> {
      */
     @Query("""
             SELECT new com.satset.shared.model.DenomInfo(
-            d.id, d.code, d.name, p.name, d.price, d.adminFee, d.active, d.deleted
+            d.id, d.code, d.name, p.name, d.price, d.adminFee, d.basePrice, d.active, d.deleted
         )
         FROM ProductDenoms d
         LEFT JOIN Products p ON d.productId = p.id

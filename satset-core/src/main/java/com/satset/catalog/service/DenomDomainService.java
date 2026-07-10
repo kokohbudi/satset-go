@@ -3,6 +3,7 @@ package com.satset.catalog.service;
 import com.satset.catalog.repository.DenomMetaRepository;
 import com.satset.catalog.repository.DenomRepository;
 import com.satset.catalog.repository.ProductRepository;
+import com.satset.catalog.model.DenomType;
 import com.satset.catalog.model.ProductDenomMeta;
 import com.satset.catalog.model.ProductDenoms;
 import com.satset.catalog.model.Products;
@@ -13,6 +14,7 @@ import com.satset.shared.exception.ResourceNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -124,5 +126,41 @@ public class DenomDomainService {
         denom.setDeleted(true);
         denom.setActive(false);
         denomRepository.save(denom);
+    }
+
+    // === Supplier sync (Digiflazz) ===
+
+    public List<ProductDenoms> findActiveByProductId(UUID productId) {
+        return denomRepository.findByProductIdAndActiveTrueAndDeletedFalseOrderBySortOrder(productId);
+    }
+
+    @Transactional
+    public ProductDenoms createFromSupplier(UUID productId, String sku, String name, BigDecimal cost) {
+        // revive kalau code (soft-deleted) sudah ada — hindari UNIQUE violation + biar gak muncul terus di sync
+        ProductDenoms d = denomRepository.findByCode(sku).orElseGet(ProductDenoms::new);
+        d.setProductId(productId);
+        d.setCode(sku);                 // apa adanya — JANGAN uppercase
+        d.setName(name);
+        d.setDenomType(DenomType.FIXED_DENOM);
+        d.setBasePrice(cost);
+        d.setActive(true);
+        d.setDeleted(false);
+        return denomRepository.save(d);
+    }
+
+    @Transactional
+    public void updateCostById(UUID denomId, BigDecimal cost) {
+        ProductDenoms d = denomRepository.findById(denomId)
+                .orElseThrow(() -> new ResourceNotFoundException("Denom", denomId));
+        d.setBasePrice(cost);
+        denomRepository.save(d);
+    }
+
+    @Transactional
+    public void deactivateById(UUID denomId) {
+        ProductDenoms d = denomRepository.findById(denomId)
+                .orElseThrow(() -> new ResourceNotFoundException("Denom", denomId));
+        d.setActive(false);
+        denomRepository.save(d);
     }
 }

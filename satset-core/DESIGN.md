@@ -93,9 +93,9 @@ Mobile hamburger wajib pakai Alpine `x-data="{ open: false }"`.
 
 ## Theme Locking
 
-Marketing pages (landing, login) → dikunci ke `omnip-light`:
+Marketing pages (landing, login) → dikunci ke `satset-light`:
 ```html
-<script>(function(){ document.documentElement.setAttribute('data-theme','omnip-light'); })();</script>
+<script>(function(){ document.documentElement.setAttribute('data-theme','satset-light'); })();</script>
 ```
 App pages (dashboard, admin) → ikut tema user.
 

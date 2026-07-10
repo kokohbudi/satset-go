@@ -10,7 +10,7 @@
 
 ### Wallet Service Separation — W-series
 > Design: `TechSpecs.md` → "Wallet Service — Technical Design"
-> DB: schema `wallet` di `omni_pulsa` DB yang sama. Multi-module Maven.
+> DB: schema `wallet` di `satset_go` DB yang sama. Multi-module Maven.
 
 - [x] **W-0**: Keputusan repo structure → Multi-module Maven, DB schema terpisah ✅
 - [x] **W-SETUP**: Restructure project → multi-module Maven (satset-core + satset-wallet) ✅
