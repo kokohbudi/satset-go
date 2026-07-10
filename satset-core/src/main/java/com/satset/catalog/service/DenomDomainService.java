@@ -1,8 +1,10 @@
 package com.satset.catalog.service;
 
+import com.satset.catalog.repository.CategoryRepository;
 import com.satset.catalog.repository.DenomMetaRepository;
 import com.satset.catalog.repository.DenomRepository;
 import com.satset.catalog.repository.ProductRepository;
+import com.satset.catalog.model.Category;
 import com.satset.catalog.model.DenomType;
 import com.satset.catalog.model.ProductDenomMeta;
 import com.satset.catalog.model.ProductDenoms;
@@ -26,23 +28,28 @@ public class DenomDomainService {
     private final DenomRepository denomRepository;
     private final DenomMetaRepository metaRepository;
     private final ProductRepository productRepository;
+    private final CategoryRepository categoryRepository;
 
     public DenomDomainService(DenomRepository denomRepository,
             DenomMetaRepository metaRepository,
-            ProductRepository productRepository) {
+            ProductRepository productRepository,
+            CategoryRepository categoryRepository) {
         this.denomRepository = denomRepository;
         this.metaRepository = metaRepository;
         this.productRepository = productRepository;
+        this.categoryRepository = categoryRepository;
     }
 
     // === Browse (read-only) ===
 
-    public List<ProductDenoms> findByProduct(String productCode) {
-        Optional<Products> product = productRepository.findByCode(productCode);
-        if (product.isEmpty()) {
-            return List.of();
-        }
-        return denomRepository.findByProductIdAndActiveTrueAndDeletedFalseOrderBySortOrder(product.get().getId());
+    public List<ProductDenoms> findByProduct(String categoryCode, String productCode) {
+        Optional<Category> category = categoryRepository.findByCode(categoryCode);
+        if (category.isEmpty()) return List.of();
+        Optional<Products> product =
+                productRepository.findByCategoryIdAndCode(category.get().getId(), productCode);
+        if (product.isEmpty()) return List.of();
+        return denomRepository
+                .findByProductIdAndActiveTrueAndDeletedFalseOrderBySortOrder(product.get().getId());
     }
 
     public Optional<ProductDenoms> getDenomWithMeta(String code) {

@@ -1,10 +1,12 @@
 package com.satset.catalog.service;
 
+import com.satset.catalog.model.Category;
 import com.satset.catalog.model.DenomType;
 import com.satset.catalog.model.ProductDenoms;
 import com.satset.catalog.model.Products;
 import com.satset.catalog.dto.CreateDenomRequest;
 import com.satset.catalog.dto.UpdateDenomRequest;
+import com.satset.catalog.repository.CategoryRepository;
 import com.satset.catalog.repository.DenomMetaRepository;
 import com.satset.catalog.repository.DenomRepository;
 import com.satset.catalog.repository.ProductRepository;
@@ -37,19 +39,28 @@ class DenomDomainServiceTest {
     private DenomMetaRepository metaRepository;
     @Mock
     private ProductRepository productRepository;
+    @Mock
+    private CategoryRepository categoryRepository;
 
     @InjectMocks
     private DenomDomainService denomService;
 
     private UUID productId;
     private UUID denomId;
+    private UUID categoryId;
     private Products product;
+    private Category category;
     private ProductDenoms existingDenom;
 
     @BeforeEach
     void setUp() {
         productId = UUID.randomUUID();
         denomId = UUID.randomUUID();
+        categoryId = UUID.randomUUID();
+
+        category = new Category();
+        category.setId(categoryId);
+        category.setCode("PULSA");
 
         product = new Products();
         product.setId(productId);
@@ -71,21 +82,32 @@ class DenomDomainServiceTest {
 
     @Test
     void findByProduct_ProductFound_ReturnsDenoms() {
-        when(productRepository.findByCode("TELKOMSEL")).thenReturn(Optional.of(product));
+        when(categoryRepository.findByCode("PULSA")).thenReturn(Optional.of(category));
+        when(productRepository.findByCategoryIdAndCode(categoryId, "TELKOMSEL")).thenReturn(Optional.of(product));
         when(denomRepository.findByProductIdAndActiveTrueAndDeletedFalseOrderBySortOrder(productId))
                 .thenReturn(List.of(existingDenom));
 
-        List<ProductDenoms> result = denomService.findByProduct("TELKOMSEL");
+        List<ProductDenoms> result = denomService.findByProduct("PULSA", "TELKOMSEL");
 
         assertEquals(1, result.size());
         assertEquals("TLKM5", result.get(0).getCode());
     }
 
     @Test
-    void findByProduct_ProductNotFound_ReturnsEmpty() {
-        when(productRepository.findByCode("UNKNOWN")).thenReturn(Optional.empty());
+    void findByProduct_CategoryNotFound_ReturnsEmpty() {
+        when(categoryRepository.findByCode("UNKNOWN")).thenReturn(Optional.empty());
 
-        List<ProductDenoms> result = denomService.findByProduct("UNKNOWN");
+        List<ProductDenoms> result = denomService.findByProduct("UNKNOWN", "TELKOMSEL");
+
+        assertTrue(result.isEmpty());
+    }
+
+    @Test
+    void findByProduct_ProductNotFound_ReturnsEmpty() {
+        when(categoryRepository.findByCode("PULSA")).thenReturn(Optional.of(category));
+        when(productRepository.findByCategoryIdAndCode(categoryId, "UNKNOWN")).thenReturn(Optional.empty());
+
+        List<ProductDenoms> result = denomService.findByProduct("PULSA", "UNKNOWN");
 
         assertTrue(result.isEmpty());
     }

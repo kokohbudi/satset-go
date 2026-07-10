@@ -67,9 +67,10 @@ public class ProductCatalogController {
         return ResponseEntity.ok(dtos);
     }
 
-    @GetMapping("/products/{code}")
-    public ResponseEntity<ProductDTO> getProductByCode(@PathVariable String code) {
-        return browseProductsUseCase.findByCode(code)
+    @GetMapping("/categories/{catCode}/products/{prodCode}")
+    public ResponseEntity<ProductDTO> getProductByCategoryAndCode(
+            @PathVariable String catCode, @PathVariable String prodCode) {
+        return browseProductsUseCase.findByCategoryAndCode(catCode, prodCode)
                 .map(CatalogDtoMapper::toProductDTO)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
@@ -77,9 +78,10 @@ public class ProductCatalogController {
 
     // ==================== Denominations ====================
 
-    @GetMapping("/products/{code}/denoms")
-    public ResponseEntity<List<ProductDenomDTO>> getDenomsByProduct(@PathVariable String code) {
-        List<ProductDenomDTO> dtos = browseDenomsUseCase.findByProduct(code).stream()
+    @GetMapping("/categories/{catCode}/products/{prodCode}/denoms")
+    public ResponseEntity<List<ProductDenomDTO>> getDenomsByCategoryAndProduct(
+            @PathVariable String catCode, @PathVariable String prodCode) {
+        List<ProductDenomDTO> dtos = browseDenomsUseCase.findByProduct(catCode, prodCode).stream()
                 .map(this::toDenomDTO).toList();
         return ResponseEntity.ok(dtos);
     }

@@ -316,7 +316,7 @@
                         this.denom = null; this.denoms = [];
                         this.loadingDenoms = true;
                         try {
-                            const r = await fetch(`/api/products/${p.code}/denoms`);
+                            const r = await fetch(`/api/categories/${this.activeCat.code}/products/${p.code}/denoms`);
                             if (r.ok) this.denoms = await r.json();
                         } catch (e) { Alpine.store('toast').error('Gagal memuat nominal'); }
                         this.loadingDenoms = false;

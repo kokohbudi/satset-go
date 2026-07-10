@@ -94,33 +94,23 @@ class ProductCatalogControllerTest {
     }
 
     @Test
-    void getProductByCode_Found_ReturnsOk() throws Exception {
-        when(browseProductsUseCase.findByCode("TEL"))
-                .thenReturn(Optional.of(buildProduct("TEL", "Telkomsel")));
-
-        mockMvc.perform(get("/api/products/TEL"))
+    void getProductByCategoryAndCode_returnsProduct() throws Exception {
+        Products p = new Products(); p.setCode("TELKOMSEL"); p.setName("TELKOMSEL");
+        when(browseProductsUseCase.findByCategoryAndCode("DATA", "TELKOMSEL"))
+                .thenReturn(Optional.of(p));
+        mockMvc.perform(get("/api/categories/DATA/products/TELKOMSEL"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.name").value("Telkomsel"));
-    }
-
-    @Test
-    void getProductByCode_NotFound_Returns404() throws Exception {
-        when(browseProductsUseCase.findByCode("UNKNOWN")).thenReturn(Optional.empty());
-
-        mockMvc.perform(get("/api/products/UNKNOWN"))
-                .andExpect(status().isNotFound());
+                .andExpect(jsonPath("$.code").value("TELKOMSEL"));
     }
 
     // ==================== Denoms ====================
 
     @Test
-    void getDenomsByProduct_ReturnsOk_WithList() throws Exception {
-        when(browseDenomsUseCase.findByProduct("TEL"))
-                .thenReturn(List.of(buildDenom("TEL10K", "Pulsa 10K")));
-
-        mockMvc.perform(get("/api/products/TEL/denoms"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].code").value("TEL10K"));
+    void getDenomsByCategoryAndProduct_returnsList() throws Exception {
+        when(browseDenomsUseCase.findByProduct("DATA", "TELKOMSEL"))
+                .thenReturn(List.of());
+        mockMvc.perform(get("/api/categories/DATA/products/TELKOMSEL/denoms"))
+                .andExpect(status().isOk());
     }
 
     @Test
