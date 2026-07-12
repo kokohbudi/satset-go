@@ -378,6 +378,43 @@ class DenomDomainServiceTest {
         verify(denomRepository, never()).save(any());
     }
 
+    @Test
+    void update_ReassignsProduct_WhenDifferentProductIdProvided() throws BusinessException {
+        UUID newProductId = UUID.randomUUID();
+        Products newProduct = new Products();
+        newProduct.setId(newProductId);
+        UpdateDenomRequest req = new UpdateDenomRequest(
+                "TLKM5", "Telkomsel 5K", DenomType.FIXED_DENOM,
+                new BigDecimal("5000"), new BigDecimal("5800"), null, null,
+                null, null, null, null,
+                false, null, true, 5, newProductId);
+        when(denomRepository.findById(denomId)).thenReturn(Optional.of(existingDenom));
+        when(denomRepository.existsByCodeAndIdNot("TLKM5", denomId)).thenReturn(false);
+        when(productRepository.findById(newProductId)).thenReturn(Optional.of(newProduct));
+        when(denomRepository.save(any(ProductDenoms.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        ProductDenoms result = denomService.update(denomId, req);
+
+        assertEquals(newProductId, result.getProductId());
+    }
+
+    @Test
+    void update_ReassignToMissingProduct_ThrowsResourceNotFound() {
+        UUID missingProductId = UUID.randomUUID();
+        UpdateDenomRequest req = new UpdateDenomRequest(
+                "TLKM5", "Telkomsel 5K", DenomType.FIXED_DENOM,
+                null, new BigDecimal("5000"), null, null,
+                null, null, null, null,
+                false, null, true, 1, missingProductId);
+        when(denomRepository.findById(denomId)).thenReturn(Optional.of(existingDenom));
+        when(denomRepository.existsByCodeAndIdNot("TLKM5", denomId)).thenReturn(false);
+        when(productRepository.findById(missingProductId)).thenReturn(Optional.empty());
+
+        assertThrows(ResourceNotFoundException.class,
+                () -> denomService.update(denomId, req));
+        verify(denomRepository, never()).save(any());
+    }
+
     // === SOFT DELETE ===
 
     @Test

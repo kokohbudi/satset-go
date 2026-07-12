@@ -132,6 +132,11 @@ public class DenomDomainService {
         denom.setStockAvailable(req.stockAvailable());
         denom.setActive(req.active());
         denom.setSortOrder(req.sortOrder());
+        if (req.productId() != null && !req.productId().equals(denom.getProductId())) {
+            productRepository.findById(req.productId())
+                .orElseThrow(() -> new ResourceNotFoundException("Product", req.productId()));
+            denom.setProductId(req.productId());
+        }
         return denomRepository.save(denom);
     }
 
