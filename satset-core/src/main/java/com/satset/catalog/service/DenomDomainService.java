@@ -53,6 +53,11 @@ public class DenomDomainService {
                 .filter(d -> d.isActive() && !d.isDeleted());
     }
 
+    /** All denoms incl. deleted, for the admin aggregate view (client greys deleted). */
+    public List<ProductDenoms> findAllForAdmin() {
+        return denomRepository.findAllByOrderBySortOrder();
+    }
+
     // === Manage (admin CRUD) ===
 
     public List<ProductDenoms> findByProductForAdmin(UUID productId) {

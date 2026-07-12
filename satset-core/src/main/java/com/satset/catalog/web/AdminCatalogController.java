@@ -135,6 +135,14 @@ public class AdminCatalogController {
 
     // ==================== Denoms ====================
 
+    @GetMapping("/denoms")
+    @PreAuthorize("hasRole('" + OmniConstants.PERM_VIEW_CATALOG + "')")
+    public ResponseEntity<List<ProductDenomDTO>> listAllDenoms() {
+        List<ProductDenomDTO> dtos = manageDenomsUseCase.findAllForAdmin().stream()
+                .map(CatalogDtoMapper::toDenomDTO).toList();
+        return ResponseEntity.ok(dtos);
+    }
+
     @GetMapping("/products/{productId}/denoms")
     @PreAuthorize("hasRole('" + OmniConstants.PERM_VIEW_CATALOG + "')")
     public ResponseEntity<List<ProductDenomDTO>> listDenoms(@PathVariable UUID productId) {

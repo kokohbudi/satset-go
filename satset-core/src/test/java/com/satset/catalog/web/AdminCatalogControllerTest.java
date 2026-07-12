@@ -249,6 +249,21 @@ class AdminCatalogControllerTest {
     }
 
     @Test
+    void listAllDenoms_returnsAll() throws Exception {
+        com.satset.catalog.model.ProductDenoms d = new com.satset.catalog.model.ProductDenoms();
+        d.setId(UUID.randomUUID());
+        d.setCode("TSEL5");
+        d.setName("Telkomsel 5rb");
+        d.setDenomType(com.satset.catalog.model.DenomType.FIXED_DENOM);
+        d.setProductId(UUID.randomUUID());
+        when(manageDenomsUseCase.findAllForAdmin()).thenReturn(List.of(d));
+
+        mockMvc.perform(get("/api/admin/catalog/denoms"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].code").value("TSEL5"));
+    }
+
+    @Test
     void getDenom_Found_ReturnsOk() throws Exception {
         UUID id = UUID.randomUUID();
         UUID productId = UUID.randomUUID();

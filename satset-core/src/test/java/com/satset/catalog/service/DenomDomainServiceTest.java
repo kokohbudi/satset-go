@@ -180,6 +180,19 @@ class DenomDomainServiceTest {
         assertTrue(denomService.findById(denomId).isEmpty());
     }
 
+    @Test
+    void findAllForAdmin_returnsRepositoryOrder() {
+        ProductDenoms a = new ProductDenoms();
+        a.setCode("A"); a.setSortOrder(0);
+        ProductDenoms b = new ProductDenoms();
+        b.setCode("B"); b.setSortOrder(1);
+        when(denomRepository.findAllByOrderBySortOrder()).thenReturn(List.of(a, b));
+
+        List<ProductDenoms> result = denomService.findAllForAdmin();
+
+        assertThat(result).containsExactly(a, b);
+    }
+
     // === CREATE ===
 
     @Test
