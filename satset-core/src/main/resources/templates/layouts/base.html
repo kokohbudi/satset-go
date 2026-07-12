@@ -259,6 +259,12 @@
         .cell-unpriced {
             background-color: oklch(var(--wa) / 0.12);
         }
+        /* Indeterminate loading bar: a bright highlight sweeps across a dim
+           full-width track (always on-screen, unlike a translated segment). */
+        @keyframes loadbar {
+            from { background-position: 200% 0; }
+            to   { background-position: -200% 0; }
+        }
         /* Always-visible scrollbars (macOS overlay bars hide by default) */
         .denom-scroll::-webkit-scrollbar {
             width: 10px;

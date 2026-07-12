@@ -10,6 +10,7 @@
 
 <body>
 <div layout:fragment="content" x-data="catalogManager()"
+     @keydown.window="(($event.ctrlKey || $event.metaKey) && ($event.key === 's' || $event.key === 'S') && (nameDirtyList.length || dirtyList.length)) && ($event.preventDefault(), savePending())"
      th:data-can-manage-cat="${#authorization.expression('hasRole(''REALM_manage_categories'')')}"
      th:data-can-manage-prod="${#authorization.expression('hasRole(''REALM_manage_products'')')}"
      th:data-can-manage-denom="${#authorization.expression('hasRole(''REALM_manage_denoms'')')}">
@@ -147,7 +148,14 @@
 
         <div class="card bg-base-100 shadow-sm">
             <div class="denom-scroll" @scroll="$event.target.classList.toggle('is-scrolled', $event.target.scrollTop > 0)">
-                <table class="table table-zebra table-sm">
+                <!-- Loading: thin indeterminate bar pinned to the top of the scroll
+                     viewport (above the sticky header) while denoms refetch. A
+                     positioned bar reads as "working" — unlike a spinner floating
+                     in the middle of a data table (product register). -->
+                <div x-show="denomsLoading" x-cloak class="sticky top-0 z-10"
+                     style="height:3px; margin-bottom:-3px; background:linear-gradient(90deg, oklch(var(--p)/0.2), oklch(var(--p)), oklch(var(--p)/0.2)); background-size:200% 100%; animation:loadbar 1.2s linear infinite;"></div>
+                <table class="table table-zebra table-sm"
+                       :style="denomsLoading ? 'opacity:0.45; transition:opacity .2s' : 'transition:opacity .2s'">
                     <thead>
                     <tr>
                         <th sec:authorize="hasRole('REALM_manage_denoms')">
@@ -155,8 +163,8 @@
                         </th>
                         <th>Kode</th>
                         <th>Nama</th>
-                        <th>Kategori</th>
-                        <th>Produk</th>
+                        <th x-show="activeCategory === null">Kategori</th>
+                        <th x-show="activeProduct === null">Produk</th>
                         <th>Tipe</th>
                         <th class="text-right">Nominal</th>
                         <th class="text-right">Harga Jual</th>
@@ -186,8 +194,8 @@
                                 </template>
                                 <template x-if="!canManageDenom || d.deleted"><span x-text="d.name"></span></template>
                             </td>
-                            <td class="text-base-content/70" x-text="catNameOf(d.productId)"></td>
-                            <td class="text-base-content/70" x-text="prodNameOf(d.productId)"></td>
+                            <td class="text-base-content/70" x-show="activeCategory === null" x-text="catNameOf(d.productId)"></td>
+                            <td class="text-base-content/70" x-show="activeProduct === null" x-text="prodNameOf(d.productId)"></td>
                             <td><span class="badge badge-xs"
                                       :class="d.denomType === 'FIXED_DENOM' ? 'badge-info' : 'badge-accent'"
                                       x-text="d.denomType === 'FIXED_DENOM' ? 'Fixed' : 'Open Amount'"></span></td>
@@ -277,15 +285,8 @@
     </div>
 
     <!-- Category Create/Edit Modal -->
-    <div x-show="showCategoryModal" x-cloak @keydown.escape.window="!categorySaving && (showCategoryModal = false)"
-         class="fixed inset-0 z-50 flex items-center justify-center"
-         x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0"
-         x-transition:enter-end="opacity-100" x-transition:leave="transition ease-in duration-150"
-         x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0">
-        <div class="absolute inset-0 bg-black/50" @click="showCategoryModal = false"></div>
-        <div class="relative bg-base-100 rounded-xl shadow-2xl w-full max-w-lg mx-4 overflow-hidden"
-             x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 scale-95"
-             x-transition:enter-end="opacity-100 scale-100">
+    <div class="modal" :class="{ 'modal-open': showCategoryModal }" @keydown.escape.window="!categorySaving && (showCategoryModal = false)">
+        <div class="modal-box max-w-lg p-0 overflow-hidden">
 
             <div class="px-6 py-4 border-b border-base-300">
                 <h3 class="text-lg font-semibold" x-text="categoryEditMode ? 'Edit Kategori' : 'Tambah Kategori'"></h3>
@@ -343,18 +344,12 @@
                 </div>
             </form>
         </div>
+        <div class="modal-backdrop" @click="!categorySaving && (showCategoryModal = false)"></div>
     </div>
 
     <!-- Product Create/Edit Modal -->
-    <div x-show="showProductModal" x-cloak @keydown.escape.window="!productSaving && (showProductModal = false)"
-         class="fixed inset-0 z-50 flex items-center justify-center"
-         x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0"
-         x-transition:enter-end="opacity-100" x-transition:leave="transition ease-in duration-150"
-         x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0">
-        <div class="absolute inset-0 bg-black/50" @click="showProductModal = false"></div>
-        <div class="relative bg-base-100 rounded-xl shadow-2xl w-full max-w-lg mx-4 overflow-hidden"
-             x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 scale-95"
-             x-transition:enter-end="opacity-100 scale-100">
+    <div class="modal" :class="{ 'modal-open': showProductModal }" @keydown.escape.window="!productSaving && (showProductModal = false)">
+        <div class="modal-box max-w-lg p-0 overflow-hidden">
 
             <div class="px-6 py-4 border-b border-base-300">
                 <h3 class="text-lg font-semibold" x-text="productEditMode ? 'Edit Produk' : 'Tambah Produk'"></h3>
@@ -418,18 +413,12 @@
                 </div>
             </form>
         </div>
+        <div class="modal-backdrop" @click="!productSaving && (showProductModal = false)"></div>
     </div>
 
     <!-- Denom Create/Edit Modal -->
-    <div x-show="showDenomModal" x-cloak @keydown.escape.window="!denomSaving && (showDenomModal = false)"
-         class="fixed inset-0 z-50 flex items-center justify-center"
-         x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0"
-         x-transition:enter-end="opacity-100" x-transition:leave="transition ease-in duration-150"
-         x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0">
-        <div class="absolute inset-0 bg-black/50" @click="showDenomModal = false"></div>
-        <div class="relative bg-base-100 rounded-xl shadow-2xl w-full max-w-2xl mx-4 overflow-hidden"
-             x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 scale-95"
-             x-transition:enter-end="opacity-100 scale-100">
+    <div class="modal" :class="{ 'modal-open': showDenomModal }" @keydown.escape.window="!denomSaving && (showDenomModal = false)">
+        <div class="modal-box max-w-2xl p-0 overflow-hidden">
 
             <div class="px-6 py-4 border-b border-base-300">
                 <h3 class="text-lg font-semibold" x-text="denomEditMode ? 'Edit Denominasi' : 'Tambah Denominasi'"></h3>
@@ -532,7 +521,7 @@
                             <select class="select select-bordered select-sm" x-model="denomForm.categoryChoice"
                                     @change="denomForm.productChoice=''" :disabled="denomSaving">
                                 <option value="">-- Pilih --</option>
-                                <template x-for="c in activeCategories" :key="c.id"><option :value="c.id" x-text="c.name"></option></template>
+                                <template x-for="c in comboCategories" :key="c.id"><option :value="c.id" x-text="c.name"></option></template>
                                 <option value="__new__">+ Kategori baru&hellip;</option>
                             </select>
                             <template x-if="catComboIsNew">
@@ -578,6 +567,7 @@
                 </div>
             </form>
         </div>
+        <div class="modal-backdrop" @click="!denomSaving && (showDenomModal = false)"></div>
     </div>
 
     <!-- Sync Digiflazz Preview Modal -->
@@ -795,6 +785,12 @@
                 else this.nameDirty[d.id] = { id: d.id, code: d.code, oldName: d.name, newName: name };
             },
             openNameModal() { this.nameResults = []; this.showNameModal = true; },
+            // Ctrl/Cmd+S opens the review-and-save for whatever is pending
+            // (prices first — money — then names). No-op when nothing is dirty.
+            savePending() {
+                if (this.dirtyList.length > 0) this.openPriceModal();
+                else if (this.nameDirtyList.length > 0) this.openNameModal();
+            },
             async submitNames() {
                 this.savingNames = true;
                 try {
@@ -878,9 +874,18 @@
             },
             get catComboIsNew() { return this.denomForm.categoryChoice === '__new__'; },
             get prodComboIsNew() { return this.denomForm.productChoice === '__new__'; },
+            // Denom-modal dropdowns list only categories/products that actually
+            // have denoms (matches the tabs) — empty ones are noise. Use "+ baru"
+            // to create. Categories/products are denom-driven; an empty one is dead.
+            get comboCategories() {
+                const ids = this.denomCategoryIds;
+                return this.categories.filter(c => !c.deleted && ids.has(c.id));
+            },
             get comboProducts() {
                 const cid = this.denomForm.categoryChoice;
-                return (cid && cid !== '__new__') ? this.products.filter(p => p.categoryId === cid && !p.deleted) : [];
+                if (!cid || cid === '__new__') return [];
+                const pids = this.denomProductIds;
+                return this.products.filter(p => p.categoryId === cid && !p.deleted && pids.has(p.id));
             },
             get productsInCategory() {
                 return this.activeCategory === null ? []
