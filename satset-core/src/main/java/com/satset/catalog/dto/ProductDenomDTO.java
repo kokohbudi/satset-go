@@ -4,7 +4,6 @@ import com.satset.catalog.model.DenomType;
 import lombok.Data;
 
 import java.math.BigDecimal;
-import java.util.List;
 import java.util.UUID;
 
 @Data
@@ -38,7 +37,4 @@ public class ProductDenomDTO {
     private boolean active;
     private boolean deleted;
     private boolean inSupplier;
-
-    // Metadata (populated when getDenomWithMeta is called)
-    private List<ProductDenomMetaDTO> metadata;
 }

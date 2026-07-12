@@ -16,10 +16,10 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Primary (core) datasource — backs the main application schema (catalog,
- * identity, onboarding, transaction). Explicit config is required because a
- * second datasource (wallet) is also present, which disables Spring Boot's
- * single-datasource auto-configuration.
+ * Single application datasource — backs every slice, including wallet (kept in
+ * its own {@code satset_wallet} schema on the same database). Explicit config
+ * remains because this bean set is {@code @Primary}-qualified; one datasource
+ * means wallet + core writes now share one transaction (atomic purchases).
  */
 @Configuration
 @EnableJpaRepositories(
@@ -28,7 +28,8 @@ import java.util.Map;
                 "com.satset.identity.repository",
                 "com.satset.onboarding.repository",
                 "com.satset.transaction.repository",
-                "com.satset.quickmenu.repository"
+                "com.satset.quickmenu.repository",
+                "com.satset.wallet.repository"
         },
         entityManagerFactoryRef = "entityManagerFactory",
         transactionManagerRef = "transactionManager")
@@ -64,7 +65,8 @@ public class CoreDataSourceConfig {
                         "com.satset.identity.model",
                         "com.satset.onboarding.model",
                         "com.satset.transaction.model",
-                        "com.satset.quickmenu.model")
+                        "com.satset.quickmenu.model",
+                        "com.satset.wallet.model")
                 .persistenceUnit("core")
                 .properties(jpaProperties)
                 .build();

@@ -46,6 +46,7 @@ class AdminCatalogPageControllerTest {
 
         when(manageCategoriesUseCase.findAllForAdmin()).thenReturn(List.of(buildCategory()));
         when(manageProductsUseCase.findByCategoryForAdmin(any())).thenReturn(List.of());
+        when(manageProductsUseCase.findAllForAdmin()).thenReturn(List.of());
     }
 
     @Test

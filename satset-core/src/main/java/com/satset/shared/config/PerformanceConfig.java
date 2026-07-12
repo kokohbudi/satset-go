@@ -26,10 +26,6 @@ public class PerformanceConfig {
                                 "keycloakRoles",
                                 "keycloakGroups",
                                 "groupsHierarchy",
-                                "backofficeSubGroups",
-                                "stores",
-                                "menus",
-                                "roles",
                                 "allRoles",
                                 "rolesHierarchy");
                 cacheManager.setCaffeine(Caffeine.newBuilder()
@@ -75,19 +71,14 @@ public class PerformanceConfig {
         /**
          * Standard cache manager untuk data yang jarang berubah.
          * TTL: 30 menit, Max size: 2000 entries.
-         * Used for: operators, vouchers, prices, categories, products, denoms
+         * Used for: categoriesAll, categoriesByType, products
          */
         @Bean
         public CacheManager standardCacheManager() {
                 CaffeineCacheManager cacheManager = new CaffeineCacheManager(
-                                "operators",
-                                "vouchers",
-                                "purchasePrices",
-                                "sellPrices",
                                 "categoriesAll",
                                 "categoriesByType",
-                                "products",
-                                "denoms");
+                                "products");
                 cacheManager.setCaffeine(Caffeine.newBuilder()
                                 .expireAfterWrite(30, TimeUnit.MINUTES)
                                 .maximumSize(2000)

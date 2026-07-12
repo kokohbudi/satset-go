@@ -51,8 +51,6 @@ public interface KeycloakIdentityPort {
 
     void unassignRoleFromUser(String userId, String roleName) throws BusinessException;
 
-    KeycloakRole getCachedRoleWithAttributes(String roleName);
-
     List<KeycloakRole> getRolesWithHierarchy();
 
     Set<String> getCompositeRoleChildNames(String compositeRoleName);
@@ -81,10 +79,6 @@ public interface KeycloakIdentityPort {
     String createResellerUser(String username, String fullname, String email) throws BusinessException;
 
     void assignClientRoleToUser(String userId, String roleName) throws BusinessException;
-
-    // ==================== Menu/UI ====================
-
-    List<KeycloakRole> getMenuRoles(String userId) throws BusinessException;
 
     // ==================== Shared DTO Methods ====================
     // These methods return shared DTOs for use by shared layer components

@@ -12,7 +12,7 @@ import java.time.LocalDateTime;
  * Uses wallet_id (String, format: 700xxxxxxx) as primary key.
  */
 @Entity
-@Table(name = "wallet_accounts")
+@Table(name = "wallet_accounts", schema = "satset_wallet")
 @Getter
 @Setter
 public class WalletAccountEntity {

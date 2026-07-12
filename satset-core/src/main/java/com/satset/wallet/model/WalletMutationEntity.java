@@ -10,7 +10,7 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
-@Table(name = "wallet_mutations", indexes = {
+@Table(name = "wallet_mutations", schema = "satset_wallet", indexes = {
         @Index(name = "idx_wallet_mutations_wallet_id", columnList = "wallet_id"),
     @Index(name = "idx_wallet_mutations_created_at", columnList = "created_at"),
     @Index(name = "idx_wallet_mutations_reference", columnList = "reference_id, reference_type")

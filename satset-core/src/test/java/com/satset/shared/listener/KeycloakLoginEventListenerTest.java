@@ -2,8 +2,10 @@ package com.satset.shared.listener;
 
 import com.satset.KeycloakLoginEventListener;
 
+import com.satset.identity.model.Users;
+import com.satset.identity.repository.UserRepository;
 import com.satset.identity.service.UserDomainService;
-import com.satset.onboarding.service.RegistrationDomainService;
+import com.satset.onboarding.repository.StoreRepository;
 import com.satset.shared.constant.OmniConstants;
 import com.satset.shared.dto.UserDTO;
 import org.junit.jupiter.api.BeforeEach;
@@ -47,7 +49,10 @@ class KeycloakLoginEventListenerTest {
     private UserDomainService userDomainService;
 
     @Mock
-    private RegistrationDomainService registrationDomainService;
+    private UserRepository usersRepository;
+
+    @Mock
+    private StoreRepository storeRepository;
 
     @Mock
     private OAuth2LoginAuthenticationToken authenticationToken;
@@ -67,7 +72,7 @@ class KeycloakLoginEventListenerTest {
 
     @BeforeEach
     void setUp() throws Exception {
-        listener = new KeycloakLoginEventListener(jwtDecoder, userDomainService, registrationDomainService);
+        listener = new KeycloakLoginEventListener(jwtDecoder, userDomainService, usersRepository, storeRepository);
         // Inject clientId via reflection (since it's @Value injected in production)
         Field clientIdField = KeycloakLoginEventListener.class.getDeclaredField("clientId");
         clientIdField.setAccessible(true);
@@ -97,7 +102,8 @@ class KeycloakLoginEventListenerTest {
         setupOidcUser(email, username, fullName, providerUserId);
         setupJwt(providerUserId, List.of());
 
-        when(registrationDomainService.isEmailRegistered(email)).thenReturn(false);
+        when(usersRepository.findByEmail(email)).thenReturn(null);
+        when(storeRepository.findByEmail(email)).thenReturn(null);
 
         UserDTO newUserDTO = new UserDTO();
         newUserDTO.setEmail(email);
@@ -140,7 +146,7 @@ class KeycloakLoginEventListenerTest {
 
         setupOidcUser(email, username, fullName, providerUserId);
         setupJwt(providerUserId, List.of());
-        when(registrationDomainService.isEmailRegistered(email)).thenReturn(true);
+        when(usersRepository.findByEmail(email)).thenReturn(new Users());
 
         UserDTO existingUserDTO = new UserDTO();
         existingUserDTO.setEmail(email);

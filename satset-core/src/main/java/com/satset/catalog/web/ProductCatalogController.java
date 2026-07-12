@@ -82,25 +82,15 @@ public class ProductCatalogController {
     public ResponseEntity<List<ProductDenomDTO>> getDenomsByCategoryAndProduct(
             @PathVariable String catCode, @PathVariable String prodCode) {
         List<ProductDenomDTO> dtos = browseDenomsUseCase.findByProduct(catCode, prodCode).stream()
-                .map(this::toDenomDTO).toList();
+                .map(CatalogDtoMapper::toDenomDTO).toList();
         return ResponseEntity.ok(dtos);
     }
 
     @GetMapping("/denoms/{code}")
     public ResponseEntity<ProductDenomDTO> getDenomByCode(@PathVariable String code) {
         return browseDenomsUseCase.getDenomWithMeta(code)
-                .map(this::toDenomDTO)
+                .map(CatalogDtoMapper::toDenomDTO)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
-    }
-
-    // ==================== Mappers ====================
-
-    private ProductDenomDTO toDenomDTO(ProductDenoms entity) {
-        ProductDenomDTO dto = CatalogDtoMapper.toDenomDTO(entity);
-        if (entity.getMetadata() != null) {
-            dto.setMetadata(entity.getMetadata().stream().map(CatalogDtoMapper::toMetaDTO).toList());
-        }
-        return dto;
     }
 }

@@ -3,9 +3,7 @@ package com.satset.catalog.web;
 import com.satset.catalog.dto.CategoryDTO;
 import com.satset.catalog.dto.ProductDTO;
 import com.satset.catalog.dto.ProductDenomDTO;
-import com.satset.catalog.dto.ProductDenomMetaDTO;
 import com.satset.catalog.model.Category;
-import com.satset.catalog.model.ProductDenomMeta;
 import com.satset.catalog.model.ProductDenoms;
 import com.satset.catalog.model.Products;
 
@@ -69,13 +67,6 @@ public final class CatalogDtoMapper {
         dto.setDeleted(entity.isDeleted());
         dto.setInSupplier(entity.isInSupplier());
         dto.setProductId(entity.getProductId());
-        return dto;
-    }
-
-    static ProductDenomMetaDTO toMetaDTO(ProductDenomMeta entity) {
-        ProductDenomMetaDTO dto = new ProductDenomMetaDTO();
-        dto.setMetaKey(entity.getMetaKey());
-        dto.setMetaValue(entity.getMetaValue());
         return dto;
     }
 }

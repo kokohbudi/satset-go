@@ -14,7 +14,6 @@ import org.springframework.stereotype.Repository;
 import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 /**
@@ -24,8 +23,6 @@ import java.util.UUID;
 public interface TransactionRepository extends JpaRepository<Transactions, UUID> {
 
     Page<Transactions> findByStoreId(UUID storeId, Pageable pageable);
-
-    Optional<Transactions> findByIdAndStoreId(UUID id, UUID storeId);
 
     boolean existsByStoreIdAndProductDenomIdAndTargetNumberAndStatusInAndCreatedAtAfter(
             UUID storeId, UUID denomId, String targetNumber,

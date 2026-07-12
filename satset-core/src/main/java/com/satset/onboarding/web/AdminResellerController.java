@@ -7,7 +7,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -23,9 +22,8 @@ public class AdminResellerController {
     public AdminResellerController(AdminOnboardingDomainService adminOnboardingService) {
         this.adminOnboardingService = adminOnboardingService;
     }
-    @RequestMapping("/api/admin/resellers")
     @PreAuthorize("hasRole('" + OmniConstants.PERM_CREATE_RESELLER + "')")
-    @PostMapping
+    @PostMapping("/api/admin/resellers")
     public ResponseEntity<Map<String, String>> createReseller(
             @RequestParam("username") String username,
             @RequestParam("email") String email,

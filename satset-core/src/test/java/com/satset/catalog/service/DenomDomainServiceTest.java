@@ -10,7 +10,6 @@ import com.satset.catalog.dto.BulkPriceUpdateRequest;
 import com.satset.catalog.dto.DenomListItemDTO;
 import com.satset.catalog.dto.PriceUpdateResult;
 import com.satset.catalog.repository.CategoryRepository;
-import com.satset.catalog.repository.DenomMetaRepository;
 import com.satset.catalog.repository.DenomRepository;
 import com.satset.catalog.repository.ProductRepository;
 import com.satset.shared.exception.BusinessException;
@@ -38,8 +37,6 @@ class DenomDomainServiceTest {
 
     @Mock
     private DenomRepository denomRepository;
-    @Mock
-    private DenomMetaRepository metaRepository;
     @Mock
     private ProductRepository productRepository;
     @Mock
@@ -143,17 +140,13 @@ class DenomDomainServiceTest {
     }
 
     @Test
-    void getDenomWithMeta_Found_LoadsMeta() {
-        com.satset.catalog.model.ProductDenomMeta meta = new com.satset.catalog.model.ProductDenomMeta();
-        meta.setId(UUID.randomUUID());
+    void getDenomWithMeta_Found_ReturnsDenom() {
         when(denomRepository.findByCode("TLKM5")).thenReturn(Optional.of(existingDenom));
-        when(metaRepository.findByProductDenomId(denomId)).thenReturn(List.of(meta));
 
         Optional<ProductDenoms> result = denomService.getDenomWithMeta("TLKM5");
 
         assertTrue(result.isPresent());
-        assertEquals(1, result.get().getMetadata().size());
-        verify(metaRepository).findByProductDenomId(denomId);
+        assertEquals("TLKM5", result.get().getCode());
     }
 
     @Test
@@ -161,7 +154,6 @@ class DenomDomainServiceTest {
         when(denomRepository.findByCode("UNKNOWN")).thenReturn(Optional.empty());
 
         assertTrue(denomService.getDenomWithMeta("UNKNOWN").isEmpty());
-        verify(metaRepository, never()).findByProductDenomId(any());
     }
 
     @Test
@@ -612,17 +604,5 @@ class DenomDomainServiceTest {
         when(denomRepository.save(any(ProductDenoms.class))).thenAnswer(i -> i.getArgument(0));
         denomService.updateCostById(id, new BigDecimal("5450"));
         assertThat(e.getBasePrice()).isEqualByComparingTo("5450");
-    }
-
-    @Test
-    void deactivateById_setsInactive() {
-        UUID id = UUID.randomUUID();
-        ProductDenoms e = new ProductDenoms();
-        e.setId(id);
-        e.setActive(true);
-        when(denomRepository.findById(id)).thenReturn(Optional.of(e));
-        when(denomRepository.save(any(ProductDenoms.class))).thenAnswer(i -> i.getArgument(0));
-        denomService.deactivateById(id);
-        assertThat(e.isActive()).isFalse();
     }
 }

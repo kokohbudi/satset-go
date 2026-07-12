@@ -3,6 +3,7 @@ package com.satset.shared.viewmodel;
 import com.satset.shared.dto.UserDTO;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+import org.springframework.beans.BeanUtils;
 
 /**
  * ViewModel for displaying User data in Thymeleaf templates.
@@ -21,15 +22,8 @@ public class UserViewModel extends UserDTO {
     private String statusText;
 
     public UserViewModel(UserDTO user) {
-        // Copy properties from UserDTO
-        this.setEmail(user.getEmail());
-        this.setUsername(user.getUsername());
-        this.setFullname(user.getFullname());
-        this.setRoles(user.getRoles());
-        this.setRoleDetails(user.getRoleDetails());
-        this.setProviderUserId(user.getProviderUserId());
-        this.setActive(user.isActive());
-        this.setGroups(user.getGroups());
+        // Copy all matching properties from UserDTO; computed fields set below.
+        BeanUtils.copyProperties(user, this);
 
         this.initials = computeInitials(user.getFullname(), user.getUsername());
 

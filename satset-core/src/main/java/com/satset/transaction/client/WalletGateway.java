@@ -2,7 +2,6 @@ package com.satset.transaction.client;
 
 import com.satset.shared.exception.InsufficientBalanceException;
 import com.satset.shared.exception.ResourceNotFoundException;
-import com.satset.transaction.model.MutationReferenceType;
 import com.satset.wallet.service.WalletService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -41,18 +40,12 @@ public class WalletGateway {
         }
     }
 
-    public void addBalance(String walletId, BigDecimal amount,
-            MutationReferenceType referenceType, UUID referenceId, String description) {
+    public void refundBalance(String walletId, BigDecimal amount,
+            UUID referenceId, String description) {
 
         try {
-            if (referenceType == MutationReferenceType.REFUND) {
-                var result = walletService.refund(walletId, amount, referenceId, description);
-                log.info("REFUND wallet={} amount={} balanceAfter={}", walletId, amount, result.newBalance());
-                return;
-            }
-            var result = walletService.credit(walletId, amount, referenceId,
-                    com.satset.wallet.model.MutationReferenceType.TOPUP, description);
-            log.info("CREDIT wallet={} amount={} balanceAfter={}", walletId, amount, result.newBalance());
+            var result = walletService.refund(walletId, amount, referenceId, description);
+            log.info("REFUND wallet={} amount={} balanceAfter={}", walletId, amount, result.newBalance());
         } catch (com.satset.wallet.service.ResourceNotFoundException e) {
             throw new ResourceNotFoundException("WalletAccount", walletId);
         }

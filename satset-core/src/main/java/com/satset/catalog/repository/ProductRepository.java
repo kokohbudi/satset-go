@@ -22,4 +22,6 @@ public interface ProductRepository extends JpaRepository<Products, UUID> {
     boolean existsByCategoryIdAndDeletedFalse(UUID categoryId);
 
     List<Products> findByActiveTrueAndDeletedFalseOrderBySortOrder();
+
+    List<Products> findByDeletedFalseOrderBySortOrder();
 }

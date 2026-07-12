@@ -96,7 +96,7 @@ class PurchaseFlowIntegrationTest {
 
         // BalanceManagementUseCase mock — TransactionDomainService uses this for balance operations
         doNothing().when(balanceManagementUseCase).deductBalance(any(), any(), any(), any());
-        doNothing().when(balanceManagementUseCase).addBalance(any(), any(), any(), any(), any());
+        doNothing().when(balanceManagementUseCase).refundBalance(any(), any(), any(), any());
         doReturn(new BigDecimal("100000.00")).when(balanceManagementUseCase).getBalance(any());
 
         // UserDTO provides store/wallet context to controller
@@ -194,8 +194,8 @@ class PurchaseFlowIntegrationTest {
         verify(providerService, times(1))
                 .sendTransaction(eq("081234567890"), eq("PULSA10"), eq(new BigDecimal("10000.00")));
 
-        // deductBalance (purchase) + addBalance (refund) both called
+        // deductBalance (purchase) + refundBalance (refund) both called
         verify(balanceManagementUseCase, times(1)).deductBalance(eq(walletId), any(), any(), any());
-        verify(balanceManagementUseCase, times(1)).addBalance(eq(walletId), any(), any(), any(), any());
+        verify(balanceManagementUseCase, times(1)).refundBalance(eq(walletId), any(), any(), any());
     }
 }

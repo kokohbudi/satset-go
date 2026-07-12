@@ -1,7 +1,8 @@
 package com.satset;
 
+import com.satset.identity.repository.UserRepository;
 import com.satset.identity.service.UserDomainService;
-import com.satset.onboarding.service.RegistrationDomainService;
+import com.satset.onboarding.repository.StoreRepository;
 import com.satset.shared.constant.OmniConstants;
 import com.satset.shared.dto.UserDTO;
 import jakarta.servlet.http.HttpServletRequest;
@@ -32,16 +33,18 @@ public class KeycloakLoginEventListener {
     private final JwtDecoder jwtDecoder;
     private static final Logger logger = LoggerFactory.getLogger(KeycloakLoginEventListener.class);
     private final UserDomainService userManagementService;
-    private final RegistrationDomainService registrationService;
+    private final UserRepository usersRepository;
+    private final StoreRepository storeRepository;
 
     @Value("${spring.security.oauth2.client.registration.keycloak.client-id}")
     private String clientId;
 
     public KeycloakLoginEventListener(JwtDecoder jwtDecoder, UserDomainService userManagementService,
-            RegistrationDomainService registrationService) {
+            UserRepository usersRepository, StoreRepository storeRepository) {
         this.jwtDecoder = jwtDecoder;
         this.userManagementService = userManagementService;
-        this.registrationService = registrationService;
+        this.usersRepository = usersRepository;
+        this.storeRepository = storeRepository;
     }
 
     @EventListener
@@ -60,7 +63,8 @@ public class KeycloakLoginEventListener {
             String providerUserId = this.extractProviderUserId(jwt);
             if (email != null) {
                 logger.info("Processing Keycloak login for user: {}", email);
-                boolean isEmailRegistered = this.registrationService.isEmailRegistered(email);
+                boolean isEmailRegistered = this.usersRepository.findByEmail(email) != null
+                        || this.storeRepository.findByEmail(email) != null;
                 // Roles from JWT token (fresh from Keycloak) instead of DB
                 List<String> roles = this.extractRolesFromJwt(jwt);
                 UserDTO user;

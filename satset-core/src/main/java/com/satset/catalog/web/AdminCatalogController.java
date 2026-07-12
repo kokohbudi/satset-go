@@ -98,9 +98,7 @@ public class AdminCatalogController {
         if (categoryId != null) {
             products = manageProductsUseCase.findByCategoryForAdmin(categoryId);
         } else {
-            products = manageCategoriesUseCase.findAllForAdmin().stream()
-                    .flatMap(cat -> manageProductsUseCase.findByCategoryForAdmin(cat.getId()).stream())
-                    .toList();
+            products = manageProductsUseCase.findAllForAdmin();
         }
         List<ProductDTO> dtos = products.stream().map(CatalogDtoMapper::toProductDTO).toList();
         return ResponseEntity.ok(dtos);

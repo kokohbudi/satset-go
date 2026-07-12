@@ -6,8 +6,8 @@ import org.springframework.data.web.config.EnableSpringDataWebSupport;
 
 import static org.springframework.data.web.config.EnableSpringDataWebSupport.PageSerializationMode.VIA_DTO;
 
-// JPA repositories are enabled per-datasource in CoreDataSourceConfig (core) and
-// WalletDataSourceConfig (wallet), each bound to its own EMF + transaction manager.
+// JPA repositories are enabled in CoreDataSourceConfig — one datasource/EMF/tx
+// manager for all slices; wallet lives in its own satset_wallet schema.
 @SpringBootApplication
 @EnableSpringDataWebSupport(pageSerializationMode = VIA_DTO)
 public class SatsetGoApplication {

@@ -287,15 +287,6 @@ public class IdentityDomainService {
     /**
      * Mendapatkan members dari suatu group.
      *
-     * @param groupId Group ID
-     */
-    public List<UserDTO> getGroupMembers(String groupId) {
-        return getGroupMembers(groupId, false);
-    }
-
-    /**
-     * Mendapatkan members dari suatu group.
-     * 
      * @param recursive jika true, ambil users dari subgroup juga
      */
     public List<UserDTO> getGroupMembers(String groupId, boolean recursive) {
