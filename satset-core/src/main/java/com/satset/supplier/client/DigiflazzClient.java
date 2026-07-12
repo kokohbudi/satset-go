@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.satset.supplier.model.PriceListItem;
+import com.satset.supplier.model.PriceListSnapshot;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.Cacheable;
@@ -15,6 +16,7 @@ import org.springframework.web.client.RestClient;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.time.LocalDateTime;
 import java.util.HexFormat;
 import java.util.List;
 
@@ -53,14 +55,27 @@ public class DigiflazzClient {
     }
 
     /**
-     * Ambil daftar harga prepaid. Di-cache 5 jam ({@code digiflazzCacheManager}) karena DF
+     * Cached snapshot (items + fill time). Di-cache 5 jam ({@code digiflazzCacheManager}) karena DF
      * nge-rate-limit endpoint ini (rc 83) dan datanya lag 10-15 menit — jadi cukup 1 hit / 5 jam.
+     * {@code fetchedAt} = momen cache-miss (baru di-fill); cache-hit tetap pakai timestamp lama.
+     */
+    @Cacheable(value = "digiflazzPriceList", cacheManager = "digiflazzCacheManager")
+    public PriceListSnapshot fetchSnapshot() {
+        return new PriceListSnapshot(doFetchPriceList(), LocalDateTime.now());
+    }
+
+    /**
+     * Ambil daftar harga prepaid — delegates ke {@link #fetchSnapshot()} (tanpa extra DF hit).
      *
      * <p>Response sukses: {@code {"data":[...]}}. Response error (mis. limit): {@code {"data":{"rc","message"}}}
      * — dideteksi (data bukan array) dan dilempar {@link IllegalStateException}, bukan crash parser.
      */
-    @Cacheable(value = "digiflazzPriceList", cacheManager = "digiflazzCacheManager")
+    // ponytail: fetchPriceList() delegates so all existing callers are untouched; only fetchSnapshot() is cached, so still one DF hit / 5h.
     public List<PriceListItem> fetchPriceList() {
+        return fetchSnapshot().items();
+    }
+
+    private List<PriceListItem> doFetchPriceList() {
         var req = new PriceListRequest("prepaid", username, sign("pricelist"));
         String raw = http.post()
                 .uri(baseUrl + "/price-list")
