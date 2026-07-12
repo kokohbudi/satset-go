@@ -25,34 +25,38 @@
             <h1 class="text-2xl font-bold">Semua Denom</h1>
             <p class="text-base-content/60 text-sm mt-1">Denominasi lintas produk dengan markup harga massal</p>
         </div>
-        <button x-show="dirtyList.length > 0" x-cloak class="btn btn-warning tap" @click="openPriceModal()">
-            Simpan Harga (<span x-text="dirtyList.length"></span>)
-        </button>
+        <div class="flex gap-2">
+            <button sec:authorize="hasRole('REALM_manage_denoms')" class="btn btn-outline tap" @click="showMarkup = !showMarkup">
+                Atur Harga Massal
+            </button>
+            <button x-show="dirtyList.length > 0" x-cloak class="btn btn-warning tap" @click="openPriceModal()">
+                Simpan Harga (<span x-text="dirtyList.length"></span>)
+            </button>
+        </div>
     </div>
 
-    <!-- Markup Bar -->
-    <div sec:authorize="hasRole('REALM_manage_denoms')" class="card bg-base-100 shadow-sm p-4 mb-4 animate-rise" style="--i:2">
+    <!-- Markup Bar (toggle: Atur Harga Massal) -->
+    <div sec:authorize="hasRole('REALM_manage_denoms')" x-show="showMarkup" x-cloak class="card bg-base-100 shadow-sm p-4 mb-4">
         <div class="flex flex-wrap items-end gap-3">
             <label class="form-control">
-                <span class="label-text text-xs">Base</span>
+                <span class="label-text text-xs">Hitung dari</span>
                 <select class="select select-bordered select-sm" x-model="markup.base">
                     <option value="MODAL">Harga Modal</option>
-                    <option value="CURRENT">Harga Sekarang</option>
+                    <option value="CURRENT">Harga Jual Sekarang</option>
                 </select>
             </label>
             <label class="form-control">
-                <span class="label-text text-xs">Tipe</span>
+                <span class="label-text text-xs">Naikkan pakai</span>
                 <select class="select select-bordered select-sm" x-model="markup.type">
                     <option value="PERSEN">Persen (%)</option>
-                    <option value="FIX">Fix (Rp)</option>
+                    <option value="FIX">Nominal (Rp)</option>
                 </select>
             </label>
             <label class="form-control">
-                <span class="label-text text-xs">Nilai</span>
-                <input type="number" min="0" step="any" class="input input-bordered input-sm w-32" x-model.number="markup.value"/>
+                <span class="label-text text-xs">Besarnya</span>
+                <input type="number" min="0" step="any" class="input input-bordered input-sm w-32 no-spinner" x-model.number="markup.value"/>
             </label>
-            <button class="btn btn-primary btn-sm tap" @click="applyMarkup()"
-                    :disabled="selectedIds.length === 0 || markup.value === null || markup.value === ''">
+            <button class="btn btn-primary btn-sm tap" @click="applyMarkup()">
                 Terapkan ke terpilih (<span x-text="selectedIds.length"></span>)
             </button>
         </div>
@@ -62,7 +66,7 @@
     <div x-show="unpricedCount > 0" x-cloak class="alert alert-warning py-2 mb-4 flex items-center justify-between">
         <span>⚠ <b x-text="unpricedCount"></b> denom belum ada harga jual</span>
         <button class="btn btn-xs tap" @click="filterUnpriced = !filterUnpriced"
-                x-text="filterUnpriced ? 'Tampilkan semua' : 'Tampilkan'"></button>
+                x-text="filterUnpriced ? 'Lihat semua' : 'Lihat yang belum ada harga'"></button>
     </div>
 
     <!-- Filter -->
@@ -104,7 +108,7 @@
                         <td class="text-right">
                             <template x-if="canManage && !d.deleted">
                                 <input type="number" min="1" step="any"
-                                       class="input input-bordered input-xs w-28 text-right font-mono"
+                                       class="input input-bordered input-xs w-28 text-right font-mono no-spinner"
                                        :class="isDirty(d) ? 'input-warning' : ''"
                                        :value="pendingPrice(d)"
                                        @change="setPrice(d, $event.target.value)"/>
@@ -130,20 +134,21 @@
 </div>
 
 <th:block layout:fragment="scripts">
-<script defer th:src="@{/js/denom-price-editing.js}"></script>
+<!-- no defer: must define window.denomPriceEditing before Alpine (defer, head) auto-starts -->
+<script th:src="@{/js/denom-price-editing.js}"></script>
 <script th:inline="javascript">
     const INITIAL_DENOMS = /*[[${initialDenoms}]]*/ [];
     const INITIAL_CATEGORIES = /*[[${initialCategories}]]*/ [];
 
     function allDenomManager() {
-        return {
-            ...window.denomPriceEditing(() => this.denoms),
+        const c = {
             canManage: document.querySelector('[data-can-manage]')?.dataset.canManage === 'true',
             denoms: INITIAL_DENOMS,
             categories: INITIAL_CATEGORIES,
             searchQuery: '',
             filterCategory: '',
             selectedIds: [],
+            showMarkup: false,
             markup: { base: 'MODAL', type: 'PERSEN', value: null },
 
             get filteredDenoms() {
@@ -175,8 +180,9 @@
             },
 
             applyMarkup() {
+                if (this.selectedIds.length === 0) { Alpine.store('toast').error('Centang dulu denom yang mau diatur'); return; }
                 const v = Number(this.markup.value);
-                if (!(v >= 0)) { Alpine.store('toast').error('Nilai markup tidak valid'); return; }
+                if (this.markup.value === null || this.markup.value === '' || !(v >= 0)) { Alpine.store('toast').error('Isi dulu besar kenaikannya'); return; }
                 let skipped = 0, applied = 0;
                 for (const id of this.selectedIds) {
                     const d = this.denoms.find(x => x.id === id);
@@ -207,6 +213,11 @@
                 return 'Rp ' + new Intl.NumberFormat('id-ID').format(v);
             }
         };
+        // Copy shared price-editing state/getters/methods onto c WITHOUT invoking getters.
+        // (Object spread would eager-call `get unpricedCount` before `denoms` exists → TypeError,
+        //  and would freeze getters into static values, killing reactivity.)
+        Object.defineProperties(c, Object.getOwnPropertyDescriptors(window.denomPriceEditing(() => c.denoms)));
+        return c;
     }
 </script>
 </th:block>

@@ -98,7 +98,7 @@
                         <td class="text-right">
                             <template x-if="canManage && !d.deleted">
                                 <input type="number" min="1" step="any"
-                                       class="input input-bordered input-xs w-28 text-right font-mono"
+                                       class="input input-bordered input-xs w-28 text-right font-mono no-spinner"
                                        :class="isDirty(d) ? 'input-warning' : ''"
                                        :value="pendingPrice(d)"
                                        @change="setPrice(d, $event.target.value)"/>
@@ -302,7 +302,8 @@
 </div>
 
 <th:block layout:fragment="scripts">
-<script defer th:src="@{/js/denom-price-editing.js}"></script>
+<!-- no defer: must define window.denomPriceEditing before Alpine (defer, head) auto-starts -->
+<script th:src="@{/js/denom-price-editing.js}"></script>
 <script th:inline="javascript">
     const PRODUCT_ID = /*[[${productId}]]*/ '';
     const DENOM_TYPES = /*[[${denomTypes}]]*/ [];
@@ -310,8 +311,7 @@
     const INITIAL_PRODUCT = /*[[${initialProduct}]]*/ null;
 
     function denomManager() {
-        return {
-            ...window.denomPriceEditing(() => this.denoms),
+        const c = {
             canManage: document.querySelector('[data-can-manage]')?.dataset.canManage === 'true',
             productId: PRODUCT_ID,
             productName: INITIAL_PRODUCT ? INITIAL_PRODUCT.name : '',
@@ -483,6 +483,11 @@
                 }
             }
         };
+        // Copy shared price-editing state/getters/methods onto c WITHOUT invoking getters.
+        // (Object spread would eager-call `get unpricedCount` before `denoms` exists → TypeError,
+        //  and would freeze getters into static values, killing reactivity.)
+        Object.defineProperties(c, Object.getOwnPropertyDescriptors(window.denomPriceEditing(() => c.denoms)));
+        return c;
     }
 </script>
 </th:block>

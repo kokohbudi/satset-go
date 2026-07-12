@@ -69,6 +69,11 @@
             display: none !important;
         }
 
+        /* Numeric input without spinner arrows (keeps type=number numeric-only) */
+        .no-spinner::-webkit-inner-spin-button,
+        .no-spinner::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+        .no-spinner { -moz-appearance: textfield; appearance: textfield; }
+
         /* Skip-to-content link: hidden until keyboard-focused (a11y, WCAG 2.4.1) */
         .skip-link {
             position: absolute;
