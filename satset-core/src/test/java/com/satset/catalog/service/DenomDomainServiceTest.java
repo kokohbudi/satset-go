@@ -30,7 +30,6 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -488,24 +487,15 @@ class DenomDomainServiceTest {
     }
 
     @Test
-    void updatePrices_SaveThrows_ItemError_OthersSucceed() {
-        UUID otherId = UUID.randomUUID();
-        ProductDenoms other = new ProductDenoms();
-        other.setId(otherId);
-        other.setCode("TLKM10");
-        when(denomRepository.findById(denomId)).thenReturn(Optional.of(existingDenom));
-        when(denomRepository.findById(otherId)).thenReturn(Optional.of(other));
-        when(denomRepository.save(same(existingDenom)))
-                .thenThrow(new org.springframework.orm.ObjectOptimisticLockingFailureException(ProductDenoms.class, denomId));
-        when(denomRepository.save(same(other))).thenAnswer(inv -> inv.getArgument(0));
+    void updatePrices_IsWriteTransactional() throws Exception {
+        // Regression guard: class-level @Transactional(readOnly=true) — tanpa override
+        // method-level, write tidak ke-flush. WAJIB @Transactional read-write.
+        var tx = DenomDomainService.class
+                .getMethod("updatePrices", List.class)
+                .getAnnotation(org.springframework.transaction.annotation.Transactional.class);
 
-        List<PriceUpdateResult> results = denomService.updatePrices(List.of(
-                new BulkPriceUpdateRequest(denomId, new BigDecimal("6000")),
-                new BulkPriceUpdateRequest(otherId, new BigDecimal("11000"))));
-
-        assertThat(results.get(0).ok()).isFalse();
-        assertThat(results.get(0).error()).isEqualTo("Gagal menyimpan, coba lagi");
-        assertThat(results.get(1).ok()).isTrue();
+        assertThat(tx).isNotNull();
+        assertThat(tx.readOnly()).isFalse();
     }
 
     // === SUPPLIER SYNC ===

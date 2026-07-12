@@ -15,8 +15,6 @@ import com.satset.catalog.dto.BulkPriceUpdateRequest;
 import com.satset.catalog.dto.PriceUpdateResult;
 import com.satset.shared.exception.BusinessException;
 import com.satset.shared.exception.ResourceNotFoundException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,8 +27,6 @@ import java.util.UUID;
 @Service
 @Transactional(readOnly = true)
 public class DenomDomainService {
-
-    private static final Logger log = LoggerFactory.getLogger(DenomDomainService.class);
 
     private final DenomRepository denomRepository;
     private final DenomMetaRepository metaRepository;
@@ -165,11 +161,13 @@ public class DenomDomainService {
     // === Bulk price update (inline edit harga jual) ===
 
     /**
-     * Update harga jual banyak denom sekaligus. Per-item result — satu item gagal
-     * tidak menggagalkan yang lain (partial success by design).
-     * ponytail: sengaja TANPA @Transactional method-level — tiap save() commit sendiri
-     * supaya partial success beneran persist; bungkus satu txn kalau butuh all-or-nothing.
+     * Update harga jual banyak denom sekaligus. Validation error (tidak ditemukan,
+     * harga <= 0, sudah dihapus) tetap per-item — dicek SEBELUM save, item lain jalan terus.
+     * Persistensi satu transaksi: semua save di-commit bareng, all-or-nothing.
+     * ponytail: optimistic-lock conflict (edit bersamaan) menggagalkan seluruh batch —
+     * UI pertahankan dirty state, user coba lagi.
      */
+    @Transactional
     public List<PriceUpdateResult> updatePrices(List<BulkPriceUpdateRequest> items) {
         List<PriceUpdateResult> results = new ArrayList<>(items.size());
         for (BulkPriceUpdateRequest item : items) {
@@ -191,13 +189,8 @@ public class DenomDomainService {
             return PriceUpdateResult.fail(item.id(), denom.getCode(), "Denom sudah dihapus");
         }
         denom.setPrice(item.price());
-        try {
-            denomRepository.save(denom);
-            return PriceUpdateResult.ok(item.id(), denom.getCode());
-        } catch (RuntimeException e) {
-            log.error("Bulk price update failed for denom {} ({})", item.id(), denom.getCode(), e);
-            return PriceUpdateResult.fail(item.id(), denom.getCode(), "Gagal menyimpan, coba lagi");
-        }
+        denomRepository.save(denom);
+        return PriceUpdateResult.ok(item.id(), denom.getCode());
     }
 
     // === Supplier sync (Digiflazz) ===
