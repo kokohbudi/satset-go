@@ -1,6 +1,6 @@
 package com.satset.shared.config;
 
-import com.satset.shared.constant.OmniConstants;
+import com.satset.shared.constant.SatsetConstants;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -35,7 +35,7 @@ public class SecurityConfig {
     /**
      * Extract Keycloak realm + client roles from a token's claim map as granted authorities.
      * Realm roles come from {@code realm_access.roles}; client roles from
-     * {@code resource_access.<clientId>.roles}. Prefixes come from {@link OmniConstants}.
+     * {@code resource_access.<clientId>.roles}. Prefixes come from {@link SatsetConstants}.
      */
     private static Set<GrantedAuthority> keycloakRoles(Map<String, Object> claims, String clientId) {
         Set<GrantedAuthority> auths = new HashSet<>();
@@ -46,7 +46,7 @@ public class SecurityConfig {
             if (realmRoles instanceof List<?> rolesList) {
                 rolesList.stream()
                         .map(Object::toString)
-                        .map(r -> OmniConstants.ROLE_PREFIX_REALM + r)
+                        .map(r -> SatsetConstants.ROLE_PREFIX_REALM + r)
                         .map(SimpleGrantedAuthority::new)
                         .forEach(auths::add);
             }
@@ -60,7 +60,7 @@ public class SecurityConfig {
                 if (clientRoles instanceof List<?> clientRolesList) {
                     clientRolesList.stream()
                             .map(Object::toString)
-                            .map(r -> OmniConstants.ROLE_PREFIX_CLIENT + r)
+                            .map(r -> SatsetConstants.ROLE_PREFIX_CLIENT + r)
                             .map(SimpleGrantedAuthority::new)
                             .forEach(auths::add);
                 }

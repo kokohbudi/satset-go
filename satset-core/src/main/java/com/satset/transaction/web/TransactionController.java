@@ -1,6 +1,6 @@
 package com.satset.transaction.web;
 
-import com.satset.shared.constant.OmniConstants;
+import com.satset.shared.constant.SatsetConstants;
 import com.satset.shared.dto.UserDTO;
 import com.satset.shared.exception.InsufficientBalanceException;
 import com.satset.shared.exception.ResourceNotFoundException;
@@ -39,7 +39,7 @@ public class TransactionController {
     }
 
     @PostMapping("/purchase")
-    @PreAuthorize("hasRole('" + OmniConstants.PERM_PURCHASE + "')")
+    @PreAuthorize("hasRole('" + SatsetConstants.PERM_PURCHASE + "')")
     public ResponseEntity<Map<String, Object>> purchase(@Valid @RequestBody PurchaseRequest request)
             throws InsufficientBalanceException {
 
@@ -57,7 +57,7 @@ public class TransactionController {
     }
 
     @GetMapping("/balance")
-    @PreAuthorize("hasRole('" + OmniConstants.PERM_TRANSACTION + "')")
+    @PreAuthorize("hasRole('" + SatsetConstants.PERM_TRANSACTION + "')")
     public ResponseEntity<Map<String, Object>> getBalance() {
 
         String walletId = getWalletId();
@@ -67,13 +67,13 @@ public class TransactionController {
     }
 
     @GetMapping("/mutations")
-    @PreAuthorize("hasRole('" + OmniConstants.PERM_TRANSACTION + "')")
+    @PreAuthorize("hasRole('" + SatsetConstants.PERM_TRANSACTION + "')")
     public ResponseEntity<java.util.List<com.satset.wallet.dto.WalletMutationDTO>> mutations() {
         return ResponseEntity.ok(balanceService.listMutations(getWalletId()));
     }
 
     @GetMapping("/history")
-    @PreAuthorize("hasRole('" + OmniConstants.PERM_TRANSACTION + "')")
+    @PreAuthorize("hasRole('" + SatsetConstants.PERM_TRANSACTION + "')")
     public ResponseEntity<Page<TransactionDTO>> getTransactionHistory(
             @PageableDefault(size = 20, sort = "createdAt", direction = org.springframework.data.domain.Sort.Direction.DESC) Pageable pageable) {
         Page<TransactionDTO> page = transactionService.getTransactionHistory(getStoreId(), pageable);

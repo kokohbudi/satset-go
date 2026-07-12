@@ -6,7 +6,7 @@ import com.satset.identity.model.Users;
 import com.satset.identity.repository.UserRepository;
 import com.satset.identity.service.UserDomainService;
 import com.satset.onboarding.repository.StoreRepository;
-import com.satset.shared.constant.OmniConstants;
+import com.satset.shared.constant.SatsetConstants;
 import com.satset.shared.dto.UserDTO;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -130,7 +130,7 @@ class KeycloakLoginEventListenerTest {
         assertThat(capturedUser.isActive()).isTrue();
 
         // Verify session attribute
-        UserDTO userDTO = (UserDTO) session.getAttribute(OmniConstants.SESSION_USER_DTO);
+        UserDTO userDTO = (UserDTO) session.getAttribute(SatsetConstants.SESSION_USER_DTO);
         assertThat(userDTO).isNotNull();
         assertThat(userDTO.getEmail()).isEqualTo(email);
         assertThat(userDTO.getUsername()).isEqualTo(username);
@@ -164,7 +164,7 @@ class KeycloakLoginEventListenerTest {
         verify(userDomainService, never()).createNewUserDTO(any(UserDTO.class));
         verify(userDomainService).findByEmailDTO(email);
 
-        UserDTO userDTO = (UserDTO) session.getAttribute(OmniConstants.SESSION_USER_DTO);
+        UserDTO userDTO = (UserDTO) session.getAttribute(SatsetConstants.SESSION_USER_DTO);
         assertThat(userDTO).isNotNull();
         assertThat(userDTO.getEmail()).isEqualTo(email);
     }
@@ -186,7 +186,7 @@ class KeycloakLoginEventListenerTest {
         // Assert
         verify(userDomainService, never()).createNewUserDTO(any(UserDTO.class));
         verify(userDomainService, never()).findByEmailDTO(anyString());
-        assertThat(session.getAttribute(OmniConstants.SESSION_USER_DTO)).isNull();
+        assertThat(session.getAttribute(SatsetConstants.SESSION_USER_DTO)).isNull();
     }
 
     // ==================== Role Extraction Tests ====================

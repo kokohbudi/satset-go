@@ -1,6 +1,6 @@
 package com.satset.wallet.web;
 
-import com.satset.shared.constant.OmniConstants;
+import com.satset.shared.constant.SatsetConstants;
 import com.satset.wallet.dto.AdjustBalanceRequest;
 import com.satset.wallet.dto.WalletMutationDTO;
 import com.satset.wallet.model.MutationReferenceType;
@@ -26,7 +26,7 @@ import java.util.UUID;
  */
 @RestController
 @RequestMapping("/api/admin/wallets")
-@PreAuthorize("hasRole('" + OmniConstants.PERM_ADJUST_BALANCE + "')")
+@PreAuthorize("hasRole('" + SatsetConstants.PERM_ADJUST_BALANCE + "')")
 public class AdminWalletController {
 
     private final WalletService walletService;

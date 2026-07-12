@@ -1,7 +1,7 @@
 package com.satset;
 
 import com.satset.identity.repository.UserRepository;
-import com.satset.shared.constant.OmniConstants;
+import com.satset.shared.constant.SatsetConstants;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
@@ -67,10 +67,10 @@ public class StoreOnboardingInterceptor implements HandlerInterceptor {
                         String role = a.getAuthority();
                         // Consider as backoffice user if they have ANY realm role
                         // excluding the default Keycloak realm roles
-                        return role.startsWith(OmniConstants.ROLE_PREFIX_REALM) &&
-                                !role.equals(OmniConstants.ROLE_PREFIX_REALM + "offline_access") &&
-                                !role.equals(OmniConstants.ROLE_PREFIX_REALM + "uma_authorization") &&
-                                !role.startsWith(OmniConstants.ROLE_PREFIX_REALM + "default-roles-");
+                        return role.startsWith(SatsetConstants.ROLE_PREFIX_REALM) &&
+                                !role.equals(SatsetConstants.ROLE_PREFIX_REALM + "offline_access") &&
+                                !role.equals(SatsetConstants.ROLE_PREFIX_REALM + "uma_authorization") &&
+                                !role.startsWith(SatsetConstants.ROLE_PREFIX_REALM + "default-roles-");
                     });
 
             if (isBackofficeUser) {

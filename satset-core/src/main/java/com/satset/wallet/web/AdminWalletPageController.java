@@ -2,7 +2,7 @@ package com.satset.wallet.web;
 
 import com.satset.onboarding.model.Stores;
 import com.satset.onboarding.repository.StoreRepository;
-import com.satset.shared.constant.OmniConstants;
+import com.satset.shared.constant.SatsetConstants;
 import com.satset.wallet.dto.WalletAccountDTO;
 import com.satset.wallet.model.WalletAccountEntity;
 import com.satset.wallet.service.WalletService;
@@ -30,7 +30,7 @@ public class AdminWalletPageController {
     }
 
     @GetMapping("/admin/wallets/adjust")
-    @PreAuthorize("hasRole('" + OmniConstants.PERM_ADJUST_BALANCE + "')")
+    @PreAuthorize("hasRole('" + SatsetConstants.PERM_ADJUST_BALANCE + "')")
     public String adjustPage(Model model) {
         log.info("Accessing admin wallet inject page");
 

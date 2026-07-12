@@ -1,7 +1,7 @@
 package com.satset.onboarding.web;
 
 import com.satset.onboarding.service.AdminOnboardingDomainService;
-import com.satset.shared.constant.OmniConstants;
+import com.satset.shared.constant.SatsetConstants;
 import com.satset.shared.exception.BusinessException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -22,7 +22,7 @@ public class AdminResellerController {
     public AdminResellerController(AdminOnboardingDomainService adminOnboardingService) {
         this.adminOnboardingService = adminOnboardingService;
     }
-    @PreAuthorize("hasRole('" + OmniConstants.PERM_CREATE_RESELLER + "')")
+    @PreAuthorize("hasRole('" + SatsetConstants.PERM_CREATE_RESELLER + "')")
     @PostMapping("/api/admin/resellers")
     public ResponseEntity<Map<String, String>> createReseller(
             @RequestParam("username") String username,

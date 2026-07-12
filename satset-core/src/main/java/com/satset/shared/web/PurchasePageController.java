@@ -4,7 +4,7 @@ import com.satset.catalog.dto.CategoryDTO;
 import com.satset.catalog.model.CategoryType;
 import com.satset.catalog.service.CategoryDomainService;
 import com.satset.catalog.web.CatalogDtoMapper;
-import com.satset.shared.constant.OmniConstants;
+import com.satset.shared.constant.SatsetConstants;
 import com.satset.shared.dto.UserDTO;
 import com.satset.transaction.client.WalletGateway;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -29,7 +29,7 @@ public class PurchasePageController {
     }
 
     @GetMapping("/purchase")
-    @PreAuthorize("hasRole('" + OmniConstants.PERM_PURCHASE + "')")
+    @PreAuthorize("hasRole('" + SatsetConstants.PERM_PURCHASE + "')")
     public String purchasePage(Model model) {
         model.addAttribute("currentPage", "purchase");
         model.addAttribute("breadcrumb", "Beli Pulsa");

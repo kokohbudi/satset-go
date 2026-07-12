@@ -1,7 +1,7 @@
 package com.satset.onboarding.web;
 
 import com.satset.onboarding.service.StoreOnboardingDomainService;
-import com.satset.shared.constant.OmniConstants;
+import com.satset.shared.constant.SatsetConstants;
 import com.satset.shared.dto.UserDTO;
 import jakarta.servlet.http.HttpSession;
 import lombok.extern.slf4j.Slf4j;
@@ -37,7 +37,7 @@ public class OnboardingController {
             HttpSession session,
             RedirectAttributes redirectAttributes) {
 
-        UserDTO userDTO = (UserDTO) session.getAttribute(OmniConstants.SESSION_USER_DTO);
+        UserDTO userDTO = (UserDTO) session.getAttribute(SatsetConstants.SESSION_USER_DTO);
         if (userDTO == null || userDTO.getProviderUserId() == null) {
             log.error("No user DTO or provider user ID found in session during onboarding");
             return "redirect:/login";

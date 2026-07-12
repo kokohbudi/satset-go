@@ -1,6 +1,6 @@
 package com.satset.onboarding.web;
 
-import com.satset.shared.constant.OmniConstants;
+import com.satset.shared.constant.SatsetConstants;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 public class AdminResellerPageController {
 
     @GetMapping("/admin/resellers")
-    @PreAuthorize("hasRole('" + OmniConstants.PERM_VIEW_RESELLERS + "')")
+    @PreAuthorize("hasRole('" + SatsetConstants.PERM_VIEW_RESELLERS + "')")
     public String resellerFormPage(Model model) {
         log.info("Accessing admin reseller form page");
         model.addAttribute("currentPage", "resellers");

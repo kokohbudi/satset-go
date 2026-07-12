@@ -1,7 +1,7 @@
 package com.satset.onboarding.web;
 
 import com.satset.onboarding.service.StoreOnboardingDomainService;
-import com.satset.shared.constant.OmniConstants;
+import com.satset.shared.constant.SatsetConstants;
 import com.satset.shared.dto.UserDTO;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -74,7 +74,7 @@ class OnboardingControllerTest {
         MockHttpSession session = new MockHttpSession();
         UserDTO userDTO = new UserDTO();
         userDTO.setProviderUserId(null); // missing
-        session.setAttribute(OmniConstants.SESSION_USER_DTO, userDTO);
+        session.setAttribute(SatsetConstants.SESSION_USER_DTO, userDTO);
 
         mockMvc.perform(post("/onboarding")
                         .session(session)
@@ -89,7 +89,7 @@ class OnboardingControllerTest {
         MockHttpSession session = new MockHttpSession();
         UserDTO userDTO = new UserDTO();
         userDTO.setProviderUserId("kc-abc");
-        session.setAttribute(OmniConstants.SESSION_USER_DTO, userDTO);
+        session.setAttribute(SatsetConstants.SESSION_USER_DTO, userDTO);
         doNothing().when(selfOnboardingUseCase).onboardStore(any(), any(), any());
 
         mockMvc.perform(post("/onboarding")
@@ -107,7 +107,7 @@ class OnboardingControllerTest {
         MockHttpSession session = new MockHttpSession();
         UserDTO userDTO = new UserDTO();
         userDTO.setProviderUserId("kc-abc");
-        session.setAttribute(OmniConstants.SESSION_USER_DTO, userDTO);
+        session.setAttribute(SatsetConstants.SESSION_USER_DTO, userDTO);
         doThrow(new RuntimeException("KC error"))
                 .when(selfOnboardingUseCase).onboardStore(any(), any(), any());
 

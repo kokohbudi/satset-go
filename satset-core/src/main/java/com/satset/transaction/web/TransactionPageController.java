@@ -1,6 +1,6 @@
 package com.satset.transaction.web;
 
-import com.satset.shared.constant.OmniConstants;
+import com.satset.shared.constant.SatsetConstants;
 import com.satset.shared.dto.UserDTO;
 import com.satset.transaction.service.TransactionDomainService;
 import org.springframework.data.domain.Page;
@@ -23,7 +23,7 @@ public class TransactionPageController {
     }
 
     @GetMapping("/transactions")
-    @PreAuthorize("hasRole('" + OmniConstants.PERM_TRANSACTION + "')")
+    @PreAuthorize("hasRole('" + SatsetConstants.PERM_TRANSACTION + "')")
     public String transactionsPage(Model model) {
         model.addAttribute("currentPage", "transactions");
         model.addAttribute("breadcrumb", "Riwayat Transaksi");

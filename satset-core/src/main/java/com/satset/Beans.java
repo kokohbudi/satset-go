@@ -1,7 +1,7 @@
 package com.satset;
 
 import com.satset.identity.repository.UserRepository;
-import com.satset.shared.constant.OmniConstants;
+import com.satset.shared.constant.SatsetConstants;
 import com.satset.shared.dto.UserDTO;
 import jakarta.servlet.http.HttpServletRequest;
 import org.keycloak.admin.client.Keycloak;
@@ -74,7 +74,7 @@ public class Beans {
                 dto.setRoles(userFromDb.getRoles());
             }
         } else {
-            UserDTO userDTO = (UserDTO) request.getSession().getAttribute(OmniConstants.SESSION_USER_DTO);
+            UserDTO userDTO = (UserDTO) request.getSession().getAttribute(SatsetConstants.SESSION_USER_DTO);
             if (userDTO != null) {
                 dto = userDTO;
             }

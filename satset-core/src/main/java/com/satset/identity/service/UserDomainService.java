@@ -2,6 +2,7 @@ package com.satset.identity.service;
 
 import com.satset.identity.repository.UserRepository;
 import com.satset.identity.model.Users;
+import com.satset.shared.constant.SatsetConstants;
 import com.satset.shared.dto.UserDTO;
 import com.satset.shared.exception.BusinessException;
 import org.springframework.stereotype.Service;
@@ -79,7 +80,7 @@ public class UserDomainService {
         user.setFullname(userDTO.getFullname());
         user.setRoles(userDTO.getRoles());
         user.setProviderUserId(userDTO.getProviderUserId());
-        user.setRegistrationChannel(com.satset.shared.constant.OmniConstants.REGISTRATION_CHANNEL_KEYCLOAK);
+        user.setRegistrationChannel(SatsetConstants.REGISTRATION_CHANNEL_KEYCLOAK);
         user.setActive(true);
         user.setDeleted(false);
         Users savedUser = this.usersRepository.save(user);

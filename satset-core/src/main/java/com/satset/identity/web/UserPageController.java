@@ -1,7 +1,7 @@
 package com.satset.identity.web;
 
 import com.satset.identity.service.IdentityDomainService;
-import com.satset.shared.constant.OmniConstants;
+import com.satset.shared.constant.SatsetConstants;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -21,7 +21,7 @@ public class UserPageController {
     private final IdentityDomainService identityService;
 
     @GetMapping("/admin/user-management")
-    @PreAuthorize("hasRole('" + OmniConstants.PERM_VIEW_USERS + "')")
+    @PreAuthorize("hasRole('" + SatsetConstants.PERM_VIEW_USERS + "')")
     public String userManagementPage(Model model) {
         log.info("Accessing admin user management page");
         model.addAttribute("currentPage", "user-management");

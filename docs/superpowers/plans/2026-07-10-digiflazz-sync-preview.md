@@ -380,7 +380,7 @@ class CatalogSyncControllerTest {
 ```java
 package com.satset.transaction.web;
 
-import com.satset.shared.constant.OmniConstants;
+import com.satset.shared.constant.SatsetConstants;
 import com.satset.transaction.model.PriceCompareRow;
 import com.satset.transaction.model.SyncPreviewItem;
 import com.satset.transaction.service.CatalogSyncService;

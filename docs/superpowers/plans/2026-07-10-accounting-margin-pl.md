@@ -567,7 +567,7 @@ package com.satset.accounting.web;
 
 import com.satset.accounting.dto.PnlReport;
 import com.satset.accounting.service.AccountingService;
-import com.satset.shared.constant.OmniConstants;
+import com.satset.shared.constant.SatsetConstants;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.security.access.prepost.PreAuthorize;

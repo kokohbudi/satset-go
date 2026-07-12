@@ -7,7 +7,7 @@ import com.satset.catalog.model.*;
 import com.satset.catalog.service.CategoryDomainService;
 import com.satset.catalog.service.DenomDomainService;
 import com.satset.catalog.service.ProductDomainService;
-import com.satset.shared.constant.OmniConstants;
+import com.satset.shared.constant.SatsetConstants;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -18,7 +18,7 @@ import java.util.List;
 
 @Controller
 @RequestMapping("/admin/catalog")
-@PreAuthorize("hasRole('" + OmniConstants.PERM_VIEW_CATALOG + "')")
+@PreAuthorize("hasRole('" + SatsetConstants.PERM_VIEW_CATALOG + "')")
 public class AdminCatalogPageController {
 
     private final CategoryDomainService manageCategoriesUseCase;

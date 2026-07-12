@@ -3,7 +3,7 @@ package com.satset;
 import com.satset.identity.repository.UserRepository;
 import com.satset.identity.service.UserDomainService;
 import com.satset.onboarding.repository.StoreRepository;
-import com.satset.shared.constant.OmniConstants;
+import com.satset.shared.constant.SatsetConstants;
 import com.satset.shared.dto.UserDTO;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
@@ -98,7 +98,7 @@ public class KeycloakLoginEventListener {
                     userDTO.setStoreId(user.getStoreId());
                     userDTO.setWalletId(user.getWalletId());
                     userDTO.setProviderUserId(providerUserId);
-                    session.setAttribute(OmniConstants.SESSION_USER_DTO, userDTO);
+                    session.setAttribute(SatsetConstants.SESSION_USER_DTO, userDTO);
                 }
             } else {
                 logger.warn("Couldn't extract email from login event");

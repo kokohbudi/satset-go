@@ -4,7 +4,7 @@ import com.satset.identity.dto.CreateUserRequest;
 import com.satset.identity.model.KeycloakGroup;
 import com.satset.identity.model.KeycloakRole;
 import com.satset.identity.service.IdentityDomainService;
-import com.satset.shared.constant.OmniConstants;
+import com.satset.shared.constant.SatsetConstants;
 import com.satset.shared.dto.UserDTO;
 import com.satset.shared.exception.BusinessException;
 import jakarta.validation.Valid;
@@ -32,33 +32,33 @@ public class IdentityController {
     // ==================== Roles & Groups ====================
 
     @GetMapping("/groups")
-    @PreAuthorize("hasRole('" + OmniConstants.PERM_MANAGE_ROLES + "')")
+    @PreAuthorize("hasRole('" + SatsetConstants.PERM_MANAGE_ROLES + "')")
     public ResponseEntity<List<KeycloakGroup>> getGroups() {
         return ResponseEntity.ok(identityService.getGroups());
     }
 
     @GetMapping("/roles")
-    @PreAuthorize("hasRole('" + OmniConstants.PERM_MANAGE_ROLES + "')")
+    @PreAuthorize("hasRole('" + SatsetConstants.PERM_MANAGE_ROLES + "')")
     public ResponseEntity<List<KeycloakRole>> getClientRoles() {
         return ResponseEntity.ok(identityService.getRoles());
     }
 
     @GetMapping("/roles/scope/{scope}")
-    @PreAuthorize("hasRole('" + OmniConstants.PERM_MANAGE_ROLES + "')")
+    @PreAuthorize("hasRole('" + SatsetConstants.PERM_MANAGE_ROLES + "')")
     public ResponseEntity<List<KeycloakRole>> getRolesByScope(
             @PathVariable String scope) {
         return ResponseEntity.ok(identityService.getRolesByScope(scope));
     }
 
     @GetMapping("/groups/{groupId}/roles")
-    @PreAuthorize("hasRole('" + OmniConstants.PERM_MANAGE_ROLES + "')")
+    @PreAuthorize("hasRole('" + SatsetConstants.PERM_MANAGE_ROLES + "')")
     public ResponseEntity<List<KeycloakRole>> getRolesByGroup(
             @PathVariable String groupId) throws BusinessException {
         return ResponseEntity.ok(identityService.getRolesByGroup(groupId));
     }
 
     @PostMapping("/groups/{groupId}/roles/{roleName}")
-    @PreAuthorize("hasRole('" + OmniConstants.PERM_MANAGE_ROLES + "')")
+    @PreAuthorize("hasRole('" + SatsetConstants.PERM_MANAGE_ROLES + "')")
     public ResponseEntity<Map<String, String>> assignRoleToGroup(
             @PathVariable String groupId,
             @PathVariable String roleName) throws BusinessException {
@@ -66,7 +66,7 @@ public class IdentityController {
     }
 
     @DeleteMapping("/groups/{groupId}/roles/{roleName}")
-    @PreAuthorize("hasRole('" + OmniConstants.PERM_MANAGE_ROLES + "')")
+    @PreAuthorize("hasRole('" + SatsetConstants.PERM_MANAGE_ROLES + "')")
     public ResponseEntity<Map<String, String>> unassignRoleFromGroup(
             @PathVariable String groupId,
             @PathVariable String roleName) throws BusinessException {
@@ -76,7 +76,7 @@ public class IdentityController {
     // ==================== User Management ====================
 
     @PostMapping("/users/{userId}/roles/{roleName}")
-    @PreAuthorize("hasRole('" + OmniConstants.PERM_ASSIGN_USER_TO_GROUPS + "') and @authz.targetIsNotCurrentUser(#userId)")
+    @PreAuthorize("hasRole('" + SatsetConstants.PERM_ASSIGN_USER_TO_GROUPS + "') and @authz.targetIsNotCurrentUser(#userId)")
     public ResponseEntity<Map<String, String>> assignRoleToUser(
             @PathVariable String userId,
             @PathVariable String roleName) throws BusinessException {
@@ -85,7 +85,7 @@ public class IdentityController {
     }
 
     @DeleteMapping("/users/{userId}/roles/{roleName}")
-    @PreAuthorize("hasRole('" + OmniConstants.PERM_ASSIGN_USER_TO_GROUPS + "') and @authz.targetIsNotCurrentUser(#userId)")
+    @PreAuthorize("hasRole('" + SatsetConstants.PERM_ASSIGN_USER_TO_GROUPS + "') and @authz.targetIsNotCurrentUser(#userId)")
     public ResponseEntity<Map<String, String>> unassignRoleFromUser(
             @PathVariable String userId,
             @PathVariable String roleName) throws BusinessException {
@@ -94,13 +94,13 @@ public class IdentityController {
     }
 
     @PutMapping("/users/password")
-    @PreAuthorize("hasRole('" + OmniConstants.PERM_MANAGE_USERS + "')")
+    @PreAuthorize("hasRole('" + SatsetConstants.PERM_MANAGE_USERS + "')")
     public ResponseEntity<UserDTO> changePassword(@RequestBody UserDTO reqUserDTO) {
         return ResponseEntity.ok(identityService.changePassword(reqUserDTO));
     }
 
     @PutMapping("/users/{email}/status/{status}")
-    @PreAuthorize("hasRole('" + OmniConstants.PERM_MANAGE_USERS + "')")
+    @PreAuthorize("hasRole('" + SatsetConstants.PERM_MANAGE_USERS + "')")
     public ResponseEntity<UserDTO> setUserStatus(
             @PathVariable String email,
             @PathVariable boolean status) {
@@ -110,14 +110,14 @@ public class IdentityController {
     // ==================== User-Group Assignment ====================
 
     @GetMapping("/users")
-    @PreAuthorize("hasRole('" + OmniConstants.PERM_VIEW_USERS + "')")
+    @PreAuthorize("hasRole('" + SatsetConstants.PERM_VIEW_USERS + "')")
     public ResponseEntity<List<UserDTO>> getAllUsers(
             @RequestParam(defaultValue = "100") int maxResults) {
         return ResponseEntity.ok(identityService.getAllUsers(maxResults));
     }
 
     @PostMapping("/users/{userId}/groups/{groupId}")
-    @PreAuthorize("hasRole('" + OmniConstants.PERM_ASSIGN_USER_TO_GROUPS + "')")
+    @PreAuthorize("hasRole('" + SatsetConstants.PERM_ASSIGN_USER_TO_GROUPS + "')")
     public ResponseEntity<Map<String, String>> assignUserToGroup(
             @PathVariable String userId,
             @PathVariable String groupId) {
@@ -125,7 +125,7 @@ public class IdentityController {
     }
 
     @DeleteMapping("/users/{userId}/groups/{groupId}")
-    @PreAuthorize("hasRole('" + OmniConstants.PERM_ASSIGN_USER_TO_GROUPS + "')")
+    @PreAuthorize("hasRole('" + SatsetConstants.PERM_ASSIGN_USER_TO_GROUPS + "')")
     public ResponseEntity<Map<String, String>> removeUserFromGroup(
             @PathVariable String userId,
             @PathVariable String groupId) {
@@ -133,14 +133,14 @@ public class IdentityController {
     }
 
     @GetMapping("/users/{userId}/groups")
-    @PreAuthorize("hasRole('" + OmniConstants.PERM_MANAGE_USERS + "')")
+    @PreAuthorize("hasRole('" + SatsetConstants.PERM_MANAGE_USERS + "')")
     public ResponseEntity<List<KeycloakGroup>> getUserGroups(
             @PathVariable String userId) {
         return ResponseEntity.ok(identityService.getUserGroups(userId));
     }
 
     @GetMapping("/groups/{groupId}/members")
-    @PreAuthorize("hasRole('" + OmniConstants.PERM_MANAGE_USERS + "')")
+    @PreAuthorize("hasRole('" + SatsetConstants.PERM_MANAGE_USERS + "')")
     public ResponseEntity<List<UserDTO>> getGroupMembers(
             @PathVariable String groupId,
             @RequestParam(defaultValue = "false") boolean recursive) {
@@ -148,13 +148,13 @@ public class IdentityController {
     }
 
     @GetMapping("/groups/hierarchy")
-    @PreAuthorize("hasRole('" + OmniConstants.PERM_MANAGE_ROLES + "')")
+    @PreAuthorize("hasRole('" + SatsetConstants.PERM_MANAGE_ROLES + "')")
     public ResponseEntity<List<KeycloakGroup>> getGroupsHierarchy() {
         return ResponseEntity.ok(identityService.getGroupsHierarchy());
     }
 
     @GetMapping("/groups/subgroups")
-    @PreAuthorize("hasRole('" + OmniConstants.PERM_MANAGE_ROLES + "')")
+    @PreAuthorize("hasRole('" + SatsetConstants.PERM_MANAGE_ROLES + "')")
     public ResponseEntity<List<KeycloakGroup>> getSubGroups(
             @RequestParam String parentPath) {
         return ResponseEntity.ok(identityService.getSubGroups(parentPath));
@@ -163,7 +163,7 @@ public class IdentityController {
     // ==================== Backoffice Users ====================
 
     @GetMapping("/backoffice/users")
-    @PreAuthorize("hasRole('" + OmniConstants.PERM_VIEW_USERS + "')")
+    @PreAuthorize("hasRole('" + SatsetConstants.PERM_VIEW_USERS + "')")
     public ResponseEntity<List<UserDTO>> getBackofficeUsers(
             @RequestParam(required = false) String q,
             @RequestParam(required = false) String roleFilter) {
@@ -184,7 +184,7 @@ public class IdentityController {
     }
 
     @PostMapping("/backoffice/users")
-    @PreAuthorize("hasRole('" + OmniConstants.PERM_CREATE_USERS + "')")
+    @PreAuthorize("hasRole('" + SatsetConstants.PERM_CREATE_USERS + "')")
     public ResponseEntity<UserDTO> createBackofficeUser(@Valid @RequestBody CreateUserRequest request) {
         UserDTO userDTO = new UserDTO();
         userDTO.setUsername(request.getUsername());
@@ -197,7 +197,7 @@ public class IdentityController {
     }
 
     @PutMapping("/backoffice/users/{targetProviderUserId}/status/{status}")
-    @PreAuthorize("hasRole('" + OmniConstants.PERM_MANAGE_USERS + "') and @authz.targetIsNotCurrentUser(#targetProviderUserId)")
+    @PreAuthorize("hasRole('" + SatsetConstants.PERM_MANAGE_USERS + "') and @authz.targetIsNotCurrentUser(#targetProviderUserId)")
     public ResponseEntity<UserDTO> setBackofficeUserStatus(
             @PathVariable String targetProviderUserId,
             @PathVariable boolean status) {
