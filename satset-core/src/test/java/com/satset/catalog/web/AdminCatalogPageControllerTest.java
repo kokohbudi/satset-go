@@ -3,6 +3,7 @@ package com.satset.catalog.web;
 import com.satset.catalog.model.Category;
 import com.satset.catalog.model.CategoryType;
 import com.satset.catalog.service.CategoryDomainService;
+import com.satset.catalog.service.DenomDomainService;
 import com.satset.catalog.service.ProductDomainService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -27,6 +28,7 @@ class AdminCatalogPageControllerTest {
 
     @Mock private CategoryDomainService manageCategoriesUseCase;
     @Mock private ProductDomainService manageProductsUseCase;
+    @Mock private DenomDomainService manageDenomsUseCase;
 
     private MockMvc mockMvc;
 
@@ -34,11 +36,12 @@ class AdminCatalogPageControllerTest {
     void setUp() {
         mockMvc = MockMvcBuilders.standaloneSetup(
                 new AdminCatalogPageController(
-                        manageCategoriesUseCase, manageProductsUseCase))
+                        manageCategoriesUseCase, manageProductsUseCase, manageDenomsUseCase))
                 .build();
 
         when(manageCategoriesUseCase.findAllForAdmin()).thenReturn(List.of(buildCategory()));
         when(manageProductsUseCase.findAllForAdmin()).thenReturn(List.of());
+        when(manageDenomsUseCase.findAllForAdmin()).thenReturn(List.of());
     }
 
     @Test
@@ -48,6 +51,7 @@ class AdminCatalogPageControllerTest {
                 .andExpect(view().name("pages/admin/catalog/index"))
                 .andExpect(model().attributeExists("initialCategories"))
                 .andExpect(model().attributeExists("initialProducts"))
+                .andExpect(model().attributeExists("initialDenoms"))
                 .andExpect(model().attributeExists("categoryTypes"))
                 .andExpect(model().attributeExists("denomTypes"));
     }
