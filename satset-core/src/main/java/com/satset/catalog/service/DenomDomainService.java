@@ -177,6 +177,9 @@ public class DenomDomainService {
     }
 
     private PriceUpdateResult updateSinglePrice(BulkPriceUpdateRequest item) {
+        if (item.id() == null) {
+            return PriceUpdateResult.fail(null, null, "Denom tidak ditemukan");
+        }
         Optional<ProductDenoms> found = denomRepository.findById(item.id());
         if (found.isEmpty()) {
             return PriceUpdateResult.fail(item.id(), null, "Denom tidak ditemukan");

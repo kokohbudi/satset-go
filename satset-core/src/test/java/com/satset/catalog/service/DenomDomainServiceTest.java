@@ -487,6 +487,16 @@ class DenomDomainServiceTest {
     }
 
     @Test
+    void updatePrices_NullId_ItemError_NoLookup() {
+        List<PriceUpdateResult> results = denomService.updatePrices(List.of(
+                new BulkPriceUpdateRequest(null, new BigDecimal("6000"))));
+
+        assertThat(results.get(0).ok()).isFalse();
+        assertThat(results.get(0).error()).isEqualTo("Denom tidak ditemukan");
+        verify(denomRepository, never()).findById(any());
+    }
+
+    @Test
     void updatePrices_IsWriteTransactional() throws Exception {
         // Regression guard: class-level @Transactional(readOnly=true) — tanpa override
         // method-level, write tidak ke-flush. WAJIB @Transactional read-write.
