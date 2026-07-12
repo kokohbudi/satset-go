@@ -22,16 +22,23 @@ import java.util.stream.Collectors;
 public class GlobalExceptionHandler {
 
     /**
+     * Build the standard error response body shared by all handlers.
+     */
+    private ResponseEntity<Map<String, Object>> body(String code, String message, HttpStatus status) {
+        Map<String, Object> response = new HashMap<>();
+        response.put("timestamp", LocalDateTime.now().toString());
+        response.put("status", "error");
+        response.put("code", code);
+        response.put("message", message);
+        return ResponseEntity.status(status).body(response);
+    }
+
+    /**
      * Handle validation errors from @Valid annotations.
      */
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<Map<String, Object>> handleValidationExceptions(
             MethodArgumentNotValidException ex) {
-
-        Map<String, Object> response = new HashMap<>();
-        response.put("timestamp", LocalDateTime.now().toString());
-        response.put("status", "error");
-        response.put("code", "VALIDATION_ERROR");
 
         // Collect all field errors
         Map<String, String> fieldErrors = ex.getBindingResult()
@@ -43,15 +50,14 @@ public class GlobalExceptionHandler {
                         (first, second) -> first // Keep first message if duplicate field
                 ));
 
-        response.put("errors", fieldErrors);
-
         // Create summary message
         String message = fieldErrors.values().stream().findFirst().orElse("Validasi gagal");
-        response.put("message", message);
 
         log.warn("Validation failed: {}", fieldErrors);
 
-        return ResponseEntity.badRequest().body(response);
+        ResponseEntity<Map<String, Object>> response = body("VALIDATION_ERROR", message, HttpStatus.BAD_REQUEST);
+        response.getBody().put("errors", fieldErrors);
+        return response;
     }
 
     /**
@@ -59,28 +65,14 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(InsufficientBalanceException.class)
     public ResponseEntity<Map<String, Object>> handleInsufficientBalance(InsufficientBalanceException ex) {
-        Map<String, Object> response = new HashMap<>();
-        response.put("timestamp", LocalDateTime.now().toString());
-        response.put("status", "error");
-        response.put("code", "INSUFFICIENT_BALANCE");
-        response.put("message", ex.getErrorMessage());
-
         log.warn("Insufficient balance: {}", ex.getErrorMessage());
-
-        return ResponseEntity.status(422).body(response);
+        return body("INSUFFICIENT_BALANCE", ex.getErrorMessage(), HttpStatus.UNPROCESSABLE_ENTITY);
     }
 
     @ExceptionHandler(BusinessException.class)
     public ResponseEntity<Map<String, Object>> handleBusinessException(BusinessException ex) {
-        Map<String, Object> response = new HashMap<>();
-        response.put("timestamp", LocalDateTime.now().toString());
-        response.put("status", "error");
-        response.put("code", ex.getErrorCode());
-        response.put("message", ex.getErrorMessage());
-
         log.error("Business exception: {} - {}", ex.getErrorCode(), ex.getErrorMessage());
-
-        return ResponseEntity.badRequest().body(response);
+        return body(ex.getErrorCode(), ex.getErrorMessage(), HttpStatus.BAD_REQUEST);
     }
 
     /**
@@ -88,16 +80,10 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(ResourceNotFoundException.class)
     public ResponseEntity<Map<String, Object>> handleResourceNotFound(ResourceNotFoundException ex) {
-        Map<String, Object> response = new HashMap<>();
-        response.put("timestamp", LocalDateTime.now().toString());
-        response.put("status", "error");
-        response.put("code", "NOT_FOUND");
-        response.put("message", ex.getMessage());
-        response.put("resource", ex.getResourceName());
-
         log.warn("Resource not found: {}", ex.getMessage());
-
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+        ResponseEntity<Map<String, Object>> response = body("NOT_FOUND", ex.getMessage(), HttpStatus.NOT_FOUND);
+        response.getBody().put("resource", ex.getResourceName());
+        return response;
     }
 
     /**
@@ -106,14 +92,7 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<Map<String, Object>> handleRuntimeException(RuntimeException ex) {
-        Map<String, Object> response = new HashMap<>();
-        response.put("timestamp", LocalDateTime.now().toString());
-        response.put("status", "error");
-        response.put("code", "INTERNAL_ERROR");
-        response.put("message", "Terjadi kesalahan server. Silakan coba lagi.");
-
         log.error("Runtime exception: {}", ex.getMessage(), ex);
-
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+        return body("INTERNAL_ERROR", "Terjadi kesalahan server. Silakan coba lagi.", HttpStatus.INTERNAL_SERVER_ERROR);
     }
 }

@@ -63,6 +63,10 @@ public class ProductDomainService {
         return productRepository.findByCategoryIdOrderBySortOrder(categoryId);
     }
 
+    public List<Products> findAllForAdmin() {
+        return productRepository.findByDeletedFalseOrderBySortOrder();
+    }
+
     public Optional<Products> findById(UUID id) {
         return productRepository.findById(id);
     }

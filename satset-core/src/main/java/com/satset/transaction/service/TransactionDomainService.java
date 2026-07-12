@@ -16,6 +16,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 @Slf4j
@@ -54,11 +56,11 @@ public class TransactionDomainService {
                 BigDecimal total = denom.total();
 
                 // 0. Double submit protection (Idempotency check)
-                java.time.LocalDateTime oneMinuteAgo = java.time.LocalDateTime.now().minusMinutes(1);
+                LocalDateTime oneMinuteAgo = LocalDateTime.now().minusMinutes(1);
                 boolean isDuplicate = transactionRepository
                                 .existsByStoreIdAndProductDenomIdAndTargetNumberAndStatusInAndCreatedAtAfter(
                                                 storeId, denomId, targetNumber,
-                                                java.util.Arrays.asList(TransactionStatus.PENDING,
+                                                List.of(TransactionStatus.PENDING,
                                                                 TransactionStatus.PROCESSING,
                                                                 TransactionStatus.SUCCESS),
                                                 oneMinuteAgo);
@@ -114,8 +116,8 @@ public class TransactionDomainService {
                         transactionRepository.save(transaction);
 
                         try {
-                                balanceService.addBalance(walletId, total,
-                                                MutationReferenceType.REFUND, transaction.getId(),
+                                balanceService.refundBalance(walletId, total,
+                                                transaction.getId(),
                                                 "Refund " + denom.name() + " - " + response.message());
 
                                 transaction.setStatus(TransactionStatus.REFUNDED);
@@ -131,13 +133,6 @@ public class TransactionDomainService {
                 }
 
                 return toDTO(transaction);
-        }
-
-        @Transactional(readOnly = true)
-        public TransactionDTO getTransaction(UUID id, UUID storeId) {
-                Transactions tx = transactionRepository.findByIdAndStoreId(id, storeId)
-                                .orElseThrow(() -> new ResourceNotFoundException("Transaction", id));
-                return toDTO(tx);
         }
 
         @Transactional(readOnly = true)

@@ -191,7 +191,7 @@ class IdentityDomainServiceTest {
         GroupMemberInfo member = new GroupMemberInfo("kc-uuid", "alice", "Alice", "alice@mail.com", true);
         when(keycloakPort.getGroupMembers("group-1", false)).thenReturn(List.of(member));
 
-        List<UserDTO> result = service.getGroupMembers("group-1");
+        List<UserDTO> result = service.getGroupMembers("group-1", false);
 
         assertEquals(1, result.size());
         UserDTO dto = result.getFirst();
@@ -310,16 +310,7 @@ class IdentityDomainServiceTest {
         verify(keycloakPort).getUserGroups("u-1");
     }
 
-    // ==================== getGroupMembers (no-arg) / getGroupsHierarchy / getSubGroups ====================
-
-    @Test
-    void getGroupMembers_NoArg_DelegatesToTwoArgVersion() {
-        when(keycloakPort.getGroupMembers("g-1", false)).thenReturn(List.of());
-
-        service.getGroupMembers("g-1");
-
-        verify(keycloakPort).getGroupMembers("g-1", false);
-    }
+    // ==================== getGroupsHierarchy / getSubGroups ====================
 
     @Test
     void getGroupsHierarchy_DelegatesToPort() {

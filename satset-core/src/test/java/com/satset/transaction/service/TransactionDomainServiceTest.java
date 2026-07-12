@@ -149,8 +149,8 @@ class TransactionDomainServiceTest {
                 any(UUID.class), anyString());
 
         // Verify balance was added back (refunded)
-        verify(balanceService, times(1)).addBalance(eq(walletId), eq(new BigDecimal("5000.00")),
-                eq(MutationReferenceType.REFUND), eq(result.id()), anyString());
+        verify(balanceService, times(1)).refundBalance(eq(walletId), eq(new BigDecimal("5000.00")),
+                eq(result.id()), anyString());
     }
 
     @Test
@@ -260,8 +260,8 @@ class TransactionDomainServiceTest {
                 .thenReturn(new ProviderResponse(false, null, null, "Timeout API", null));
 
         doThrow(new RuntimeException("Database error during refund"))
-                .when(balanceService).addBalance(any(String.class), any(BigDecimal.class),
-                eq(MutationReferenceType.REFUND), any(UUID.class), anyString());
+                .when(balanceService).refundBalance(any(String.class), any(BigDecimal.class),
+                any(UUID.class), anyString());
 
         TransactionDTO result = transactionService.createPurchase(storeId, walletId, denomId, "081234567890");
 
@@ -278,32 +278,6 @@ class TransactionDomainServiceTest {
                 () -> transactionService.createPurchase(storeId, walletId, denomId, "081234567890"));
 
         verify(transactionRepository, never()).save(any());
-    }
-
-    // ==================== getTransaction ====================
-
-    @Test
-    void getTransaction_Found_ReturnsSummary() {
-        UUID txId = UUID.randomUUID();
-        Transactions tx = buildTransaction(txId);
-        when(transactionRepository.findByIdAndStoreId(txId, storeId))
-                .thenReturn(Optional.of(tx));
-
-        TransactionDTO result = transactionService.getTransaction(txId, storeId);
-
-        assertNotNull(result);
-        assertEquals(txId, result.id());
-        assertEquals(TransactionStatus.SUCCESS, result.status());
-    }
-
-    @Test
-    void getTransaction_NotFound_ThrowsException() {
-        UUID txId = UUID.randomUUID();
-        when(transactionRepository.findByIdAndStoreId(txId, storeId))
-                .thenReturn(Optional.empty());
-
-        assertThrows(com.satset.shared.exception.ResourceNotFoundException.class,
-                () -> transactionService.getTransaction(txId, storeId));
     }
 
     // ==================== getTransactionHistory ====================

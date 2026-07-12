@@ -74,9 +74,7 @@ public class AdminCatalogPageController {
         if (categoryId != null && !categoryId.isEmpty()) {
             products = manageProductsUseCase.findByCategoryForAdmin(UUID.fromString(categoryId));
         } else {
-            products = manageCategoriesUseCase.findAllForAdmin().stream()
-                    .flatMap(cat -> manageProductsUseCase.findByCategoryForAdmin(cat.getId()).stream())
-                    .toList();
+            products = manageProductsUseCase.findAllForAdmin();
         }
         model.addAttribute("initialProducts", products.stream().map(CatalogDtoMapper::toProductDTO).toList());
 

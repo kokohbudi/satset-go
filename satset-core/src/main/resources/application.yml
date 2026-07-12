@@ -74,12 +74,6 @@ supplier:
     username: ${DIGIFLAZZ_USERNAME:}
     api-key: ${DIGIFLAZZ_DEV_KEY:}
 
-wallet:
-  datasource:
-    url: ${WALLET_DB_URL:jdbc:postgresql://localhost:5432/satset_wallet}
-    username: ${WALLET_DB_USERNAME:admin}
-    password: ${WALLET_DB_PASSWORD:password}
-
 # Performance optimizations
 server:
   compression:

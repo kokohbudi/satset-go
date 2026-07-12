@@ -14,8 +14,6 @@ import java.util.UUID;
 @Repository
 public interface StoreRepository extends JpaRepository<Stores, UUID> {
 
-    boolean existsByReferralId(String referralId);
-
     Stores findByEmail(String email);
 
     List<Stores> findByWalletIdIn(Collection<String> walletIds);

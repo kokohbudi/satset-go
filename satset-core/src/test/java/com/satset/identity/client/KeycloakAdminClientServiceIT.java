@@ -24,7 +24,7 @@ class KeycloakAdminClientServiceIT extends KeycloakContainerSupport {
 
     @BeforeEach
     void setUp() {
-        service = new KeycloakAdminClientService(testRealmAdminClient(), new KeycloakHelper(), identityMapper);
+        service = new KeycloakAdminClientService(testRealmAdminClient(), identityMapper);
         ReflectionTestUtils.setField(service, "realm", TEST_REALM);
         ReflectionTestUtils.setField(service, "keycloakServerUrl", KEYCLOAK.getAuthServerUrl());
         ReflectionTestUtils.setField(service, "clientId", TEST_CLIENT_ID);

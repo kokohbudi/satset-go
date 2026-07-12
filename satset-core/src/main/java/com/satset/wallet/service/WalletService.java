@@ -16,7 +16,7 @@ import java.util.List;
 import java.util.UUID;
 
 @Service
-@Transactional(transactionManager = "walletTransactionManager", readOnly = true)
+@Transactional(readOnly = true)
 public class WalletService {
 
     private static final Logger log = LoggerFactory.getLogger(WalletService.class);
@@ -33,7 +33,7 @@ public class WalletService {
         this.walletIdGenerator = walletIdGenerator;
     }
 
-    @Transactional(transactionManager = "walletTransactionManager")
+    @Transactional
     public WalletAccountEntity createWallet() {
         String walletId = walletIdGenerator.generate();
         log.info("Creating wallet with id {}", walletId);
@@ -50,7 +50,7 @@ public class WalletService {
                 .orElseThrow(() -> new ResourceNotFoundException("WalletAccount", walletId));
     }
 
-    @Transactional(transactionManager = "walletTransactionManager")
+    @Transactional
     public WalletMutationResult debit(String walletId, BigDecimal amount, UUID referenceId,
             MutationReferenceType referenceType, String description) {
 
@@ -82,15 +82,30 @@ public class WalletService {
         return new WalletMutationResult(saved.getId(), newBalance);
     }
 
-    @Transactional(transactionManager = "walletTransactionManager")
+    @Transactional
     public WalletMutationResult credit(String walletId, BigDecimal amount, UUID referenceId,
             MutationReferenceType referenceType, String description) {
+        return applyCredit(walletId, amount, referenceId, MutationType.CREDIT, referenceType, description);
+    }
 
-        log.info("Crediting {} to wallet {} with reference {}", amount, walletId, referenceId);
+    @Transactional
+    public WalletMutationResult refund(String walletId, BigDecimal amount, UUID originalReferenceId, String description) {
+        return applyCredit(walletId, amount, originalReferenceId, MutationType.REFUND,
+                MutationReferenceType.REFUND, description);
+    }
+
+    /**
+     * Idempotent balance increase shared by credit and refund: dedup by (referenceId, referenceType),
+     * lock the account, add the amount, and record the mutation. Only mutationType/referenceType differ.
+     */
+    private WalletMutationResult applyCredit(String walletId, BigDecimal amount, UUID referenceId,
+            MutationType mutationType, MutationReferenceType referenceType, String description) {
+
+        log.info("{} {} to wallet {} with reference {}", mutationType, amount, walletId, referenceId);
 
         var existingMutation = walletMutationRepository.findByReferenceIdAndReferenceType(referenceId, referenceType);
         if (existingMutation.isPresent()) {
-            log.warn("Duplicate credit request for reference {}, returning existing result", referenceId);
+            log.warn("Duplicate {} request for reference {}, returning existing result", mutationType, referenceId);
             WalletMutationEntity existing = existingMutation.get();
             return new WalletMutationResult(existing.getId(), existing.getBalanceAfter());
         }
@@ -103,37 +118,9 @@ public class WalletService {
         walletAccountRepository.save(account);
 
         WalletMutationEntity saved = walletMutationRepository.save(
-                WalletMutationEntity.of(walletId, amount, MutationType.CREDIT, newBalance, referenceId, referenceType, description));
+                WalletMutationEntity.of(walletId, amount, mutationType, newBalance, referenceId, referenceType, description));
 
-        log.info("Credit successful: new balance for wallet {} is {}", walletId, newBalance);
-        return new WalletMutationResult(saved.getId(), newBalance);
-    }
-
-    @Transactional(transactionManager = "walletTransactionManager")
-    public WalletMutationResult refund(String walletId, BigDecimal amount, UUID originalReferenceId, String description) {
-
-        log.info("Refunding {} to wallet {} for original reference {}", amount, walletId, originalReferenceId);
-
-        var existingMutation = walletMutationRepository.findByReferenceIdAndReferenceType(
-                originalReferenceId, MutationReferenceType.REFUND);
-        if (existingMutation.isPresent()) {
-            log.warn("Duplicate refund request for reference {}, returning existing result", originalReferenceId);
-            WalletMutationEntity existing = existingMutation.get();
-            return new WalletMutationResult(existing.getId(), existing.getBalanceAfter());
-        }
-
-        WalletAccountEntity account = walletAccountRepository.findByWalletIdWithLock(walletId)
-                .orElseThrow(() -> new ResourceNotFoundException("WalletAccount", walletId));
-
-        BigDecimal newBalance = account.getBalance().add(amount);
-        account.setBalance(newBalance);
-        walletAccountRepository.save(account);
-
-        WalletMutationEntity saved = walletMutationRepository.save(
-                WalletMutationEntity.of(walletId, amount, MutationType.REFUND, newBalance,
-                        originalReferenceId, MutationReferenceType.REFUND, description));
-
-        log.info("Refund successful: new balance for wallet {} is {}", walletId, newBalance);
+        log.info("{} successful: new balance for wallet {} is {}", mutationType, walletId, newBalance);
         return new WalletMutationResult(saved.getId(), newBalance);
     }
 
