@@ -539,7 +539,9 @@
                 } catch (e) { /* diam: kolom suplier opsional */ }
             },
             supplierCost(code) {
-                const c = this.supplierPrices[(code || '').toUpperCase()];
+                // ponytail: space after `[` — `[(` is Thymeleaf's escaped-inline marker in th:inline="javascript"
+                const key = (code || '').toUpperCase();
+                const c = this.supplierPrices[key];
                 return (c === undefined) ? null : c;
             },
             supplierDiffers(d) {
