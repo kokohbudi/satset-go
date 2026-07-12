@@ -24,7 +24,7 @@
             <button sec:authorize="hasRole('REALM_manage_denoms')" x-show="driftDenoms.length > 0"
                     class="btn btn-warning btn-outline btn-sm tap" @click="applyBulkCost()" :disabled="applyingCost">
                 <span x-show="applyingCost" class="loading loading-spinner loading-xs"></span>
-                Samakan harga (<span x-text="driftDenoms.length"></span>)
+                Samakan Beli (<span x-text="driftDenoms.length"></span>)
             </button>
             <button sec:authorize="hasRole('REALM_manage_denoms')"
                     class="btn btn-outline btn-sm tap" @click="openSyncAll()" :disabled="syncing">
@@ -491,10 +491,10 @@
     <div class="modal" :class="{ 'modal-open': showSyncModal }">
         <div class="modal-box max-w-2xl">
             <h3 class="font-bold text-lg">Sync Digiflazz</h3>
-            <p class="text-sm text-base-content/60 mt-1">Menambah item baru dari Digiflazz dan menandai yang hilang. <strong>Harga Beli tidak diubah</strong> — kalau beda dari Harga Suplier, samakan lewat tombol di tabel.</p>
+            <p class="text-sm text-base-content/60 mt-1">Menambah item baru dari Digiflazz dan menandai yang hilang. <strong>Harga Beli tidak diubah</strong> — kalau ada selisih dari Harga Suplier, samakan lewat tombol di tabel.</p>
             <template x-for="grp in [
                 {t:'Kategori baru', k:'newCategories'}, {t:'Produk baru', k:'newProducts'},
-                {t:'Denom baru', k:'newDenoms'}, {t:'Harga beda (samakan di tabel)', k:'priceChanges'}]" :key="grp.k">
+                {t:'Denom baru', k:'newDenoms'}, {t:'Selisih harga (samakan di tabel)', k:'priceChanges'}]" :key="grp.k">
               <div class="mt-4" x-show="syncPreview[grp.k] && syncPreview[grp.k].length">
                 <div class="font-semibold text-sm" x-text="grp.t + ' (' + syncPreview[grp.k].length + ')'"></div>
                 <div class="max-h-40 overflow-y-auto mt-1 text-sm text-base-content/70">
