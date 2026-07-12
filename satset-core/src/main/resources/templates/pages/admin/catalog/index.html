@@ -516,6 +516,8 @@
 </div>
 
 <th:block layout:fragment="scripts">
+<!-- no defer: define window.denomPriceEditing before Alpine auto-starts -->
+<script th:src="@{/js/denom-price-editing.js}"></script>
 <script th:inline="javascript">
     const INITIAL_CATEGORIES = /*[[${initialCategories}]]*/ [];
     const INITIAL_PRODUCTS   = /*[[${initialProducts}]]*/ [];
@@ -524,7 +526,7 @@
     const DENOM_TYPES        = /*[[${denomTypes}]]*/ [];
 
     function catalogManager() {
-        return {
+        const c = {
             canManageCat:   document.querySelector('[data-can-manage-cat]')?.dataset.canManageCat === 'true',
             canManageProd:  document.querySelector('[data-can-manage-prod]')?.dataset.canManageProd === 'true',
             canManageDenom: document.querySelector('[data-can-manage-denom]')?.dataset.canManageDenom === 'true',
@@ -599,6 +601,37 @@
                     Alpine.store('toast').success(`${r.applied} Harga Beli diperbarui dari suplier`);
                 } catch (e) { Alpine.store('toast').error('Gagal menerapkan'); }
                 finally { this.applyingCost = false; }
+            },
+
+            // ---- name editing ----
+            nameDirty: {}, showNameModal: false, savingNames: false, nameResults: [],
+            get nameDirtyList() { return Object.values(this.nameDirty); },
+            isNameDirty(d) { return !!this.nameDirty[d.id]; },
+            pendingName(d) { return this.nameDirty[d.id] ? this.nameDirty[d.id].newName : d.name; },
+            nameResultFor(id) { return this.nameResults.find(r => r.id === id); },
+            setName(d, val) {
+                const name = (val ?? '').trim();
+                if (name === '' || name === d.name) delete this.nameDirty[d.id];
+                else this.nameDirty[d.id] = { id: d.id, code: d.code, oldName: d.name, newName: name };
+            },
+            openNameModal() { this.nameResults = []; this.showNameModal = true; },
+            async submitNames() {
+                this.savingNames = true;
+                try {
+                    const res = await fetch('/api/admin/catalog/denoms/names', {
+                        method: 'PUT', headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(this.nameDirtyList.map(x => ({ id: x.id, name: x.newName })))
+                    });
+                    if (!res.ok) throw new Error('Gagal menyimpan nama');
+                    this.nameResults = await res.json();
+                    const okCount = this.nameResults.filter(r => r.ok).length;
+                    const failCount = this.nameResults.length - okCount;
+                    for (const r of this.nameResults) { if (r.ok) delete this.nameDirty[r.id]; }
+                    await this.refreshDenoms();
+                    if (failCount === 0) { this.showNameModal = false; Alpine.store('toast').success(`${okCount} nama diperbarui`); }
+                    else Alpine.store('toast').error(`${failCount} gagal disimpan, ${okCount} sukses`);
+                } catch (e) { Alpine.store('toast').error(e.message); }
+                finally { this.savingNames = false; }
             },
 
             // ---- category modal ----
@@ -995,8 +1028,13 @@
                     await this.reloadCategories(); await this.reloadProducts(); await this.refreshDenoms(); await this.loadSupplierPrices();
                 } catch (e) { Alpine.store('toast').error(e.message); }
                 finally { this.syncing = false; }
-            }
+            },
+
+            loadDenoms() { return this.refreshDenoms(); },   // alias for the shared mixin
         };
+        // mix in shared price-editing WITHOUT invoking getters (spread would eager-eval get unpricedCount)
+        Object.defineProperties(c, Object.getOwnPropertyDescriptors(window.denomPriceEditing(() => c.denoms)));
+        return c;
     }
 </script>
 </th:block>
