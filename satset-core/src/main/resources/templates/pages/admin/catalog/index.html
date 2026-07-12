@@ -883,6 +883,7 @@
                 try {
                     const res = await fetch('/api/admin/catalog/denoms');
                     this.denoms = await res.json();
+                    this.selectedIds = [];
                 } catch (e) {
                     Alpine.store('toast').error('Gagal memuat denominasi');
                 } finally {

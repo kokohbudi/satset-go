@@ -13,7 +13,7 @@ window.denomPriceEditing = function (getDenoms) {
 
         get dirtyList() { return Object.values(this.dirty); },
         get unpricedCount() {
-            return getDenoms().filter(d => !d.deleted && d.price == null).length;
+            return this.denoms.filter(d => !d.deleted && d.price == null).length;
         },
         isDirty(d) { return !!this.dirty[d.id]; },
         pendingPrice(d) { return this.dirty[d.id] ? this.dirty[d.id].newPrice : d.price; },
