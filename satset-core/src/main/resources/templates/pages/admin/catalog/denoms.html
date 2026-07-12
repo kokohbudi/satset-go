@@ -298,52 +298,11 @@
     </div>
 
     <!-- Bulk Price Confirm Modal -->
-    <div class="modal" :class="{ 'modal-open': showPriceModal }">
-        <div class="modal-box max-w-xl">
-            <h3 class="text-lg font-semibold mb-4">Konfirmasi Perubahan Harga</h3>
-            <div class="overflow-x-auto max-h-80">
-                <table class="table table-sm">
-                    <thead>
-                    <tr>
-                        <th>Code</th>
-                        <th>Nama</th>
-                        <th class="text-right">Harga Lama</th>
-                        <th class="text-right">Harga Baru</th>
-                        <th class="text-center" x-show="priceResults.length">Hasil</th>
-                    </tr>
-                    </thead>
-                    <tbody>
-                    <template x-for="item in dirtyList" :key="item.id">
-                        <tr>
-                            <td class="font-mono text-xs" x-text="item.code"></td>
-                            <td x-text="item.name"></td>
-                            <td class="text-right font-mono" x-text="formatRp(item.oldPrice)"></td>
-                            <td class="text-right font-mono font-semibold" x-text="formatRp(item.newPrice)"></td>
-                            <td class="text-center" x-show="priceResults.length">
-                                <template x-if="resultFor(item.id)">
-                                    <span class="badge badge-sm"
-                                          :class="resultFor(item.id).ok ? 'badge-success' : 'badge-error'"
-                                          :title="resultFor(item.id).error || ''"
-                                          x-text="resultFor(item.id).ok ? 'OK' : (resultFor(item.id).error || 'Gagal')"></span>
-                                </template>
-                            </td>
-                        </tr>
-                    </template>
-                    </tbody>
-                </table>
-            </div>
-            <div class="modal-action">
-                <button class="btn btn-ghost" @click="showPriceModal = false" :disabled="savingPrices">Batal</button>
-                <button class="btn btn-warning" @click="submitPrices()" :disabled="savingPrices">
-                    <span x-show="savingPrices" class="loading loading-spinner loading-xs"></span>
-                    Konfirmasi
-                </button>
-            </div>
-        </div>
-    </div>
+    <div th:replace="~{fragments/denom-price-confirm-modal :: modal}"></div>
 </div>
 
 <th:block layout:fragment="scripts">
+<script defer th:src="@{/js/denom-price-editing.js}"></script>
 <script th:inline="javascript">
     const PRODUCT_ID = /*[[${productId}]]*/ '';
     const DENOM_TYPES = /*[[${denomTypes}]]*/ [];
@@ -352,6 +311,7 @@
 
     function denomManager() {
         return {
+            ...window.denomPriceEditing(() => this.denoms),
             canManage: document.querySelector('[data-can-manage]')?.dataset.canManage === 'true',
             productId: PRODUCT_ID,
             productName: INITIAL_PRODUCT ? INITIAL_PRODUCT.name : '',
@@ -369,11 +329,6 @@
             syncItems: [],
             syncTitle: '',
             compareBySku: {},
-            dirty: {},
-            showPriceModal: false,
-            savingPrices: false,
-            priceResults: [],
-            filterUnpriced: false,
             form: {
                 code: '', name: '', denomType: '', nominal: null, price: null,
                 basePrice: null, adminFee: null, validityDays: null, quotaMb: null,
@@ -400,58 +355,6 @@
                     this.denoms = await res.json();
                 } catch (e) {
                     Alpine.store('toast').error('Gagal memuat denominasi');
-                }
-            },
-
-            // === Inline price edit ===
-            get dirtyList() { return Object.values(this.dirty); },
-            get unpricedCount() {
-                return this.denoms.filter(d => !d.deleted && d.price == null).length;
-            },
-            isDirty(d) { return !!this.dirty[d.id]; },
-            pendingPrice(d) { return this.dirty[d.id] ? this.dirty[d.id].newPrice : d.price; },
-            resultFor(id) { return this.priceResults.find(r => r.id === id); },
-
-            setPrice(d, val) {
-                const p = val === '' ? null : Number(val);
-                const unchanged = p === null || (d.price != null && Number(d.price) === p);
-                if (unchanged) {
-                    delete this.dirty[d.id];
-                } else {
-                    this.dirty[d.id] = { id: d.id, code: d.code, name: d.name, oldPrice: d.price, newPrice: p };
-                }
-            },
-
-            openPriceModal() {
-                this.priceResults = [];
-                this.showPriceModal = true;
-            },
-
-            async submitPrices() {
-                this.savingPrices = true;
-                try {
-                    const res = await fetch('/api/admin/catalog/denoms/prices', {
-                        method: 'PUT', headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(this.dirtyList.map(x => ({ id: x.id, price: x.newPrice })))
-                    });
-                    if (!res.ok) throw new Error('Gagal menyimpan harga');
-                    this.priceResults = await res.json();
-                    const okCount = this.priceResults.filter(r => r.ok).length;
-                    const failCount = this.priceResults.length - okCount;
-                    for (const r of this.priceResults) {
-                        if (r.ok) delete this.dirty[r.id];   // yang gagal tetap dirty, bisa dicoba lagi
-                    }
-                    await this.loadDenoms();
-                    if (failCount === 0) {
-                        this.showPriceModal = false;
-                        Alpine.store('toast').success(`${okCount} harga diperbarui`);
-                    } else {
-                        Alpine.store('toast').error(`${failCount} gagal disimpan, ${okCount} sukses`);
-                    }
-                } catch (e) {
-                    Alpine.store('toast').error(e.message);
-                } finally {
-                    this.savingPrices = false;
                 }
             },
 

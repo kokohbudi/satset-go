@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<div th:fragment="modal" class="modal" :class="{ 'modal-open': showPriceModal }">
+    <div class="modal-box max-w-xl">
+        <h3 class="text-lg font-semibold mb-4">Konfirmasi Perubahan Harga</h3>
+        <div class="overflow-x-auto max-h-80">
+            <table class="table table-sm">
+                <thead>
+                <tr>
+                    <th>Code</th>
+                    <th>Nama</th>
+                    <th class="text-right">Harga Lama</th>
+                    <th class="text-right">Harga Baru</th>
+                    <th class="text-center" x-show="priceResults.length">Hasil</th>
+                </tr>
+                </thead>
+                <tbody>
+                <template x-for="item in dirtyList" :key="item.id">
+                    <tr>
+                        <td class="font-mono text-xs" x-text="item.code"></td>
+                        <td x-text="item.name"></td>
+                        <td class="text-right font-mono" x-text="formatRp(item.oldPrice)"></td>
+                        <td class="text-right font-mono font-semibold" x-text="formatRp(item.newPrice)"></td>
+                        <td class="text-center" x-show="priceResults.length">
+                            <template x-if="resultFor(item.id)">
+                                <span class="badge badge-sm"
+                                      :class="resultFor(item.id).ok ? 'badge-success' : 'badge-error'"
+                                      :title="resultFor(item.id).error || ''"
+                                      x-text="resultFor(item.id).ok ? 'OK' : (resultFor(item.id).error || 'Gagal')"></span>
+                            </template>
+                        </td>
+                    </tr>
+                </template>
+                </tbody>
+            </table>
+        </div>
+        <div class="modal-action">
+            <button class="btn btn-ghost" @click="showPriceModal = false" :disabled="savingPrices">Batal</button>
+            <button class="btn btn-warning" @click="submitPrices()" :disabled="savingPrices">
+                <span x-show="savingPrices" class="loading loading-spinner loading-xs"></span>
+                Konfirmasi
+            </button>
+        </div>
+    </div>
+</div>
+</body>
+</html>
