@@ -1,6 +1,8 @@
 package com.satset.catalog.web;
 
+import com.satset.catalog.dto.BulkPriceUpdateRequest;
 import com.satset.catalog.dto.CategoryDTO;
+import com.satset.catalog.dto.PriceUpdateResult;
 import com.satset.catalog.dto.ProductDTO;
 import com.satset.catalog.dto.ProductDenomDTO;
 import com.satset.catalog.model.Category;
@@ -168,6 +170,13 @@ public class AdminCatalogController {
             @Valid @RequestBody UpdateDenomRequest req) throws BusinessException {
         ProductDenoms updated = manageDenomsUseCase.update(id, req);
         return ResponseEntity.ok(CatalogDtoMapper.toDenomDTO(updated));
+    }
+
+    @PutMapping("/denoms/prices")
+    @PreAuthorize("hasRole('" + OmniConstants.PERM_MANAGE_DENOMS + "')")
+    public ResponseEntity<List<PriceUpdateResult>> updateDenomPrices(
+            @RequestBody List<BulkPriceUpdateRequest> req) {
+        return ResponseEntity.ok(manageDenomsUseCase.updatePrices(req));
     }
 
     @DeleteMapping("/denoms/{id}")

@@ -1,6 +1,7 @@
 package com.satset.catalog.web;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.satset.catalog.dto.PriceUpdateResult;
 import com.satset.catalog.model.Category;
 import com.satset.catalog.model.CategoryType;
 import com.satset.catalog.model.Products;
@@ -319,6 +320,37 @@ class AdminCatalogControllerTest {
                 .andExpect(status().isNoContent());
 
         verify(manageDenomsUseCase).softDelete(id);
+    }
+
+    @Test
+    void updateDenomPrices_ReturnsPerItemResults() throws Exception {
+        UUID id1 = UUID.randomUUID();
+        UUID id2 = UUID.randomUUID();
+        when(manageDenomsUseCase.updatePrices(any())).thenReturn(List.of(
+                PriceUpdateResult.ok(id1, "byu10"),
+                PriceUpdateResult.fail(id2, "flash1", "Harga harus > 0")));
+
+        String body = "[{\"id\":\"" + id1 + "\",\"price\":1500},{\"id\":\"" + id2 + "\",\"price\":-1}]";
+
+        mockMvc.perform(put("/api/admin/catalog/denoms/prices")
+                        .contentType("application/json").content(body))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].ok").value(true))
+                .andExpect(jsonPath("$[0].code").value("byu10"))
+                .andExpect(jsonPath("$[1].ok").value(false))
+                .andExpect(jsonPath("$[1].error").value("Harga harus > 0"));
+    }
+
+    @Test
+    void updateDenomPrices_LiteralRouteWins_NotSingleDenomUpdate() throws Exception {
+        // Guard: PUT /denoms/prices TIDAK boleh nyangkut ke PUT /denoms/{id} (UUID parse 400)
+        when(manageDenomsUseCase.updatePrices(any())).thenReturn(List.of());
+
+        mockMvc.perform(put("/api/admin/catalog/denoms/prices")
+                        .contentType("application/json").content("[]"))
+                .andExpect(status().isOk());
+
+        verify(manageDenomsUseCase).updatePrices(any());
     }
 
     // ==================== Helpers ====================
