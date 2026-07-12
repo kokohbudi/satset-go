@@ -69,9 +69,13 @@
             display: none !important;
         }
 
-        /* Numeric input without spinner arrows (keeps type=number numeric-only) */
+        /* Numeric input without spinner arrows (keeps type=number numeric-only).
+           Global: the up/down spinners are noisy in dense tables and forms. */
+        input[type=number]::-webkit-inner-spin-button,
+        input[type=number]::-webkit-outer-spin-button,
         .no-spinner::-webkit-inner-spin-button,
         .no-spinner::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+        input[type=number],
         .no-spinner { -moz-appearance: textfield; appearance: textfield; }
 
         /* Skip-to-content link: hidden until keyboard-focused (a11y, WCAG 2.4.1) */
@@ -196,6 +200,68 @@
         /* Table rows fade their hover state instead of snapping */
         .table tbody tr {
             transition: background-color 0.15s ease, color 0.15s ease;
+        }
+
+        /* Self-contained table scroll region: own vertical + horizontal
+           scrollbars so the horizontal bar stays in view (not buried under
+           every row) when the table is wider than its column — e.g. sidebar
+           open. Sticky header keeps column labels while scrolling rows. */
+        .denom-scroll {
+            overflow: auto;
+            max-height: calc(100vh - 23rem);
+        }
+        .denom-scroll thead th {
+            position: sticky;
+            top: 0;
+            z-index: 3;
+            /* elevated header surface + a quiet neutral divider
+               (orange is reserved for actions only, not table chrome) */
+            background: oklch(var(--b3));
+            box-shadow: inset 0 -1px 0 oklch(var(--bc) / 0.14);
+        }
+        /* Quieter outline buttons — softens the stark full-contrast border
+           on secondary tool buttons in dark mode. */
+        .btn-quiet {
+            border-color: oklch(var(--bc) / 0.25);
+        }
+
+        /* Brand focus ring on text controls — orange = interaction, and the
+           DaisyUI default here resolves to a transparent (invisible) outline.
+           Warning inputs keep their amber ring (that's a state, not focus). */
+        .input:focus,
+        .input:focus-within,
+        .select:focus,
+        .textarea:focus {
+            outline: 2px solid oklch(var(--p));
+            outline-offset: 2px;
+        }
+        .input-warning:focus,
+        .input-warning:focus-within {
+            outline-color: oklch(var(--wa));
+        }
+        /* Neutral row hover — orange is reserved for actions, not passive chrome,
+           so it doesn't compete with the amber warning cues in the table. */
+        .denom-scroll tbody tr:hover td {
+            background-color: oklch(var(--bc) / 0.05);
+        }
+        /* Unpriced denom: amber wash on the Harga Jual cell = still needs a price */
+        .cell-unpriced {
+            background-color: oklch(var(--wa) / 0.12);
+        }
+        /* Always-visible scrollbars (macOS overlay bars hide by default) */
+        .denom-scroll::-webkit-scrollbar {
+            width: 10px;
+            height: 10px;
+        }
+        .denom-scroll::-webkit-scrollbar-thumb {
+            background: oklch(var(--bc) / 0.25);
+            border-radius: 5px;
+        }
+        .denom-scroll::-webkit-scrollbar-thumb:hover {
+            background: oklch(var(--bc) / 0.4);
+        }
+        .denom-scroll::-webkit-scrollbar-track {
+            background: transparent;
         }
 
         /* ============================================
