@@ -157,14 +157,28 @@
                                 <input type="checkbox" class="checkbox checkbox-sm" :value="d.id" x-model="selectedIds" :disabled="d.deleted"/>
                             </td>
                             <td class="font-mono text-xs" x-text="d.code"></td>
-                            <td x-text="d.name"></td>
+                            <td>
+                                <template x-if="canManageDenom && !d.deleted">
+                                    <input type="text" maxlength="150" class="input input-bordered input-xs w-48"
+                                           :class="isNameDirty(d) ? 'input-warning' : ''" :value="pendingName(d)"
+                                           :data-r="idx" data-c="name" @keydown="cellNav($event)" @change="setName(d, $event.target.value)"/>
+                                </template>
+                                <template x-if="!canManageDenom || d.deleted"><span x-text="d.name"></span></template>
+                            </td>
                             <td class="text-base-content/70" x-text="catNameOf(d.productId)"></td>
                             <td x-text="prodNameOf(d.productId)"></td>
                             <td><span class="badge badge-xs"
                                       :class="d.denomType === 'FIXED_DENOM' ? 'badge-info' : 'badge-accent'"
                                       x-text="d.denomType === 'FIXED_DENOM' ? 'Fixed' : 'Open Amount'"></span></td>
                             <td class="text-right font-mono" x-text="formatRp(d.nominal)"></td>
-                            <td class="text-right font-mono" x-text="formatRp(d.price)"></td>
+                            <td class="text-right">
+                                <template x-if="canManageDenom && !d.deleted">
+                                    <input type="number" min="1" step="any" class="input input-bordered input-xs w-28 text-right font-mono"
+                                           :class="isDirty(d) ? 'input-warning' : ''" :value="pendingPrice(d)"
+                                           :data-r="idx" data-c="price" @keydown="cellNav($event)" @change="setPrice(d, $event.target.value)"/>
+                                </template>
+                                <template x-if="!canManageDenom || d.deleted"><span class="font-mono" x-text="formatRp(d.price)"></span></template>
+                            </td>
                             <td class="text-right font-mono" x-text="formatRp(d.basePrice)"></td>
                             <td class="text-right font-mono">
                                 <template x-if="supplierCost(d.code) !== null">
@@ -687,6 +701,30 @@
                     else Alpine.store('toast').error(`${failCount} gagal disimpan, ${okCount} sukses`);
                 } catch (e) { Alpine.store('toast').error(e.message); }
                 finally { this.savingNames = false; }
+            },
+
+            // ---- cell arrow-nav (Nama <-> Harga Jual, up/down rows) ----
+            cellNav(e) {
+                const key = e.key;
+                if (!key.startsWith('Arrow')) return;
+                const el = e.target; const r = Number(el.dataset.r); const c = el.dataset.c;
+                const isText = el.type !== 'number';
+                if (key === 'ArrowUp' || key === 'ArrowDown') {
+                    e.preventDefault(); const dir = key === 'ArrowDown' ? 1 : -1; this.focusCell(r + dir, c, dir);
+                } else if (key === 'ArrowLeft' && c === 'price') {
+                    e.preventDefault(); this.focusCell(r, 'name', 0);
+                } else if (key === 'ArrowRight' && c === 'name') {
+                    const atEnd = !isText || (el.selectionStart === el.value.length && el.selectionEnd === el.value.length);
+                    if (atEnd) { e.preventDefault(); this.focusCell(r, 'price', 0); }
+                }
+            },
+            focusCell(r, c, dir) {
+                const max = this.filteredDenoms.length; let rr = r;
+                while (rr >= 0 && rr < max) {
+                    const t = document.querySelector(`input[data-r="${rr}"][data-c="${c}"]`);
+                    if (t) { t.focus(); return; }
+                    if (dir === 0) return; rr += dir;
+                }
             },
 
             // ---- category modal ----
