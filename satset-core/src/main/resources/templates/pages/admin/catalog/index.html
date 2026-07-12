@@ -906,6 +906,12 @@
                     const res = await fetch(`/api/admin/catalog/denoms/${d.id}`, { method: 'DELETE' });
                     if (!res.ok) throw new Error('Gagal menghapus');
                     await this.refreshDenoms();
+                    if (this.scopedDenoms.length === 0) {
+                        this.activeProduct = null;
+                        if (this.activeCategory !== null && !this.denomCategoryIds.has(this.activeCategory)) {
+                            this.activeCategory = null;
+                        }
+                    }
                     Alpine.store('toast').success('Denom dihapus');
                 } catch (e) {
                     Alpine.store('toast').error(e.message);

@@ -56,9 +56,9 @@ class CatalogSyncServiceTest {
         Category existing = new Category(); existing.setId(UUID.randomUUID()); existing.setCode("PULSA"); existing.setName("Pulsa");
         Category orphan = new Category(); orphan.setId(UUID.randomUUID()); orphan.setCode("GAME"); orphan.setName("Game Lama");
         when(categoryService.findAllForAdmin()).thenReturn(List.of(existing, orphan));
-        when(digiflazz.fetchPriceList()).thenReturn(List.of(
+        when(digiflazz.fetchSnapshot()).thenReturn(new PriceListSnapshot(List.of(
                 df("a","A","XL",1),                          // category "Pulsa" -> PULSA (exists)
-                dfCat("b","B","E-Money","DANA",2)));          // category "E-Money" -> EMONEY (new)
+                dfCat("b","B","E-Money","DANA",2)), LocalDateTime.now()));          // category "E-Money" -> EMONEY (new)
         List<SyncPreviewItem> items = service().previewCategories();
         assertThat(items).anySatisfy(i -> { assertThat(i.action()).isEqualTo(SyncAction.ADD); assertThat(i.key()).isEqualTo("E-Money"); });
         assertThat(items).anySatisfy(i -> { assertThat(i.action()).isEqualTo(SyncAction.DELETE); assertThat(i.key()).isEqualTo(orphan.getId().toString()); });
@@ -68,7 +68,7 @@ class CatalogSyncServiceTest {
     @Test void applyCategories_appliesOnlySelected() throws Exception {
         Category orphan = new Category(); orphan.setId(UUID.randomUUID()); orphan.setCode("GAME"); orphan.setName("Game Lama");
         when(categoryService.findAllForAdmin()).thenReturn(List.of(orphan));
-        when(digiflazz.fetchPriceList()).thenReturn(List.of(dfCat("b","B","E-Money","DANA",2)));
+        when(digiflazz.fetchSnapshot()).thenReturn(new PriceListSnapshot(List.of(dfCat("b","B","E-Money","DANA",2)), LocalDateTime.now()));
         // pilih hanya ADD "E-Money", TIDAK pilih DELETE orphan
         SyncResult r = service().applyCategories(List.of("E-Money"));
         verify(categoryService).findOrCreateByName("E-Money");
@@ -85,7 +85,7 @@ class CatalogSyncServiceTest {
         Products orphan = new Products(); orphan.setId(UUID.randomUUID()); orphan.setCode("OLDBRAND"); orphan.setName("Old");
         when(productService.findByCategoryForAdmin(catId)).thenReturn(List.of(orphan));
         when(productService.findByCategoryAndCode("PULSA", "XL")).thenReturn(Optional.empty());
-        when(digiflazz.fetchPriceList()).thenReturn(List.of(df("a","A","XL",1)));   // category "Pulsa" -> PULSA
+        when(digiflazz.fetchSnapshot()).thenReturn(new PriceListSnapshot(List.of(df("a","A","XL",1)), LocalDateTime.now()));   // category "Pulsa" -> PULSA
         List<SyncPreviewItem> items = service().previewProducts(catId);
         assertThat(items).anySatisfy(i -> { assertThat(i.action()).isEqualTo(SyncAction.ADD); assertThat(i.key()).isEqualTo("XL"); });
         assertThat(items).anySatisfy(i -> { assertThat(i.action()).isEqualTo(SyncAction.DELETE); assertThat(i.key()).isEqualTo(orphan.getId().toString()); });
@@ -97,7 +97,7 @@ class CatalogSyncServiceTest {
         when(categoryService.findById(catId)).thenReturn(Optional.of(cat));
         when(productService.findByCategoryForAdmin(catId)).thenReturn(List.of());
         when(productService.findByCategoryAndCode("PULSA", "XL")).thenReturn(Optional.empty());
-        when(digiflazz.fetchPriceList()).thenReturn(List.of(df("a","A","XL",1)));
+        when(digiflazz.fetchSnapshot()).thenReturn(new PriceListSnapshot(List.of(df("a","A","XL",1)), LocalDateTime.now()));
         SyncResult r = service().applyProducts(catId, List.of("XL"));
         verify(productService).findOrCreateByBrand("XL", catId);
         assertThat(r.added()).isEqualTo(1);
@@ -111,10 +111,10 @@ class CatalogSyncServiceTest {
         Category pulsa = new Category(); pulsa.setId(catId); pulsa.setCode("PULSA");
         when(productService.findById(pid)).thenReturn(Optional.of(p));
         when(categoryService.findById(catId)).thenReturn(Optional.of(pulsa));
-        when(digiflazz.fetchPriceList()).thenReturn(List.of(
+        when(digiflazz.fetchSnapshot()).thenReturn(new PriceListSnapshot(List.of(
                 df("x100","XL 100","XL",98000),   // matched->NAIK
                 df("x5","XL 5","XL",5500),         // BARU
-                dfCat("dana20","D","E-Money","DANA",20000))); // beda brand, di-skip
+                dfCat("dana20","D","E-Money","DANA",20000)), LocalDateTime.now())); // beda brand, di-skip
         ProductDenoms d1 = denom("X100", new BigDecimal("97000")); d1.setId(UUID.randomUUID());
         when(denomService.findActiveByProductId(pid)).thenReturn(List.of(
                 d1,        // matched
@@ -132,8 +132,8 @@ class CatalogSyncServiceTest {
         Category pulsa = new Category(); pulsa.setId(catId); pulsa.setCode("PULSA");
         when(productService.findById(pid)).thenReturn(Optional.of(p));
         when(categoryService.findById(catId)).thenReturn(Optional.of(pulsa));
-        when(digiflazz.fetchPriceList()).thenReturn(List.of(
-                dfCat("dana20","D","E-Money","DANA",20000))); // beda brand, no match utk XL
+        when(digiflazz.fetchSnapshot()).thenReturn(new PriceListSnapshot(List.of(
+                dfCat("dana20","D","E-Money","DANA",20000)), LocalDateTime.now())); // beda brand, no match utk XL
         // lenient: guard fix short-circuits before this is ever consulted
         lenient().when(denomService.findActiveByProductId(pid)).thenReturn(List.of(
                 denom("X100", new BigDecimal("97000")),
@@ -148,9 +148,9 @@ class CatalogSyncServiceTest {
         Category pulsa = new Category(); pulsa.setId(catId); pulsa.setCode("PULSA");
         when(productService.findById(pid)).thenReturn(Optional.of(p));
         when(categoryService.findById(catId)).thenReturn(Optional.of(pulsa));
-        when(digiflazz.fetchPriceList()).thenReturn(List.of(
+        when(digiflazz.fetchSnapshot()).thenReturn(new PriceListSnapshot(List.of(
                 df("tsel5", "Tsel 5K", "TELKOMSEL", 5500),                       // category "Pulsa" -> PULSA (keep)
-                dfCat("tselv10", "Tsel Voucher 10", "Voucher", "TELKOMSEL", 10000))); // category "Voucher" (drop)
+                dfCat("tselv10", "Tsel Voucher 10", "Voucher", "TELKOMSEL", 10000)), LocalDateTime.now())); // category "Voucher" (drop)
         when(denomService.findActiveByProductId(pid)).thenReturn(List.of());
         List<PriceCompareRow> rows = service().reconcileForProduct(pid);
         assertThat(rows).extracting(PriceCompareRow::buyerSku).containsExactly("tsel5");
@@ -164,8 +164,8 @@ class CatalogSyncServiceTest {
         Category pulsa = new Category(); pulsa.setId(catId); pulsa.setCode("PULSA");
         when(productService.findById(pid)).thenReturn(Optional.of(p));
         when(categoryService.findById(catId)).thenReturn(Optional.of(pulsa));
-        when(digiflazz.fetchPriceList()).thenReturn(List.of(
-                df("x5","XL 5","XL",5500)));                  // BARU (sku x5)
+        when(digiflazz.fetchSnapshot()).thenReturn(new PriceListSnapshot(List.of(
+                df("x5","XL 5","XL",5500)), LocalDateTime.now()));                  // BARU (sku x5)
         UUID dOld = UUID.randomUUID();
         ProductDenoms old = denom("XOLD", new BigDecimal("1000")); old.setId(dOld);
         when(denomService.findActiveByProductId(pid)).thenReturn(List.of(old));  // XOLD -> HILANG
@@ -184,7 +184,7 @@ class CatalogSyncServiceTest {
         Category pulsa = new Category(); pulsa.setId(catId); pulsa.setCode("PULSA");
         when(productService.findById(pid)).thenReturn(Optional.of(p));
         when(categoryService.findById(catId)).thenReturn(Optional.of(pulsa));
-        when(digiflazz.fetchPriceList()).thenReturn(List.of(df("x5","XL 5","XL",5500)));
+        when(digiflazz.fetchSnapshot()).thenReturn(new PriceListSnapshot(List.of(df("x5","XL 5","XL",5500)), LocalDateTime.now()));
         when(denomService.findActiveByProductId(pid)).thenReturn(List.of());
         SyncResult r = service().applyDenoms(pid, List.of());  // pilih kosong
         verify(denomService, never()).createFromSupplier(any(), any(), any(), any());
@@ -197,7 +197,7 @@ class CatalogSyncServiceTest {
         Category pulsa = new Category(); pulsa.setId(catId); pulsa.setCode("PULSA"); pulsa.setName("Pulsa");
         Products xl = new Products(); xl.setId(pid); xl.setCode("XL"); xl.setName("XL"); xl.setCategoryId(catId);
 
-        when(digiflazz.fetchPriceList()).thenReturn(List.of(df("xl5","XL 5K","XL",5000)));
+        when(digiflazz.fetchSnapshot()).thenReturn(new PriceListSnapshot(List.of(df("xl5","XL 5K","XL",5000)), LocalDateTime.now()));
         when(categoryService.findAllForAdmin()).thenReturn(List.of(pulsa));
         when(categoryService.findById(catId)).thenReturn(Optional.of(pulsa));
         when(productService.findByCategoryForAdmin(catId)).thenReturn(List.of(xl));
@@ -221,13 +221,39 @@ class CatalogSyncServiceTest {
     // ---- syncAllPreview: read-only aggregate summary of what syncAll() would change ----
     @Test void syncAllPreview_listsNewCategories() {
         // DF has a category the catalog lacks -> previewCategories() yields an ADD
-        when(digiflazz.fetchPriceList()).thenReturn(List.of(
-                new PriceListItem("Tsel 5rb", "Pulsa", "Telkomsel", "tsel5", 5000L, true, "ok", "S")));
+        when(digiflazz.fetchSnapshot()).thenReturn(new PriceListSnapshot(List.of(
+                new PriceListItem("Tsel 5rb", "Pulsa", "Telkomsel", "tsel5", 5000L, true, "ok", "S")), LocalDateTime.now()));
         when(categoryService.findAllForAdmin()).thenReturn(List.of()); // nothing yet
 
         SyncAllPreview p = service().syncAllPreview();
 
         assertThat(p.newCategories()).contains("Pulsa");
+    }
+
+    @Test void syncAllPreview_listsNewProductsNewDenomsAndPriceChanges() {
+        UUID catId = UUID.randomUUID();
+        UUID pid = UUID.randomUUID();
+        Category pulsa = new Category(); pulsa.setId(catId); pulsa.setCode("PULSA"); pulsa.setName("Pulsa");
+        Products tsel = new Products(); tsel.setId(pid); tsel.setCode("TELKOMSEL"); tsel.setName("Telkomsel"); tsel.setCategoryId(catId);
+
+        when(digiflazz.fetchSnapshot()).thenReturn(new PriceListSnapshot(List.of(
+                df("xl1", "XL 1K", "XL", 1000),              // new product: brand XL not yet in catalog
+                df("tsel5", "Tsel 5K", "TELKOMSEL", 5000),   // new denom (BARU): sku not in db
+                df("tsel10", "Tsel 10K", "TELKOMSEL", 10500) // price change (NAIK): db has 10000
+        ), LocalDateTime.now()));
+        when(categoryService.findAllForAdmin()).thenReturn(List.of(pulsa));
+        when(categoryService.findById(catId)).thenReturn(Optional.of(pulsa));
+        when(productService.findByCategoryForAdmin(catId)).thenReturn(List.of(tsel));
+        when(productService.findByCategoryAndCode("PULSA", "XL")).thenReturn(Optional.empty());
+        when(productService.findByCategoryAndCode("PULSA", "TELKOMSEL")).thenReturn(Optional.of(tsel));
+        when(productService.findById(pid)).thenReturn(Optional.of(tsel));
+        when(denomService.findActiveByProductId(pid)).thenReturn(List.of(denom("TSEL10", new BigDecimal("10000"))));
+
+        SyncAllPreview p = service().syncAllPreview();
+
+        assertThat(p.newProducts()).contains("Pulsa / XL");
+        assertThat(p.newDenoms()).contains("Telkomsel / Tsel 5K");
+        assertThat(p.priceChanges()).contains("Telkomsel / tsel10");
     }
 
     // ---- supplierPrices: global SKU->cheapest cost map ----

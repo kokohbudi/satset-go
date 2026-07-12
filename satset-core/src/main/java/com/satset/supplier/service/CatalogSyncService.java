@@ -57,7 +57,7 @@ public class CatalogSyncService {
         List<SyncPreviewItem> items = new ArrayList<>();
         Set<String> dfCodes = new HashSet<>();
         Set<String> seen = new HashSet<>();
-        for (PriceListItem it : digiflazz.fetchPriceList()) {
+        for (PriceListItem it : digiflazz.fetchSnapshot().items()) {
             String code = CatalogCodeUtil.toCode(it.category());
             dfCodes.add(code);
             if (seen.add(code) && !catalogCodes.contains(code)) {
@@ -96,7 +96,7 @@ public class CatalogSyncService {
         List<SyncPreviewItem> items = new ArrayList<>();
         Set<String> dfBrandCodes = new HashSet<>();
         Set<String> seen = new HashSet<>();
-        for (PriceListItem it : digiflazz.fetchPriceList()) {
+        for (PriceListItem it : digiflazz.fetchSnapshot().items()) {
             if (!CatalogCodeUtil.toCode(it.category()).equals(cat.getCode())) continue;
             String code = CatalogCodeUtil.toCode(it.brand());
             dfBrandCodes.add(code);
@@ -134,11 +134,11 @@ public class CatalogSyncService {
      * Sync penuh dengan supplier dalam satu aksi: tambah item baru + update harga (TANPA hapus).
      * Item yang hilang dari supplier TIDAK dihapus — cuma ditandai {@code inSupplier=false};
      * kalau muncul lagi, flag balik true.
-     * ponytail: recompute preview/reconcile per level (fetchPriceList di-cache 5 jam jadi murah);
+     * ponytail: recompute preview/reconcile per level (fetchSnapshot di-cache 5 jam jadi murah);
      * kalau katalog membengkak & terasa lambat, cache pricelist di memori sekali per run.
      */
     public SyncResult syncAll() {
-        List<PriceListItem> pl = digiflazz.fetchPriceList();
+        List<PriceListItem> pl = digiflazz.fetchSnapshot().items();
 
         // --- kategori: tambah yang baru, set flag ---
         List<String> catAdds = previewCategories().stream()
@@ -184,7 +184,7 @@ public class CatalogSyncService {
 
     /**
      * Read-only: what a full {@link #syncAll()} would add/change, aggregated across the whole catalog.
-     * ponytail: recompute preview/reconcile per level (fetchPriceList di-cache 5 jam jadi murah);
+     * ponytail: recompute preview/reconcile per level (fetchSnapshot di-cache 5 jam jadi murah);
      * kalau katalog membengkak & terasa lambat, cache pricelist di memori sekali per run.
      */
     public SyncAllPreview syncAllPreview() {
@@ -241,7 +241,7 @@ public class CatalogSyncService {
 
         // SKU DF utk brand produk ini DI KATEGORI INI (dedup by sku, harga terendah)
         Map<String, PriceListItem> uniq = new LinkedHashMap<>();
-        for (PriceListItem it : digiflazz.fetchPriceList()) {
+        for (PriceListItem it : digiflazz.fetchSnapshot().items()) {
             if (!CatalogCodeUtil.toCode(it.brand()).equals(productCode)) continue;
             if (!CatalogCodeUtil.toCode(it.category()).equals(catCode)) continue;
             uniq.merge(it.buyerSkuCode().toUpperCase(), it, (a, b) -> a.price() <= b.price() ? a : b);

@@ -65,16 +65,11 @@ public class DigiflazzClient {
     }
 
     /**
-     * Ambil daftar harga prepaid — delegates ke {@link #fetchSnapshot()} (tanpa extra DF hit).
+     * Ambil daftar harga prepaid dari Digiflazz (HTTP call langsung, tanpa cache).
      *
      * <p>Response sukses: {@code {"data":[...]}}. Response error (mis. limit): {@code {"data":{"rc","message"}}}
      * — dideteksi (data bukan array) dan dilempar {@link IllegalStateException}, bukan crash parser.
      */
-    // ponytail: fetchPriceList() delegates so all existing callers are untouched; only fetchSnapshot() is cached, so still one DF hit / 5h.
-    public List<PriceListItem> fetchPriceList() {
-        return fetchSnapshot().items();
-    }
-
     private List<PriceListItem> doFetchPriceList() {
         var req = new PriceListRequest("prepaid", username, sign("pricelist"));
         String raw = http.post()

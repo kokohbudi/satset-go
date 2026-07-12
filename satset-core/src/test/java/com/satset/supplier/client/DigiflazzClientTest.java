@@ -1,19 +1,14 @@
 package com.satset.supplier.client;
 
 import com.satset.supplier.model.PriceListItem;
-import com.satset.supplier.model.PriceListSnapshot;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.web.client.RestClient;
 
-import java.time.LocalDateTime;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.spy;
 import static org.springframework.http.HttpMethod.POST;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.jsonPath;
@@ -22,24 +17,14 @@ import static org.springframework.test.web.client.match.MockRestRequestMatchers.
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
 /**
- * Unit test {@link DigiflazzClient#fetchPriceList()}: signing benar (md5 user+key+"pricelist"),
+ * Unit test {@link DigiflazzClient#fetchSnapshot()}: signing benar (md5 user+key+"pricelist"),
  * POST ke /price-list dgn cmd=prepaid, dan parse {@code {"data":[...]}} ke {@link PriceListItem}.
  * Pakai {@link MockRestServiceServer} — no network.
  */
 class DigiflazzClientTest {
 
     @Test
-    void fetchPriceList_returnsSnapshotItems() {
-        DigiflazzClient client = spy(new DigiflazzClient(
-                mock(RestClient.class), "https://api.digiflazz.com/v1", "u", "k"));
-        PriceListItem item = new PriceListItem("Tsel 5rb", "Pulsa", "Telkomsel", "tsel5", 5000L, true, "ok", "S");
-        doReturn(new PriceListSnapshot(List.of(item), LocalDateTime.now())).when(client).fetchSnapshot();
-
-        assertThat(client.fetchPriceList()).containsExactly(item);
-    }
-
-    @Test
-    void fetchPriceList_postsSignedRequest_andParsesData() {
+    void fetchSnapshot_postsSignedRequest_andParsesData() {
         RestClient.Builder builder = RestClient.builder();
         MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
 
@@ -61,7 +46,7 @@ class DigiflazzClientTest {
         DigiflazzClient client = new DigiflazzClient(
                 builder.build(), "https://api.digiflazz.com/v1", "user1", "key1");
 
-        List<PriceListItem> items = client.fetchPriceList();
+        List<PriceListItem> items = client.fetchSnapshot().items();
 
         assertThat(items).hasSize(1);
         PriceListItem it = items.get(0);
@@ -76,7 +61,7 @@ class DigiflazzClientTest {
     }
 
     @Test
-    void fetchPriceList_errorResponse_throwsCleanException_notJacksonCrash() {
+    void fetchSnapshot_errorResponse_throwsCleanException_notJacksonCrash() {
         RestClient.Builder builder = RestClient.builder();
         MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
 
@@ -90,7 +75,7 @@ class DigiflazzClientTest {
         DigiflazzClient client = new DigiflazzClient(
                 builder.build(), "https://api.digiflazz.com/v1", "user1", "key1");
 
-        assertThatThrownBy(client::fetchPriceList)
+        assertThatThrownBy(() -> client.fetchSnapshot().items())
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("83");
     }
