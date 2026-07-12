@@ -4,6 +4,7 @@ import com.satset.shared.constant.OmniConstants;
 import com.satset.supplier.model.PriceCompareRow;
 import com.satset.supplier.model.SyncPreviewItem;
 import com.satset.supplier.service.CatalogSyncService;
+import com.satset.supplier.service.SupplierPriceView;
 import com.satset.supplier.service.SyncResult;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -54,4 +55,9 @@ public class CatalogSyncController {
     public SyncResult applyDenoms(@PathVariable UUID productId, @RequestBody List<String> selectedSkus) {
         return sync.applyDenoms(productId, selectedSkus);
     }
+
+    // Global SKU->cheapest DF cost map (admin Harga Suplier column)
+    @GetMapping("/supplier-prices")
+    @PreAuthorize("hasRole('" + OmniConstants.PERM_VIEW_CATALOG + "')")
+    public SupplierPriceView supplierPrices() { return sync.supplierPrices(); }
 }

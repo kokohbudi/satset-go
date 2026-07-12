@@ -13,6 +13,7 @@ import com.satset.supplier.client.DigiflazzClient;
 import com.satset.supplier.model.CompareStatus;
 import com.satset.supplier.model.PriceCompareRow;
 import com.satset.supplier.model.PriceListItem;
+import com.satset.supplier.model.PriceListSnapshot;
 import com.satset.supplier.model.SyncAction;
 import com.satset.supplier.model.SyncPreviewItem;
 import lombok.extern.slf4j.Slf4j;
@@ -252,5 +253,17 @@ public class CatalogSyncService {
             }
         });
         return rows;
+    }
+
+    // ===== Supplier prices (global SKU->cheapest cost map, for admin Harga Suplier column) =====
+
+    /** Global SKU(upper) -> cheapest DF cost, from the cached snapshot (no forced fetch). */
+    public SupplierPriceView supplierPrices() {
+        PriceListSnapshot snap = digiflazz.fetchSnapshot();
+        Map<String, Long> prices = new LinkedHashMap<>();
+        for (PriceListItem it : snap.items()) {
+            prices.merge(it.buyerSkuCode().toUpperCase(), it.price(), Math::min);
+        }
+        return new SupplierPriceView(snap.fetchedAt(), prices);
     }
 }

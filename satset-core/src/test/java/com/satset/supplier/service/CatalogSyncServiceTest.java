@@ -10,6 +10,7 @@ import com.satset.supplier.client.DigiflazzClient;
 import com.satset.supplier.model.CompareStatus;
 import com.satset.supplier.model.PriceCompareRow;
 import com.satset.supplier.model.PriceListItem;
+import com.satset.supplier.model.PriceListSnapshot;
 import com.satset.supplier.model.SyncAction;
 import com.satset.supplier.model.SyncPreviewItem;
 import org.junit.jupiter.api.Test;
@@ -18,6 +19,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -214,5 +216,19 @@ class CatalogSyncServiceTest {
         verify(categoryService, never()).softDelete(any());
         verify(productService, never()).softDelete(any());
         verify(denomService, never()).softDelete(any());
+    }
+
+    // ---- supplierPrices: global SKU->cheapest cost map ----
+    @Test void supplierPrices_mapsSkuUpperToCost_lowestWins() {
+        LocalDateTime at = LocalDateTime.of(2026, 7, 12, 8, 0);
+        when(digiflazz.fetchSnapshot()).thenReturn(new PriceListSnapshot(List.of(
+                df("tsel5", "Tsel 5rb", "Telkomsel", 5200L),
+                df("tsel5", "Tsel 5rb", "Telkomsel", 5000L)
+        ), at));
+
+        SupplierPriceView v = service().supplierPrices();
+
+        assertThat(v.fetchedAt()).isEqualTo(at);
+        assertThat(v.prices()).containsEntry("TSEL5", 5000L); // lowest price wins
     }
 }
