@@ -33,7 +33,7 @@ Response: [ { "id": "...", "code": "byu10", "ok": true },
 ```
 
 Service: `DenomDomainService.updatePrices(List<PriceUpdate>)`:
-- Loop per item: load denom (not found → item error), validasi `price > 0` (bean validation `@NotNull @Positive` di request record), set price, save.
+- Loop per item: load denom (not found → item error), validasi `price > 0` di service (bukan bean validation — satu item invalid tidak boleh 400-kan seluruh batch, cukup item error), set price, save.
 - Per-item result — satu item gagal tidak menggagalkan yang lain (partial success by design; hasil per-item dilaporkan ke UI).
 - Optimistic lock (`@Version`) conflict → item error, bukan 500.
 
