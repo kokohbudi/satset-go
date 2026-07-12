@@ -24,7 +24,7 @@
             <button sec:authorize="hasRole('REALM_manage_denoms')" x-show="driftDenoms.length > 0"
                     class="btn btn-warning btn-outline btn-sm tap" @click="applyBulkCost()" :disabled="applyingCost">
                 <span x-show="applyingCost" class="loading loading-spinner loading-xs"></span>
-                Terapkan drift (<span x-text="driftDenoms.length"></span>)
+                Samakan harga (<span x-text="driftDenoms.length"></span>)
             </button>
             <button sec:authorize="hasRole('REALM_manage_denoms')"
                     class="btn btn-outline btn-sm tap" @click="openSyncAll()" :disabled="syncing">
@@ -162,7 +162,7 @@
                                 <div class="flex justify-center gap-1">
                                     <template x-if="canManageDenom && supplierDiffers(d) && !d.deleted">
                                         <button class="btn btn-warning btn-outline btn-xs tap" @click="applyRowCost(d)" :disabled="applyingCost"
-                                                title="Terapkan Harga Suplier ke Harga Beli">Terapkan</button>
+                                                title="Samakan Harga Beli dengan Harga Suplier">Samakan</button>
                                     </template>
                                     <template x-if="canManageDenom">
                                         <button class="btn btn-ghost btn-xs tap" @click="openEditModal(d)" :disabled="d.deleted">Edit</button>
@@ -491,10 +491,10 @@
     <div class="modal" :class="{ 'modal-open': showSyncModal }">
         <div class="modal-box max-w-2xl">
             <h3 class="font-bold text-lg">Sync Digiflazz</h3>
-            <p class="text-sm text-base-content/60 mt-1">Terapkan Semua = tambah item baru + tandai yang hilang. <strong>Harga Beli tidak diubah</strong> — drift harga diterapkan manual di tabel (tombol Terapkan / Terapkan drift).</p>
+            <p class="text-sm text-base-content/60 mt-1">Menambah item baru dari Digiflazz dan menandai yang hilang. <strong>Harga Beli tidak diubah</strong> — kalau beda dari Harga Suplier, samakan lewat tombol di tabel.</p>
             <template x-for="grp in [
                 {t:'Kategori baru', k:'newCategories'}, {t:'Produk baru', k:'newProducts'},
-                {t:'Denom baru', k:'newDenoms'}, {t:'Drift harga (apply di tabel)', k:'priceChanges'}]" :key="grp.k">
+                {t:'Denom baru', k:'newDenoms'}, {t:'Harga beda (samakan di tabel)', k:'priceChanges'}]" :key="grp.k">
               <div class="mt-4" x-show="syncPreview[grp.k] && syncPreview[grp.k].length">
                 <div class="font-semibold text-sm" x-text="grp.t + ' (' + syncPreview[grp.k].length + ')'"></div>
                 <div class="max-h-40 overflow-y-auto mt-1 text-sm text-base-content/70">
@@ -503,7 +503,7 @@
               </div>
             </template>
             <div x-show="!(syncPreview.newCategories.length || syncPreview.newProducts.length || syncPreview.newDenoms.length || syncPreview.priceChanges.length)"
-                 class="mt-4 text-sm text-base-content/60">Sudah sinkron — tidak ada perubahan.</div>
+                 class="mt-4 text-sm text-base-content/60">Sudah sinkron.</div>
             <div class="modal-action">
                 <button class="btn btn-ghost" @click="showSyncModal = false" :disabled="syncing">Batal</button>
                 <button class="btn btn-primary" @click="applySyncAll()" :disabled="syncing">
