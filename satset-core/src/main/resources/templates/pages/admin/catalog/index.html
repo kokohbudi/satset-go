@@ -429,24 +429,47 @@
                             </label>
                         </div>
                     </div>
-                    <!-- Reassign cascade selector (Kategori -> Produk), edit mode only -->
-                    <div class="divider text-xs" x-show="denomEditMode">Pindah Produk</div>
-                    <div class="grid grid-cols-2 gap-4" x-show="denomEditMode">
+                    <!-- Kategori & Produk combobox: pick existing or create inline -->
+                    <div class="divider text-xs">Kategori &amp; Produk</div>
+                    <div class="grid grid-cols-2 gap-4">
                         <div class="form-control">
                             <label class="label"><span class="label-text">Kategori</span></label>
-                            <select class="select select-bordered select-sm" x-model="denomForm.reassignCategory" @change="denomForm.productId = null" :disabled="denomSaving">
-                                <template x-for="c in activeCategories" :key="c.id">
-                                    <option :value="c.id" x-text="c.name"></option>
-                                </template>
+                            <select class="select select-bordered select-sm" x-model="denomForm.categoryChoice"
+                                    @change="denomForm.productChoice=''" :disabled="denomSaving">
+                                <option value="">-- Pilih --</option>
+                                <template x-for="c in activeCategories" :key="c.id"><option :value="c.id" x-text="c.name"></option></template>
+                                <option value="__new__">+ Kategori baru&hellip;</option>
                             </select>
+                            <template x-if="catComboIsNew">
+                                <div class="mt-2 space-y-2">
+                                    <input type="text" class="input input-bordered input-sm w-full" placeholder="Nama kategori baru"
+                                           x-model="denomForm.categoryNewName" :disabled="denomSaving">
+                                    <select class="select select-bordered select-sm w-full" x-model="denomForm.categoryNewType" :disabled="denomSaving">
+                                        <option value="">-- Tipe --</option>
+                                        <template x-for="t in categoryTypes" :key="t"><option :value="t" x-text="t"></option></template>
+                                    </select>
+                                    <input type="text" class="input input-bordered input-sm w-full" placeholder="Icon URL (opsional)"
+                                           x-model="denomForm.categoryNewIcon" :disabled="denomSaving">
+                                </div>
+                            </template>
                         </div>
                         <div class="form-control">
                             <label class="label"><span class="label-text">Produk</span></label>
-                            <select class="select select-bordered select-sm" x-model="denomForm.productId" :disabled="denomSaving">
-                                <template x-for="p in products.filter(p => p.categoryId === denomForm.reassignCategory)" :key="p.id">
-                                    <option :value="p.id" x-text="p.name"></option>
-                                </template>
+                            <select class="select select-bordered select-sm" x-model="denomForm.productChoice" :disabled="denomSaving || (!denomForm.categoryChoice)">
+                                <option value="">-- Pilih --</option>
+                                <template x-for="p in comboProducts" :key="p.id"><option :value="p.id" x-text="p.name"></option></template>
+                                <option value="__new__">+ Produk baru&hellip;</option>
                             </select>
+                            <template x-if="prodComboIsNew">
+                                <div class="mt-2 space-y-2">
+                                    <input type="text" class="input input-bordered input-sm w-full" placeholder="Nama produk baru"
+                                           x-model="denomForm.productNewName" :disabled="denomSaving">
+                                    <input type="text" class="input input-bordered input-sm w-full" placeholder="Provider (opsional)"
+                                           x-model="denomForm.productNewProvider" :disabled="denomSaving">
+                                    <input type="text" class="input input-bordered input-sm w-full" placeholder="Icon URL (opsional)"
+                                           x-model="denomForm.productNewIcon" :disabled="denomSaving">
+                                </div>
+                            </template>
                         </div>
                     </div>
                 </div>
@@ -569,7 +592,8 @@
                 basePrice: null, adminFee: null, validityDays: null, quotaMb: null,
                 minAmount: null, maxAmount: null, requiresInquiry: false,
                 stockAvailable: null, active: true, sortOrder: 0,
-                productId: null, reassignCategory: null
+                categoryChoice: '', categoryNewName: '', categoryNewType: '', categoryNewIcon: '',
+                productChoice: '', productNewName: '', productNewProvider: '', productNewIcon: ''
             },
 
             // ---- denom sync (Sync Denom DF) ----
@@ -582,6 +606,12 @@
 
             get activeCategories() {
                 return this.categories.filter(c => !c.deleted);
+            },
+            get catComboIsNew() { return this.denomForm.categoryChoice === '__new__'; },
+            get prodComboIsNew() { return this.denomForm.productChoice === '__new__'; },
+            get comboProducts() {
+                const cid = this.denomForm.categoryChoice;
+                return (cid && cid !== '__new__') ? this.products.filter(p => p.categoryId === cid && !p.deleted) : [];
             },
             get productsInCategory() {
                 return this.activeCategory === null ? []
@@ -826,13 +856,16 @@
                 return new Intl.NumberFormat('id-ID').format(val);
             },
 
+            slugCode(name) { return (name || '').trim().toUpperCase().replace(/[^A-Z0-9]+/g, '_').replace(/^_|_$/g, ''); },
+
             emptyDenomForm() {
                 return {
                     code: '', name: '', denomType: '', nominal: null, price: null,
                     basePrice: null, adminFee: null, validityDays: null, quotaMb: null,
                     minAmount: null, maxAmount: null, requiresInquiry: false,
                     stockAvailable: null, active: true, sortOrder: 0,
-                    productId: null, reassignCategory: null
+                    categoryChoice: '', categoryNewName: '', categoryNewType: '', categoryNewIcon: '',
+                    productChoice: '', productNewName: '', productNewProvider: '', productNewIcon: ''
                 };
             },
 
@@ -840,48 +873,66 @@
                 this.denomEditMode = false;
                 this.denomEditId = null;
                 this.denomForm = this.emptyDenomForm();
+                // preselect current scope
+                if (this.activeCategory) this.denomForm.categoryChoice = this.activeCategory;
+                if (this.activeProduct)  this.denomForm.productChoice  = this.activeProduct;
                 this.showDenomModal = true;
             },
 
             openEditModal(d) {
                 this.denomEditMode = true;
                 this.denomEditId = d.id;
-                const prod = this.products.find(p => p.id === d.productId);
-                this.denomForm = {
-                    code: d.code, name: d.name, denomType: d.denomType,
-                    nominal: d.nominal, price: d.price, basePrice: d.basePrice,
-                    adminFee: d.adminFee, validityDays: d.validityDays, quotaMb: d.quotaMb,
-                    minAmount: d.minAmount, maxAmount: d.maxAmount,
-                    requiresInquiry: d.requiresInquiry, stockAvailable: d.stockAvailable,
-                    active: d.active, sortOrder: d.sortOrder,
-                    productId: d.productId, reassignCategory: prod ? prod.categoryId : null
-                };
+                const prod = this.productById(d.productId);
+                this.denomForm = { ...this.emptyDenomForm(),
+                    code: d.code, name: d.name, denomType: d.denomType, nominal: d.nominal, price: d.price,
+                    basePrice: d.basePrice, adminFee: d.adminFee, validityDays: d.validityDays, quotaMb: d.quotaMb,
+                    minAmount: d.minAmount, maxAmount: d.maxAmount, requiresInquiry: d.requiresInquiry,
+                    stockAvailable: d.stockAvailable, active: d.active, sortOrder: d.sortOrder,
+                    categoryChoice: prod ? prod.categoryId : '', productChoice: d.productId };
                 this.showDenomModal = true;
             },
 
+            async resolveCategoryId() {
+                if (!this.catComboIsNew) return this.denomForm.categoryChoice;
+                const body = { code: this.slugCode(this.denomForm.categoryNewName), name: this.denomForm.categoryNewName.trim(),
+                               categoryType: this.denomForm.categoryNewType, iconUrl: this.denomForm.categoryNewIcon, sortOrder: 0, active: true };
+                const res = await fetch('/api/admin/catalog/categories', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+                if (!res.ok) throw new Error('Gagal membuat kategori');
+                return (await res.json()).id;
+            },
+
+            async resolveProductId(categoryId) {
+                if (!this.prodComboIsNew) return this.denomForm.productChoice;
+                const body = { categoryId, code: this.slugCode(this.denomForm.productNewName), name: this.denomForm.productNewName.trim(),
+                               providerName: this.denomForm.productNewProvider, description: '', iconUrl: this.denomForm.productNewIcon, sortOrder: 0, active: true };
+                const res = await fetch('/api/admin/catalog/products', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+                if (!res.ok) throw new Error('Gagal membuat produk');
+                return (await res.json()).id;
+            },
+
+            // ponytail: 3-step client orchestration (cat -> product -> denom); a mid-step failure leaves an orphan cat/product, surfaced via toast. Promote to one transactional endpoint only if orphans become a real problem.
             async saveDenom() {
                 this.denomSaving = true;
                 try {
-                    const url = this.denomEditMode
-                        ? `/api/admin/catalog/denoms/${this.denomEditId}`
-                        : `/api/admin/catalog/products/${this.activeProduct}/denoms`;
-                    const method = this.denomEditMode ? 'PUT' : 'POST';
-                    const res = await fetch(url, {
-                        method, headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(this.denomForm)
-                    });
-                    if (!res.ok) {
-                        const err = await res.json().catch(() => ({}));
-                        throw new Error(err.errorMessage || err.message || 'Gagal menyimpan');
-                    }
+                    const categoryId = await this.resolveCategoryId();
+                    const productId  = await this.resolveProductId(categoryId);
+                    if (!productId) throw new Error('Produk wajib dipilih');
+                    const payload = { code: this.denomForm.code, name: this.denomForm.name, denomType: this.denomForm.denomType,
+                        nominal: this.denomForm.nominal, price: this.denomForm.price, basePrice: this.denomForm.basePrice,
+                        adminFee: this.denomForm.adminFee, validityDays: this.denomForm.validityDays, quotaMb: this.denomForm.quotaMb,
+                        minAmount: this.denomForm.minAmount, maxAmount: this.denomForm.maxAmount, requiresInquiry: this.denomForm.requiresInquiry,
+                        stockAvailable: this.denomForm.stockAvailable, active: this.denomForm.active, sortOrder: this.denomForm.sortOrder,
+                        productId };
+                    const url = this.denomEditMode ? `/api/admin/catalog/denoms/${this.denomEditId}`
+                                                   : `/api/admin/catalog/products/${productId}/denoms`;
+                    const res = await fetch(url, { method: this.denomEditMode ? 'PUT' : 'POST',
+                        headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+                    if (!res.ok) { const err = await res.json().catch(() => ({})); throw new Error(err.errorMessage || err.message || 'Gagal menyimpan'); }
                     this.showDenomModal = false;
-                    await this.refreshDenoms();
+                    await this.reloadCategories(); await this.reloadProducts(); await this.refreshDenoms();
                     Alpine.store('toast').success(this.denomEditMode ? 'Denom diperbarui' : 'Denom ditambahkan');
-                } catch (e) {
-                    Alpine.store('toast').error(e.message);
-                } finally {
-                    this.denomSaving = false;
-                }
+                } catch (e) { Alpine.store('toast').error(e.message); }
+                finally { this.denomSaving = false; }
             },
 
             async confirmDelete(d) {
