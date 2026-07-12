@@ -29,6 +29,9 @@
             <button sec:authorize="hasRole('REALM_manage_denoms')" class="btn btn-outline tap" @click="showMarkup = !showMarkup">
                 Atur Harga Massal
             </button>
+            <button x-show="nameDirtyList.length > 0" x-cloak class="btn btn-warning tap" @click="openNameModal()">
+                Simpan Nama (<span x-text="nameDirtyList.length"></span>)
+            </button>
             <button x-show="dirtyList.length > 0" x-cloak class="btn btn-warning tap" @click="openPriceModal()">
                 Simpan Harga (<span x-text="dirtyList.length"></span>)
             </button>
@@ -93,7 +96,7 @@
                 </tr>
                 </thead>
                 <tbody>
-                <template x-for="d in filteredDenoms" :key="d.id">
+                <template x-for="(d, idx) in filteredDenoms" :key="d.id">
                     <tr :class="d.deleted ? 'opacity-40' : ''">
                         <td sec:authorize="hasRole('REALM_manage_denoms')">
                             <input type="checkbox" class="checkbox checkbox-sm" :value="d.id"
@@ -102,7 +105,19 @@
                         <td x-text="d.categoryName || '-'"></td>
                         <td x-text="d.productName || '-'"></td>
                         <td class="font-mono text-xs" x-text="d.code"></td>
-                        <td x-text="d.name"></td>
+                        <td>
+                            <template x-if="canManage && !d.deleted">
+                                <input type="text" maxlength="150"
+                                       class="input input-bordered input-xs w-48"
+                                       :class="isNameDirty(d) ? 'input-warning' : ''"
+                                       :value="pendingName(d)"
+                                       :data-r="idx" data-c="name" @keydown="cellNav($event)"
+                                       @change="setName(d, $event.target.value)"/>
+                            </template>
+                            <template x-if="!canManage || d.deleted">
+                                <span x-text="d.name"></span>
+                            </template>
+                        </td>
                         <td class="text-right font-mono" x-text="formatRp(d.nominal)"></td>
                         <td class="text-right font-mono" x-text="formatRp(d.basePrice)"></td>
                         <td class="text-right">
@@ -111,6 +126,7 @@
                                        class="input input-bordered input-xs w-28 text-right font-mono no-spinner"
                                        :class="isDirty(d) ? 'input-warning' : ''"
                                        :value="pendingPrice(d)"
+                                       :data-r="idx" data-c="price" @keydown="cellNav($event)"
                                        @change="setPrice(d, $event.target.value)"/>
                             </template>
                             <template x-if="!canManage || d.deleted">
@@ -131,6 +147,49 @@
 
     <!-- Bulk Price Confirm Modal -->
     <div th:replace="~{fragments/denom-price-confirm-modal :: modal}"></div>
+
+    <!-- Bulk Name Confirm Modal -->
+    <div class="modal" :class="{ 'modal-open': showNameModal }">
+        <div class="modal-box max-w-xl">
+            <h3 class="text-lg font-semibold mb-4">Konfirmasi Perubahan Nama Denom</h3>
+            <div class="overflow-x-auto max-h-80">
+                <table class="table table-sm">
+                    <thead>
+                    <tr>
+                        <th>Code</th>
+                        <th>Nama Lama</th>
+                        <th>Nama Baru</th>
+                        <th class="text-center" x-show="nameResults.length">Hasil</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <template x-for="item in nameDirtyList" :key="item.id">
+                        <tr>
+                            <td class="font-mono text-xs" x-text="item.code"></td>
+                            <td x-text="item.oldName"></td>
+                            <td class="font-semibold" x-text="item.newName"></td>
+                            <td class="text-center" x-show="nameResults.length">
+                                <template x-if="nameResultFor(item.id)">
+                                    <span class="badge badge-sm"
+                                          :class="nameResultFor(item.id).ok ? 'badge-success' : 'badge-error'"
+                                          :title="nameResultFor(item.id).error || ''"
+                                          x-text="nameResultFor(item.id).ok ? 'OK' : (nameResultFor(item.id).error || 'Gagal')"></span>
+                                </template>
+                            </td>
+                        </tr>
+                    </template>
+                    </tbody>
+                </table>
+            </div>
+            <div class="modal-action">
+                <button class="btn btn-ghost" @click="showNameModal = false" :disabled="savingNames">Batal</button>
+                <button class="btn btn-warning" @click="submitNames()" :disabled="savingNames">
+                    <span x-show="savingNames" class="loading loading-spinner loading-xs"></span>
+                    Konfirmasi
+                </button>
+            </div>
+        </div>
+    </div>
 </div>
 
 <th:block layout:fragment="scripts">
@@ -150,6 +209,10 @@
             selectedIds: [],
             showMarkup: false,
             markup: { base: 'MODAL', type: 'PERSEN', value: null },
+            nameDirty: {},
+            showNameModal: false,
+            savingNames: false,
+            nameResults: [],
 
             get filteredDenoms() {
                 if (this.filterUnpriced && this.unpricedCount === 0) this.filterUnpriced = false; // auto-reset: banner+toggle hilang saat count 0
@@ -198,6 +261,43 @@
                 else Alpine.store('toast').success(`${applied} harga di-set, cek & simpan`);
             },
 
+            // === Inline name editing (accumulate + bulk confirm) ===
+            get nameDirtyList() { return Object.values(this.nameDirty); },
+            isNameDirty(d) { return !!this.nameDirty[d.id]; },
+            pendingName(d) { return this.nameDirty[d.id] ? this.nameDirty[d.id].newName : d.name; },
+            nameResultFor(id) { return this.nameResults.find(r => r.id === id); },
+            setName(d, val) {
+                const name = (val ?? '').trim();
+                if (name === '' || name === d.name) delete this.nameDirty[d.id];
+                else this.nameDirty[d.id] = { id: d.id, code: d.code, oldName: d.name, newName: name };
+            },
+            openNameModal() { this.nameResults = []; this.showNameModal = true; },
+            async submitNames() {
+                this.savingNames = true;
+                try {
+                    const res = await fetch('/api/admin/catalog/denoms/names', {
+                        method: 'PUT', headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(this.nameDirtyList.map(x => ({ id: x.id, name: x.newName })))
+                    });
+                    if (!res.ok) throw new Error('Gagal menyimpan nama');
+                    this.nameResults = await res.json();
+                    const okCount = this.nameResults.filter(r => r.ok).length;
+                    const failCount = this.nameResults.length - okCount;
+                    for (const r of this.nameResults) { if (r.ok) delete this.nameDirty[r.id]; }
+                    await this.loadDenoms();
+                    if (failCount === 0) {
+                        this.showNameModal = false;
+                        Alpine.store('toast').success(`${okCount} nama diperbarui`);
+                    } else {
+                        Alpine.store('toast').error(`${failCount} gagal disimpan, ${okCount} sukses`);
+                    }
+                } catch (e) {
+                    Alpine.store('toast').error(e.message);
+                } finally {
+                    this.savingNames = false;
+                }
+            },
+
             async loadDenoms() {
                 try {
                     const res = await fetch('/api/admin/catalog/denoms');
@@ -205,6 +305,42 @@
                     this.selectedIds = [];
                 } catch (e) {
                     Alpine.store('toast').error('Gagal memuat denom');
+                }
+            },
+
+            // === Arrow navigation antar sel editable (Nama <-> Harga Jual, atas/bawah row) ===
+            // Kolom: name (kiri) <-> price (kanan). Up/Down pindah row, skip row deleted.
+            cellNav(e) {
+                const key = e.key;
+                if (!key.startsWith('Arrow')) return;
+                const el = e.target;
+                const r = Number(el.dataset.r);
+                const c = el.dataset.c;
+                const isText = el.type !== 'number';
+
+                if (key === 'ArrowUp' || key === 'ArrowDown') {
+                    e.preventDefault(); // number: cegah increment; text: cegah lompat caret
+                    const dir = key === 'ArrowDown' ? 1 : -1;
+                    this.focusCell(r + dir, c, dir);
+                } else if (key === 'ArrowLeft' && c === 'price') {
+                    // ponytail: price(number) tak punya caret API -> kiri selalu pindah ke name
+                    e.preventDefault();
+                    this.focusCell(r, 'name', 0);
+                } else if (key === 'ArrowRight' && c === 'name') {
+                    // name: pindah ke price hanya saat caret di ujung -> edit teks tetap jalan
+                    const atEnd = !isText || (el.selectionStart === el.value.length && el.selectionEnd === el.value.length);
+                    if (atEnd) { e.preventDefault(); this.focusCell(r, 'price', 0); }
+                }
+                // ArrowLeft di name / ArrowRight di price: biarkan default (kolom ujung)
+            },
+            focusCell(r, c, dir) {
+                const max = this.filteredDenoms.length;
+                let rr = r;
+                while (rr >= 0 && rr < max) {
+                    const t = document.querySelector(`input[data-r="${rr}"][data-c="${c}"]`);
+                    if (t) { t.focus(); return; }
+                    if (dir === 0) return; // target row tak punya input (deleted) -> berhenti
+                    rr += dir;             // skip row deleted, lanjut cari
                 }
             },
 

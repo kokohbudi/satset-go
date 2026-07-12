@@ -4,7 +4,9 @@ import com.satset.catalog.model.Category;
 import com.satset.catalog.model.CategoryType;
 import com.satset.catalog.model.ProductDenoms;
 import com.satset.catalog.model.Products;
+import com.satset.catalog.dto.BulkNameUpdateRequest;
 import com.satset.catalog.dto.CreateProductRequest;
+import com.satset.catalog.dto.PriceUpdateResult;
 import com.satset.catalog.dto.UpdateProductRequest;
 import com.satset.catalog.repository.CategoryRepository;
 import com.satset.catalog.repository.DenomRepository;
@@ -401,5 +403,93 @@ class ProductDomainServiceTest {
         when(productRepository.findByCategoryIdAndCode(catId, "TELKOMSEL")).thenReturn(Optional.of(p));
 
         org.assertj.core.api.Assertions.assertThat(productService.findByCategoryAndCode("DATA", "TELKOMSEL")).contains(p);
+    }
+
+    // === BULK NAME UPDATE ===
+
+    @Test
+    void updateNames_AllValid_UpdatesAndReturnsOk() {
+        UUID otherId = UUID.randomUUID();
+        Products other = new Products();
+        other.setId(otherId);
+        other.setCode("XL");
+        other.setName("XL");
+        when(productRepository.findById(productId)).thenReturn(Optional.of(existingProduct));
+        when(productRepository.findById(otherId)).thenReturn(Optional.of(other));
+        when(productRepository.save(any(Products.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        List<PriceUpdateResult> results = productService.updateNames(List.of(
+                new BulkNameUpdateRequest(productId, "Telkomsel Prabayar"),
+                new BulkNameUpdateRequest(otherId, "  XL Axiata  ")));
+
+        org.assertj.core.api.Assertions.assertThat(results).hasSize(2).allMatch(PriceUpdateResult::ok);
+        assertEquals("Telkomsel Prabayar", existingProduct.getName());
+        assertEquals("XL Axiata", other.getName()); // trimmed
+        verify(productRepository, times(2)).save(any(Products.class));
+    }
+
+    @Test
+    void updateNames_NotFound_ItemError_OthersSucceed() {
+        UUID missingId = UUID.randomUUID();
+        when(productRepository.findById(missingId)).thenReturn(Optional.empty());
+        when(productRepository.findById(productId)).thenReturn(Optional.of(existingProduct));
+        when(productRepository.save(any(Products.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        List<PriceUpdateResult> results = productService.updateNames(List.of(
+                new BulkNameUpdateRequest(missingId, "Baru"),
+                new BulkNameUpdateRequest(productId, "Telkomsel Baru")));
+
+        assertFalse(results.get(0).ok());
+        assertEquals("Produk tidak ditemukan", results.get(0).error());
+        assertTrue(results.get(1).ok());
+        verify(productRepository, times(1)).save(any(Products.class));
+    }
+
+    @Test
+    void updateNames_BlankName_ItemError_NoSave() {
+        when(productRepository.findById(productId)).thenReturn(Optional.of(existingProduct));
+
+        List<PriceUpdateResult> results = productService.updateNames(List.of(
+                new BulkNameUpdateRequest(productId, "   "),
+                new BulkNameUpdateRequest(productId, null)));
+
+        org.assertj.core.api.Assertions.assertThat(results).hasSize(2).noneMatch(PriceUpdateResult::ok);
+        org.assertj.core.api.Assertions.assertThat(results).allMatch(r -> "Nama kosong".equals(r.error()));
+        verify(productRepository, never()).save(any(Products.class));
+    }
+
+    @Test
+    void updateNames_DeletedProduct_ItemError_NoSave() {
+        existingProduct.setDeleted(true);
+        when(productRepository.findById(productId)).thenReturn(Optional.of(existingProduct));
+
+        List<PriceUpdateResult> results = productService.updateNames(List.of(
+                new BulkNameUpdateRequest(productId, "Telkomsel Baru")));
+
+        assertFalse(results.get(0).ok());
+        assertEquals("Produk sudah dihapus", results.get(0).error());
+        verify(productRepository, never()).save(any(Products.class));
+    }
+
+    @Test
+    void updateNames_NullId_ItemError_NoLookup() {
+        List<PriceUpdateResult> results = productService.updateNames(List.of(
+                new BulkNameUpdateRequest(null, "Telkomsel")));
+
+        assertFalse(results.get(0).ok());
+        assertEquals("Produk tidak ditemukan", results.get(0).error());
+        verify(productRepository, never()).findById(any());
+    }
+
+    @Test
+    void updateNames_IsWriteTransactional() throws Exception {
+        // Regression guard: class-level @Transactional(readOnly=true) — tanpa override
+        // method-level, write tidak ke-flush.
+        var tx = ProductDomainService.class
+                .getMethod("updateNames", List.class)
+                .getAnnotation(org.springframework.transaction.annotation.Transactional.class);
+
+        org.assertj.core.api.Assertions.assertThat(tx).isNotNull();
+        org.assertj.core.api.Assertions.assertThat(tx.readOnly()).isFalse();
     }
 }

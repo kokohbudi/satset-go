@@ -1,5 +1,6 @@
 package com.satset.catalog.web;
 
+import com.satset.catalog.dto.BulkNameUpdateRequest;
 import com.satset.catalog.dto.BulkPriceUpdateRequest;
 import com.satset.catalog.dto.CategoryDTO;
 import com.satset.catalog.dto.DenomListItemDTO;
@@ -129,6 +130,13 @@ public class AdminCatalogController {
         return ResponseEntity.ok(CatalogDtoMapper.toProductDTO(updated));
     }
 
+    @PutMapping("/products/names")
+    @PreAuthorize("hasRole('" + OmniConstants.PERM_MANAGE_PRODUCTS + "')")
+    public ResponseEntity<List<PriceUpdateResult>> updateProductNames(
+            @RequestBody List<BulkNameUpdateRequest> req) {
+        return ResponseEntity.ok(manageProductsUseCase.updateNames(req));
+    }
+
     @DeleteMapping("/products/{id}")
     @PreAuthorize("hasRole('" + OmniConstants.PERM_MANAGE_PRODUCTS + "')")
     public ResponseEntity<Void> deleteProduct(@PathVariable UUID id) {
@@ -182,6 +190,13 @@ public class AdminCatalogController {
     public ResponseEntity<List<PriceUpdateResult>> updateDenomPrices(
             @RequestBody List<BulkPriceUpdateRequest> req) {
         return ResponseEntity.ok(manageDenomsUseCase.updatePrices(req));
+    }
+
+    @PutMapping("/denoms/names")
+    @PreAuthorize("hasRole('" + OmniConstants.PERM_MANAGE_DENOMS + "')")
+    public ResponseEntity<List<PriceUpdateResult>> updateDenomNames(
+            @RequestBody List<BulkNameUpdateRequest> req) {
+        return ResponseEntity.ok(manageDenomsUseCase.updateNames(req));
     }
 
     @DeleteMapping("/denoms/{id}")

@@ -10,6 +10,7 @@ import com.satset.catalog.model.Products;
 import com.satset.catalog.dto.CreateDenomRequest;
 import com.satset.catalog.dto.DenomListItemDTO;
 import com.satset.catalog.dto.UpdateDenomRequest;
+import com.satset.catalog.dto.BulkNameUpdateRequest;
 import com.satset.catalog.dto.BulkPriceUpdateRequest;
 import com.satset.catalog.dto.PriceUpdateResult;
 import com.satset.shared.exception.BusinessException;
@@ -186,6 +187,43 @@ public class DenomDomainService {
             results.add(updateSinglePrice(item));
         }
         return results;
+    }
+
+    /**
+     * Update nama banyak denom sekaligus. Validation error per-item (dicek sebelum save).
+     * Satu transaksi, all-or-nothing. Reuse {@link PriceUpdateResult} sebagai amplop hasil.
+     */
+    @Transactional
+    public List<PriceUpdateResult> updateNames(List<BulkNameUpdateRequest> items) {
+        List<PriceUpdateResult> results = new ArrayList<>(items.size());
+        for (BulkNameUpdateRequest item : items) {
+            results.add(updateSingleName(item));
+        }
+        return results;
+    }
+
+    private PriceUpdateResult updateSingleName(BulkNameUpdateRequest item) {
+        if (item.id() == null) {
+            return PriceUpdateResult.fail(null, null, "Denom tidak ditemukan");
+        }
+        Optional<ProductDenoms> found = denomRepository.findById(item.id());
+        if (found.isEmpty()) {
+            return PriceUpdateResult.fail(item.id(), null, "Denom tidak ditemukan");
+        }
+        ProductDenoms denom = found.get();
+        String name = item.name() == null ? "" : item.name().trim();
+        if (name.isEmpty()) {
+            return PriceUpdateResult.fail(item.id(), denom.getCode(), "Nama kosong");
+        }
+        if (name.length() > 150) {
+            return PriceUpdateResult.fail(item.id(), denom.getCode(), "Nama terlalu panjang");
+        }
+        if (denom.isDeleted()) {
+            return PriceUpdateResult.fail(item.id(), denom.getCode(), "Denom sudah dihapus");
+        }
+        denom.setName(name);
+        denomRepository.save(denom);
+        return PriceUpdateResult.ok(item.id(), denom.getCode());
     }
 
     private PriceUpdateResult updateSinglePrice(BulkPriceUpdateRequest item) {

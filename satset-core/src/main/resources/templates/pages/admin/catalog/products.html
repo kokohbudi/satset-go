@@ -36,6 +36,9 @@
             <p class="text-base-content/60 text-sm mt-1">Kelola produk per kategori (Telkomsel, XL, PLN, dll)</p>
         </div>
         <div class="flex gap-2">
+            <button x-show="nameDirtyList.length > 0" x-cloak class="btn btn-warning tap" @click="openNameModal()">
+                Simpan Nama (<span x-text="nameDirtyList.length"></span>)
+            </button>
             <button sec:authorize="hasRole('REALM_manage_products')" class="btn btn-outline tap"
                     @click="openSync('/api/admin/catalog/categories/' + filterCategoryId + '/sync/products/preview', 'Sync Produk')"
                     :disabled="syncing || !filterCategoryId"
@@ -93,8 +96,17 @@
                     <tr :class="prod.deleted ? 'opacity-40' : ''">
                         <td class="font-mono text-sm" x-text="prod.code"></td>
                         <td>
-                            <a :href="'/admin/catalog/products/' + prod.id + '/denoms'"
-                               class="link link-hover link-primary" x-text="prod.name"></a>
+                            <template x-if="canManage && !prod.deleted">
+                                <input type="text" maxlength="100"
+                                       class="input input-bordered input-xs w-44"
+                                       :class="isNameDirty(prod) ? 'input-warning' : ''"
+                                       :value="pendingName(prod)"
+                                       @change="setName(prod, $event.target.value)"/>
+                            </template>
+                            <template x-if="!canManage || prod.deleted">
+                                <a :href="'/admin/catalog/products/' + prod.id + '/denoms'"
+                                   class="link link-hover link-primary" x-text="prod.name"></a>
+                            </template>
                         </td>
                         <td x-text="prod.providerName || '-'"></td>
                         <td>
@@ -237,6 +249,49 @@
             </div>
         </div>
     </div>
+
+    <!-- Bulk Name Confirm Modal -->
+    <div class="modal" :class="{ 'modal-open': showNameModal }">
+        <div class="modal-box max-w-xl">
+            <h3 class="text-lg font-semibold mb-4">Konfirmasi Perubahan Nama</h3>
+            <div class="overflow-x-auto max-h-80">
+                <table class="table table-sm">
+                    <thead>
+                    <tr>
+                        <th>Code</th>
+                        <th>Nama Lama</th>
+                        <th>Nama Baru</th>
+                        <th class="text-center" x-show="nameResults.length">Hasil</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <template x-for="item in nameDirtyList" :key="item.id">
+                        <tr>
+                            <td class="font-mono text-xs" x-text="item.code"></td>
+                            <td x-text="item.oldName"></td>
+                            <td class="font-semibold" x-text="item.newName"></td>
+                            <td class="text-center" x-show="nameResults.length">
+                                <template x-if="nameResultFor(item.id)">
+                                    <span class="badge badge-sm"
+                                          :class="nameResultFor(item.id).ok ? 'badge-success' : 'badge-error'"
+                                          :title="nameResultFor(item.id).error || ''"
+                                          x-text="nameResultFor(item.id).ok ? 'OK' : (nameResultFor(item.id).error || 'Gagal')"></span>
+                                </template>
+                            </td>
+                        </tr>
+                    </template>
+                    </tbody>
+                </table>
+            </div>
+            <div class="modal-action">
+                <button class="btn btn-ghost" @click="showNameModal = false" :disabled="savingNames">Batal</button>
+                <button class="btn btn-warning" @click="submitNames()" :disabled="savingNames">
+                    <span x-show="savingNames" class="loading loading-spinner loading-xs"></span>
+                    Konfirmasi
+                </button>
+            </div>
+        </div>
+    </div>
 </div>
 
 <th:block layout:fragment="scripts">
@@ -262,6 +317,10 @@
             syncItems: [],
             syncTitle: '',
             form: { categoryId: '', code: '', name: '', providerName: '', description: '', iconUrl: '', sortOrder: 0, active: true },
+            nameDirty: {},
+            showNameModal: false,
+            savingNames: false,
+            nameResults: [],
 
             get filteredProducts() {
                 if (!this.searchQuery) return this.products;
@@ -275,6 +334,43 @@
             },
 
             catName(id) { return (this.categories.find(c => c.id === id) || {}).name || ''; },
+
+            // === Inline name editing (accumulate + bulk confirm) ===
+            get nameDirtyList() { return Object.values(this.nameDirty); },
+            isNameDirty(p) { return !!this.nameDirty[p.id]; },
+            pendingName(p) { return this.nameDirty[p.id] ? this.nameDirty[p.id].newName : p.name; },
+            nameResultFor(id) { return this.nameResults.find(r => r.id === id); },
+            setName(p, val) {
+                const name = (val ?? '').trim();
+                if (name === '' || name === p.name) delete this.nameDirty[p.id];
+                else this.nameDirty[p.id] = { id: p.id, code: p.code, oldName: p.name, newName: name };
+            },
+            openNameModal() { this.nameResults = []; this.showNameModal = true; },
+            async submitNames() {
+                this.savingNames = true;
+                try {
+                    const res = await fetch('/api/admin/catalog/products/names', {
+                        method: 'PUT', headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(this.nameDirtyList.map(x => ({ id: x.id, name: x.newName })))
+                    });
+                    if (!res.ok) throw new Error('Gagal menyimpan nama');
+                    this.nameResults = await res.json();
+                    const okCount = this.nameResults.filter(r => r.ok).length;
+                    const failCount = this.nameResults.length - okCount;
+                    for (const r of this.nameResults) { if (r.ok) delete this.nameDirty[r.id]; }
+                    await this.loadProducts();
+                    if (failCount === 0) {
+                        this.showNameModal = false;
+                        Alpine.store('toast').success(`${okCount} nama diperbarui`);
+                    } else {
+                        Alpine.store('toast').error(`${failCount} gagal disimpan, ${okCount} sukses`);
+                    }
+                } catch (e) {
+                    Alpine.store('toast').error(e.message);
+                } finally {
+                    this.savingNames = false;
+                }
+            },
 
             async loadProducts() {
                 this.loading = true;

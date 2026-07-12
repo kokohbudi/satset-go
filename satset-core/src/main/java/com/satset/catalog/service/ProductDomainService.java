@@ -6,7 +6,9 @@ import com.satset.catalog.repository.ProductRepository;
 import com.satset.catalog.model.Category;
 import com.satset.catalog.model.ProductDenoms;
 import com.satset.catalog.model.Products;
+import com.satset.catalog.dto.BulkNameUpdateRequest;
 import com.satset.catalog.dto.CreateProductRequest;
+import com.satset.catalog.dto.PriceUpdateResult;
 import com.satset.catalog.dto.UpdateProductRequest;
 import com.satset.shared.exception.BusinessException;
 import com.satset.shared.exception.ResourceNotFoundException;
@@ -15,6 +17,7 @@ import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -111,6 +114,48 @@ public class ProductDomainService {
         product.setActive(req.active());
         product.setSortOrder(req.sortOrder());
         return productRepository.save(product);
+    }
+
+    // === Bulk name update (inline edit nama produk) ===
+
+    /**
+     * Update nama banyak produk sekaligus. Validation error (tidak ditemukan, nama
+     * kosong/terlalu panjang, sudah dihapus) per-item — dicek SEBELUM save, item lain jalan.
+     * Persistensi satu transaksi: reuse {@link PriceUpdateResult} sebagai amplop hasil generik.
+     * ponytail: optimistic-lock conflict menggagalkan seluruh batch — UI simpan dirty, coba lagi.
+     */
+    @Transactional
+    @CacheEvict(value = "products", allEntries = true, cacheManager = "standardCacheManager")
+    public List<PriceUpdateResult> updateNames(List<BulkNameUpdateRequest> items) {
+        List<PriceUpdateResult> results = new ArrayList<>(items.size());
+        for (BulkNameUpdateRequest item : items) {
+            results.add(updateSingleName(item));
+        }
+        return results;
+    }
+
+    private PriceUpdateResult updateSingleName(BulkNameUpdateRequest item) {
+        if (item.id() == null) {
+            return PriceUpdateResult.fail(null, null, "Produk tidak ditemukan");
+        }
+        Optional<Products> found = productRepository.findById(item.id());
+        if (found.isEmpty()) {
+            return PriceUpdateResult.fail(item.id(), null, "Produk tidak ditemukan");
+        }
+        Products product = found.get();
+        String name = item.name() == null ? "" : item.name().trim();
+        if (name.isEmpty()) {
+            return PriceUpdateResult.fail(item.id(), product.getCode(), "Nama kosong");
+        }
+        if (name.length() > 100) {
+            return PriceUpdateResult.fail(item.id(), product.getCode(), "Nama terlalu panjang");
+        }
+        if (product.isDeleted()) {
+            return PriceUpdateResult.fail(item.id(), product.getCode(), "Produk sudah dihapus");
+        }
+        product.setName(name);
+        productRepository.save(product);
+        return PriceUpdateResult.ok(item.id(), product.getCode());
     }
 
     @Transactional

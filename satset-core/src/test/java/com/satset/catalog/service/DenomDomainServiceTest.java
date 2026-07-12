@@ -6,6 +6,7 @@ import com.satset.catalog.model.ProductDenoms;
 import com.satset.catalog.model.Products;
 import com.satset.catalog.dto.CreateDenomRequest;
 import com.satset.catalog.dto.UpdateDenomRequest;
+import com.satset.catalog.dto.BulkNameUpdateRequest;
 import com.satset.catalog.dto.BulkPriceUpdateRequest;
 import com.satset.catalog.dto.DenomListItemDTO;
 import com.satset.catalog.dto.PriceUpdateResult;
@@ -555,6 +556,92 @@ class DenomDomainServiceTest {
         // method-level, write tidak ke-flush. WAJIB @Transactional read-write.
         var tx = DenomDomainService.class
                 .getMethod("updatePrices", List.class)
+                .getAnnotation(org.springframework.transaction.annotation.Transactional.class);
+
+        assertThat(tx).isNotNull();
+        assertThat(tx.readOnly()).isFalse();
+    }
+
+    // === BULK NAME UPDATE ===
+
+    @Test
+    void updateNames_AllValid_UpdatesAndReturnsOk() {
+        UUID otherId = UUID.randomUUID();
+        ProductDenoms other = new ProductDenoms();
+        other.setId(otherId);
+        other.setCode("TLKM10");
+        other.setName("Telkomsel 10K");
+        when(denomRepository.findById(denomId)).thenReturn(Optional.of(existingDenom));
+        when(denomRepository.findById(otherId)).thenReturn(Optional.of(other));
+        when(denomRepository.save(any(ProductDenoms.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        List<PriceUpdateResult> results = denomService.updateNames(List.of(
+                new BulkNameUpdateRequest(denomId, "Telkomsel 5rb"),
+                new BulkNameUpdateRequest(otherId, "  Telkomsel 10rb  ")));
+
+        assertThat(results).hasSize(2).allMatch(PriceUpdateResult::ok);
+        assertThat(existingDenom.getName()).isEqualTo("Telkomsel 5rb");
+        assertThat(other.getName()).isEqualTo("Telkomsel 10rb"); // trimmed
+        verify(denomRepository, times(2)).save(any(ProductDenoms.class));
+    }
+
+    @Test
+    void updateNames_NotFound_ItemError_OthersSucceed() {
+        UUID missingId = UUID.randomUUID();
+        when(denomRepository.findById(missingId)).thenReturn(Optional.empty());
+        when(denomRepository.findById(denomId)).thenReturn(Optional.of(existingDenom));
+        when(denomRepository.save(any(ProductDenoms.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        List<PriceUpdateResult> results = denomService.updateNames(List.of(
+                new BulkNameUpdateRequest(missingId, "Baru"),
+                new BulkNameUpdateRequest(denomId, "Telkomsel Baru")));
+
+        assertThat(results.get(0).ok()).isFalse();
+        assertThat(results.get(0).error()).isEqualTo("Denom tidak ditemukan");
+        assertThat(results.get(1).ok()).isTrue();
+        verify(denomRepository, times(1)).save(any(ProductDenoms.class));
+    }
+
+    @Test
+    void updateNames_BlankName_ItemError_NoSave() {
+        when(denomRepository.findById(denomId)).thenReturn(Optional.of(existingDenom));
+
+        List<PriceUpdateResult> results = denomService.updateNames(List.of(
+                new BulkNameUpdateRequest(denomId, "   "),
+                new BulkNameUpdateRequest(denomId, null)));
+
+        assertThat(results).hasSize(2).noneMatch(PriceUpdateResult::ok);
+        assertThat(results).allMatch(r -> "Nama kosong".equals(r.error()));
+        verify(denomRepository, never()).save(any(ProductDenoms.class));
+    }
+
+    @Test
+    void updateNames_DeletedDenom_ItemError_NoSave() {
+        existingDenom.setDeleted(true);
+        when(denomRepository.findById(denomId)).thenReturn(Optional.of(existingDenom));
+
+        List<PriceUpdateResult> results = denomService.updateNames(List.of(
+                new BulkNameUpdateRequest(denomId, "Telkomsel Baru")));
+
+        assertThat(results.get(0).ok()).isFalse();
+        assertThat(results.get(0).error()).isEqualTo("Denom sudah dihapus");
+        verify(denomRepository, never()).save(any(ProductDenoms.class));
+    }
+
+    @Test
+    void updateNames_NullId_ItemError_NoLookup() {
+        List<PriceUpdateResult> results = denomService.updateNames(List.of(
+                new BulkNameUpdateRequest(null, "Telkomsel")));
+
+        assertThat(results.get(0).ok()).isFalse();
+        assertThat(results.get(0).error()).isEqualTo("Denom tidak ditemukan");
+        verify(denomRepository, never()).findById(any());
+    }
+
+    @Test
+    void updateNames_IsWriteTransactional() throws Exception {
+        var tx = DenomDomainService.class
+                .getMethod("updateNames", List.class)
                 .getAnnotation(org.springframework.transaction.annotation.Transactional.class);
 
         assertThat(tx).isNotNull();
