@@ -5,6 +5,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.satset.shared.exception.SupplierException;
 import com.satset.supplier.model.PriceListItem;
 import com.satset.supplier.model.PriceListSnapshot;
 import lombok.extern.slf4j.Slf4j;
@@ -84,14 +85,14 @@ public class DigiflazzClient {
             if (data.isArray()) {
                 return MAPPER.convertValue(data, LIST_TYPE);
             }
-            // data = object -> DF error (rc 83 = limit price-list, dll). Jangan expose ke user.
+            // data = object -> DF error (rc 83 = limit price-list, dll). Teruskan rc + pesan asli DF ke admin.
             String rc = data.path("rc").asText("");
             String msg = data.path("message").asText("Supplier tidak tersedia");
             log.error("Digiflazz price-list ditolak rc={} msg={}", rc, msg);
-            throw new IllegalStateException("Digiflazz price-list gagal (rc=" + rc + ")");
+            throw new SupplierException(rc, msg);
         } catch (JsonProcessingException e) {
             log.error("Gagal parse respons Digiflazz price-list", e);
-            throw new IllegalStateException("Respons Digiflazz tidak valid");
+            throw new SupplierException("PARSE", "Respons Digiflazz tidak valid");
         }
     }
 

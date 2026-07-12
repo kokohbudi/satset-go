@@ -1,5 +1,6 @@
 package com.satset.supplier.client;
 
+import com.satset.shared.exception.SupplierException;
 import com.satset.supplier.model.PriceListItem;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.web.client.MockRestServiceServer;
@@ -76,7 +77,9 @@ class DigiflazzClientTest {
                 builder.build(), "https://api.digiflazz.com/v1", "user1", "key1");
 
         assertThatThrownBy(() -> client.fetchSnapshot().items())
-                .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("83");
+                .isInstanceOf(SupplierException.class)
+                .hasMessageContaining("limitasi pengecekan pricelist")   // pesan asli DF diteruskan
+                .extracting(e -> ((SupplierException) e).getCode())
+                .isEqualTo("83");                                        // rc DF diteruskan apa adanya
     }
 }

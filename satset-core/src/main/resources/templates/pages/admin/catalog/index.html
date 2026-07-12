@@ -120,8 +120,9 @@
                         <th class="text-right">Harga Beli</th>
                         <th class="text-right">
                             Harga Suplier
-                            <span x-show="supplierPricesAt" class="block text-[10px] font-normal text-base-content/40"
+                            <span x-show="supplierPricesAt && !supplierPricesError" class="block text-[10px] font-normal text-base-content/40"
                                   x-text="supplierPricesAt ? ('upd ' + new Date(supplierPricesAt).toLocaleString('id-ID', {day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'})) : ''"></span>
+                            <span x-show="supplierPricesError" class="block text-[10px] font-normal normal-case text-error" x-text="supplierPricesError"></span>
                         </th>
                         <th class="text-center">Sort</th>
                         <th class="text-center">Status</th>
@@ -538,17 +539,26 @@
             searchQuery: '',
             supplierPrices: {},
             supplierPricesAt: null,
+            supplierPricesError: null,   // pesan error DF (rc + message) utk kolom Harga Suplier
 
             init() { this.loadSupplierPrices(); },
 
             async loadSupplierPrices() {
                 try {
                     const res = await fetch('/api/admin/catalog/supplier-prices');
+                    if (!res.ok) {
+                        const e = await res.json().catch(() => ({}));
+                        this.supplierPricesError = e.code ? ('DF ' + e.code + ': ' + e.message) : 'Gagal ambil Harga Suplier';
+                        this.supplierPrices = {}; this.supplierPricesAt = null;
+                        return;
+                    }
                     const v = await res.json();
                     this.supplierPrices = v.prices || {};
                     this.supplierPricesAt = v.fetchedAt || null;
-                } catch (e) { /* diam: kolom suplier opsional */ }
+                    this.supplierPricesError = null;
+                } catch (e) { this.supplierPricesError = 'Gagal ambil Harga Suplier'; }
             },
+            dfError(e) { return e && e.code ? ('DF ' + e.code + ': ' + e.message) : null; },
             supplierCost(code) {
                 // ponytail: space after `[` — `[(` is Thymeleaf's escaped-inline marker in th:inline="javascript"
                 const key = (code || '').toUpperCase();
@@ -968,22 +978,22 @@
                 this.syncing = true;
                 try {
                     const res = await fetch('/api/admin/catalog/sync/all/preview');
-                    if (!res.ok) throw new Error();
+                    if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(this.dfError(e) || 'Gagal ambil preview'); }
                     this.syncPreview = await res.json();
                     this.showSyncModal = true;
-                } catch (e) { Alpine.store('toast').error('Gagal ambil preview'); }
+                } catch (e) { Alpine.store('toast').error(e.message); }
                 finally { this.syncing = false; }
             },
             async applySyncAll() {
                 this.syncing = true;
                 try {
                     const res = await fetch('/api/admin/catalog/sync/all', { method: 'POST' });
-                    if (!res.ok) throw new Error();
+                    if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(this.dfError(e) || 'Gagal sync'); }
                     const r = await res.json();
                     Alpine.store('toast').success(`Selesai: +${r.added} baru, ${r.updated} update, ${r.failed} gagal`);
                     this.showSyncModal = false;
                     await this.reloadCategories(); await this.reloadProducts(); await this.refreshDenoms(); await this.loadSupplierPrices();
-                } catch (e) { Alpine.store('toast').error('Gagal sync'); }
+                } catch (e) { Alpine.store('toast').error(e.message); }
                 finally { this.syncing = false; }
             }
         };
