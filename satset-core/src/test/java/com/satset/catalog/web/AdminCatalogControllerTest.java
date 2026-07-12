@@ -1,9 +1,11 @@
 package com.satset.catalog.web;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.satset.catalog.dto.DenomListItemDTO;
 import com.satset.catalog.dto.PriceUpdateResult;
 import com.satset.catalog.model.Category;
 import com.satset.catalog.model.CategoryType;
+import com.satset.catalog.model.DenomType;
 import com.satset.catalog.model.Products;
 import com.satset.catalog.service.CategoryDomainService;
 import com.satset.catalog.service.DenomDomainService;
@@ -254,6 +256,22 @@ class AdminCatalogControllerTest {
         mockMvc.perform(get("/api/admin/catalog/products/{productId}/denoms", productId))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").isEmpty());
+    }
+
+    @Test
+    void listAllDenoms_ReturnsEnrichedDTOs() throws Exception {
+        UUID id = UUID.randomUUID();
+        UUID prodId = UUID.randomUUID();
+        when(manageDenomsUseCase.findAllForList()).thenReturn(List.of(
+                new DenomListItemDTO(id, "byu10", "by.U 10K", DenomType.FIXED_DENOM,
+                        null, new java.math.BigDecimal("10500"), new java.math.BigDecimal("10000"),
+                        true, false, prodId, "by.U", "PULSA")));
+
+        mockMvc.perform(get("/api/admin/catalog/denoms"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].code").value("byu10"))
+                .andExpect(jsonPath("$[0].productName").value("by.U"))
+                .andExpect(jsonPath("$[0].categoryName").value("PULSA"));
     }
 
     @Test

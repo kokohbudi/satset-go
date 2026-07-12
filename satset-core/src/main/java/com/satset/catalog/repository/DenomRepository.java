@@ -21,6 +21,8 @@ public interface DenomRepository extends JpaRepository<ProductDenoms, UUID> {
 
     boolean existsByCodeAndIdNot(String code, UUID id);
 
+    List<ProductDenoms> findByDeletedFalseOrderByProductIdAscSortOrderAsc();
+
     /**
      * Find denom info by ID for cross-context use.
      * Uses JPQL to directly map to DenomInfo value object.

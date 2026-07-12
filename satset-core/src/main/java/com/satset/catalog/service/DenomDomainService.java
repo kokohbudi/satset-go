@@ -10,9 +10,11 @@ import com.satset.catalog.model.ProductDenomMeta;
 import com.satset.catalog.model.ProductDenoms;
 import com.satset.catalog.model.Products;
 import com.satset.catalog.dto.CreateDenomRequest;
+import com.satset.catalog.dto.DenomListItemDTO;
 import com.satset.catalog.dto.UpdateDenomRequest;
 import com.satset.catalog.dto.BulkPriceUpdateRequest;
 import com.satset.catalog.dto.PriceUpdateResult;
+import com.satset.catalog.web.CatalogDtoMapper;
 import com.satset.shared.exception.BusinessException;
 import com.satset.shared.exception.ResourceNotFoundException;
 import org.springframework.stereotype.Service;
@@ -21,8 +23,11 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 @Transactional(readOnly = true)
@@ -71,6 +76,22 @@ public class DenomDomainService {
 
     public List<ProductDenoms> findByProductForAdmin(UUID productId) {
         return denomRepository.findByProductIdOrderBySortOrder(productId);
+    }
+
+    public List<DenomListItemDTO> findAllForList() {
+        Map<UUID, Products> productById = productRepository.findAll().stream()
+                .collect(Collectors.toMap(Products::getId, Function.identity()));
+        Map<UUID, String> categoryNameById = categoryRepository.findAll().stream()
+                .collect(Collectors.toMap(Category::getId, Category::getName));
+
+        return denomRepository.findByDeletedFalseOrderByProductIdAscSortOrderAsc().stream()
+                .map(d -> {
+                    Products p = productById.get(d.getProductId());
+                    String productName = p != null ? p.getName() : null;
+                    String categoryName = (p != null) ? categoryNameById.get(p.getCategoryId()) : null;
+                    return CatalogDtoMapper.toDenomListItemDTO(d, productName, categoryName);
+                })
+                .toList();
     }
 
     public Optional<ProductDenoms> findById(UUID id) {

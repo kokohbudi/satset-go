@@ -1,6 +1,7 @@
 package com.satset.catalog.web;
 
 import com.satset.catalog.dto.CategoryDTO;
+import com.satset.catalog.dto.DenomListItemDTO;
 import com.satset.catalog.dto.ProductDTO;
 import com.satset.catalog.dto.ProductDenomDTO;
 import com.satset.catalog.dto.ProductDenomMetaDTO;
@@ -70,6 +71,13 @@ public final class CatalogDtoMapper {
         dto.setInSupplier(entity.isInSupplier());
         dto.setProductId(entity.getProductId());
         return dto;
+    }
+
+    public static DenomListItemDTO toDenomListItemDTO(ProductDenoms d, String productName, String categoryName) {
+        return new DenomListItemDTO(
+                d.getId(), d.getCode(), d.getName(), d.getDenomType(), d.getNominal(),
+                d.getPrice(), d.getBasePrice(), d.isActive(), d.isDeleted(),
+                d.getProductId(), productName, categoryName);
     }
 
     static ProductDenomMetaDTO toMetaDTO(ProductDenomMeta entity) {
