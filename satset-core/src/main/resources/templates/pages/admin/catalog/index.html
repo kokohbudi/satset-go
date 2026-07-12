@@ -22,36 +22,55 @@
         </div>
     </div>
 
-    <!-- Tab kategori -->
-    <div role="tablist" class="tabs tabs-bordered mb-3 items-center flex-wrap animate-rise" style="--i:1">
-        <a role="tab" class="tab" :class="activeCategory === null ? 'tab-active' : ''"
-           @click="selectCategory(null)">Semua</a>
+    <!-- Tab kategori (level 1: primary selector — solid pills) -->
+    <div class="flex flex-wrap items-center gap-2 mb-4 animate-rise" style="--i:1">
+        <button type="button" class="inline-flex items-center h-9 px-4 rounded-full border text-sm font-medium whitespace-nowrap transition-colors tap"
+                :class="activeCategory === null ? 'bg-primary border-primary text-primary-content shadow-sm' : 'bg-base-100 border-base-300 text-base-content/70 hover:border-primary/40 hover:text-base-content'"
+                @click="selectCategory(null)">Semua</button>
         <template x-for="c in categories" :key="c.id">
-            <div role="tab" class="tab gap-1" :class="[activeCategory === c.id ? 'tab-active' : '', c.deleted ? 'opacity-40' : '']">
-                <span class="cursor-pointer" :class="c.deleted ? 'cursor-not-allowed' : ''"
-                      @click="!c.deleted && selectCategory(c.id)" x-text="c.name"></span>
-                <button x-show="canManageCat" type="button" class="btn btn-ghost btn-xs px-1" title="Edit kategori"
-                        :disabled="c.deleted" @click.stop="openCategoryModal(c)">&#9998;</button>
+            <div class="group inline-flex items-center h-9 rounded-full border transition-colors"
+                 :class="activeCategory === c.id ? 'bg-primary border-primary text-primary-content shadow-sm'
+                          : (c.deleted ? 'bg-base-100 border-base-300 text-base-content/30' : 'bg-base-100 border-base-300 text-base-content/70 hover:border-primary/40 hover:text-base-content')">
+                <button type="button" class="inline-flex items-center h-full pl-4 text-sm font-medium whitespace-nowrap"
+                        :class="[c.deleted ? 'line-through cursor-not-allowed' : 'cursor-pointer', (canManageCat && activeCategory === c.id) ? 'pr-1.5' : 'pr-4']"
+                        :disabled="c.deleted" @click="!c.deleted && selectCategory(c.id)" x-text="c.name"></button>
+                <button x-show="canManageCat && activeCategory === c.id" type="button" title="Edit kategori" aria-label="Edit kategori"
+                        class="inline-flex items-center h-full pr-3 pl-0.5 opacity-80 hover:opacity-100 transition-opacity"
+                        :disabled="c.deleted" @click.stop="openCategoryModal(c)">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                    </svg>
+                </button>
             </div>
         </template>
-        <button sec:authorize="hasRole('REALM_manage_categories')" x-show="canManageCat"
-                class="btn btn-ghost btn-xs ml-auto tap" @click="openCategoryModal()">+ Kategori</button>
+        <button sec:authorize="hasRole('REALM_manage_categories')" x-show="canManageCat" type="button"
+                class="inline-flex items-center h-9 px-4 rounded-full border border-dashed border-base-300 text-sm font-medium whitespace-nowrap text-base-content/60 hover:border-primary hover:text-primary transition-colors tap"
+                @click="openCategoryModal()">+ Kategori</button>
     </div>
 
-    <!-- Subtab produk (hidden when Semua-kategori) -->
-    <div role="tablist" class="tabs tabs-bordered mb-4 items-center flex-wrap" x-show="activeCategory !== null" x-cloak>
-        <a role="tab" class="tab" :class="activeProduct === null ? 'tab-active' : ''"
-           @click="selectProduct(null)">Semua</a>
+    <!-- Subtab produk (level 2: secondary — underline tabs; hidden when Semua-kategori) -->
+    <div class="flex flex-wrap items-center gap-x-1 mb-4 border-b border-base-300" x-show="activeCategory !== null" x-cloak>
+        <button type="button" class="px-3 py-2 text-sm font-medium border-b-2 -mb-px transition-colors"
+                :class="activeProduct === null ? 'border-primary text-primary' : 'border-transparent text-base-content/60 hover:text-base-content'"
+                @click="selectProduct(null)">Semua</button>
         <template x-for="p in productsInCategory" :key="p.id">
-            <div role="tab" class="tab gap-1" :class="[activeProduct === p.id ? 'tab-active' : '', p.deleted ? 'opacity-40' : '']">
-                <span class="cursor-pointer" :class="p.deleted ? 'cursor-not-allowed' : ''"
-                      @click="!p.deleted && selectProduct(p.id)" x-text="p.name"></span>
-                <button x-show="canManageProd" type="button" class="btn btn-ghost btn-xs px-1" title="Edit produk"
-                        :disabled="p.deleted" @click.stop="openProductModal(p)">&#9998;</button>
+            <div class="group inline-flex items-center border-b-2 -mb-px transition-colors"
+                 :class="activeProduct === p.id ? 'border-primary' : 'border-transparent'">
+                <button type="button" class="py-2 pl-3 text-sm font-medium transition-colors"
+                        :class="[activeProduct === p.id ? 'text-primary' : (p.deleted ? 'text-base-content/30 line-through cursor-not-allowed' : 'text-base-content/60 hover:text-base-content cursor-pointer'), (canManageProd && activeProduct === p.id) ? 'pr-1' : 'pr-3']"
+                        :disabled="p.deleted" @click="!p.deleted && selectProduct(p.id)" x-text="p.name"></button>
+                <button x-show="canManageProd && activeProduct === p.id" type="button" title="Edit produk" aria-label="Edit produk"
+                        class="pr-2 pl-0.5 py-2 text-primary opacity-80 hover:opacity-100 transition-opacity"
+                        :disabled="p.deleted" @click.stop="openProductModal(p)">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                    </svg>
+                </button>
             </div>
         </template>
-        <button sec:authorize="hasRole('REALM_manage_products')" x-show="canManageProd"
-                class="btn btn-ghost btn-xs ml-auto tap" @click="openProductModal(activeCategory ? { categoryId: activeCategory } : null)">+ Produk</button>
+        <button sec:authorize="hasRole('REALM_manage_products')" x-show="canManageProd" type="button"
+                class="ml-auto px-3 py-2 text-sm font-medium text-primary/80 hover:text-primary transition-colors"
+                @click="openProductModal(activeCategory ? { categoryId: activeCategory } : null)">+ Produk</button>
     </div>
 
     <!-- Search (context-sensitive: filters whichever panel is visible) -->
@@ -206,7 +225,8 @@
     </div>
 
     <!-- Category Create/Edit Modal -->
-    <div x-show="showCategoryModal" x-cloak class="fixed inset-0 z-50 flex items-center justify-center"
+    <div x-show="showCategoryModal" x-cloak @keydown.escape.window="!categorySaving && (showCategoryModal = false)"
+         class="fixed inset-0 z-50 flex items-center justify-center"
          x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0"
          x-transition:enter-end="opacity-100" x-transition:leave="transition ease-in duration-150"
          x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0">
@@ -222,17 +242,17 @@
             <form @submit.prevent="saveCategory()">
                 <div class="px-6 py-5 space-y-4">
                     <div class="form-control">
-                        <label class="label"><span class="label-text">Code</span></label>
+                        <label class="label"><span class="label-text">Code <span class="text-error">*</span></span></label>
                         <input type="text" class="input input-bordered" x-model="categoryForm.code" required maxlength="50"
-                               placeholder="e.g. PULSA" :disabled="categorySaving">
+                               x-ref="catCodeInput" placeholder="e.g. PULSA" :disabled="categorySaving">
                     </div>
                     <div class="form-control">
-                        <label class="label"><span class="label-text">Nama</span></label>
+                        <label class="label"><span class="label-text">Nama <span class="text-error">*</span></span></label>
                         <input type="text" class="input input-bordered" x-model="categoryForm.name" required maxlength="100"
                                placeholder="e.g. Pulsa & Telepon" :disabled="categorySaving">
                     </div>
                     <div class="form-control">
-                        <label class="label"><span class="label-text">Tipe Kategori</span></label>
+                        <label class="label"><span class="label-text">Tipe Kategori <span class="text-error">*</span></span></label>
                         <select class="select select-bordered" x-model="categoryForm.categoryType" required :disabled="categorySaving">
                             <option value="">-- Pilih --</option>
                             <template x-for="type in categoryTypes" :key="type">
@@ -274,7 +294,8 @@
     </div>
 
     <!-- Product Create/Edit Modal -->
-    <div x-show="showProductModal" x-cloak class="fixed inset-0 z-50 flex items-center justify-center"
+    <div x-show="showProductModal" x-cloak @keydown.escape.window="!productSaving && (showProductModal = false)"
+         class="fixed inset-0 z-50 flex items-center justify-center"
          x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0"
          x-transition:enter-end="opacity-100" x-transition:leave="transition ease-in duration-150"
          x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0">
@@ -348,7 +369,8 @@
     </div>
 
     <!-- Denom Create/Edit Modal -->
-    <div x-show="showDenomModal" x-cloak class="fixed inset-0 z-50 flex items-center justify-center"
+    <div x-show="showDenomModal" x-cloak @keydown.escape.window="!denomSaving && (showDenomModal = false)"
+         class="fixed inset-0 z-50 flex items-center justify-center"
          x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0"
          x-transition:enter-end="opacity-100" x-transition:leave="transition ease-in duration-150"
          x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0">
@@ -658,6 +680,7 @@
                         iconUrl: cat.iconUrl || '', sortOrder: cat.sortOrder, active: cat.active }
                     : { code: '', name: '', categoryType: '', iconUrl: '', sortOrder: 0, active: true };
                 this.showCategoryModal = true;
+                this.$nextTick(() => this.$refs.catCodeInput?.focus());
             },
 
             async saveCategory() {
