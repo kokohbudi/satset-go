@@ -48,10 +48,7 @@ public class AdminCatalogPageController {
                 .map(CatalogDtoMapper::toCategoryDTO).toList();
         model.addAttribute("initialCategories", categories);
 
-        // ProductDomainService has no findAllForAdmin(); compose across categories
-        // the same way productsPage() does below.
-        List<ProductDTO> products = allCategories.stream()
-                .flatMap(cat -> manageProductsUseCase.findByCategoryForAdmin(cat.getId()).stream())
+        List<ProductDTO> products = manageProductsUseCase.findAllForAdmin().stream()
                 .map(CatalogDtoMapper::toProductDTO).toList();
         model.addAttribute("initialProducts", products);
 
