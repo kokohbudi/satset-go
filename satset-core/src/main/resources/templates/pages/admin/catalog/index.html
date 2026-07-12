@@ -20,6 +20,10 @@
             <h1 class="text-2xl font-bold">Katalog</h1>
             <p class="text-base-content/60 text-sm mt-1">Kategori, produk, dan denominasi dalam satu halaman</p>
         </div>
+        <button sec:authorize="hasRole('REALM_manage_denoms')" x-show="canManageDenom"
+                class="btn btn-outline btn-sm tap" @click="openSyncAll()" :disabled="syncing">
+            <span x-show="syncing" class="loading loading-spinner loading-xs"></span> Sync DF
+        </button>
     </div>
 
     <!-- Tab kategori (level 1: primary selector — solid pills) -->
@@ -85,11 +89,6 @@
                         : activeCategory !== null ? ('Denom: ' + catName(activeCategory))
                         : 'Semua Denom'"></h2>
             <div class="flex gap-2">
-                <button sec:authorize="hasRole('REALM_manage_denoms')" x-show="canManageDenom" class="btn btn-outline btn-sm tap"
-                        @click="openSyncDenoms()" :disabled="denomSyncing">
-                    <span x-show="denomSyncing" class="loading loading-spinner loading-xs"></span>
-                    Sync Denom DF
-                </button>
                 <button sec:authorize="hasRole('REALM_manage_denoms')" x-show="canManageDenom" class="btn btn-primary btn-sm tap" @click="openCreateModal()">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
                         <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"/>
@@ -477,39 +476,27 @@
         </div>
     </div>
 
-    <!-- Sync Denom DF Preview Modal -->
-    <div class="modal" :class="{ 'modal-open': showDenomSyncModal }">
+    <!-- Sync Digiflazz Preview Modal -->
+    <div class="modal" :class="{ 'modal-open': showSyncModal }">
         <div class="modal-box max-w-2xl">
-            <h3 class="font-bold text-lg" x-text="denomSyncTitle">Preview Sync</h3>
-            <template x-for="grp in ['ADD','UPDATE','DELETE']" :key="grp">
-                <div x-show="syncGroup(grp).length" class="mt-4">
-                    <div class="flex items-center justify-between">
-                        <span class="font-semibold text-sm"
-                              x-text="grp === 'ADD' ? '&#10133; Tambah' : grp === 'UPDATE' ? '&#9999;&#65039; Update harga' : '&#128465;&#65039; Hapus'"></span>
-                        <label class="label cursor-pointer gap-2 text-xs">
-                            <span>pilih semua</span>
-                            <input type="checkbox" class="checkbox checkbox-xs"
-                                   :checked="syncGroup(grp).every(i => i.checked)"
-                                   @change="toggleGroup(grp, $event.target.checked)">
-                        </label>
-                    </div>
-                    <div class="max-h-48 overflow-y-auto mt-1">
-                        <template x-for="it in syncGroup(grp)" :key="it.key">
-                            <label class="flex items-center gap-2 py-1 text-sm cursor-pointer">
-                                <input type="checkbox" class="checkbox checkbox-sm" x-model="it.checked">
-                                <span x-text="it.label"></span>
-                                <span class="text-xs text-base-content/50" x-show="it.detail" x-text="it.detail"></span>
-                            </label>
-                        </template>
-                    </div>
+            <h3 class="font-bold text-lg">Sync Digiflazz</h3>
+            <p class="text-sm text-base-content/60 mt-1">Preview perubahan. Terapkan semua = tambah item baru + update harga (tidak menghapus).</p>
+            <template x-for="grp in [
+                {t:'Kategori baru', k:'newCategories'}, {t:'Produk baru', k:'newProducts'},
+                {t:'Denom baru', k:'newDenoms'}, {t:'Harga berubah', k:'priceChanges'}]" :key="grp.k">
+              <div class="mt-4" x-show="syncPreview[grp.k] && syncPreview[grp.k].length">
+                <div class="font-semibold text-sm" x-text="grp.t + ' (' + syncPreview[grp.k].length + ')'"></div>
+                <div class="max-h-40 overflow-y-auto mt-1 text-sm text-base-content/70">
+                  <template x-for="(label, i) in syncPreview[grp.k]" :key="grp.k + i"><div x-text="label"></div></template>
                 </div>
+              </div>
             </template>
+            <div x-show="!(syncPreview.newCategories.length || syncPreview.newProducts.length || syncPreview.newDenoms.length || syncPreview.priceChanges.length)"
+                 class="mt-4 text-sm text-base-content/60">Sudah sinkron — tidak ada perubahan.</div>
             <div class="modal-action">
-                <button class="btn btn-ghost" @click="showDenomSyncModal = false" :disabled="denomSyncing">Batal</button>
-                <button class="btn btn-primary"
-                        @click="confirmSync('/api/admin/catalog/products/' + activeProduct + '/sync/denoms', async () => { await loadDenoms(activeProduct); await loadCompare(activeProduct); })"
-                        :disabled="denomSyncing">
-                    <span x-show="denomSyncing" class="loading loading-spinner loading-xs"></span> Terapkan
+                <button class="btn btn-ghost" @click="showSyncModal = false" :disabled="syncing">Batal</button>
+                <button class="btn btn-primary" @click="applySyncAll()" :disabled="syncing">
+                    <span x-show="syncing" class="loading loading-spinner loading-xs"></span> Terapkan Semua
                 </button>
             </div>
         </div>
@@ -588,11 +575,10 @@
                 productChoice: '', productNewName: '', productNewProvider: '', productNewIcon: ''
             },
 
-            // ---- denom sync (Sync Denom DF) ----
-            denomSyncing: false,
-            showDenomSyncModal: false,
-            denomSyncItems: [],
-            denomSyncTitle: '',
+            // ---- sync-all (Sync DF) ----
+            showSyncModal: false,
+            syncing: false,
+            syncPreview: { newCategories: [], newProducts: [], newDenoms: [], priceChanges: [] },
 
             // ==================== getters ====================
 
@@ -926,40 +912,29 @@
                 }
             },
 
-            // ==================== Sync Denom DF ====================
+            // ==================== Sync DF (global sync-all) ====================
 
-            async openSyncDenoms() {
-                this.denomSyncing = true; this.denomSyncTitle = 'Sync Denom';
+            async openSyncAll() {
+                this.syncing = true;
                 try {
-                    const res = await fetch(`/api/admin/catalog/products/${this.activeProduct}/pricelist-compare`);
-                    if (!res.ok) throw new Error('gagal');
-                    const rows = await res.json();
-                    const map = { BARU: 'ADD', NAIK: 'UPDATE', TURUN: 'UPDATE', HILANG: 'DELETE' };
-                    this.denomSyncItems = rows.filter(r => r.status !== 'SAMA').map(r => ({
-                        action: map[r.status], key: r.buyerSku, label: r.productName || r.buyerSku,
-                        detail: r.status === 'HILANG' ? 'hilang dari DF'
-                              : (r.dfCost != null ? 'Rp ' + new Intl.NumberFormat('id-ID').format(r.dfCost) : ''),
-                        checked: r.status !== 'HILANG'   // DELETE default off
-                    }));
-                    if (this.denomSyncItems.length === 0) { Alpine.store('toast').success('Denom sudah sinkron'); return; }
-                    this.showDenomSyncModal = true;
+                    const res = await fetch('/api/admin/catalog/sync/all/preview');
+                    if (!res.ok) throw new Error();
+                    this.syncPreview = await res.json();
+                    this.showSyncModal = true;
                 } catch (e) { Alpine.store('toast').error('Gagal ambil preview'); }
-                finally { this.denomSyncing = false; }
+                finally { this.syncing = false; }
             },
-            syncGroup(action) { return this.denomSyncItems.filter(i => i.action === action); },
-            toggleGroup(action, val) { this.denomSyncItems.forEach(i => { if (i.action === action) i.checked = val; }); },
-            async confirmSync(applyUrl, reload) {
-                const keys = this.denomSyncItems.filter(i => i.checked).map(i => i.key);
-                this.denomSyncing = true;
+            async applySyncAll() {
+                this.syncing = true;
                 try {
-                    const res = await fetch(applyUrl, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(keys) });
-                    if (!res.ok) throw new Error('gagal');
+                    const res = await fetch('/api/admin/catalog/sync/all', { method: 'POST' });
+                    if (!res.ok) throw new Error();
                     const r = await res.json();
-                    Alpine.store('toast').success(`Selesai: +${r.added} baru, ${r.updated} update, ${r.deleted} hapus, ${r.failed} gagal`);
-                    this.showDenomSyncModal = false;
-                    await reload();
+                    Alpine.store('toast').success(`Selesai: +${r.added} baru, ${r.updated} update, ${r.failed} gagal`);
+                    this.showSyncModal = false;
+                    await this.reloadCategories(); await this.reloadProducts(); await this.refreshDenoms(); await this.loadSupplierPrices();
                 } catch (e) { Alpine.store('toast').error('Gagal sync'); }
-                finally { this.denomSyncing = false; }
+                finally { this.syncing = false; }
             }
         };
     }
