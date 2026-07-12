@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="id" xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      layout:decorate="~{layouts/base}">
+
+<head>
+    <title>Semua Denom</title>
+</head>
+
+<body>
+<div layout:fragment="content" x-data="allDenomManager()"
+     th:data-can-manage="${#authorization.expression('hasRole(''REALM_manage_denoms'')')}">
+
+    <!-- Tab Navigation -->
+    <div role="tablist" class="tabs tabs-bordered mb-6 animate-rise" style="--i:0">
+        <a role="tab" class="tab" href="/admin/catalog/categories">Kategori</a>
+        <a role="tab" class="tab" href="/admin/catalog/products">Semua Produk</a>
+        <a role="tab" class="tab tab-active">Semua Denom</a>
+    </div>
+
+    <!-- Page Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-4 animate-rise" style="--i:1">
+        <div>
+            <h1 class="text-2xl font-bold">Semua Denom</h1>
+            <p class="text-base-content/60 text-sm mt-1">Denominasi lintas produk dengan markup harga massal</p>
+        </div>
+        <button x-show="dirtyList.length > 0" x-cloak class="btn btn-warning tap" @click="openPriceModal()">
+            Simpan Harga (<span x-text="dirtyList.length"></span>)
+        </button>
+    </div>
+
+    <!-- Markup Bar -->
+    <div sec:authorize="hasRole('REALM_manage_denoms')" class="card bg-base-100 shadow-sm p-4 mb-4 animate-rise" style="--i:2">
+        <div class="flex flex-wrap items-end gap-3">
+            <label class="form-control">
+                <span class="label-text text-xs">Base</span>
+                <select class="select select-bordered select-sm" x-model="markup.base">
+                    <option value="MODAL">Harga Modal</option>
+                    <option value="CURRENT">Harga Sekarang</option>
+                </select>
+            </label>
+            <label class="form-control">
+                <span class="label-text text-xs">Tipe</span>
+                <select class="select select-bordered select-sm" x-model="markup.type">
+                    <option value="PERSEN">Persen (%)</option>
+                    <option value="FIX">Fix (Rp)</option>
+                </select>
+            </label>
+            <label class="form-control">
+                <span class="label-text text-xs">Nilai</span>
+                <input type="number" min="0" step="any" class="input input-bordered input-sm w-32" x-model.number="markup.value"/>
+            </label>
+            <button class="btn btn-primary btn-sm tap" @click="applyMarkup()"
+                    :disabled="selectedIds.length === 0 || markup.value === null || markup.value === ''">
+                Terapkan ke terpilih (<span x-text="selectedIds.length"></span>)
+            </button>
+        </div>
+    </div>
+
+    <!-- Unpriced Warning -->
+    <div x-show="unpricedCount > 0" x-cloak class="alert alert-warning py-2 mb-4 flex items-center justify-between">
+        <span>⚠ <b x-text="unpricedCount"></b> denom belum ada harga jual</span>
+        <button class="btn btn-xs tap" @click="filterUnpriced = !filterUnpriced"
+                x-text="filterUnpriced ? 'Tampilkan semua' : 'Tampilkan'"></button>
+    </div>
+
+    <!-- Filter -->
+    <div class="flex flex-wrap gap-3 mb-4 animate-rise" style="--i:3">
+        <select class="select select-bordered select-sm" x-model="filterCategory">
+            <option value="">Semua Kategori</option>
+            <template x-for="c in categories" :key="c.id"><option :value="c.name" x-text="c.name"></option></template>
+        </select>
+        <input type="search" x-model="searchQuery" placeholder="Cari code/nama/produk..." class="input input-bordered input-sm grow max-w-xs"/>
+    </div>
+
+    <!-- Table -->
+    <div class="card bg-base-100 shadow-sm animate-rise" style="--i:4">
+        <div class="overflow-x-auto">
+            <table class="table table-zebra table-sm">
+                <thead>
+                <tr>
+                    <th sec:authorize="hasRole('REALM_manage_denoms')">
+                        <input type="checkbox" class="checkbox checkbox-sm" @change="toggleSelectAll($event.target.checked)" :checked="allVisibleSelected()"/>
+                    </th>
+                    <th>Kategori</th><th>Produk</th><th>Code</th><th>Nama</th>
+                    <th class="text-right">Nominal</th><th class="text-right">Modal</th>
+                    <th class="text-right">Harga Jual</th><th class="text-center">Status</th>
+                </tr>
+                </thead>
+                <tbody>
+                <template x-for="d in filteredDenoms" :key="d.id">
+                    <tr :class="d.deleted ? 'opacity-40' : ''">
+                        <td sec:authorize="hasRole('REALM_manage_denoms')">
+                            <input type="checkbox" class="checkbox checkbox-sm" :value="d.id"
+                                   x-model="selectedIds" :disabled="d.deleted"/>
+                        </td>
+                        <td x-text="d.categoryName || '-'"></td>
+                        <td x-text="d.productName || '-'"></td>
+                        <td class="font-mono text-xs" x-text="d.code"></td>
+                        <td x-text="d.name"></td>
+                        <td class="text-right font-mono" x-text="formatRp(d.nominal)"></td>
+                        <td class="text-right font-mono" x-text="formatRp(d.basePrice)"></td>
+                        <td class="text-right">
+                            <template x-if="canManage && !d.deleted">
+                                <input type="number" min="1" step="any"
+                                       class="input input-bordered input-xs w-28 text-right font-mono"
+                                       :class="isDirty(d) ? 'input-warning' : ''"
+                                       :value="pendingPrice(d)"
+                                       @change="setPrice(d, $event.target.value)"/>
+                            </template>
+                            <template x-if="!canManage || d.deleted">
+                                <span class="font-mono" x-text="formatRp(d.price)"></span>
+                            </template>
+                        </td>
+                        <td class="text-center">
+                            <span class="badge badge-sm" :class="d.deleted ? 'badge-error' : (d.active ? 'badge-success' : 'badge-warning')"
+                                  x-text="d.deleted ? 'Deleted' : (d.active ? 'Active' : 'Inactive')"></span>
+                        </td>
+                    </tr>
+                </template>
+                <tr x-show="filteredDenoms.length === 0"><td colspan="9" class="text-center py-8 text-base-content/50">Tidak ada denom</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Bulk Price Confirm Modal -->
+    <div th:replace="~{fragments/denom-price-confirm-modal :: modal}"></div>
+</div>
+
+<th:block layout:fragment="scripts">
+<script defer th:src="@{/js/denom-price-editing.js}"></script>
+<script th:inline="javascript">
+    const INITIAL_DENOMS = /*[[${initialDenoms}]]*/ [];
+    const INITIAL_CATEGORIES = /*[[${initialCategories}]]*/ [];
+
+    function allDenomManager() {
+        return {
+            ...window.denomPriceEditing(() => this.denoms),
+            canManage: document.querySelector('[data-can-manage]')?.dataset.canManage === 'true',
+            denoms: INITIAL_DENOMS,
+            categories: INITIAL_CATEGORIES,
+            searchQuery: '',
+            filterCategory: '',
+            selectedIds: [],
+            markup: { base: 'MODAL', type: 'PERSEN', value: null },
+
+            get filteredDenoms() {
+                if (this.filterUnpriced && this.unpricedCount === 0) this.filterUnpriced = false; // auto-reset: banner+toggle hilang saat count 0
+                let list = this.denoms;
+                if (this.filterUnpriced) list = list.filter(d => !d.deleted && d.price == null);
+                if (this.filterCategory) list = list.filter(d => d.categoryName === this.filterCategory);
+                if (this.searchQuery) {
+                    const q = this.searchQuery.toLowerCase();
+                    list = list.filter(d =>
+                        d.code.toLowerCase().includes(q) ||
+                        (d.name && d.name.toLowerCase().includes(q)) ||
+                        (d.productName && d.productName.toLowerCase().includes(q)));
+                }
+                return list;
+            },
+
+            allVisibleSelected() {
+                const vis = this.filteredDenoms.filter(d => !d.deleted);
+                return vis.length > 0 && vis.every(d => this.selectedIds.includes(d.id));
+            },
+            toggleSelectAll(checked) {
+                const visIds = this.filteredDenoms.filter(d => !d.deleted).map(d => d.id);
+                if (checked) {
+                    this.selectedIds = [...new Set([...this.selectedIds, ...visIds])];
+                } else {
+                    this.selectedIds = this.selectedIds.filter(id => !visIds.includes(id));
+                }
+            },
+
+            applyMarkup() {
+                const v = Number(this.markup.value);
+                if (!(v >= 0)) { Alpine.store('toast').error('Nilai markup tidak valid'); return; }
+                let skipped = 0, applied = 0;
+                for (const id of this.selectedIds) {
+                    const d = this.denoms.find(x => x.id === id);
+                    if (!d || d.deleted) continue;
+                    const base = this.markup.base === 'MODAL' ? d.basePrice : (d.price ?? d.basePrice);
+                    if (base == null) { skipped++; continue; }
+                    const raw = this.markup.type === 'PERSEN' ? Number(base) * (1 + v / 100) : Number(base) + v;
+                    const newPrice = Math.ceil(raw / 100) * 100;
+                    this.setPrice(d, newPrice); // isi dirty map (shared)
+                    applied++;
+                }
+                if (skipped > 0) Alpine.store('toast').error(`${applied} di-set, ${skipped} dilewati (tak ada modal/harga)`);
+                else Alpine.store('toast').success(`${applied} harga di-set, cek & simpan`);
+            },
+
+            async loadDenoms() {
+                try {
+                    const res = await fetch('/api/admin/catalog/denoms');
+                    this.denoms = await res.json();
+                    this.selectedIds = [];
+                } catch (e) {
+                    Alpine.store('toast').error('Gagal memuat denom');
+                }
+            },
+
+            formatRp(v) {
+                if (v == null) return '-';
+                return 'Rp ' + new Intl.NumberFormat('id-ID').format(v);
+            }
+        };
+    }
+</script>
+</th:block>
+</body>
+</html>
