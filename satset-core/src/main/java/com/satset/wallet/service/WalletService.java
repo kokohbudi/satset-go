@@ -16,7 +16,7 @@ import java.util.List;
 import java.util.UUID;
 
 @Service
-@Transactional(transactionManager = "walletTransactionManager", readOnly = true)
+@Transactional(readOnly = true)
 public class WalletService {
 
     private static final Logger log = LoggerFactory.getLogger(WalletService.class);
@@ -33,7 +33,7 @@ public class WalletService {
         this.walletIdGenerator = walletIdGenerator;
     }
 
-    @Transactional(transactionManager = "walletTransactionManager")
+    @Transactional
     public WalletAccountEntity createWallet() {
         String walletId = walletIdGenerator.generate();
         log.info("Creating wallet with id {}", walletId);
@@ -50,7 +50,7 @@ public class WalletService {
                 .orElseThrow(() -> new ResourceNotFoundException("WalletAccount", walletId));
     }
 
-    @Transactional(transactionManager = "walletTransactionManager")
+    @Transactional
     public WalletMutationResult debit(String walletId, BigDecimal amount, UUID referenceId,
             MutationReferenceType referenceType, String description) {
 
@@ -82,13 +82,13 @@ public class WalletService {
         return new WalletMutationResult(saved.getId(), newBalance);
     }
 
-    @Transactional(transactionManager = "walletTransactionManager")
+    @Transactional
     public WalletMutationResult credit(String walletId, BigDecimal amount, UUID referenceId,
             MutationReferenceType referenceType, String description) {
         return applyCredit(walletId, amount, referenceId, MutationType.CREDIT, referenceType, description);
     }
 
-    @Transactional(transactionManager = "walletTransactionManager")
+    @Transactional
     public WalletMutationResult refund(String walletId, BigDecimal amount, UUID originalReferenceId, String description) {
         return applyCredit(walletId, amount, originalReferenceId, MutationType.REFUND,
                 MutationReferenceType.REFUND, description);
