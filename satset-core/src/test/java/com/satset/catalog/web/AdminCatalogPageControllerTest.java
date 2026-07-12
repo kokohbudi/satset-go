@@ -50,10 +50,14 @@ class AdminCatalogPageControllerTest {
     }
 
     @Test
-    void catalogRoot_RedirectsToCategory() throws Exception {
+    void catalogRoot_rendersSinglePage_withSeededData() throws Exception {
         mockMvc.perform(get("/admin/catalog"))
-                .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrl("/admin/catalog/categories"));
+                .andExpect(status().isOk())
+                .andExpect(view().name("pages/admin/catalog/index"))
+                .andExpect(model().attributeExists("initialCategories"))
+                .andExpect(model().attributeExists("initialProducts"))
+                .andExpect(model().attributeExists("categoryTypes"))
+                .andExpect(model().attributeExists("denomTypes"));
     }
 
     @Test

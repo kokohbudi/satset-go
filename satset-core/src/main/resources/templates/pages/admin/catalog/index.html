@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="id" xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      layout:decorate="~{layouts/base}">
+<head><title>Katalog</title></head>
+<body>
+<div layout:fragment="content" x-data="catalogManager()">
+    <h1 class="text-2xl font-bold">Katalog</h1>
+</div>
+<th:block layout:fragment="scripts">
+<script th:inline="javascript">
+    const INITIAL_CATEGORIES = /*[[${initialCategories}]]*/ [];
+    const INITIAL_PRODUCTS   = /*[[${initialProducts}]]*/ [];
+    const CATEGORY_TYPES     = /*[[${categoryTypes}]]*/ [];
+    const DENOM_TYPES        = /*[[${denomTypes}]]*/ [];
+    function catalogManager() { return {}; }
+</script>
+</th:block>
+</body>
+</html>

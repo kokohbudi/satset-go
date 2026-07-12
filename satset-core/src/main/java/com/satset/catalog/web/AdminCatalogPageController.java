@@ -37,8 +37,25 @@ public class AdminCatalogPageController {
     }
 
     @GetMapping
-    public String catalogRoot() {
-        return "redirect:/admin/catalog/categories";
+    public String catalogRoot(Model model) {
+        model.addAttribute("currentPage", "admin-catalog");
+        model.addAttribute("breadcrumb", "Katalog");
+        model.addAttribute("categoryTypes", CategoryType.values());
+        model.addAttribute("denomTypes", DenomType.values());
+
+        List<Category> allCategories = manageCategoriesUseCase.findAllForAdmin();
+        List<CategoryDTO> categories = allCategories.stream()
+                .map(CatalogDtoMapper::toCategoryDTO).toList();
+        model.addAttribute("initialCategories", categories);
+
+        // ProductDomainService has no findAllForAdmin(); compose across categories
+        // the same way productsPage() does below.
+        List<ProductDTO> products = allCategories.stream()
+                .flatMap(cat -> manageProductsUseCase.findByCategoryForAdmin(cat.getId()).stream())
+                .map(CatalogDtoMapper::toProductDTO).toList();
+        model.addAttribute("initialProducts", products);
+
+        return "pages/admin/catalog/index";
     }
 
     @GetMapping("/categories")
