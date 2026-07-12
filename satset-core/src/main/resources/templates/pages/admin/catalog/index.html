@@ -450,7 +450,26 @@
                             </label>
                         </div>
                     </div>
-                    <!-- Reassign cascade selector (Kategori -> Produk) added in Task B3 -->
+                    <!-- Reassign cascade selector (Kategori -> Produk), edit mode only -->
+                    <div class="divider text-xs" x-show="denomEditMode">Pindah Produk</div>
+                    <div class="grid grid-cols-2 gap-4" x-show="denomEditMode">
+                        <div class="form-control">
+                            <label class="label"><span class="label-text">Kategori</span></label>
+                            <select class="select select-bordered select-sm" x-model="denomForm.reassignCategory" :disabled="denomSaving">
+                                <template x-for="c in categories" :key="c.id">
+                                    <option :value="c.id" x-text="c.name"></option>
+                                </template>
+                            </select>
+                        </div>
+                        <div class="form-control">
+                            <label class="label"><span class="label-text">Produk</span></label>
+                            <select class="select select-bordered select-sm" x-model="denomForm.productId" :disabled="denomSaving">
+                                <template x-for="p in products.filter(p => p.categoryId === denomForm.reassignCategory)" :key="p.id">
+                                    <option :value="p.id" x-text="p.name"></option>
+                                </template>
+                            </select>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="px-6 py-4 bg-base-200/50 flex justify-end gap-3">
@@ -548,7 +567,8 @@
                 code: '', name: '', denomType: '', nominal: null, price: null,
                 basePrice: null, adminFee: null, validityDays: null, quotaMb: null,
                 minAmount: null, maxAmount: null, requiresInquiry: false,
-                stockAvailable: null, active: true, sortOrder: 0
+                stockAvailable: null, active: true, sortOrder: 0,
+                productId: null, reassignCategory: null
             },
 
             // ---- denom sync (Sync Denom DF) ----
@@ -800,7 +820,8 @@
                     code: '', name: '', denomType: '', nominal: null, price: null,
                     basePrice: null, adminFee: null, validityDays: null, quotaMb: null,
                     minAmount: null, maxAmount: null, requiresInquiry: false,
-                    stockAvailable: null, active: true, sortOrder: 0
+                    stockAvailable: null, active: true, sortOrder: 0,
+                    productId: null, reassignCategory: null
                 };
             },
 
@@ -814,13 +835,15 @@
             openEditModal(d) {
                 this.denomEditMode = true;
                 this.denomEditId = d.id;
+                const prod = this.products.find(p => p.id === d.productId);
                 this.denomForm = {
                     code: d.code, name: d.name, denomType: d.denomType,
                     nominal: d.nominal, price: d.price, basePrice: d.basePrice,
                     adminFee: d.adminFee, validityDays: d.validityDays, quotaMb: d.quotaMb,
                     minAmount: d.minAmount, maxAmount: d.maxAmount,
                     requiresInquiry: d.requiresInquiry, stockAvailable: d.stockAvailable,
-                    active: d.active, sortOrder: d.sortOrder
+                    active: d.active, sortOrder: d.sortOrder,
+                    productId: d.productId, reassignCategory: prod ? prod.categoryId : null
                 };
                 this.showDenomModal = true;
             },
@@ -841,7 +864,12 @@
                         throw new Error(err.errorMessage || err.message || 'Gagal menyimpan');
                     }
                     this.showDenomModal = false;
-                    await this.loadDenoms(this.activeProduct);
+                    const oldProductId = this.activeProduct;
+                    const newProductId = this.denomEditMode ? this.denomForm.productId : this.activeProduct;
+                    await this.loadDenoms(oldProductId);
+                    if (newProductId && newProductId !== oldProductId) {
+                        await this.loadDenoms(newProductId);
+                    }
                     Alpine.store('toast').success(this.denomEditMode ? 'Denom diperbarui' : 'Denom ditambahkan');
                 } catch (e) {
                     Alpine.store('toast').error(e.message);
