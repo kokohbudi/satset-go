@@ -43,9 +43,6 @@
                 </button>
             </div>
         </template>
-        <button sec:authorize="hasRole('REALM_manage_categories')" x-show="canManageCat" type="button"
-                class="inline-flex items-center h-9 px-4 rounded-full border border-dashed border-base-300 text-sm font-medium whitespace-nowrap text-base-content/60 hover:border-primary hover:text-primary transition-colors tap"
-                @click="openCategoryModal()">+ Kategori</button>
     </div>
 
     <!-- Subtab produk (level 2: secondary — underline tabs; hidden when Semua-kategori) -->
@@ -68,9 +65,6 @@
                 </button>
             </div>
         </template>
-        <button sec:authorize="hasRole('REALM_manage_products')" x-show="canManageProd" type="button"
-                class="ml-auto px-3 py-2 text-sm font-medium text-primary/80 hover:text-primary transition-colors"
-                @click="openProductModal(activeCategory ? { categoryId: activeCategory } : null)">+ Produk</button>
     </div>
 
     <!-- Search (context-sensitive: filters whichever panel is visible) -->
@@ -79,9 +73,7 @@
             <svg class="w-4 h-4 text-base-content/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
             </svg>
-            <input type="search" x-model="searchQuery"
-                   :placeholder="activeProduct === null ? 'Cari produk...' : 'Cari denominasi...'"
-                   class="grow bg-transparent outline-none"/>
+            <input type="search" x-model="searchQuery" placeholder="Cari denominasi..." class="grow bg-transparent outline-none"/>
         </label>
     </div>
 
@@ -633,20 +625,6 @@
                 const ids = this.denomProductIds;
                 return this.products.filter(p => p.categoryId === this.activeCategory && ids.has(p.id));
             },
-            get visibleProducts() {
-                return this.activeCategory === null ? this.products : this.productsInCategory;
-            },
-            get filteredProducts() {
-                const list = this.visibleProducts;
-                if (!this.searchQuery) return list;
-                const q = this.searchQuery.toLowerCase();
-                return list.filter(p =>
-                    p.code.toLowerCase().includes(q) ||
-                    p.name.toLowerCase().includes(q) ||
-                    (p.providerName && p.providerName.toLowerCase().includes(q)) ||
-                    this.catName(p.categoryId).toLowerCase().includes(q)
-                );
-            },
             productById(id) { return this.products.find(p => p.id === id) || null; },
             catIdOf(productId) { const p = this.productById(productId); return p ? p.categoryId : null; },
             prodNameOf(productId) { const p = this.productById(productId); return p ? p.name : '-'; },
@@ -699,10 +677,6 @@
                 this.activeProduct = id;
                 this.searchQuery = '';
                 this.refreshDenoms();
-            },
-            openProductDenoms(prod) {
-                this.activeCategory = prod.categoryId;
-                this.selectProduct(prod.id);
             },
 
             // ==================== category CRUD ====================
