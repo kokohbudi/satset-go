@@ -548,6 +548,7 @@
 <script th:inline="javascript">
     const INITIAL_CATEGORIES = /*[[${initialCategories}]]*/ [];
     const INITIAL_PRODUCTS   = /*[[${initialProducts}]]*/ [];
+    const INITIAL_DENOMS     = /*[[${initialDenoms}]]*/ [];
     const CATEGORY_TYPES     = /*[[${categoryTypes}]]*/ [];
     const DENOM_TYPES        = /*[[${denomTypes}]]*/ [];
 
@@ -562,8 +563,8 @@
             denomTypes: DENOM_TYPES,
             activeCategory: null,        // null = Semua
             activeProduct: null,         // null = Semua
-            denomsByProduct: {},         // cache: productId -> denom[]
-            compareByProduct: {},        // cache: productId -> { SKU: compareRow }
+            denoms: INITIAL_DENOMS,
+            denomsLoading: false,
             searchQuery: '',
 
             // ---- category modal ----
@@ -622,16 +623,26 @@
                     this.catName(p.categoryId).toLowerCase().includes(q)
                 );
             },
-            get activeDenoms() {
-                return this.activeProduct ? (this.denomsByProduct[this.activeProduct] || []) : [];
+            productById(id) { return this.products.find(p => p.id === id) || null; },
+            catIdOf(productId) { const p = this.productById(productId); return p ? p.categoryId : null; },
+            prodNameOf(productId) { const p = this.productById(productId); return p ? p.name : '-'; },
+            catNameOf(productId) { return this.catName(this.catIdOf(productId)); },
+
+            get scopedDenoms() {
+                if (this.activeProduct !== null) return this.denoms.filter(d => d.productId === this.activeProduct);
+                if (this.activeCategory !== null) return this.denoms.filter(d => this.catIdOf(d.productId) === this.activeCategory);
+                return this.denoms;
             },
             get filteredDenoms() {
-                if (!this.searchQuery) return this.activeDenoms;
+                const list = this.scopedDenoms;
+                if (!this.searchQuery) return list;
                 const q = this.searchQuery.toLowerCase();
-                return this.activeDenoms.filter(d =>
-                    d.code.toLowerCase().includes(q) ||
-                    d.name.toLowerCase().includes(q) ||
-                    (d.denomType && d.denomType.toLowerCase().includes(q))
+                return list.filter(d =>
+                    (d.code || '').toLowerCase().includes(q) ||
+                    (d.name || '').toLowerCase().includes(q) ||
+                    (d.denomType || '').toLowerCase().includes(q) ||
+                    this.prodNameOf(d.productId).toLowerCase().includes(q) ||
+                    this.catNameOf(d.productId).toLowerCase().includes(q)
                 );
             },
             get activeProductName() {
@@ -643,22 +654,31 @@
 
             // ==================== tab navigation ====================
 
+            async refreshDenoms() {
+                this.denomsLoading = true;
+                try {
+                    const res = await fetch('/api/admin/catalog/denoms');
+                    this.denoms = await res.json();
+                } catch (e) {
+                    Alpine.store('toast').error('Gagal memuat denominasi');
+                } finally {
+                    this.denomsLoading = false;
+                }
+            },
             selectCategory(id) {
                 this.activeCategory = id;
                 this.activeProduct = null;
                 this.searchQuery = '';
+                this.refreshDenoms();
             },
-            async selectProduct(id) {
+            selectProduct(id) {
                 this.activeProduct = id;
                 this.searchQuery = '';
-                if (id && !this.denomsByProduct[id]) {
-                    await this.loadDenoms(id);
-                    await this.loadCompare(id);
-                }
+                this.refreshDenoms();
             },
-            async openProductDenoms(prod) {
+            openProductDenoms(prod) {
                 this.activeCategory = prod.categoryId;
-                await this.selectProduct(prod.id);
+                this.selectProduct(prod.id);
             },
 
             // ==================== category CRUD ====================
@@ -797,9 +817,8 @@
                         throw new Error(err.errorMessage || err.message || 'Gagal menghapus');
                     }
                     await this.reloadProducts();
-                    delete this.denomsByProduct[prod.id];
-                    delete this.compareByProduct[prod.id];
                     if (this.activeProduct === prod.id) { this.activeProduct = null; }
+                    await this.refreshDenoms();
                     Alpine.store('toast').success('Produk dihapus');
                 } catch (e) {
                     Alpine.store('toast').error(e.message);
@@ -807,34 +826,6 @@
             },
 
             // ==================== denom CRUD ====================
-
-            async loadDenoms(productId) {
-                try {
-                    const res = await fetch(`/api/admin/catalog/products/${productId}/denoms`);
-                    this.denomsByProduct[productId] = await res.json();
-                } catch (e) {
-                    Alpine.store('toast').error('Gagal memuat denominasi');
-                }
-            },
-
-            async loadCompare(productId) {
-                try {
-                    const res = await fetch(`/api/admin/catalog/products/${productId}/pricelist-compare`);
-                    if (!res.ok) return;
-                    const rows = await res.json();
-                    const map = {};
-                    rows.forEach(r => { if (r.buyerSku) map[r.buyerSku.toUpperCase()] = r; });
-                    this.compareByProduct[productId] = map;
-                } catch (e) { /* diam: delta opsional */ }
-            },
-
-            // ponytail: space after `[` — `[(` is Thymeleaf's escaped-inline marker in th:inline="javascript"
-            dfInfo(code) {
-                const map = this.compareByProduct[this.activeProduct];
-                if (!map) return null;
-                const k = (code || '').toUpperCase();
-                return map[k] || null;
-            },
 
             formatRp(val) {
                 if (val == null) return '-';
@@ -890,12 +881,7 @@
                         throw new Error(err.errorMessage || err.message || 'Gagal menyimpan');
                     }
                     this.showDenomModal = false;
-                    const oldProductId = this.activeProduct;
-                    const newProductId = this.denomEditMode ? this.denomForm.productId : this.activeProduct;
-                    await this.loadDenoms(oldProductId);
-                    if (newProductId && newProductId !== oldProductId) {
-                        await this.loadDenoms(newProductId);
-                    }
+                    await this.refreshDenoms();
                     Alpine.store('toast').success(this.denomEditMode ? 'Denom diperbarui' : 'Denom ditambahkan');
                 } catch (e) {
                     Alpine.store('toast').error(e.message);
@@ -914,7 +900,7 @@
                 try {
                     const res = await fetch(`/api/admin/catalog/denoms/${d.id}`, { method: 'DELETE' });
                     if (!res.ok) throw new Error('Gagal menghapus');
-                    await this.loadDenoms(this.activeProduct);
+                    await this.refreshDenoms();
                     Alpine.store('toast').success('Denom dihapus');
                 } catch (e) {
                     Alpine.store('toast').error(e.message);
