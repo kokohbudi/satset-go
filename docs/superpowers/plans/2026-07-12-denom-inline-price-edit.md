@@ -532,3 +532,78 @@ git commit -m "feat(catalog): inline price edit + bulk confirm modal on denoms p
 
 Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>"
 ```
+
+---
+
+### Task 4: Banner notif denom belum ada harga jual
+
+**Files:**
+- Modify: `satset-core/src/main/resources/templates/pages/admin/catalog/denoms.html`
+
+**Interfaces:**
+- Consumes: Alpine state existing `denoms`, `searchQuery`, getter `filteredDenoms`.
+- Produces: UI only.
+
+- [ ] **Step 1: State + getter**
+
+Di `denomManager()` return object, tambah state setelah `priceResults: [],`:
+
+```js
+            filterUnpriced: false,
+```
+
+Tambah getter setelah `get dirtyList()`:
+
+```js
+            get unpricedCount() {
+                return this.denoms.filter(d => !d.deleted && d.price == null).length;
+            },
+```
+
+- [ ] **Step 2: Filter di `filteredDenoms`**
+
+Ganti getter `filteredDenoms` existing dengan:
+
+```js
+            get filteredDenoms() {
+                let list = this.denoms;
+                if (this.filterUnpriced) list = list.filter(d => !d.deleted && d.price == null);
+                if (!this.searchQuery) return list;
+                const q = this.searchQuery.toLowerCase();
+                return list.filter(d =>
+                    d.code.toLowerCase().includes(q) ||
+                    d.name.toLowerCase().includes(q) ||
+                    (d.denomType && d.denomType.toLowerCase().includes(q))
+                );
+            },
+```
+
+- [ ] **Step 3: Banner markup**
+
+Setelah closing `</div>` block `<!-- Search -->`, sebelum `<!-- Table -->`, tambah:
+
+```html
+    <!-- Unpriced Warning -->
+    <div x-show="unpricedCount > 0" x-cloak class="alert alert-warning py-2 mb-4 flex items-center justify-between">
+        <span>⚠ <b x-text="unpricedCount"></b> denom belum ada harga jual</span>
+        <button class="btn btn-xs tap" @click="filterUnpriced = !filterUnpriced"
+                x-text="filterUnpriced ? 'Tampilkan semua' : 'Tampilkan'"></button>
+    </div>
+```
+
+- [ ] **Step 4: Regression check**
+
+```bash
+mvn -q -pl satset-core test -Dtest=DenomDomainServiceTest,AdminCatalogControllerTest 2>&1 | tail -10
+```
+
+Expected: BUILD SUCCESS (template tak dicompile — sanity only).
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add satset-core/src/main/resources/templates/pages/admin/catalog/denoms.html
+git commit -m "feat(catalog): unpriced denom warning banner + filter
+
+Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>"
+```

@@ -49,6 +49,10 @@ TDD:
 - `DenomDomainServiceTest`: updatePrices happy path, not-found item, price ≤ 0 rejected, partial success (1 ok + 1 fail).
 - `AdminCatalogControllerTest`: endpoint auth (manage_denoms), 200 dengan mixed result, 400 payload invalid.
 
+## Notif denom belum ada harga (tambahan 2026-07-12)
+
+Banner warning di atas tabel denoms: "⚠ N denom belum ada harga jual" (N = denom non-deleted dengan `price == null`). Tombol toggle → filter tabel tampilkan hanya yang belum ada harga. Client-side only — data sudah ada di Alpine state, zero backend.
+
 ## Out of scope
 
 - Inline edit field selain `price` (basePrice, adminFee, active, dst.) — tambah nanti kalau perlu.
