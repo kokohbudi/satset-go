@@ -85,66 +85,13 @@
         </label>
     </div>
 
-    <!-- Panel: products table (flat "Semua" or filtered to activeCategory) -->
-    <div x-show="activeProduct === null" class="card bg-base-100 shadow-sm">
-        <div class="overflow-x-auto">
-            <table class="table table-zebra">
-                <thead>
-                <tr>
-                    <th>Code</th>
-                    <th>Nama</th>
-                    <th>Provider</th>
-                    <th>Kategori</th>
-                    <th class="text-center">Sort</th>
-                    <th class="text-center">Status</th>
-                    <th class="text-center">Aksi</th>
-                </tr>
-                </thead>
-                <tbody>
-                <template x-for="prod in filteredProducts" :key="prod.id">
-                    <tr :class="prod.deleted ? 'opacity-40' : ''">
-                        <td class="font-mono text-sm" x-text="prod.code"></td>
-                        <td>
-                            <span class="link link-hover link-primary" @click="!prod.deleted && openProductDenoms(prod)" x-text="prod.name"></span>
-                        </td>
-                        <td x-text="prod.providerName || '-'"></td>
-                        <td>
-                            <span x-show="catName(prod.categoryId)" class="badge badge-outline badge-sm" x-text="catName(prod.categoryId)"></span>
-                            <span x-show="!catName(prod.categoryId)" class="text-base-content/40">-</span>
-                        </td>
-                        <td class="text-center" x-text="prod.sortOrder"></td>
-                        <td class="text-center">
-                            <span class="badge badge-sm"
-                                  :class="prod.deleted ? 'badge-error' : (prod.active ? 'badge-success' : 'badge-warning')"
-                                  x-text="prod.deleted ? 'Deleted' : (prod.active ? 'Active' : 'Inactive')"></span>
-                            <span x-show="prod.inSupplier === false" class="badge badge-warning badge-outline badge-sm ml-1"
-                                  title="Hilang dari supplier">&#9888; supplier</span>
-                        </td>
-                        <td class="text-center">
-                            <div class="flex justify-center gap-1">
-                                <button class="btn btn-ghost btn-xs tap" :disabled="prod.deleted" @click="openProductDenoms(prod)">Denoms</button>
-                                <template x-if="canManageProd">
-                                    <button class="btn btn-ghost btn-xs tap" @click="openProductModal(prod)" :disabled="prod.deleted">Edit</button>
-                                </template>
-                                <template x-if="canManageProd">
-                                    <button class="btn btn-ghost btn-xs text-error tap" @click="confirmDeleteProduct(prod)" :disabled="prod.deleted">Hapus</button>
-                                </template>
-                            </div>
-                        </td>
-                    </tr>
-                </template>
-                <tr x-show="filteredProducts.length === 0">
-                    <td colspan="7" class="text-center py-8 text-base-content/50">Belum ada produk</td>
-                </tr>
-                </tbody>
-            </table>
-        </div>
-    </div>
-
-    <!-- Panel: denoms of the active product -->
-    <div x-show="activeProduct !== null" x-cloak>
+    <!-- Panel: denoms (flat aggregate, scoped by active category/product) -->
+    <div>
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-3">
-            <h2 class="text-lg font-semibold" x-text="'Denom: ' + activeProductName"></h2>
+            <h2 class="text-lg font-semibold"
+                x-text="activeProduct !== null ? ('Denom: ' + activeProductName)
+                        : activeCategory !== null ? ('Denom: ' + catName(activeCategory))
+                        : 'Semua Denom'"></h2>
             <div class="flex gap-2">
                 <button sec:authorize="hasRole('REALM_manage_denoms')" x-show="canManageDenom" class="btn btn-outline btn-sm tap"
                         @click="openSyncDenoms()" :disabled="denomSyncing">
@@ -167,11 +114,17 @@
                     <tr>
                         <th>Code</th>
                         <th>Nama</th>
+                        <th>Kategori</th>
+                        <th>Produk</th>
                         <th>Tipe</th>
                         <th class="text-right">Nominal</th>
                         <th class="text-right">Harga Jual</th>
-                        <th class="text-right">Harga Modal</th>
-                        <th class="text-right">Harga DF</th>
+                        <th class="text-right">Harga Beli</th>
+                        <th class="text-right">
+                            Harga Suplier
+                            <span x-show="supplierPricesAt" class="block text-[10px] font-normal text-base-content/40"
+                                  x-text="supplierPricesAt ? ('upd ' + new Date(supplierPricesAt).toLocaleDateString('id-ID')) : ''"></span>
+                        </th>
                         <th class="text-center">Sort</th>
                         <th class="text-center">Status</th>
                         <th class="text-center">Aksi</th>
@@ -182,18 +135,22 @@
                         <tr :class="d.deleted ? 'opacity-40' : ''">
                             <td class="font-mono text-xs" x-text="d.code"></td>
                             <td x-text="d.name"></td>
+                            <td><span class="badge badge-outline badge-sm" x-text="catNameOf(d.productId)"></span></td>
+                            <td x-text="prodNameOf(d.productId)"></td>
                             <td><span class="badge badge-xs"
                                       :class="d.denomType === 'FIXED_DENOM' ? 'badge-info' : 'badge-accent'"
                                       x-text="d.denomType === 'FIXED_DENOM' ? 'Fixed' : 'Open Amount'"></span></td>
                             <td class="text-right font-mono" x-text="formatRp(d.nominal)"></td>
                             <td class="text-right font-mono" x-text="formatRp(d.price)"></td>
                             <td class="text-right font-mono" x-text="formatRp(d.basePrice)"></td>
-                            <td class="text-right">
-                                <template x-if="dfInfo(d.code)">
-                                    <span :class="dfInfo(d.code).status === 'NAIK' ? 'text-error' : dfInfo(d.code).status === 'TURUN' ? 'text-success' : ''"
-                                          x-text="dfInfo(d.code).dfCost != null ? new Intl.NumberFormat('id-ID').format(dfInfo(d.code).dfCost) : '-'"></span>
+                            <td class="text-right font-mono">
+                                <template x-if="supplierCost(d.code) !== null">
+                                    <span :class="supplierDiffers(d) ? 'text-warning font-semibold' : ''">
+                                        <span x-text="formatRp(supplierCost(d.code))"></span>
+                                        <span x-show="supplierDiffers(d)" x-text="Number(supplierCost(d.code)) > Number(d.basePrice ?? 0) ? '▲' : '▼'"></span>
+                                    </span>
                                 </template>
-                                <template x-if="!dfInfo(d.code)"><span class="text-base-content/40">-</span></template>
+                                <template x-if="supplierCost(d.code) === null"><span class="text-base-content/40">-</span></template>
                             </td>
                             <td class="text-center" x-text="d.sortOrder"></td>
                             <td class="text-center">
@@ -216,7 +173,7 @@
                         </tr>
                     </template>
                     <tr x-show="filteredDenoms.length === 0">
-                        <td colspan="10" class="text-center py-8 text-base-content/50">Belum ada denominasi</td>
+                        <td colspan="12" class="text-center py-8 text-base-content/50">Belum ada denominasi</td>
                     </tr>
                     </tbody>
                 </table>
@@ -566,6 +523,27 @@
             denoms: INITIAL_DENOMS,
             denomsLoading: false,
             searchQuery: '',
+            supplierPrices: {},
+            supplierPricesAt: null,
+
+            init() { this.loadSupplierPrices(); },
+
+            async loadSupplierPrices() {
+                try {
+                    const res = await fetch('/api/admin/catalog/supplier-prices');
+                    const v = await res.json();
+                    this.supplierPrices = v.prices || {};
+                    this.supplierPricesAt = v.fetchedAt || null;
+                } catch (e) { /* diam: kolom suplier opsional */ }
+            },
+            supplierCost(code) {
+                const c = this.supplierPrices[(code || '').toUpperCase()];
+                return (c === undefined) ? null : c;
+            },
+            supplierDiffers(d) {
+                const c = this.supplierCost(d.code);
+                return c != null && d.basePrice != null && Number(c) !== Number(d.basePrice);
+            },
 
             // ---- category modal ----
             showCategoryModal: false,
