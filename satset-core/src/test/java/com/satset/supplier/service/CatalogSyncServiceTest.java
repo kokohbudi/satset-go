@@ -218,6 +218,18 @@ class CatalogSyncServiceTest {
         verify(denomService, never()).softDelete(any());
     }
 
+    // ---- syncAllPreview: read-only aggregate summary of what syncAll() would change ----
+    @Test void syncAllPreview_listsNewCategories() {
+        // DF has a category the catalog lacks -> previewCategories() yields an ADD
+        when(digiflazz.fetchPriceList()).thenReturn(List.of(
+                new PriceListItem("Tsel 5rb", "Pulsa", "Telkomsel", "tsel5", 5000L, true, "ok", "S")));
+        when(categoryService.findAllForAdmin()).thenReturn(List.of()); // nothing yet
+
+        SyncAllPreview p = service().syncAllPreview();
+
+        assertThat(p.newCategories()).contains("Pulsa");
+    }
+
     // ---- supplierPrices: global SKU->cheapest cost map ----
     @Test void supplierPrices_mapsSkuUpperToCost_lowestWins() {
         LocalDateTime at = LocalDateTime.of(2026, 7, 12, 8, 0);

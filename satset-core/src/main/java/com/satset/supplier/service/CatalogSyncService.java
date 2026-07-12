@@ -182,6 +182,36 @@ public class CatalogSyncService {
         return new SyncResult(added, updated, 0, 0, failed);
     }
 
+    /**
+     * Read-only: what a full {@link #syncAll()} would add/change, aggregated across the whole catalog.
+     * ponytail: recompute preview/reconcile per level (fetchPriceList di-cache 5 jam jadi murah);
+     * kalau katalog membengkak & terasa lambat, cache pricelist di memori sekali per run.
+     */
+    public SyncAllPreview syncAllPreview() {
+        List<String> newCategories = previewCategories().stream()
+                .filter(i -> i.action() == SyncAction.ADD)
+                .map(SyncPreviewItem::label).toList();
+
+        List<String> newProducts = new ArrayList<>();
+        List<String> newDenoms = new ArrayList<>();
+        List<String> priceChanges = new ArrayList<>();
+        for (Category c : categoryService.findAllForAdmin()) {
+            if (c.isDeleted()) continue;
+            previewProducts(c.getId()).stream()
+                    .filter(i -> i.action() == SyncAction.ADD)
+                    .forEach(i -> newProducts.add(c.getName() + " / " + i.label()));
+            for (Products p : productService.findByCategoryForAdmin(c.getId())) {
+                if (p.isDeleted()) continue;
+                for (PriceCompareRow r : reconcileForProduct(p.getId())) {
+                    if (r.status() == CompareStatus.BARU) newDenoms.add(p.getName() + " / " + r.productName());
+                    else if (r.status() == CompareStatus.NAIK || r.status() == CompareStatus.TURUN)
+                        priceChanges.add(p.getName() + " / " + r.buyerSku());
+                }
+            }
+        }
+        return new SyncAllPreview(newCategories, newProducts, newDenoms, priceChanges);
+    }
+
     // ===== Denoms (preview = reconcileForProduct; UI map status->action) =====
     public SyncResult applyDenoms(UUID productId, List<String> selectedSkus) {
         Set<String> sel = new HashSet<>(selectedSkus);

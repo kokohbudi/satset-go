@@ -5,6 +5,7 @@ import com.satset.supplier.model.PriceCompareRow;
 import com.satset.supplier.model.SyncPreviewItem;
 import com.satset.supplier.service.CatalogSyncService;
 import com.satset.supplier.service.SupplierPriceView;
+import com.satset.supplier.service.SyncAllPreview;
 import com.satset.supplier.service.SyncResult;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -24,6 +25,11 @@ public class CatalogSyncController {
     @PostMapping("/sync/all")
     @PreAuthorize("hasRole('" + OmniConstants.PERM_MANAGE_CATEGORIES + "')")
     public SyncResult syncAll() { return sync.syncAll(); }
+
+    // Read-only aggregate summary of what syncAll() would add/change
+    @GetMapping("/sync/all/preview")
+    @PreAuthorize("hasRole('" + OmniConstants.PERM_MANAGE_CATEGORIES + "')")
+    public SyncAllPreview syncAllPreview() { return sync.syncAllPreview(); }
 
     // Categories
     @GetMapping("/sync/categories/preview")
