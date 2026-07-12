@@ -153,26 +153,19 @@ class AdminCatalogControllerTest {
     }
 
     @Test
-    void listProducts_WithoutCategoryId_IteratesAllCategory() throws Exception {
+    void listProducts_WithoutCategoryId_ReturnsAllProducts() throws Exception {
         UUID catId1 = UUID.randomUUID();
         UUID catId2 = UUID.randomUUID();
 
-        Category cat1 = buildCategory("PULSA", "Pulsa");
-        cat1.setId(catId1);
-        Category cat2 = buildCategory("DATA", "Paket Data");
-        cat2.setId(catId2);
-
-        when(manageCategoriesUseCase.findAllForAdmin()).thenReturn(List.of(cat1, cat2));
-        when(manageProductsUseCase.findByCategoryForAdmin(catId1)).thenReturn(List.of(buildProduct("TEL", "Telkomsel", catId1)));
-        when(manageProductsUseCase.findByCategoryForAdmin(catId2)).thenReturn(List.of(buildProduct("XL", "XL Axiata", catId2)));
+        when(manageProductsUseCase.findAllForAdmin()).thenReturn(List.of(
+                buildProduct("TEL", "Telkomsel", catId1),
+                buildProduct("XL", "XL Axiata", catId2)));
 
         mockMvc.perform(get("/api/admin/catalog/products"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(2));
 
-        verify(manageCategoriesUseCase).findAllForAdmin();
-        verify(manageProductsUseCase).findByCategoryForAdmin(catId1);
-        verify(manageProductsUseCase).findByCategoryForAdmin(catId2);
+        verify(manageProductsUseCase).findAllForAdmin();
     }
 
     @Test

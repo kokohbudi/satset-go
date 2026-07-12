@@ -32,7 +32,42 @@ public class SecurityConfig {
     @Value("${keycloak.client-id}")
     private String clientId;
 
-    public SecurityConfig() {
+    /**
+     * Extract Keycloak realm + client roles from a token's claim map as granted authorities.
+     * Realm roles come from {@code realm_access.roles}; client roles from
+     * {@code resource_access.<clientId>.roles}. Prefixes come from {@link OmniConstants}.
+     */
+    private static Set<GrantedAuthority> keycloakRoles(Map<String, Object> claims, String clientId) {
+        Set<GrantedAuthority> auths = new HashSet<>();
+
+        Object realmAccess = claims.get("realm_access");
+        if (realmAccess instanceof Map<?, ?> realmMap) {
+            Object realmRoles = realmMap.get("roles");
+            if (realmRoles instanceof List<?> rolesList) {
+                rolesList.stream()
+                        .map(Object::toString)
+                        .map(r -> OmniConstants.ROLE_PREFIX_REALM + r)
+                        .map(SimpleGrantedAuthority::new)
+                        .forEach(auths::add);
+            }
+        }
+
+        Object resourceAccess = claims.get("resource_access");
+        if (resourceAccess instanceof Map<?, ?> raMap) {
+            Object clientAccess = raMap.get(clientId);
+            if (clientAccess instanceof Map<?, ?> clientMap) {
+                Object clientRoles = clientMap.get("roles");
+                if (clientRoles instanceof List<?> clientRolesList) {
+                    clientRolesList.stream()
+                            .map(Object::toString)
+                            .map(r -> OmniConstants.ROLE_PREFIX_CLIENT + r)
+                            .map(SimpleGrantedAuthority::new)
+                            .forEach(auths::add);
+                }
+            }
+        }
+
+        return auths;
     }
 
     @Bean
@@ -87,47 +122,12 @@ public class SecurityConfig {
         // 1) converter default untuk scopes ("scope" -> SCOPE_…)
         JwtGrantedAuthoritiesConverter scopeConverter = new JwtGrantedAuthoritiesConverter();
         scopeConverter.setAuthoritiesClaimName("scope");
-        scopeConverter.setAuthorityPrefix("SCOPE_");
 
         JwtAuthenticationConverter authConverter = new JwtAuthenticationConverter();
         authConverter.setJwtGrantedAuthoritiesConverter(jwt -> {
             Set<GrantedAuthority> auths = new HashSet<>();
-
-            // 1. Extract scopes
             auths.addAll(scopeConverter.convert(jwt));
-
-            // 2. Extract realm roles from realm_access.roles
-            Object realmAccess = jwt.getClaims().get("realm_access");
-            if (realmAccess instanceof Map<?, ?> realmMap) {
-                Object realmRoles = realmMap.get("roles");
-                if (realmRoles instanceof List<?>) {
-                    ((List<?>) realmRoles).stream()
-                            .map(Object::toString)
-                            .map(r -> OmniConstants.ROLE_PREFIX_REALM + r)
-                            .map(SimpleGrantedAuthority::new)
-                            .forEach(auths::add);
-                }
-            }
-
-            // 3. Extract client roles from resource_access.<clientId>.roles
-            Object resourceAccess = jwt.getClaims().get("resource_access");
-            if (resourceAccess instanceof Map<?, ?> raMap) {
-                Object clientAccess = raMap.get(clientId);
-                if (clientAccess instanceof Map<?, ?> clientMap) {
-                    Object clientRoles = clientMap.get("roles");
-                    if (clientRoles instanceof List<?>) {
-                        ((List<?>) clientRoles).stream()
-                                .map(Object::toString)
-                                .map(r -> OmniConstants.ROLE_PREFIX_CLIENT + r)
-                                .map(SimpleGrantedAuthority::new)
-                                .forEach(auths::add);
-                    }
-                }
-            }
-
-            // Log extracted authorities
-            log.info("Extracted authorities from JWT: {}", auths);
-
+            auths.addAll(keycloakRoles(jwt.getClaims(), clientId));
             return auths;
         });
         return authConverter;
@@ -140,38 +140,7 @@ public class SecurityConfig {
 
             authorities.forEach(authority -> {
                 if (authority instanceof org.springframework.security.oauth2.core.oidc.user.OidcUserAuthority oidcAuth) {
-                    // Debug: Log all claims in ID token
-                    log.info("ID Token claims: {}", oidcAuth.getIdToken().getClaims().keySet());
-
-                    // Extract realm roles from realm_access.roles in ID token
-                    Object realmAccess = oidcAuth.getIdToken().getClaims().get("realm_access");
-                    if (realmAccess instanceof Map<?, ?> realmMap) {
-                        Object realmRoles = realmMap.get("roles");
-                        if (realmRoles instanceof List<?> rolesList) {
-                            rolesList.forEach(role -> {
-                                String roleName = role.toString();
-                                mappedAuthorities.add(new SimpleGrantedAuthority(OmniConstants.ROLE_PREFIX_REALM + roleName));
-                            });
-                        }
-                    }
-
-                    // Extract client roles from resource_access.<clientId>.roles in ID token
-                    Object resourceAccess = oidcAuth.getIdToken().getClaims().get("resource_access");
-                    if (resourceAccess instanceof Map<?, ?> raMap) {
-                        Object clientAccess = raMap.get(clientId);
-                        if (clientAccess instanceof Map<?, ?> clientMap) {
-                            Object clientRoles = clientMap.get("roles");
-                            if (clientRoles instanceof List<?> clientRolesList) {
-                                clientRolesList.forEach(role -> {
-                                    String roleName = role.toString();
-                                    mappedAuthorities.add(new SimpleGrantedAuthority(OmniConstants.ROLE_PREFIX_CLIENT + roleName));
-                                });
-                            }
-                        }
-                    }
-
-                    // Log for debugging
-                    log.info("OIDC Login - Mapped authorities: {}", mappedAuthorities);
+                    mappedAuthorities.addAll(keycloakRoles(oidcAuth.getIdToken().getClaims(), clientId));
                 }
                 mappedAuthorities.add(authority);
             });

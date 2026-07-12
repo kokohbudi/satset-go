@@ -26,13 +26,8 @@ public class WalletCreationAdapter implements WalletCreationPort {
     public String createWallet(UUID storeId) {
         log.info("Creating wallet for store {}", storeId);
 
-        try {
-            String walletId = walletService.createWallet().getWalletId();
-            log.info("Wallet created successfully: {} for store {}", walletId, storeId);
-            return walletId;
-        } catch (RuntimeException e) {
-            log.error("Failed to create wallet for store {}", storeId, e);
-            throw new RuntimeException("Wallet creation failed");
-        }
+        String walletId = walletService.createWallet().getWalletId();
+        log.info("Wallet created successfully: {} for store {}", walletId, storeId);
+        return walletId;
     }
 }

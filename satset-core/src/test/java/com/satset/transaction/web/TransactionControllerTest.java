@@ -113,19 +113,6 @@ class TransactionControllerTest {
     }
 
     @Test
-    void getTransaction_ReturnsOk_WithTransactionDTO() throws Exception {
-        UUID txId = UUID.randomUUID();
-        TransactionDTO summary = buildSummary(txId, TransactionStatus.SUCCESS, new BigDecimal("5000"));
-
-        when(transactionService.getTransaction(txId, storeId)).thenReturn(summary);
-
-        mockMvc.perform(get("/api/transactions/{id}", txId))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(txId.toString()))
-                .andExpect(jsonPath("$.status").value("SUCCESS"));
-    }
-
-    @Test
     void getTransactionHistory_DelegatesToUseCase_WithStoreId() throws Exception {
         UUID txId = UUID.randomUUID();
         TransactionDTO summary = buildSummary(txId, TransactionStatus.SUCCESS, new BigDecimal("7000"));

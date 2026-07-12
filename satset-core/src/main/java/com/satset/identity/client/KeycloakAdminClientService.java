@@ -6,6 +6,7 @@ import com.satset.identity.model.KeycloakRole;
 import com.satset.shared.dto.RoleInfo;
 import com.satset.shared.dto.UserDTO;
 import com.satset.shared.exception.BusinessException;
+import jakarta.ws.rs.core.GenericType;
 import jakarta.ws.rs.core.Response;
 import lombok.extern.slf4j.Slf4j;
 import org.keycloak.admin.client.Keycloak;
@@ -27,7 +28,6 @@ public class KeycloakAdminClientService implements KeycloakIdentityPort, Keycloa
                         "default-roles-omnip");
 
         private final Keycloak keycloak;
-        private final KeycloakHelper keycloakAdminClientBusiness;
         private final IdentityMapper identityMapper;
 
         @Value("${keycloak.realm}")
@@ -36,9 +36,8 @@ public class KeycloakAdminClientService implements KeycloakIdentityPort, Keycloa
         @Value("${keycloak.client-id}")
         private String clientId;
 
-        public KeycloakAdminClientService(Keycloak keycloak, KeycloakHelper keycloakAdminClientBusiness, IdentityMapper identityMapper) {
+        public KeycloakAdminClientService(Keycloak keycloak, IdentityMapper identityMapper) {
                 this.keycloak = keycloak;
-                this.keycloakAdminClientBusiness = keycloakAdminClientBusiness;
                 this.identityMapper = identityMapper;
         }
 
@@ -505,8 +504,7 @@ public class KeycloakAdminClientService implements KeycloakIdentityPort, Keycloa
         }
 
         public void changeUserPassword(String userId, String newPassword) {
-                UserRepresentation userRep = this.keycloakAdminClientBusiness
-                                .preparePasswordUpdateRepresentation(newPassword);
+                UserRepresentation userRep = preparePasswordUpdateRepresentation(newPassword);
                 this.updateUser(userId, userRep);
         }
 
@@ -517,13 +515,10 @@ public class KeycloakAdminClientService implements KeycloakIdentityPort, Keycloa
         public String createBackofficeUser(String username, String fullname, String email, String password,
                         String requestedRole)
                         throws BusinessException {
-                UserRepresentation userRep = this.keycloakAdminClientBusiness.prepareUserRepresentation(username,
-                                fullname,
-                                email);
+                UserRepresentation userRep = prepareUserRepresentation(username, fullname, email);
                 Response resp = this.keycloak.realm(this.realm).users().create(userRep);
-                String createdUserId = this.keycloakAdminClientBusiness.extractCreatedUserId(resp);
-                CredentialRepresentation cred = this.keycloakAdminClientBusiness.preparePasswordCredential(password,
-                                true);
+                String createdUserId = extractCreatedUserId(resp);
+                CredentialRepresentation cred = preparePasswordCredential(password, true);
                 this.keycloak.realm(this.realm)
                                 .users()
                                 .get(createdUserId)
@@ -538,8 +533,7 @@ public class KeycloakAdminClientService implements KeycloakIdentityPort, Keycloa
         }
 
         public void updateUserStatus(String userId, boolean isEnabled) {
-                UserRepresentation userRep = this.keycloakAdminClientBusiness
-                                .prepareStatusUpdateRepresentation(isEnabled);
+                UserRepresentation userRep = prepareStatusUpdateRepresentation(isEnabled);
                 this.updateUser(userId, userRep);
         }
 
@@ -771,7 +765,7 @@ public class KeycloakAdminClientService implements KeycloakIdentityPort, Keycloa
          * @return List of KeycloakRole with hierarchy (root roles only, children
          *         nested)
          */
-        public List<KeycloakRole> getMenuRoles(String userId) {
+        private List<KeycloakRole> getMenuRoles(String userId) {
                 // Fetch FULL role representation (with attributes) using CACHED method
                 // listEffective() does not include attributes!
                 java.util.Map<String, KeycloakRole> dtoMap = new java.util.HashMap<>();
@@ -953,11 +947,10 @@ public class KeycloakAdminClientService implements KeycloakIdentityPort, Keycloa
          */
         public String createResellerUser(String username, String fullname, String email)
                         throws BusinessException {
-                UserRepresentation userRep = this.keycloakAdminClientBusiness
-                                .prepareResellerUserRepresentation(username, fullname, email);
+                UserRepresentation userRep = prepareResellerUserRepresentation(username, fullname, email);
 
                 Response resp = this.keycloak.realm(this.realm).users().create(userRep);
-                String createdUserId = this.keycloakAdminClientBusiness.extractCreatedUserId(resp);
+                String createdUserId = extractCreatedUserId(resp);
 
                 // Send email action so user can set their own password
                 // Wrapped in try-catch: if Keycloak SMTP is not configured, user is still
@@ -997,5 +990,83 @@ public class KeycloakAdminClientService implements KeycloakIdentityPort, Keycloa
         public List<RoleInfo> getMenuRoleInfos(String userId) {
                 List<KeycloakRole> roles = getMenuRoles(userId);
                 return identityMapper.toRoleInfoList(roles);
+        }
+
+        // ==================== Keycloak Representation Builders ====================
+
+        /**
+         * Mempersiapkan representasi user Keycloak untuk pembuatan baru.
+         */
+        private UserRepresentation prepareUserRepresentation(String username, String fullname, String email) {
+                UserRepresentation userRep = new UserRepresentation();
+                userRep.setUsername(email); // Business rule: username = email
+                userRep.setEmail(email);
+                userRep.setEnabled(true); // Business rule: user baru selalu aktif
+                userRep.setFirstName(username);
+                userRep.setLastName(username); // Business rule: first/last name sama
+                return userRep;
+        }
+
+        /**
+         * Ekstrak user ID dari response setelah pembuatan user.
+         */
+        private String extractCreatedUserId(Response response) throws BusinessException {
+                if (response.getStatus() != 201) {
+                        java.util.Map<String, Object> error = response.readEntity(new GenericType<>() {
+                        });
+                        log.error(error.toString());
+                        String errorMessage = error.get("errorMessage") != null ? error.get("errorMessage").toString()
+                                        : "Error create user";
+                        throw new BusinessException(errorMessage);
+                }
+                return response.getLocation()
+                                .getPath()
+                                .replaceAll(".*/([^/]+)$", "$1");
+        }
+
+        /**
+         * Mempersiapkan kredensial password untuk user.
+         */
+        private CredentialRepresentation preparePasswordCredential(String password, boolean isTemporary) {
+                CredentialRepresentation cred = new CredentialRepresentation();
+                cred.setType(CredentialRepresentation.PASSWORD);
+                cred.setValue(password);
+                cred.setTemporary(isTemporary);
+                return cred;
+        }
+
+        /**
+         * Mempersiapkan representasi user untuk update password.
+         */
+        private UserRepresentation preparePasswordUpdateRepresentation(String password) {
+                UserRepresentation userRep = new UserRepresentation();
+                CredentialRepresentation cred = preparePasswordCredential(password, false);
+                userRep.setCredentials(List.of(cred));
+                return userRep;
+        }
+
+        /**
+         * Mempersiapkan representasi user untuk update status.
+         */
+        private UserRepresentation prepareStatusUpdateRepresentation(boolean isEnabled) {
+                UserRepresentation userRep = new UserRepresentation();
+                userRep.setEnabled(isEnabled);
+                return userRep;
+        }
+
+        /**
+         * Mempersiapkan representasi reseller user dengan UPDATE_PASSWORD required action.
+         * Keycloak akan mengirim email untuk user agar set password sendiri.
+         */
+        private UserRepresentation prepareResellerUserRepresentation(String username, String fullname, String email) {
+                UserRepresentation userRep = new UserRepresentation();
+                userRep.setUsername(email);
+                userRep.setEmail(email);
+                userRep.setEnabled(true);
+                userRep.setEmailVerified(true);
+                userRep.setFirstName(username);
+                userRep.setLastName(fullname);
+                userRep.setRequiredActions(List.of("UPDATE_PASSWORD"));
+                return userRep;
         }
 }

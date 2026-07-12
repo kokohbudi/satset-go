@@ -13,7 +13,6 @@ public class ProductDTO {
     private String description;
     private String iconUrl;
     private UUID categoryId;
-    private String categoryName;
     private int sortOrder;
     private boolean active;
     private boolean deleted;

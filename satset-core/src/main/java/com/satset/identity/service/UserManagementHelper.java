@@ -7,7 +7,6 @@ import com.satset.shared.exception.BusinessException;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
-import java.util.Objects;
 
 /**
  * Komponen bisnis yang menangani logika terkait manajemen pengguna.
@@ -16,45 +15,15 @@ import java.util.Objects;
  */
 @Component
 public class UserManagementHelper {
-    private final UserDTO userDTO;
     private final UserRepository usersRepository;
 
     /**
      * Konstruktor dengan dependency injection.
      *
-     * @param userDTO         UserDTO yang mewakili pengguna saat ini
      * @param usersRepository Repository untuk operasi data pengguna
      */
-    public UserManagementHelper(UserDTO userDTO, UserRepository usersRepository) {
-        this.userDTO = userDTO;
+    public UserManagementHelper(UserRepository usersRepository) {
         this.usersRepository = usersRepository;
-    }
-
-    /**
-     * Mendapatkan provider user ID untuk operasi perubahan password.
-     * Validasi:
-     * 1. Self change password → always allowed
-     * 2. Change other user → must be in same store
-     * 
-     * Note: Role check (hasRole('change_password')) should be done at controller
-     * level via @PreAuthorize
-     *
-     * @param sessionUserDTO UserDTO pengguna yang sedang login
-     * @param requestUserDTO UserDTO yang berisi data permintaan
-     * @return Provider user ID dari pengguna yang passwordnya akan diubah
-     * @throws BusinessException Jika pengguna tidak berada di store yang sama
-     */
-    public String getProviderUseIdChangePassword(UserDTO sessionUserDTO, UserDTO requestUserDTO)
-            throws BusinessException {
-        // Self change password - always allowed
-        if (Objects.isNull(requestUserDTO.getEmail()) ||
-                sessionUserDTO.getEmail().equals(requestUserDTO.getEmail())) {
-            return sessionUserDTO.getProviderUserId();
-        }
-
-        // Change other user's password - must be in same store
-        Users user = this.getRequestedUserOnStore(sessionUserDTO, requestUserDTO, this.usersRepository);
-        return user.getProviderUserId();
     }
 
     /**
@@ -105,53 +74,5 @@ public class UserManagementHelper {
                 .filter(user -> user.getEmail().equals(requestUserDTO.getEmail()))
                 .findFirst()
                 .get();
-    }
-
-    /**
-     * Membuat objek Users baru berdasarkan data DTO.
-     *
-     * @param reqUserDTO     DTO yang berisi data pengguna
-     * @param providerUserId ID provider dari sistem autentikasi
-     * @return Objek Users yang siap disimpan
-     */
-    public Users createUserObject(UserDTO reqUserDTO, String providerUserId) {
-        Users user = new Users();
-        user.setEmail(reqUserDTO.getEmail());
-        user.setUsername(reqUserDTO.getUsername());
-        user.setFullname(reqUserDTO.getFullname());
-        user.setRoles(reqUserDTO.getRoles());
-        if (this.userDTO.getStoreId() != null) {
-            user.setStoreId(this.userDTO.getStoreId());
-        }
-        user.setProviderUserId(providerUserId);
-        user.setRegistrationChannel("omnia");
-        return user;
-    }
-
-    /**
-     * Membuat respons sukses untuk operasi pengguna.
-     *
-     * @param reqUserDTO    DTO yang berisi data permintaan
-     * @param createdUserId ID pengguna yang telah dibuat
-     * @return UserDTO dengan status sukses
-     */
-    public UserDTO createSuccessResponse(UserDTO reqUserDTO, String createdUserId) {
-        reqUserDTO.setProviderUserId(createdUserId);
-        reqUserDTO.setPassword(null); // Jangan kembalikan password dalam respons
-        reqUserDTO.setStatus("success");
-        return reqUserDTO;
-    }
-
-    /**
-     * Membuat respons error untuk operasi pengguna.
-     *
-     * @param errorMessage Pesan error
-     * @return UserDTO dengan status gagal dan pesan error
-     */
-    public UserDTO createErrorResponse(String errorMessage) {
-        UserDTO returnDTO = new UserDTO();
-        returnDTO.setStatus("failed");
-        returnDTO.setMessage(errorMessage);
-        return returnDTO;
     }
 }

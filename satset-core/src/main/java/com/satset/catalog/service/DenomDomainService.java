@@ -1,12 +1,10 @@
 package com.satset.catalog.service;
 
 import com.satset.catalog.repository.CategoryRepository;
-import com.satset.catalog.repository.DenomMetaRepository;
 import com.satset.catalog.repository.DenomRepository;
 import com.satset.catalog.repository.ProductRepository;
 import com.satset.catalog.model.Category;
 import com.satset.catalog.model.DenomType;
-import com.satset.catalog.model.ProductDenomMeta;
 import com.satset.catalog.model.ProductDenoms;
 import com.satset.catalog.model.Products;
 import com.satset.catalog.dto.CreateDenomRequest;
@@ -26,16 +24,13 @@ import java.util.UUID;
 public class DenomDomainService {
 
     private final DenomRepository denomRepository;
-    private final DenomMetaRepository metaRepository;
     private final ProductRepository productRepository;
     private final CategoryRepository categoryRepository;
 
     public DenomDomainService(DenomRepository denomRepository,
-            DenomMetaRepository metaRepository,
             ProductRepository productRepository,
             CategoryRepository categoryRepository) {
         this.denomRepository = denomRepository;
-        this.metaRepository = metaRepository;
         this.productRepository = productRepository;
         this.categoryRepository = categoryRepository;
     }
@@ -55,13 +50,7 @@ public class DenomDomainService {
 
     public Optional<ProductDenoms> getDenomWithMeta(String code) {
         return denomRepository.findByCode(code)
-                .filter(d -> d.isActive() && !d.isDeleted())
-                .map(denom -> {
-                    // Eagerly load metadata
-                    List<ProductDenomMeta> metaList = metaRepository.findByProductDenomId(denom.getId());
-                    denom.setMetadata(metaList);
-                    return denom;
-                });
+                .filter(d -> d.isActive() && !d.isDeleted());
     }
 
     // === Manage (admin CRUD) ===
@@ -180,14 +169,6 @@ public class DenomDomainService {
         ProductDenoms d = denomRepository.findById(denomId)
                 .orElseThrow(() -> new ResourceNotFoundException("Denom", denomId));
         d.setBasePrice(cost);
-        denomRepository.save(d);
-    }
-
-    @Transactional
-    public void deactivateById(UUID denomId) {
-        ProductDenoms d = denomRepository.findById(denomId)
-                .orElseThrow(() -> new ResourceNotFoundException("Denom", denomId));
-        d.setActive(false);
         denomRepository.save(d);
     }
 

@@ -32,7 +32,6 @@ public class Beans {
 
     private final JwtDecoder jwtDecoder;
     private final UserRepository usersRepository;
-    private final HttpServletRequest session;
 
     @Value("${keycloak.base-server-url}")
     private String serverUrl;
@@ -46,10 +45,9 @@ public class Beans {
     @Value("${keycloak.client-secret}")
     private String clientSecret;
 
-    public Beans(JwtDecoder jwtDecoder, UserRepository usersRepository, HttpServletRequest session) {
+    public Beans(JwtDecoder jwtDecoder, UserRepository usersRepository) {
         this.jwtDecoder = jwtDecoder;
         this.usersRepository = usersRepository;
-        this.session = session;
     }
 
     @Bean
@@ -75,12 +73,11 @@ public class Beans {
                 dto.setFullname(userFromDb.getFullname());
                 dto.setRoles(userFromDb.getRoles());
             }
-        } else if (this.session != null) {
-            UserDTO userDTO = (UserDTO) this.session.getSession().getAttribute(OmniConstants.SESSION_USER_DTO);
+        } else {
+            UserDTO userDTO = (UserDTO) request.getSession().getAttribute(OmniConstants.SESSION_USER_DTO);
             if (userDTO != null) {
                 dto = userDTO;
             }
-
         }
 
         return dto;
@@ -112,10 +109,7 @@ public class Beans {
             if (authentication == null || !authentication.isAuthenticated()) {
                 return Optional.of("SYSTEM");
             }
-            if (userDTO != null) {
-                return Optional.of(userDTO.getUsername());
-            }
-            return Optional.of(authentication.getName());
+            return Optional.of(userDTO.getUsername());
         };
     }
 

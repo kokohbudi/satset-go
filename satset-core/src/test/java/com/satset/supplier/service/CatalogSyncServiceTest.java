@@ -42,7 +42,7 @@ class CatalogSyncServiceTest {
         return dfCat(sku, name, "Pulsa", brand, price);
     }
     private static PriceListItem dfCat(String sku, String name, String category, String brand, long price) {
-        return new PriceListItem(name, category, brand, "Umum", sku, price, true, true, false, "0", "Ki***", "");
+        return new PriceListItem(name, category, brand, sku, price, true, "0", "Ki***");
     }
     private static ProductDenoms denom(String code, BigDecimal base) {
         ProductDenoms d = new ProductDenoms(); d.setCode(code); d.setName("n"+code);

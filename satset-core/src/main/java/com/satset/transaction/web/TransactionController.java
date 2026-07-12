@@ -63,23 +63,13 @@ public class TransactionController {
         String walletId = getWalletId();
         BigDecimal balance = balanceService.getBalance(walletId);
 
-        Map<String, Object> response = new HashMap<>();
-        response.put("walletId", walletId);
-        response.put("balance", balance);
-
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(Map.of("walletId", walletId, "balance", balance));
     }
 
     @GetMapping("/mutations")
     @PreAuthorize("hasRole('" + OmniConstants.PERM_TRANSACTION + "')")
     public ResponseEntity<java.util.List<com.satset.wallet.dto.WalletMutationDTO>> mutations() {
         return ResponseEntity.ok(balanceService.listMutations(getWalletId()));
-    }
-
-    @GetMapping("/{id}")
-    @PreAuthorize("hasRole('" + OmniConstants.PERM_TRANSACTION + "')")
-    public ResponseEntity<TransactionDTO> getTransaction(@PathVariable UUID id) {
-        return ResponseEntity.ok(transactionService.getTransaction(id, getStoreId()));
     }
 
     @GetMapping("/history")

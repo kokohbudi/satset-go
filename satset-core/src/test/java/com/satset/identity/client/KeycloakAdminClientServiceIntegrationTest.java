@@ -3,6 +3,7 @@ package com.satset.identity.client;
 import com.satset.identity.model.GroupMemberInfo;
 import com.satset.identity.model.KeycloakGroup;
 import com.satset.identity.model.KeycloakRole;
+import com.satset.shared.dto.RoleInfo;
 import com.satset.shared.testcontainers.KeycloakContainerSupport;
 import jakarta.ws.rs.NotFoundException;
 import org.junit.jupiter.api.BeforeEach;
@@ -46,7 +47,7 @@ class KeycloakAdminClientServiceIntegrationTest extends KeycloakContainerSupport
                 .build();
 
         // Create service instance
-        keycloakAdminClientService = new KeycloakAdminClientService(keycloak, new KeycloakHelper(), identityMapper);
+        keycloakAdminClientService = new KeycloakAdminClientService(keycloak, identityMapper);
 
         // Inject test realm via reflection
         try {
@@ -90,8 +91,8 @@ class KeycloakAdminClientServiceIntegrationTest extends KeycloakContainerSupport
         }
 
         @Test
-        @DisplayName("getMenuRoles should include client roles that have sidebar=1 attribute")
-        void getMenuRoles_IncludesClientRolesWithSidebarAttribute() {
+        @DisplayName("getMenuRoleInfos should include client roles that have sidebar=1 attribute")
+        void getMenuRoleInfos_IncludesClientRolesWithSidebarAttribute() {
             // Arrange
             Keycloak admin = masterAdminClient();
             String userId = admin.realm(TEST_REALM).users().search("testuser", 0, 1).getFirst().getId();
@@ -109,11 +110,11 @@ class KeycloakAdminClientServiceIntegrationTest extends KeycloakContainerSupport
 
             try {
                 // Act
-                List<KeycloakRole> menuRoles = keycloakAdminClientService.getMenuRoles(userId);
+                List<RoleInfo> menuRoles = keycloakAdminClientService.getMenuRoleInfos(userId);
 
                 // Assert
                 assertThat(menuRoles).extracting("name").contains("store_dashboard");
-                KeycloakRole storeRole = menuRoles.stream()
+                RoleInfo storeRole = menuRoles.stream()
                         .filter(r -> "store_dashboard".equals(r.getName()))
                         .findFirst().orElseThrow();
                 assertThat(storeRole.getAttributes()).containsEntry("sidebar", "1");
