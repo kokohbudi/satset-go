@@ -19,6 +19,8 @@ public interface DenomRepository extends JpaRepository<ProductDenoms, UUID> {
 
     List<ProductDenoms> findByProductIdOrderBySortOrder(UUID productId);
 
+    List<ProductDenoms> findAllByOrderBySortOrder();
+
     boolean existsByCodeAndIdNot(String code, UUID id);
 
     List<ProductDenoms> findByDeletedFalseOrderByProductIdAscSortOrderAsc();

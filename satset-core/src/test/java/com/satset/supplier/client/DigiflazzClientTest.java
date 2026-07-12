@@ -1,5 +1,6 @@
 package com.satset.supplier.client;
 
+import com.satset.shared.exception.SupplierException;
 import com.satset.supplier.model.PriceListItem;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.web.client.MockRestServiceServer;
@@ -17,14 +18,14 @@ import static org.springframework.test.web.client.match.MockRestRequestMatchers.
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
 /**
- * Unit test {@link DigiflazzClient#fetchPriceList()}: signing benar (md5 user+key+"pricelist"),
+ * Unit test {@link DigiflazzClient#fetchSnapshot()}: signing benar (md5 user+key+"pricelist"),
  * POST ke /price-list dgn cmd=prepaid, dan parse {@code {"data":[...]}} ke {@link PriceListItem}.
  * Pakai {@link MockRestServiceServer} — no network.
  */
 class DigiflazzClientTest {
 
     @Test
-    void fetchPriceList_postsSignedRequest_andParsesData() {
+    void fetchSnapshot_postsSignedRequest_andParsesData() {
         RestClient.Builder builder = RestClient.builder();
         MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
 
@@ -46,7 +47,7 @@ class DigiflazzClientTest {
         DigiflazzClient client = new DigiflazzClient(
                 builder.build(), "https://api.digiflazz.com/v1", "user1", "key1");
 
-        List<PriceListItem> items = client.fetchPriceList();
+        List<PriceListItem> items = client.fetchSnapshot().items();
 
         assertThat(items).hasSize(1);
         PriceListItem it = items.get(0);
@@ -61,7 +62,7 @@ class DigiflazzClientTest {
     }
 
     @Test
-    void fetchPriceList_errorResponse_throwsCleanException_notJacksonCrash() {
+    void fetchSnapshot_errorResponse_throwsCleanException_notJacksonCrash() {
         RestClient.Builder builder = RestClient.builder();
         MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
 
@@ -75,8 +76,10 @@ class DigiflazzClientTest {
         DigiflazzClient client = new DigiflazzClient(
                 builder.build(), "https://api.digiflazz.com/v1", "user1", "key1");
 
-        assertThatThrownBy(client::fetchPriceList)
-                .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("83");
+        assertThatThrownBy(() -> client.fetchSnapshot().items())
+                .isInstanceOf(SupplierException.class)
+                .hasMessageContaining("limitasi pengecekan pricelist")   // pesan asli DF diteruskan
+                .extracting(e -> ((SupplierException) e).getCode())
+                .isEqualTo("83");                                        // rc DF diteruskan apa adanya
     }
 }

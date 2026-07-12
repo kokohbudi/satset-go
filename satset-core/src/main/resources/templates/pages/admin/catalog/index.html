@@ -1,0 +1,1004 @@
+<!DOCTYPE html>
+<html lang="id" xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      layout:decorate="~{layouts/base}">
+
+<head>
+    <title>Katalog</title>
+</head>
+
+<body>
+<div layout:fragment="content" x-data="catalogManager()"
+     th:data-can-manage-cat="${#authorization.expression('hasRole(''REALM_manage_categories'')')}"
+     th:data-can-manage-prod="${#authorization.expression('hasRole(''REALM_manage_products'')')}"
+     th:data-can-manage-denom="${#authorization.expression('hasRole(''REALM_manage_denoms'')')}">
+
+    <!-- Page Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-4 animate-rise" style="--i:0">
+        <div>
+            <h1 class="text-2xl font-bold">Katalog</h1>
+            <p class="text-base-content/60 text-sm mt-1">Kategori, produk, dan denominasi dalam satu halaman</p>
+        </div>
+        <div class="flex items-center gap-2" x-show="canManageDenom">
+            <button sec:authorize="hasRole('REALM_manage_denoms')" x-show="driftDenoms.length > 0"
+                    class="btn btn-warning btn-outline btn-sm tap" @click="applyBulkCost()" :disabled="applyingCost">
+                <span x-show="applyingCost" class="loading loading-spinner loading-xs"></span>
+                Samakan harga suplier dan harga beli (<span x-text="driftDenoms.length"></span>)
+            </button>
+            <button sec:authorize="hasRole('REALM_manage_denoms')"
+                    class="btn btn-outline btn-sm tap" @click="openSyncAll()" :disabled="syncing">
+                <span x-show="syncing" class="loading loading-spinner loading-xs"></span> Sinkronkan Harga Suplier
+            </button>
+        </div>
+    </div>
+
+    <!-- Tab kategori (level 1: primary selector — solid pills) -->
+    <div class="flex flex-wrap items-center gap-2 mb-4 animate-rise" style="--i:1">
+        <button type="button" class="inline-flex items-center h-9 px-4 rounded-full border text-sm font-medium whitespace-nowrap transition-colors tap"
+                :class="activeCategory === null ? 'bg-primary border-primary text-primary-content shadow-sm' : 'bg-base-100 border-base-300 text-base-content/70 hover:border-primary/40 hover:text-base-content'"
+                @click="selectCategory(null)">Semua</button>
+        <template x-for="c in tabCategories" :key="c.id">
+            <div class="group inline-flex items-center h-9 rounded-full border transition-colors"
+                 :class="activeCategory === c.id ? 'bg-primary border-primary text-primary-content shadow-sm'
+                          : (c.deleted ? 'bg-base-100 border-base-300 text-base-content/30' : 'bg-base-100 border-base-300 text-base-content/70 hover:border-primary/40 hover:text-base-content')">
+                <button type="button" class="inline-flex items-center h-full pl-4 text-sm font-medium whitespace-nowrap"
+                        :class="[c.deleted ? 'line-through cursor-not-allowed' : 'cursor-pointer', (canManageCat && activeCategory === c.id) ? 'pr-1.5' : 'pr-4']"
+                        :disabled="c.deleted" @click="!c.deleted && selectCategory(c.id)" x-text="c.name"></button>
+                <button x-show="canManageCat && activeCategory === c.id" type="button" title="Edit kategori" aria-label="Edit kategori"
+                        class="inline-flex items-center h-full pr-3 pl-0.5 opacity-80 hover:opacity-100 transition-opacity"
+                        :disabled="c.deleted" @click.stop="openCategoryModal(c)">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                    </svg>
+                </button>
+            </div>
+        </template>
+    </div>
+
+    <!-- Subtab produk (level 2: secondary — underline tabs; hidden when Semua-kategori) -->
+    <div class="flex flex-wrap items-center gap-x-1 mb-4 border-b border-base-300" x-show="activeCategory !== null" x-cloak>
+        <button type="button" class="px-3 py-2 text-sm font-medium border-b-2 -mb-px transition-colors"
+                :class="activeProduct === null ? 'border-primary text-primary' : 'border-transparent text-base-content/60 hover:text-base-content'"
+                @click="selectProduct(null)">Semua</button>
+        <template x-for="p in tabProducts" :key="p.id">
+            <div class="group inline-flex items-center border-b-2 -mb-px transition-colors"
+                 :class="activeProduct === p.id ? 'border-primary' : 'border-transparent'">
+                <button type="button" class="py-2 pl-3 text-sm font-medium transition-colors"
+                        :class="[activeProduct === p.id ? 'text-primary' : (p.deleted ? 'text-base-content/30 line-through cursor-not-allowed' : 'text-base-content/60 hover:text-base-content cursor-pointer'), (canManageProd && activeProduct === p.id) ? 'pr-1' : 'pr-3']"
+                        :disabled="p.deleted" @click="!p.deleted && selectProduct(p.id)" x-text="p.name"></button>
+                <button x-show="canManageProd && activeProduct === p.id" type="button" title="Edit produk" aria-label="Edit produk"
+                        class="pr-2 pl-0.5 py-2 text-primary opacity-80 hover:opacity-100 transition-opacity"
+                        :disabled="p.deleted" @click.stop="openProductModal(p)">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                    </svg>
+                </button>
+            </div>
+        </template>
+    </div>
+
+    <!-- Search (context-sensitive: filters whichever panel is visible) -->
+    <div class="mb-4">
+        <label class="input input-bordered input-sm flex items-center gap-2 w-full max-w-xs">
+            <svg class="w-4 h-4 text-base-content/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+            </svg>
+            <input type="search" x-model="searchQuery" placeholder="Cari denominasi..." class="grow bg-transparent outline-none"/>
+        </label>
+    </div>
+
+    <!-- Panel: denoms (flat aggregate, scoped by active category/product) -->
+    <div>
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-3">
+            <h2 class="text-lg font-semibold"
+                x-text="activeProduct !== null ? ('Denom: ' + activeProductName)
+                        : activeCategory !== null ? ('Denom: ' + catName(activeCategory))
+                        : 'Semua Denom'"></h2>
+            <div class="flex gap-2">
+                <button sec:authorize="hasRole('REALM_manage_denoms')" x-show="canManageDenom" class="btn btn-primary btn-sm tap" @click="openCreateModal()">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"/>
+                    </svg>
+                    Tambah Denom
+                </button>
+            </div>
+        </div>
+
+        <div class="card bg-base-100 shadow-sm">
+            <div class="overflow-x-auto">
+                <table class="table table-zebra table-sm">
+                    <thead>
+                    <tr>
+                        <th>Code</th>
+                        <th>Nama</th>
+                        <th>Kategori</th>
+                        <th>Produk</th>
+                        <th>Tipe</th>
+                        <th class="text-right">Nominal</th>
+                        <th class="text-right">Harga Jual</th>
+                        <th class="text-right">Harga Beli</th>
+                        <th class="text-right">
+                            Harga Suplier
+                            <span x-show="supplierPricesAt && !supplierPricesError" class="block text-[10px] font-normal text-base-content/40"
+                                  x-text="supplierPricesAt ? ('upd ' + new Date(supplierPricesAt).toLocaleString('id-ID', {day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'})) : ''"></span>
+                            <span x-show="supplierPricesError" class="block text-[10px] font-normal normal-case text-error" x-text="supplierPricesError"></span>
+                        </th>
+                        <th class="text-center">Sort</th>
+                        <th class="text-center">Status</th>
+                        <th class="text-center">Aksi</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <template x-for="d in filteredDenoms" :key="d.id">
+                        <tr :class="d.deleted ? 'opacity-40' : ''">
+                            <td class="font-mono text-xs" x-text="d.code"></td>
+                            <td x-text="d.name"></td>
+                            <td class="text-base-content/70" x-text="catNameOf(d.productId)"></td>
+                            <td x-text="prodNameOf(d.productId)"></td>
+                            <td><span class="badge badge-xs"
+                                      :class="d.denomType === 'FIXED_DENOM' ? 'badge-info' : 'badge-accent'"
+                                      x-text="d.denomType === 'FIXED_DENOM' ? 'Fixed' : 'Open Amount'"></span></td>
+                            <td class="text-right font-mono" x-text="formatRp(d.nominal)"></td>
+                            <td class="text-right font-mono" x-text="formatRp(d.price)"></td>
+                            <td class="text-right font-mono" x-text="formatRp(d.basePrice)"></td>
+                            <td class="text-right font-mono">
+                                <template x-if="supplierCost(d.code) !== null">
+                                    <span :class="supplierDiffers(d) ? 'text-warning font-semibold' : ''">
+                                        <span x-text="formatRp(supplierCost(d.code))"></span>
+                                        <span x-show="supplierDiffers(d)" x-text="Number(supplierCost(d.code)) > Number(d.basePrice ?? 0) ? '▲' : '▼'"></span>
+                                    </span>
+                                </template>
+                                <template x-if="supplierCost(d.code) === null"><span class="text-base-content/40">-</span></template>
+                            </td>
+                            <td class="text-center" x-text="d.sortOrder"></td>
+                            <td class="text-center">
+                                <span class="badge badge-sm"
+                                      :class="d.deleted ? 'badge-error' : (d.active ? 'badge-success' : 'badge-warning')"
+                                      x-text="d.deleted ? 'Deleted' : (d.active ? 'Active' : 'Inactive')"></span>
+                                <span x-show="d.inSupplier === false" class="badge badge-warning badge-outline badge-sm ml-1"
+                                      title="Hilang dari supplier">&#9888; supplier</span>
+                            </td>
+                            <td class="text-center">
+                                <div class="flex justify-center gap-1">
+                                    <template x-if="canManageDenom && supplierDiffers(d) && !d.deleted">
+                                        <button class="btn btn-warning btn-outline btn-xs tap" @click="applyRowCost(d)" :disabled="applyingCost"
+                                                title="Samakan Harga Beli dengan Harga Suplier">Samakan</button>
+                                    </template>
+                                    <template x-if="canManageDenom">
+                                        <button class="btn btn-ghost btn-xs tap" @click="openEditModal(d)" :disabled="d.deleted">Edit</button>
+                                    </template>
+                                    <template x-if="canManageDenom">
+                                        <button class="btn btn-ghost btn-xs text-error tap" @click="confirmDelete(d)" :disabled="d.deleted">Hapus</button>
+                                    </template>
+                                </div>
+                            </td>
+                        </tr>
+                    </template>
+                    <tr x-show="filteredDenoms.length === 0">
+                        <td colspan="12" class="text-center py-8 text-base-content/50">Belum ada denominasi</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Category Create/Edit Modal -->
+    <div x-show="showCategoryModal" x-cloak @keydown.escape.window="!categorySaving && (showCategoryModal = false)"
+         class="fixed inset-0 z-50 flex items-center justify-center"
+         x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0"
+         x-transition:enter-end="opacity-100" x-transition:leave="transition ease-in duration-150"
+         x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0">
+        <div class="absolute inset-0 bg-black/50" @click="showCategoryModal = false"></div>
+        <div class="relative bg-base-100 rounded-xl shadow-2xl w-full max-w-lg mx-4 overflow-hidden"
+             x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 scale-95"
+             x-transition:enter-end="opacity-100 scale-100">
+
+            <div class="px-6 py-4 border-b border-base-300">
+                <h3 class="text-lg font-semibold" x-text="categoryEditMode ? 'Edit Kategori' : 'Tambah Kategori'"></h3>
+            </div>
+
+            <form @submit.prevent="saveCategory()">
+                <div class="px-6 py-5 space-y-4">
+                    <div class="form-control">
+                        <label class="label"><span class="label-text">Code <span class="text-error">*</span></span></label>
+                        <input type="text" class="input input-bordered" x-model="categoryForm.code" required maxlength="50"
+                               x-ref="catCodeInput" placeholder="e.g. PULSA" :disabled="categorySaving">
+                    </div>
+                    <div class="form-control">
+                        <label class="label"><span class="label-text">Nama <span class="text-error">*</span></span></label>
+                        <input type="text" class="input input-bordered" x-model="categoryForm.name" required maxlength="100"
+                               placeholder="e.g. Pulsa & Telepon" :disabled="categorySaving">
+                    </div>
+                    <div class="form-control">
+                        <label class="label"><span class="label-text">Tipe Kategori <span class="text-error">*</span></span></label>
+                        <select class="select select-bordered" x-model="categoryForm.categoryType" required :disabled="categorySaving">
+                            <option value="">-- Pilih --</option>
+                            <template x-for="type in categoryTypes" :key="type">
+                                <option :value="type" x-text="type"></option>
+                            </template>
+                        </select>
+                    </div>
+                    <div class="form-control">
+                        <label class="label"><span class="label-text">Icon URL</span></label>
+                        <input type="text" class="input input-bordered" x-model="categoryForm.iconUrl" placeholder="https://..." :disabled="categorySaving">
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="form-control">
+                            <label class="label"><span class="label-text">Sort Order</span></label>
+                            <input type="number" class="input input-bordered" x-model.number="categoryForm.sortOrder" :disabled="categorySaving">
+                        </div>
+                        <div class="form-control">
+                            <label class="label"><span class="label-text">Status</span></label>
+                            <label class="label cursor-pointer justify-start gap-3">
+                                <input type="checkbox" class="toggle toggle-primary" x-model="categoryForm.active" :disabled="categorySaving">
+                                <span class="label-text" x-text="categoryForm.active ? 'Active' : 'Inactive'"></span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="px-6 py-4 bg-base-200/50 flex justify-between gap-3">
+                    <button type="button" x-show="categoryEditMode" class="btn btn-ghost text-error" @click="confirmDeleteCategory({ id: categoryEditId, name: categoryForm.name }); showCategoryModal = false" :disabled="categorySaving">Hapus</button>
+                    <div class="flex gap-3 ml-auto">
+                        <button type="button" class="btn btn-ghost" @click="showCategoryModal = false" :disabled="categorySaving">Batal</button>
+                        <button type="submit" class="btn btn-primary" :disabled="categorySaving">
+                            <span x-show="categorySaving" class="loading loading-spinner loading-sm"></span>
+                            <span x-text="categoryEditMode ? 'Update' : 'Simpan'"></span>
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Product Create/Edit Modal -->
+    <div x-show="showProductModal" x-cloak @keydown.escape.window="!productSaving && (showProductModal = false)"
+         class="fixed inset-0 z-50 flex items-center justify-center"
+         x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0"
+         x-transition:enter-end="opacity-100" x-transition:leave="transition ease-in duration-150"
+         x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0">
+        <div class="absolute inset-0 bg-black/50" @click="showProductModal = false"></div>
+        <div class="relative bg-base-100 rounded-xl shadow-2xl w-full max-w-lg mx-4 overflow-hidden"
+             x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 scale-95"
+             x-transition:enter-end="opacity-100 scale-100">
+
+            <div class="px-6 py-4 border-b border-base-300">
+                <h3 class="text-lg font-semibold" x-text="productEditMode ? 'Edit Produk' : 'Tambah Produk'"></h3>
+            </div>
+
+            <form @submit.prevent="saveProduct()">
+                <div class="px-6 py-5 space-y-4 max-h-[70vh] overflow-y-auto">
+                    <div class="form-control">
+                        <label class="label"><span class="label-text">Kategori</span></label>
+                        <select class="select select-bordered" x-model="productForm.categoryId" required :disabled="productSaving">
+                            <option value="">-- Pilih Kategori --</option>
+                            <template x-for="cat in activeCategories" :key="cat.id">
+                                <option :value="cat.id" x-text="cat.name"></option>
+                            </template>
+                        </select>
+                    </div>
+                    <div class="form-control">
+                        <label class="label"><span class="label-text">Code</span></label>
+                        <input type="text" class="input input-bordered" x-model="productForm.code" required maxlength="50" :disabled="productSaving">
+                    </div>
+                    <div class="form-control">
+                        <label class="label"><span class="label-text">Nama</span></label>
+                        <input type="text" class="input input-bordered" x-model="productForm.name" required maxlength="100" :disabled="productSaving">
+                    </div>
+                    <div class="form-control">
+                        <label class="label"><span class="label-text">Provider</span></label>
+                        <input type="text" class="input input-bordered" x-model="productForm.providerName" maxlength="100" :disabled="productSaving">
+                    </div>
+                    <div class="form-control">
+                        <label class="label"><span class="label-text">Deskripsi</span></label>
+                        <textarea class="textarea textarea-bordered" x-model="productForm.description" rows="2" :disabled="productSaving"></textarea>
+                    </div>
+                    <div class="form-control">
+                        <label class="label"><span class="label-text">Icon URL</span></label>
+                        <input type="text" class="input input-bordered" x-model="productForm.iconUrl" :disabled="productSaving">
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="form-control">
+                            <label class="label"><span class="label-text">Sort Order</span></label>
+                            <input type="number" class="input input-bordered" x-model.number="productForm.sortOrder" :disabled="productSaving">
+                        </div>
+                        <div class="form-control">
+                            <label class="label"><span class="label-text">Status</span></label>
+                            <label class="label cursor-pointer justify-start gap-3">
+                                <input type="checkbox" class="toggle toggle-primary" x-model="productForm.active" :disabled="productSaving">
+                                <span class="label-text" x-text="productForm.active ? 'Active' : 'Inactive'"></span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="px-6 py-4 bg-base-200/50 flex justify-between gap-3">
+                    <button type="button" x-show="productEditMode" class="btn btn-ghost text-error" @click="confirmDeleteProduct({ id: productEditId, name: productForm.name }); showProductModal = false" :disabled="productSaving">Hapus</button>
+                    <div class="flex gap-3 ml-auto">
+                        <button type="button" class="btn btn-ghost" @click="showProductModal = false" :disabled="productSaving">Batal</button>
+                        <button type="submit" class="btn btn-primary" :disabled="productSaving">
+                            <span x-show="productSaving" class="loading loading-spinner loading-sm"></span>
+                            <span x-text="productEditMode ? 'Update' : 'Simpan'"></span>
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Denom Create/Edit Modal -->
+    <div x-show="showDenomModal" x-cloak @keydown.escape.window="!denomSaving && (showDenomModal = false)"
+         class="fixed inset-0 z-50 flex items-center justify-center"
+         x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0"
+         x-transition:enter-end="opacity-100" x-transition:leave="transition ease-in duration-150"
+         x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0">
+        <div class="absolute inset-0 bg-black/50" @click="showDenomModal = false"></div>
+        <div class="relative bg-base-100 rounded-xl shadow-2xl w-full max-w-2xl mx-4 overflow-hidden"
+             x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 scale-95"
+             x-transition:enter-end="opacity-100 scale-100">
+
+            <div class="px-6 py-4 border-b border-base-300">
+                <h3 class="text-lg font-semibold" x-text="denomEditMode ? 'Edit Denominasi' : 'Tambah Denominasi'"></h3>
+            </div>
+
+            <form @submit.prevent="saveDenom()">
+                <div class="px-6 py-5 space-y-4 max-h-[70vh] overflow-y-auto">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="form-control">
+                            <label class="label"><span class="label-text">Code / SKU</span></label>
+                            <input type="text" class="input input-bordered input-sm" x-model="denomForm.code" maxlength="100"
+                                   placeholder="kosongkan &rarr; auto PRODUK+NOMINAL" :disabled="denomSaving">
+                        </div>
+                        <div class="form-control">
+                            <label class="label"><span class="label-text">Tipe</span></label>
+                            <select class="select select-bordered select-sm" x-model="denomForm.denomType" required :disabled="denomSaving">
+                                <option value="">-- Pilih --</option>
+                                <template x-for="t in denomTypes" :key="t">
+                                    <option :value="t" x-text="t"></option>
+                                </template>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-control">
+                        <label class="label"><span class="label-text">Nama</span></label>
+                        <input type="text" class="input input-bordered input-sm" x-model="denomForm.name" required maxlength="150" :disabled="denomSaving">
+                    </div>
+
+                    <!-- Pricing -->
+                    <div class="divider text-xs">Pricing</div>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div class="form-control">
+                            <label class="label"><span class="label-text text-xs">Nominal</span></label>
+                            <input type="number" step="0.01" class="input input-bordered input-sm" x-model.number="denomForm.nominal" :disabled="denomSaving">
+                        </div>
+                        <div class="form-control">
+                            <label class="label"><span class="label-text text-xs">Harga Jual</span></label>
+                            <input type="number" step="0.01" class="input input-bordered input-sm" x-model.number="denomForm.price" required :disabled="denomSaving">
+                        </div>
+                        <div class="form-control">
+                            <label class="label"><span class="label-text text-xs">Harga Modal</span></label>
+                            <input type="number" step="0.01" class="input input-bordered input-sm" x-model.number="denomForm.basePrice" :disabled="denomSaving">
+                        </div>
+                        <div class="form-control">
+                            <label class="label"><span class="label-text text-xs">Admin Fee</span></label>
+                            <input type="number" step="0.01" class="input input-bordered input-sm" x-model.number="denomForm.adminFee" :disabled="denomSaving">
+                        </div>
+                    </div>
+
+                    <!-- Extra fields -->
+                    <div class="divider text-xs">Detail</div>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div class="form-control">
+                            <label class="label"><span class="label-text text-xs">Validity (hari)</span></label>
+                            <input type="number" class="input input-bordered input-sm" x-model.number="denomForm.validityDays" :disabled="denomSaving">
+                        </div>
+                        <div class="form-control">
+                            <label class="label"><span class="label-text text-xs">Kuota (MB)</span></label>
+                            <input type="number" class="input input-bordered input-sm" x-model.number="denomForm.quotaMb" :disabled="denomSaving">
+                        </div>
+                        <div class="form-control">
+                            <label class="label"><span class="label-text text-xs">Min Amount</span></label>
+                            <input type="number" step="0.01" class="input input-bordered input-sm" x-model.number="denomForm.minAmount" :disabled="denomSaving">
+                        </div>
+                        <div class="form-control">
+                            <label class="label"><span class="label-text text-xs">Max Amount</span></label>
+                            <input type="number" step="0.01" class="input input-bordered input-sm" x-model.number="denomForm.maxAmount" :disabled="denomSaving">
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div class="form-control">
+                            <label class="label"><span class="label-text text-xs">Stok</span></label>
+                            <input type="number" class="input input-bordered input-sm" x-model.number="denomForm.stockAvailable" :disabled="denomSaving">
+                        </div>
+                        <div class="form-control">
+                            <label class="label"><span class="label-text text-xs">Sort Order</span></label>
+                            <input type="number" class="input input-bordered input-sm" x-model.number="denomForm.sortOrder" :disabled="denomSaving">
+                        </div>
+                        <div class="form-control">
+                            <label class="label"><span class="label-text text-xs">Status</span></label>
+                            <label class="label cursor-pointer justify-start gap-2">
+                                <input type="checkbox" class="toggle toggle-primary toggle-sm" x-model="denomForm.active" :disabled="denomSaving">
+                                <span class="label-text text-xs" x-text="denomForm.active ? 'Active' : 'Inactive'"></span>
+                            </label>
+                        </div>
+                        <div class="form-control">
+                            <label class="label"><span class="label-text text-xs">Inquiry</span></label>
+                            <label class="label cursor-pointer justify-start gap-2">
+                                <input type="checkbox" class="toggle toggle-sm" x-model="denomForm.requiresInquiry" :disabled="denomSaving">
+                                <span class="label-text text-xs" x-text="denomForm.requiresInquiry ? 'Ya' : 'Tidak'"></span>
+                            </label>
+                        </div>
+                    </div>
+                    <!-- Kategori & Produk combobox: pick existing or create inline -->
+                    <div class="divider text-xs">Kategori &amp; Produk</div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="form-control">
+                            <label class="label"><span class="label-text">Kategori</span></label>
+                            <select class="select select-bordered select-sm" x-model="denomForm.categoryChoice"
+                                    @change="denomForm.productChoice=''" :disabled="denomSaving">
+                                <option value="">-- Pilih --</option>
+                                <template x-for="c in activeCategories" :key="c.id"><option :value="c.id" x-text="c.name"></option></template>
+                                <option value="__new__">+ Kategori baru&hellip;</option>
+                            </select>
+                            <template x-if="catComboIsNew">
+                                <div class="mt-2 space-y-2">
+                                    <input type="text" class="input input-bordered input-sm w-full" placeholder="Nama kategori baru"
+                                           x-model="denomForm.categoryNewName" :disabled="denomSaving">
+                                    <select class="select select-bordered select-sm w-full" x-model="denomForm.categoryNewType" :disabled="denomSaving">
+                                        <option value="">-- Tipe --</option>
+                                        <template x-for="t in categoryTypes" :key="t"><option :value="t" x-text="t"></option></template>
+                                    </select>
+                                    <input type="text" class="input input-bordered input-sm w-full" placeholder="Icon URL (opsional)"
+                                           x-model="denomForm.categoryNewIcon" :disabled="denomSaving">
+                                </div>
+                            </template>
+                        </div>
+                        <div class="form-control">
+                            <label class="label"><span class="label-text">Produk</span></label>
+                            <select class="select select-bordered select-sm" x-model="denomForm.productChoice" :disabled="denomSaving || (!denomForm.categoryChoice)">
+                                <option value="">-- Pilih --</option>
+                                <template x-for="p in comboProducts" :key="p.id"><option :value="p.id" x-text="p.name"></option></template>
+                                <option value="__new__">+ Produk baru&hellip;</option>
+                            </select>
+                            <template x-if="prodComboIsNew">
+                                <div class="mt-2 space-y-2">
+                                    <input type="text" class="input input-bordered input-sm w-full" placeholder="Nama produk baru"
+                                           x-model="denomForm.productNewName" :disabled="denomSaving">
+                                    <input type="text" class="input input-bordered input-sm w-full" placeholder="Provider (opsional)"
+                                           x-model="denomForm.productNewProvider" :disabled="denomSaving">
+                                    <input type="text" class="input input-bordered input-sm w-full" placeholder="Icon URL (opsional)"
+                                           x-model="denomForm.productNewIcon" :disabled="denomSaving">
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="px-6 py-4 bg-base-200/50 flex justify-end gap-3">
+                    <button type="button" class="btn btn-ghost" @click="showDenomModal = false" :disabled="denomSaving">Batal</button>
+                    <button type="submit" class="btn btn-primary" :disabled="denomSaving">
+                        <span x-show="denomSaving" class="loading loading-spinner loading-sm"></span>
+                        <span x-text="denomEditMode ? 'Update' : 'Simpan'"></span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Sync Digiflazz Preview Modal -->
+    <div class="modal" :class="{ 'modal-open': showSyncModal }">
+        <div class="modal-box max-w-2xl">
+            <h3 class="font-bold text-lg">Sync Digiflazz</h3>
+            <p class="text-sm text-base-content/60 mt-1">Menambah item baru dari Digiflazz dan menandai yang hilang. <strong>Harga Beli tidak diubah</strong> — kalau ada selisih dari Harga Suplier, samakan lewat tombol di tabel.</p>
+            <template x-for="grp in [
+                {t:'Kategori baru', k:'newCategories'}, {t:'Produk baru', k:'newProducts'},
+                {t:'Denom baru', k:'newDenoms'}, {t:'Selisih harga (samakan di tabel)', k:'priceChanges'}]" :key="grp.k">
+              <div class="mt-4" x-show="syncPreview[grp.k] && syncPreview[grp.k].length">
+                <div class="font-semibold text-sm" x-text="grp.t + ' (' + syncPreview[grp.k].length + ')'"></div>
+                <div class="max-h-40 overflow-y-auto mt-1 text-sm text-base-content/70">
+                  <template x-for="(label, i) in syncPreview[grp.k]" :key="grp.k + i"><div x-text="label"></div></template>
+                </div>
+              </div>
+            </template>
+            <div x-show="!(syncPreview.newCategories.length || syncPreview.newProducts.length || syncPreview.newDenoms.length || syncPreview.priceChanges.length)"
+                 class="mt-4 text-sm text-base-content/60">Sudah sinkron.</div>
+            <div class="modal-action">
+                <button class="btn btn-ghost" @click="showSyncModal = false" :disabled="syncing">Batal</button>
+                <button class="btn btn-primary" @click="applySyncAll()" :disabled="syncing">
+                    <span x-show="syncing" class="loading loading-spinner loading-xs"></span> Terapkan Semua
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<th:block layout:fragment="scripts">
+<script th:inline="javascript">
+    const INITIAL_CATEGORIES = /*[[${initialCategories}]]*/ [];
+    const INITIAL_PRODUCTS   = /*[[${initialProducts}]]*/ [];
+    const INITIAL_DENOMS     = /*[[${initialDenoms}]]*/ [];
+    const CATEGORY_TYPES     = /*[[${categoryTypes}]]*/ [];
+    const DENOM_TYPES        = /*[[${denomTypes}]]*/ [];
+
+    function catalogManager() {
+        return {
+            canManageCat:   document.querySelector('[data-can-manage-cat]')?.dataset.canManageCat === 'true',
+            canManageProd:  document.querySelector('[data-can-manage-prod]')?.dataset.canManageProd === 'true',
+            canManageDenom: document.querySelector('[data-can-manage-denom]')?.dataset.canManageDenom === 'true',
+            categories: INITIAL_CATEGORIES,
+            products:   INITIAL_PRODUCTS,
+            categoryTypes: CATEGORY_TYPES,
+            denomTypes: DENOM_TYPES,
+            activeCategory: null,        // null = Semua
+            activeProduct: null,         // null = Semua
+            denoms: INITIAL_DENOMS,
+            denomsLoading: false,
+            searchQuery: '',
+            supplierPrices: {},
+            supplierPricesAt: null,
+            supplierPricesError: null,   // pesan error DF (rc + message) utk kolom Harga Suplier
+
+            init() { this.loadSupplierPrices(); },
+
+            async loadSupplierPrices() {
+                try {
+                    const res = await fetch('/api/admin/catalog/supplier-prices');
+                    if (!res.ok) {
+                        const e = await res.json().catch(() => ({}));
+                        this.supplierPricesError = e.code ? ('DF ' + e.code + ': ' + e.message) : 'Gagal ambil Harga Suplier';
+                        this.supplierPrices = {}; this.supplierPricesAt = null;
+                        return;
+                    }
+                    const v = await res.json();
+                    this.supplierPrices = v.prices || {};
+                    this.supplierPricesAt = v.fetchedAt || null;
+                    this.supplierPricesError = null;
+                } catch (e) { this.supplierPricesError = 'Gagal ambil Harga Suplier'; }
+            },
+            dfError(e) { return e && e.code ? ('DF ' + e.code + ': ' + e.message) : null; },
+            supplierCost(code) {
+                // ponytail: space after `[` — `[(` is Thymeleaf's escaped-inline marker in th:inline="javascript"
+                const key = (code || '').toUpperCase();
+                const c = this.supplierPrices[key];
+                return (c === undefined) ? null : c;
+            },
+            supplierDiffers(d) {
+                const c = this.supplierCost(d.code);
+                return c != null && d.basePrice != null && Number(c) !== Number(d.basePrice);
+            },
+
+            // ---- apply Harga Suplier -> Harga Beli ----
+            applyingCost: false,
+            get driftDenoms() {
+                return this.filteredDenoms.filter(d => !d.deleted && this.supplierDiffers(d));
+            },
+            async applyRowCost(d) {
+                this.applyingCost = true;
+                try {
+                    const res = await fetch(`/api/admin/catalog/denoms/${d.id}/apply-supplier-cost`, { method: 'POST' });
+                    if (!res.ok) throw new Error();
+                    await this.refreshDenoms();
+                    Alpine.store('toast').success('Harga Beli diperbarui dari suplier');
+                } catch (e) { Alpine.store('toast').error('Gagal menerapkan'); }
+                finally { this.applyingCost = false; }
+            },
+            async applyBulkCost() {
+                const ids = this.driftDenoms.map(d => d.id);
+                if (ids.length === 0) return;
+                this.applyingCost = true;
+                try {
+                    const res = await fetch('/api/admin/catalog/denoms/apply-supplier-cost', {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(ids)
+                    });
+                    if (!res.ok) throw new Error();
+                    const r = await res.json();
+                    await this.refreshDenoms();
+                    Alpine.store('toast').success(`${r.applied} Harga Beli diperbarui dari suplier`);
+                } catch (e) { Alpine.store('toast').error('Gagal menerapkan'); }
+                finally { this.applyingCost = false; }
+            },
+
+            // ---- category modal ----
+            showCategoryModal: false,
+            categoryEditMode: false,
+            categorySaving: false,
+            categoryEditId: null,
+            categoryForm: { code: '', name: '', categoryType: '', iconUrl: '', sortOrder: 0, active: true },
+
+            // ---- product modal ----
+            showProductModal: false,
+            productEditMode: false,
+            productSaving: false,
+            productEditId: null,
+            productForm: { categoryId: '', code: '', name: '', providerName: '', description: '', iconUrl: '', sortOrder: 0, active: true },
+
+            // ---- denom modal ----
+            showDenomModal: false,
+            denomEditMode: false,
+            denomSaving: false,
+            denomEditId: null,
+            denomForm: {
+                code: '', name: '', denomType: '', nominal: null, price: null,
+                basePrice: null, adminFee: null, validityDays: null, quotaMb: null,
+                minAmount: null, maxAmount: null, requiresInquiry: false,
+                stockAvailable: null, active: true, sortOrder: 0,
+                categoryChoice: '', categoryNewName: '', categoryNewType: '', categoryNewIcon: '',
+                productChoice: '', productNewName: '', productNewProvider: '', productNewIcon: ''
+            },
+
+            // ---- sync-all (Sync DF) ----
+            showSyncModal: false,
+            syncing: false,
+            syncPreview: { newCategories: [], newProducts: [], newDenoms: [], priceChanges: [] },
+
+            // ==================== getters ====================
+
+            get activeCategories() {
+                return this.categories.filter(c => !c.deleted);
+            },
+            get catComboIsNew() { return this.denomForm.categoryChoice === '__new__'; },
+            get prodComboIsNew() { return this.denomForm.productChoice === '__new__'; },
+            get comboProducts() {
+                const cid = this.denomForm.categoryChoice;
+                return (cid && cid !== '__new__') ? this.products.filter(p => p.categoryId === cid && !p.deleted) : [];
+            },
+            get productsInCategory() {
+                return this.activeCategory === null ? []
+                    : this.products.filter(p => p.categoryId === this.activeCategory);
+            },
+            get denomCategoryIds() {
+                return new Set(this.denoms.filter(d => !d.deleted).map(d => this.catIdOf(d.productId)).filter(Boolean));
+            },
+            get denomProductIds() {
+                return new Set(this.denoms.filter(d => !d.deleted).map(d => d.productId));
+            },
+            // ponytail: prune uses the full seeded denom set; a toggle refetch keeps it fresh. Cross-session staleness needs a reload — acceptable for a single-admin tool.
+            get tabCategories() {
+                const ids = this.denomCategoryIds;
+                return this.categories.filter(c => ids.has(c.id));
+            },
+            get tabProducts() {
+                if (this.activeCategory === null) return [];
+                const ids = this.denomProductIds;
+                return this.products.filter(p => p.categoryId === this.activeCategory && ids.has(p.id));
+            },
+            productById(id) { return this.products.find(p => p.id === id) || null; },
+            catIdOf(productId) { const p = this.productById(productId); return p ? p.categoryId : null; },
+            prodNameOf(productId) { const p = this.productById(productId); return p ? p.name : '-'; },
+            catNameOf(productId) { return this.catName(this.catIdOf(productId)); },
+
+            get scopedDenoms() {
+                if (this.activeProduct !== null) return this.denoms.filter(d => d.productId === this.activeProduct);
+                if (this.activeCategory !== null) return this.denoms.filter(d => this.catIdOf(d.productId) === this.activeCategory);
+                return this.denoms;
+            },
+            get filteredDenoms() {
+                const list = this.scopedDenoms;
+                if (!this.searchQuery) return list;
+                const q = this.searchQuery.toLowerCase();
+                return list.filter(d =>
+                    (d.code || '').toLowerCase().includes(q) ||
+                    (d.name || '').toLowerCase().includes(q) ||
+                    (d.denomType || '').toLowerCase().includes(q) ||
+                    this.prodNameOf(d.productId).toLowerCase().includes(q) ||
+                    this.catNameOf(d.productId).toLowerCase().includes(q)
+                );
+            },
+            get activeProductName() {
+                const p = this.products.find(p => p.id === this.activeProduct);
+                return p ? p.name : '';
+            },
+
+            catName(id) { return (this.categories.find(c => c.id === id) || {}).name || ''; },
+
+            // ==================== tab navigation ====================
+
+            async refreshDenoms() {
+                this.denomsLoading = true;
+                try {
+                    const res = await fetch('/api/admin/catalog/denoms');
+                    this.denoms = await res.json();
+                } catch (e) {
+                    Alpine.store('toast').error('Gagal memuat denominasi');
+                } finally {
+                    this.denomsLoading = false;
+                }
+            },
+            selectCategory(id) {
+                this.activeCategory = id;
+                this.activeProduct = null;
+                this.searchQuery = '';
+                this.refreshDenoms();
+            },
+            selectProduct(id) {
+                this.activeProduct = id;
+                this.searchQuery = '';
+                this.refreshDenoms();
+            },
+
+            // ==================== category CRUD ====================
+
+            async reloadCategories() {
+                try {
+                    const res = await fetch('/api/admin/catalog/categories');
+                    this.categories = await res.json();
+                } catch (e) {
+                    Alpine.store('toast').error('Gagal memuat kategori');
+                }
+            },
+
+            openCategoryModal(cat = null) {
+                this.categoryEditMode = !!cat;
+                this.categoryEditId = cat ? cat.id : null;
+                this.categoryForm = cat
+                    ? { code: cat.code, name: cat.name, categoryType: cat.categoryType,
+                        iconUrl: cat.iconUrl || '', sortOrder: cat.sortOrder, active: cat.active }
+                    : { code: '', name: '', categoryType: '', iconUrl: '', sortOrder: 0, active: true };
+                this.showCategoryModal = true;
+                this.$nextTick(() => this.$refs.catCodeInput?.focus());
+            },
+
+            async saveCategory() {
+                this.categorySaving = true;
+                try {
+                    const url = this.categoryEditMode
+                        ? `/api/admin/catalog/categories/${this.categoryEditId}`
+                        : '/api/admin/catalog/categories';
+                    const method = this.categoryEditMode ? 'PUT' : 'POST';
+                    const res = await fetch(url, {
+                        method, headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(this.categoryForm)
+                    });
+                    if (!res.ok) {
+                        const err = await res.json().catch(() => ({}));
+                        throw new Error(err.errorMessage || err.message || 'Gagal menyimpan');
+                    }
+                    this.showCategoryModal = false;
+                    await this.reloadCategories();
+                    Alpine.store('toast').success(this.categoryEditMode ? 'Kategori diperbarui' : 'Kategori ditambahkan');
+                } catch (e) {
+                    Alpine.store('toast').error(e.message);
+                } finally {
+                    this.categorySaving = false;
+                }
+            },
+
+            async confirmDeleteCategory(cat) {
+                const ok = await Alpine.store('confirm').open({
+                    title: 'Hapus Kategori',
+                    message: `Yakin hapus kategori "${cat.name}"? Kategori yang masih punya produk aktif tidak bisa dihapus — pindahkan produknya dulu.`,
+                    confirmText: 'Hapus',
+                    confirmClass: 'btn-error'
+                });
+                if (!ok) return;
+                try {
+                    const res = await fetch(`/api/admin/catalog/categories/${cat.id}`, { method: 'DELETE' });
+                    if (!res.ok) {
+                        const err = await res.json().catch(() => ({}));
+                        throw new Error(err.message || err.errorMessage || 'Gagal menghapus');
+                    }
+                    await this.reloadCategories();
+                    if (this.activeCategory === cat.id) { this.activeCategory = null; this.activeProduct = null; }
+                    Alpine.store('toast').success('Kategori dihapus');
+                } catch (e) {
+                    Alpine.store('toast').error(e.message);
+                }
+            },
+
+            // ==================== product CRUD ====================
+
+            async reloadProducts() {
+                try {
+                    const res = await fetch('/api/admin/catalog/products');
+                    this.products = await res.json();
+                } catch (e) {
+                    Alpine.store('toast').error('Gagal memuat produk');
+                }
+            },
+
+            openProductModal(prod = null) {
+                this.productEditMode = !!(prod && prod.id);
+                this.productEditId = this.productEditMode ? prod.id : null;
+                this.productForm = this.productEditMode
+                    ? { categoryId: prod.categoryId, code: prod.code, name: prod.name,
+                        providerName: prod.providerName || '', description: prod.description || '',
+                        iconUrl: prod.iconUrl || '', sortOrder: prod.sortOrder, active: prod.active }
+                    : { categoryId: (prod && prod.categoryId) || this.activeCategory || '', code: '', name: '',
+                        providerName: '', description: '', iconUrl: '', sortOrder: 0, active: true };
+                this.showProductModal = true;
+            },
+
+            async saveProduct() {
+                this.productSaving = true;
+                try {
+                    const url = this.productEditMode
+                        ? `/api/admin/catalog/products/${this.productEditId}`
+                        : '/api/admin/catalog/products';
+                    const method = this.productEditMode ? 'PUT' : 'POST';
+                    const res = await fetch(url, {
+                        method, headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(this.productForm)
+                    });
+                    if (!res.ok) {
+                        const err = await res.json().catch(() => ({}));
+                        throw new Error(err.errorMessage || err.message || 'Gagal menyimpan');
+                    }
+                    this.showProductModal = false;
+                    const movedProductId = this.productEditMode ? this.productEditId : null;
+                    await this.reloadProducts();
+                    if (movedProductId && this.activeProduct === movedProductId
+                        && this.productForm.categoryId !== this.activeCategory) {
+                        this.activeProduct = null;
+                    }
+                    Alpine.store('toast').success(this.productEditMode ? 'Produk diperbarui' : 'Produk ditambahkan');
+                } catch (e) {
+                    Alpine.store('toast').error(e.message);
+                } finally {
+                    this.productSaving = false;
+                }
+            },
+
+            async confirmDeleteProduct(prod) {
+                const ok = await Alpine.store('confirm').open({
+                    title: 'Hapus Produk',
+                    message: `Yakin hapus produk "${prod.name}"? Semua denominasi di bawahnya akan ikut dihapus.`,
+                    confirmText: 'Hapus', confirmClass: 'btn-error'
+                });
+                if (!ok) return;
+                try {
+                    const res = await fetch(`/api/admin/catalog/products/${prod.id}`, { method: 'DELETE' });
+                    if (!res.ok) {
+                        const err = await res.json().catch(() => ({}));
+                        throw new Error(err.errorMessage || err.message || 'Gagal menghapus');
+                    }
+                    await this.reloadProducts();
+                    if (this.activeProduct === prod.id) { this.activeProduct = null; }
+                    await this.refreshDenoms();
+                    Alpine.store('toast').success('Produk dihapus');
+                } catch (e) {
+                    Alpine.store('toast').error(e.message);
+                }
+            },
+
+            // ==================== denom CRUD ====================
+
+            formatRp(val) {
+                if (val == null) return '-';
+                return new Intl.NumberFormat('id-ID').format(val);
+            },
+
+            slugCode(name) { return (name || '').trim().toUpperCase().replace(/[^A-Z0-9]+/g, '_').replace(/^_|_$/g, ''); },
+
+            emptyDenomForm() {
+                return {
+                    code: '', name: '', denomType: '', nominal: null, price: null,
+                    basePrice: null, adminFee: null, validityDays: null, quotaMb: null,
+                    minAmount: null, maxAmount: null, requiresInquiry: false,
+                    stockAvailable: null, active: true, sortOrder: 0,
+                    categoryChoice: '', categoryNewName: '', categoryNewType: '', categoryNewIcon: '',
+                    productChoice: '', productNewName: '', productNewProvider: '', productNewIcon: ''
+                };
+            },
+
+            openCreateModal() {
+                this.denomEditMode = false;
+                this.denomEditId = null;
+                this.denomForm = this.emptyDenomForm();
+                // preselect current scope
+                if (this.activeCategory) this.denomForm.categoryChoice = this.activeCategory;
+                if (this.activeProduct)  this.denomForm.productChoice  = this.activeProduct;
+                this.showDenomModal = true;
+            },
+
+            openEditModal(d) {
+                this.denomEditMode = true;
+                this.denomEditId = d.id;
+                const prod = this.productById(d.productId);
+                this.denomForm = { ...this.emptyDenomForm(),
+                    code: d.code, name: d.name, denomType: d.denomType, nominal: d.nominal, price: d.price,
+                    basePrice: d.basePrice, adminFee: d.adminFee, validityDays: d.validityDays, quotaMb: d.quotaMb,
+                    minAmount: d.minAmount, maxAmount: d.maxAmount, requiresInquiry: d.requiresInquiry,
+                    stockAvailable: d.stockAvailable, active: d.active, sortOrder: d.sortOrder,
+                    categoryChoice: prod ? prod.categoryId : '', productChoice: d.productId };
+                this.showDenomModal = true;
+            },
+
+            async resolveCategoryId() {
+                if (!this.catComboIsNew) return this.denomForm.categoryChoice;
+                const body = { code: this.slugCode(this.denomForm.categoryNewName), name: this.denomForm.categoryNewName.trim(),
+                               categoryType: this.denomForm.categoryNewType, iconUrl: this.denomForm.categoryNewIcon, sortOrder: 0, active: true };
+                const res = await fetch('/api/admin/catalog/categories', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+                if (!res.ok) throw new Error('Gagal membuat kategori');
+                return (await res.json()).id;
+            },
+
+            async resolveProductId(categoryId) {
+                if (!this.prodComboIsNew) return this.denomForm.productChoice;
+                const body = { categoryId, code: this.slugCode(this.denomForm.productNewName), name: this.denomForm.productNewName.trim(),
+                               providerName: this.denomForm.productNewProvider, description: '', iconUrl: this.denomForm.productNewIcon, sortOrder: 0, active: true };
+                const res = await fetch('/api/admin/catalog/products', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+                if (!res.ok) throw new Error('Gagal membuat produk');
+                return (await res.json()).id;
+            },
+
+            // ponytail: 3-step client orchestration (cat -> product -> denom); a mid-step failure leaves an orphan cat/product, surfaced via toast. Promote to one transactional endpoint only if orphans become a real problem.
+            async saveDenom() {
+                this.denomSaving = true;
+                try {
+                    const categoryId = await this.resolveCategoryId();
+                    const productId  = await this.resolveProductId(categoryId);
+                    if (!productId) throw new Error('Produk wajib dipilih');
+                    const payload = { code: this.denomForm.code, name: this.denomForm.name, denomType: this.denomForm.denomType,
+                        nominal: this.denomForm.nominal, price: this.denomForm.price, basePrice: this.denomForm.basePrice,
+                        adminFee: this.denomForm.adminFee, validityDays: this.denomForm.validityDays, quotaMb: this.denomForm.quotaMb,
+                        minAmount: this.denomForm.minAmount, maxAmount: this.denomForm.maxAmount, requiresInquiry: this.denomForm.requiresInquiry,
+                        stockAvailable: this.denomForm.stockAvailable, active: this.denomForm.active, sortOrder: this.denomForm.sortOrder,
+                        productId };
+                    const url = this.denomEditMode ? `/api/admin/catalog/denoms/${this.denomEditId}`
+                                                   : `/api/admin/catalog/products/${productId}/denoms`;
+                    const res = await fetch(url, { method: this.denomEditMode ? 'PUT' : 'POST',
+                        headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+                    if (!res.ok) { const err = await res.json().catch(() => ({})); throw new Error(err.errorMessage || err.message || 'Gagal menyimpan'); }
+                    this.showDenomModal = false;
+                    await this.reloadCategories(); await this.reloadProducts(); await this.refreshDenoms();
+                    Alpine.store('toast').success(this.denomEditMode ? 'Denom diperbarui' : 'Denom ditambahkan');
+                } catch (e) { Alpine.store('toast').error(e.message); }
+                finally { this.denomSaving = false; }
+            },
+
+            async confirmDelete(d) {
+                const ok = await Alpine.store('confirm').open({
+                    title: 'Hapus Denominasi',
+                    message: `Yakin hapus denom "${d.name}"?`,
+                    confirmText: 'Hapus', confirmClass: 'btn-error'
+                });
+                if (!ok) return;
+                try {
+                    const res = await fetch(`/api/admin/catalog/denoms/${d.id}`, { method: 'DELETE' });
+                    if (!res.ok) throw new Error('Gagal menghapus');
+                    await this.refreshDenoms();
+                    if (this.scopedDenoms.length === 0) {
+                        this.activeProduct = null;
+                        if (this.activeCategory !== null && !this.denomCategoryIds.has(this.activeCategory)) {
+                            this.activeCategory = null;
+                        }
+                    }
+                    Alpine.store('toast').success('Denom dihapus');
+                } catch (e) {
+                    Alpine.store('toast').error(e.message);
+                }
+            },
+
+            // ==================== Sync DF (global sync-all) ====================
+
+            async openSyncAll() {
+                this.syncing = true;
+                try {
+                    const res = await fetch('/api/admin/catalog/sync/all/preview');
+                    if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(this.dfError(e) || 'Gagal ambil preview'); }
+                    this.syncPreview = await res.json();
+                    this.showSyncModal = true;
+                } catch (e) { Alpine.store('toast').error(e.message); }
+                finally { this.syncing = false; }
+            },
+            async applySyncAll() {
+                this.syncing = true;
+                try {
+                    const res = await fetch('/api/admin/catalog/sync/all', { method: 'POST' });
+                    if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(this.dfError(e) || 'Gagal sync'); }
+                    const r = await res.json();
+                    Alpine.store('toast').success(`Selesai: +${r.added} baru, ${r.updated} update, ${r.failed} gagal`);
+                    this.showSyncModal = false;
+                    await this.reloadCategories(); await this.reloadProducts(); await this.refreshDenoms(); await this.loadSupplierPrices();
+                } catch (e) { Alpine.store('toast').error(e.message); }
+                finally { this.syncing = false; }
+            }
+        };
+    }
+</script>
+</th:block>
+</body>
+</html>

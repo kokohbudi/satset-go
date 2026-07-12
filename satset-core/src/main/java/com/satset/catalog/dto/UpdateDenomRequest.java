@@ -23,5 +23,6 @@ public record UpdateDenomRequest(
     boolean requiresInquiry,
     Integer stockAvailable,
     boolean active,
-    int sortOrder
+    int sortOrder,
+    java.util.UUID productId
 ) {}

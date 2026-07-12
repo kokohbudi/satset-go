@@ -61,6 +61,11 @@ public class DenomDomainService {
                 .filter(d -> d.isActive() && !d.isDeleted());
     }
 
+    /** All denoms incl. deleted, for the admin aggregate view (client greys deleted). */
+    public List<ProductDenoms> findAllForAdmin() {
+        return denomRepository.findAllByOrderBySortOrder();
+    }
+
     // === Manage (admin CRUD) ===
 
     public List<ProductDenoms> findByProductForAdmin(UUID productId) {
@@ -159,6 +164,11 @@ public class DenomDomainService {
         denom.setStockAvailable(req.stockAvailable());
         denom.setActive(req.active());
         denom.setSortOrder(req.sortOrder());
+        if (req.productId() != null && !req.productId().equals(denom.getProductId())) {
+            productRepository.findById(req.productId())
+                .orElseThrow(() -> new ResourceNotFoundException("Product", req.productId()));
+            denom.setProductId(req.productId());
+        }
         return denomRepository.save(denom);
     }
 

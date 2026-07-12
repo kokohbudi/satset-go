@@ -13,6 +13,7 @@ import com.satset.supplier.client.DigiflazzClient;
 import com.satset.supplier.model.CompareStatus;
 import com.satset.supplier.model.PriceCompareRow;
 import com.satset.supplier.model.PriceListItem;
+import com.satset.supplier.model.PriceListSnapshot;
 import com.satset.supplier.model.SyncAction;
 import com.satset.supplier.model.SyncPreviewItem;
 import lombok.extern.slf4j.Slf4j;
@@ -56,7 +57,7 @@ public class CatalogSyncService {
         List<SyncPreviewItem> items = new ArrayList<>();
         Set<String> dfCodes = new HashSet<>();
         Set<String> seen = new HashSet<>();
-        for (PriceListItem it : digiflazz.fetchPriceList()) {
+        for (PriceListItem it : digiflazz.fetchSnapshot().items()) {
             String code = CatalogCodeUtil.toCode(it.category());
             dfCodes.add(code);
             if (seen.add(code) && !catalogCodes.contains(code)) {
@@ -95,7 +96,7 @@ public class CatalogSyncService {
         List<SyncPreviewItem> items = new ArrayList<>();
         Set<String> dfBrandCodes = new HashSet<>();
         Set<String> seen = new HashSet<>();
-        for (PriceListItem it : digiflazz.fetchPriceList()) {
+        for (PriceListItem it : digiflazz.fetchSnapshot().items()) {
             if (!CatalogCodeUtil.toCode(it.category()).equals(cat.getCode())) continue;
             String code = CatalogCodeUtil.toCode(it.brand());
             dfBrandCodes.add(code);
@@ -133,11 +134,12 @@ public class CatalogSyncService {
      * Sync penuh dengan supplier dalam satu aksi: tambah item baru + update harga (TANPA hapus).
      * Item yang hilang dari supplier TIDAK dihapus — cuma ditandai {@code inSupplier=false};
      * kalau muncul lagi, flag balik true.
-     * ponytail: recompute preview/reconcile per level (fetchPriceList di-cache 5 jam jadi murah);
+     * ponytail: recompute preview/reconcile per level (fetchSnapshot di-cache 5 jam jadi murah);
      * kalau katalog membengkak & terasa lambat, cache pricelist di memori sekali per run.
      */
     public SyncResult syncAll() {
-        List<PriceListItem> pl = digiflazz.fetchPriceList();
+        // pakai snapshot cache (hormati rate-limit DF 5 jam); Harga Suplier refresh natural saat cache expire
+        List<PriceListItem> pl = digiflazz.fetchSnapshot().items();
 
         // --- kategori: tambah yang baru, set flag ---
         List<String> catAdds = previewCategories().stream()
@@ -163,12 +165,14 @@ public class CatalogSyncService {
                     .map(i -> CatalogCodeUtil.toCode(i.brand())).collect(Collectors.toSet());
             productService.reconcileSupplierFlags(catId, dfBrandCodes);
 
-            // --- denom per produk: tambah baru + update harga, set flag (HILANG tak dihapus) ---
+            // --- denom per produk: tambah denom BARU saja + set flag (HILANG tak dihapus).
+            //     Harga Beli (basePrice) denom existing TIDAK ditimpa — drift ditampilkan di tabel,
+            //     admin apply Harga Suplier -> Harga Beli sendiri (per-row / bulk). ---
             for (Products p : productService.findByCategoryForAdmin(catId)) {
                 if (p.isDeleted()) continue;
                 List<PriceCompareRow> rows = reconcileForProduct(p.getId());
                 List<String> skus = rows.stream()
-                        .filter(r -> r.status() != CompareStatus.SAMA && r.status() != CompareStatus.HILANG)
+                        .filter(r -> r.status() == CompareStatus.BARU)
                         .map(PriceCompareRow::buyerSku).toList();
                 SyncResult dr = applyDenoms(p.getId(), skus);
                 added += dr.added(); updated += dr.updated(); failed += dr.failed();
@@ -179,6 +183,36 @@ public class CatalogSyncService {
             }
         }
         return new SyncResult(added, updated, 0, 0, failed);
+    }
+
+    /**
+     * Read-only: what a full {@link #syncAll()} would add/change, aggregated across the whole catalog.
+     * ponytail: recompute preview/reconcile per level (fetchSnapshot di-cache 5 jam jadi murah);
+     * kalau katalog membengkak & terasa lambat, cache pricelist di memori sekali per run.
+     */
+    public SyncAllPreview syncAllPreview() {
+        List<String> newCategories = previewCategories().stream()
+                .filter(i -> i.action() == SyncAction.ADD)
+                .map(SyncPreviewItem::label).toList();
+
+        List<String> newProducts = new ArrayList<>();
+        List<String> newDenoms = new ArrayList<>();
+        List<String> priceChanges = new ArrayList<>();
+        for (Category c : categoryService.findAllForAdmin()) {
+            if (c.isDeleted()) continue;
+            previewProducts(c.getId()).stream()
+                    .filter(i -> i.action() == SyncAction.ADD)
+                    .forEach(i -> newProducts.add(c.getName() + " / " + i.label()));
+            for (Products p : productService.findByCategoryForAdmin(c.getId())) {
+                if (p.isDeleted()) continue;
+                for (PriceCompareRow r : reconcileForProduct(p.getId())) {
+                    if (r.status() == CompareStatus.BARU) newDenoms.add(p.getName() + " / " + r.productName());
+                    else if (r.status() == CompareStatus.NAIK || r.status() == CompareStatus.TURUN)
+                        priceChanges.add(p.getName() + " / " + r.buyerSku());
+                }
+            }
+        }
+        return new SyncAllPreview(newCategories, newProducts, newDenoms, priceChanges);
     }
 
     // ===== Denoms (preview = reconcileForProduct; UI map status->action) =====
@@ -210,7 +244,7 @@ public class CatalogSyncService {
 
         // SKU DF utk brand produk ini DI KATEGORI INI (dedup by sku, harga terendah)
         Map<String, PriceListItem> uniq = new LinkedHashMap<>();
-        for (PriceListItem it : digiflazz.fetchPriceList()) {
+        for (PriceListItem it : digiflazz.fetchSnapshot().items()) {
             if (!CatalogCodeUtil.toCode(it.brand()).equals(productCode)) continue;
             if (!CatalogCodeUtil.toCode(it.category()).equals(catCode)) continue;
             uniq.merge(it.buyerSkuCode().toUpperCase(), it, (a, b) -> a.price() <= b.price() ? a : b);
@@ -252,5 +286,40 @@ public class CatalogSyncService {
             }
         });
         return rows;
+    }
+
+    // ===== Supplier prices (global SKU->cheapest cost map, for admin Harga Suplier column) =====
+
+    /** Global SKU(upper) -> cheapest DF cost, from the cached snapshot (no forced fetch). */
+    public SupplierPriceView supplierPrices() {
+        PriceListSnapshot snap = digiflazz.fetchSnapshot();
+        Map<String, Long> prices = new LinkedHashMap<>();
+        for (PriceListItem it : snap.items()) {
+            prices.merge(it.buyerSkuCode().toUpperCase(), it.price(), Math::min);
+        }
+        return new SupplierPriceView(snap.fetchedAt(), prices);
+    }
+
+    /**
+     * Terapkan Harga Suplier (cost DF) -> Harga Beli (basePrice) untuk denom terpilih.
+     * Cost diambil dari snapshot cache (by denom code); denom tanpa match DF dilewati.
+     * @return jumlah denom yang benar-benar di-update.
+     */
+    public int applySupplierCostBulk(List<UUID> denomIds) {
+        Map<String, Long> prices = supplierPrices().prices();
+        int applied = 0;
+        for (UUID id : denomIds) {
+            var od = denomService.findById(id);
+            if (od.isEmpty()) continue;
+            Long cost = prices.get(od.get().getCode().toUpperCase());
+            if (cost == null) continue;
+            try {
+                denomService.updateCostById(id, BigDecimal.valueOf(cost));
+                applied++;
+            } catch (Exception e) {
+                log.error("applySupplierCost gagal utk denom {}", id, e);
+            }
+        }
+        return applied;
     }
 }

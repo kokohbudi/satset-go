@@ -251,8 +251,9 @@ class AdminCatalogControllerTest {
                 .andExpect(jsonPath("$").isEmpty());
     }
 
+    // main: "Semua Denom" bulk-pricing list (DenomListItemDTO) — endpoint renamed to /denoms/list
     @Test
-    void listAllDenoms_ReturnsEnrichedDTOs() throws Exception {
+    void listDenomsForList_ReturnsEnrichedDTOs() throws Exception {
         UUID id = UUID.randomUUID();
         UUID prodId = UUID.randomUUID();
         when(manageDenomsUseCase.findAllForList()).thenReturn(List.of(
@@ -260,11 +261,27 @@ class AdminCatalogControllerTest {
                         null, new java.math.BigDecimal("10500"), new java.math.BigDecimal("10000"),
                         true, false, prodId, "by.U", "PULSA")));
 
-        mockMvc.perform(get("/api/admin/catalog/denoms"))
+        mockMvc.perform(get("/api/admin/catalog/denoms/list"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].code").value("byu10"))
                 .andExpect(jsonPath("$[0].productName").value("by.U"))
                 .andExpect(jsonPath("$[0].categoryName").value("PULSA"));
+    }
+
+    // worktree: denom-centric aggregate (ProductDenomDTO) at /denoms
+    @Test
+    void listAllDenoms_returnsAll() throws Exception {
+        com.satset.catalog.model.ProductDenoms d = new com.satset.catalog.model.ProductDenoms();
+        d.setId(UUID.randomUUID());
+        d.setCode("TSEL5");
+        d.setName("Telkomsel 5rb");
+        d.setDenomType(com.satset.catalog.model.DenomType.FIXED_DENOM);
+        d.setProductId(UUID.randomUUID());
+        when(manageDenomsUseCase.findAllForAdmin()).thenReturn(List.of(d));
+
+        mockMvc.perform(get("/api/admin/catalog/denoms"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].code").value("TSEL5"));
     }
 
     @Test

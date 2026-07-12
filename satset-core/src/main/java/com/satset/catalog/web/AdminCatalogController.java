@@ -146,6 +146,14 @@ public class AdminCatalogController {
 
     // ==================== Denoms ====================
 
+    @GetMapping("/denoms")
+    @PreAuthorize("hasRole('" + OmniConstants.PERM_VIEW_CATALOG + "')")
+    public ResponseEntity<List<ProductDenomDTO>> listAllDenoms() {
+        List<ProductDenomDTO> dtos = manageDenomsUseCase.findAllForAdmin().stream()
+                .map(CatalogDtoMapper::toDenomDTO).toList();
+        return ResponseEntity.ok(dtos);
+    }
+
     @GetMapping("/products/{productId}/denoms")
     @PreAuthorize("hasRole('" + OmniConstants.PERM_VIEW_CATALOG + "')")
     public ResponseEntity<List<ProductDenomDTO>> listDenoms(@PathVariable UUID productId) {
@@ -154,9 +162,11 @@ public class AdminCatalogController {
         return ResponseEntity.ok(dtos);
     }
 
-    @GetMapping("/denoms")
+    // Global denom list for the "Semua Denom" bulk-pricing page (main's all-denoms.html).
+    // Renamed off "/denoms" to avoid collision with listAllDenoms() above (ProductDenomDTO).
+    @GetMapping("/denoms/list")
     @PreAuthorize("hasRole('" + OmniConstants.PERM_VIEW_CATALOG + "')")
-    public ResponseEntity<List<DenomListItemDTO>> listAllDenoms() {
+    public ResponseEntity<List<DenomListItemDTO>> listDenomsForList() {
         return ResponseEntity.ok(manageDenomsUseCase.findAllForList());
     }
 

@@ -244,6 +244,19 @@ class DenomDomainServiceTest {
         assertTrue(denomService.findById(denomId).isEmpty());
     }
 
+    @Test
+    void findAllForAdmin_returnsRepositoryOrder() {
+        ProductDenoms a = new ProductDenoms();
+        a.setCode("A"); a.setSortOrder(0);
+        ProductDenoms b = new ProductDenoms();
+        b.setCode("B"); b.setSortOrder(1);
+        when(denomRepository.findAllByOrderBySortOrder()).thenReturn(List.of(a, b));
+
+        List<ProductDenoms> result = denomService.findAllForAdmin();
+
+        assertThat(result).containsExactly(a, b);
+    }
+
     // === CREATE ===
 
     @Test
@@ -387,7 +400,7 @@ class DenomDomainServiceTest {
                 new BigDecimal("5000"), new BigDecimal("5800"),
                 new BigDecimal("5000"), new BigDecimal("500"),
                 30, 1024L, null, null,
-                false, 100, false, 5);
+                false, 100, false, 5, null);
         when(denomRepository.findById(denomId)).thenReturn(Optional.of(existingDenom));
         when(denomRepository.existsByCodeAndIdNot("TLKM5V2", denomId)).thenReturn(false);
         when(denomRepository.save(any(ProductDenoms.class))).thenAnswer(inv -> inv.getArgument(0));
@@ -415,7 +428,7 @@ class DenomDomainServiceTest {
                 "X", "X", DenomType.FIXED_DENOM,
                 null, new BigDecimal("1000"), null, null,
                 null, null, null, null,
-                false, null, true, 1);
+                false, null, true, 1, null);
         when(denomRepository.findById(unknownId)).thenReturn(Optional.empty());
 
         // Act & Assert
@@ -431,7 +444,7 @@ class DenomDomainServiceTest {
                 "TLKM10", "Clash", DenomType.FIXED_DENOM,
                 null, new BigDecimal("1000"), null, null,
                 null, null, null, null,
-                false, null, true, 1);
+                false, null, true, 1, null);
         when(denomRepository.findById(denomId)).thenReturn(Optional.of(existingDenom));
         when(denomRepository.existsByCodeAndIdNot("TLKM10", denomId)).thenReturn(true);
 
@@ -439,6 +452,43 @@ class DenomDomainServiceTest {
         BusinessException ex = assertThrows(BusinessException.class,
                 () -> denomService.update(denomId, req));
         assertEquals("DUPLICATE_CODE", ex.getErrorCode());
+        verify(denomRepository, never()).save(any());
+    }
+
+    @Test
+    void update_ReassignsProduct_WhenDifferentProductIdProvided() throws BusinessException {
+        UUID newProductId = UUID.randomUUID();
+        Products newProduct = new Products();
+        newProduct.setId(newProductId);
+        UpdateDenomRequest req = new UpdateDenomRequest(
+                "TLKM5", "Telkomsel 5K", DenomType.FIXED_DENOM,
+                new BigDecimal("5000"), new BigDecimal("5800"), null, null,
+                null, null, null, null,
+                false, null, true, 5, newProductId);
+        when(denomRepository.findById(denomId)).thenReturn(Optional.of(existingDenom));
+        when(denomRepository.existsByCodeAndIdNot("TLKM5", denomId)).thenReturn(false);
+        when(productRepository.findById(newProductId)).thenReturn(Optional.of(newProduct));
+        when(denomRepository.save(any(ProductDenoms.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        ProductDenoms result = denomService.update(denomId, req);
+
+        assertEquals(newProductId, result.getProductId());
+    }
+
+    @Test
+    void update_ReassignToMissingProduct_ThrowsResourceNotFound() {
+        UUID missingProductId = UUID.randomUUID();
+        UpdateDenomRequest req = new UpdateDenomRequest(
+                "TLKM5", "Telkomsel 5K", DenomType.FIXED_DENOM,
+                null, new BigDecimal("5000"), null, null,
+                null, null, null, null,
+                false, null, true, 1, missingProductId);
+        when(denomRepository.findById(denomId)).thenReturn(Optional.of(existingDenom));
+        when(denomRepository.existsByCodeAndIdNot("TLKM5", denomId)).thenReturn(false);
+        when(productRepository.findById(missingProductId)).thenReturn(Optional.empty());
+
+        assertThrows(ResourceNotFoundException.class,
+                () -> denomService.update(denomId, req));
         verify(denomRepository, never()).save(any());
     }
 

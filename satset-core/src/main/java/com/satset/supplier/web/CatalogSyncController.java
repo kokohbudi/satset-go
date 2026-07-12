@@ -4,11 +4,14 @@ import com.satset.shared.constant.OmniConstants;
 import com.satset.supplier.model.PriceCompareRow;
 import com.satset.supplier.model.SyncPreviewItem;
 import com.satset.supplier.service.CatalogSyncService;
+import com.satset.supplier.service.SupplierPriceView;
+import com.satset.supplier.service.SyncAllPreview;
 import com.satset.supplier.service.SyncResult;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 /** Endpoint preview + apply sync katalog per-level dgn Digiflazz. */
@@ -23,6 +26,11 @@ public class CatalogSyncController {
     @PostMapping("/sync/all")
     @PreAuthorize("hasRole('" + OmniConstants.PERM_MANAGE_CATEGORIES + "')")
     public SyncResult syncAll() { return sync.syncAll(); }
+
+    // Read-only aggregate summary of what syncAll() would add/change
+    @GetMapping("/sync/all/preview")
+    @PreAuthorize("hasRole('" + OmniConstants.PERM_MANAGE_CATEGORIES + "')")
+    public SyncAllPreview syncAllPreview() { return sync.syncAllPreview(); }
 
     // Categories
     @GetMapping("/sync/categories/preview")
@@ -53,5 +61,24 @@ public class CatalogSyncController {
     @PreAuthorize("hasRole('" + OmniConstants.PERM_MANAGE_DENOMS + "')")
     public SyncResult applyDenoms(@PathVariable UUID productId, @RequestBody List<String> selectedSkus) {
         return sync.applyDenoms(productId, selectedSkus);
+    }
+
+    // Global SKU->cheapest DF cost map (admin Harga Suplier column)
+    @GetMapping("/supplier-prices")
+    @PreAuthorize("hasRole('" + OmniConstants.PERM_VIEW_CATALOG + "')")
+    public SupplierPriceView supplierPrices() { return sync.supplierPrices(); }
+
+    // Apply Harga Suplier -> Harga Beli (basePrice), per denom
+    @PostMapping("/denoms/{id}/apply-supplier-cost")
+    @PreAuthorize("hasRole('" + OmniConstants.PERM_MANAGE_DENOMS + "')")
+    public Map<String, Integer> applySupplierCost(@PathVariable UUID id) {
+        return Map.of("applied", sync.applySupplierCostBulk(List.of(id)));
+    }
+
+    // Apply Harga Suplier -> Harga Beli, bulk (id denom terpilih)
+    @PostMapping("/denoms/apply-supplier-cost")
+    @PreAuthorize("hasRole('" + OmniConstants.PERM_MANAGE_DENOMS + "')")
+    public Map<String, Integer> applySupplierCostBulk(@RequestBody List<UUID> denomIds) {
+        return Map.of("applied", sync.applySupplierCostBulk(denomIds));
     }
 }

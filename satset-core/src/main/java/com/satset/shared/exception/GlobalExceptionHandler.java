@@ -76,6 +76,16 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * Kegagalan supplier eksternal (mis. Digiflazz rc 83 limit). Kode + pesan asli DF
+     * diteruskan ke admin biar tahu status supplier; 502 Bad Gateway.
+     */
+    @ExceptionHandler(SupplierException.class)
+    public ResponseEntity<Map<String, Object>> handleSupplierException(SupplierException ex) {
+        log.error("Supplier error {}: {}", ex.getCode(), ex.getMessage());
+        return body(ex.getCode(), ex.getMessage(), HttpStatus.BAD_GATEWAY);
+    }
+
+    /**
      * Handle resource not found exceptions (404).
      */
     @ExceptionHandler(ResourceNotFoundException.class)

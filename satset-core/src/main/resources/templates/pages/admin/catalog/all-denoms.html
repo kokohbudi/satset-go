@@ -300,7 +300,7 @@
 
             async loadDenoms() {
                 try {
-                    const res = await fetch('/api/admin/catalog/denoms');
+                    const res = await fetch('/api/admin/catalog/denoms/list');
                     this.denoms = await res.json();
                     this.selectedIds = [];
                 } catch (e) {
