@@ -1,7 +1,6 @@
 package com.satset.catalog.web;
 
 import com.satset.catalog.dto.CategoryDTO;
-import com.satset.catalog.dto.DenomListItemDTO;
 import com.satset.catalog.dto.ProductDTO;
 import com.satset.catalog.dto.ProductDenomDTO;
 import com.satset.catalog.model.*;
@@ -57,20 +56,5 @@ public class AdminCatalogPageController {
         model.addAttribute("initialDenoms", denoms);
 
         return "pages/admin/catalog/index";
-    }
-
-    @GetMapping("/denoms")
-    public String allDenomsPage(Model model) {
-        model.addAttribute("currentPage", "admin-catalog");
-        model.addAttribute("breadcrumb", "Semua Denom");
-
-        List<CategoryDTO> categories = manageCategoriesUseCase.findAllForAdmin().stream()
-                .map(CatalogDtoMapper::toCategoryDTO).toList();
-        model.addAttribute("initialCategories", categories);
-
-        List<DenomListItemDTO> denoms = manageDenomsUseCase.findAllForList();
-        model.addAttribute("initialDenoms", denoms);
-
-        return "pages/admin/catalog/all-denoms";
     }
 }

@@ -8,7 +8,6 @@ import com.satset.catalog.dto.CreateDenomRequest;
 import com.satset.catalog.dto.UpdateDenomRequest;
 import com.satset.catalog.dto.BulkNameUpdateRequest;
 import com.satset.catalog.dto.BulkPriceUpdateRequest;
-import com.satset.catalog.dto.DenomListItemDTO;
 import com.satset.catalog.dto.PriceUpdateResult;
 import com.satset.catalog.repository.CategoryRepository;
 import com.satset.catalog.repository.DenomRepository;
@@ -165,66 +164,6 @@ class DenomDomainServiceTest {
         List<ProductDenoms> result = denomService.findByProductForAdmin(productId);
 
         assertEquals(1, result.size());
-    }
-
-    @Test
-    void findAllForList_EnrichesProductAndCategoryName_NoNPlusOne() {
-        category.setName("PULSA");
-        product.setCategoryId(categoryId);
-        ProductDenoms d2 = new ProductDenoms();
-        d2.setId(UUID.randomUUID());
-        d2.setProductId(productId);
-        d2.setCode("TLKM10");
-        d2.setName("Telkomsel 10K");
-        d2.setDenomType(DenomType.FIXED_DENOM);
-        d2.setPrice(new BigDecimal("10500"));
-        d2.setBasePrice(new BigDecimal("10000"));
-
-        when(denomRepository.findByDeletedFalseOrderByProductIdAscSortOrderAsc())
-                .thenReturn(List.of(existingDenom, d2));
-        when(productRepository.findAll()).thenReturn(List.of(product));
-        when(categoryRepository.findAll()).thenReturn(List.of(category));
-
-        List<DenomListItemDTO> result = denomService.findAllForList();
-
-        assertThat(result).hasSize(2);
-        assertThat(result).allSatisfy(item -> {
-            assertThat(item.productName()).isEqualTo("Telkomsel");
-            assertThat(item.categoryName()).isEqualTo("PULSA");
-        });
-        assertThat(result.get(1).code()).isEqualTo("TLKM10");
-        assertThat(result.get(1).basePrice()).isEqualByComparingTo("10000");
-        // enrichment sekali fetch — bukan per denom
-        verify(productRepository, times(1)).findAll();
-        verify(categoryRepository, times(1)).findAll();
-    }
-
-    @Test
-    void findAllForList_ProductFoundButCategoryMissing_NullCategoryName() {
-        product.setCategoryId(UUID.randomUUID()); // categoryId with no matching Category
-        when(denomRepository.findByDeletedFalseOrderByProductIdAscSortOrderAsc())
-                .thenReturn(List.of(existingDenom));
-        when(productRepository.findAll()).thenReturn(List.of(product));
-        when(categoryRepository.findAll()).thenReturn(List.of());
-
-        List<DenomListItemDTO> result = denomService.findAllForList();
-
-        assertThat(result.get(0).productName()).isEqualTo("Telkomsel");
-        assertThat(result.get(0).categoryName()).isNull();
-    }
-
-    @Test
-    void findAllForList_UnknownProduct_NullNames() {
-        when(denomRepository.findByDeletedFalseOrderByProductIdAscSortOrderAsc())
-                .thenReturn(List.of(existingDenom));
-        when(productRepository.findAll()).thenReturn(List.of());
-        when(categoryRepository.findAll()).thenReturn(List.of());
-
-        List<DenomListItemDTO> result = denomService.findAllForList();
-
-        assertThat(result).hasSize(1);
-        assertThat(result.get(0).productName()).isNull();
-        assertThat(result.get(0).categoryName()).isNull();
     }
 
     @Test

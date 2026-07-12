@@ -3,7 +3,6 @@ package com.satset.catalog.web;
 import com.satset.catalog.dto.BulkNameUpdateRequest;
 import com.satset.catalog.dto.BulkPriceUpdateRequest;
 import com.satset.catalog.dto.CategoryDTO;
-import com.satset.catalog.dto.DenomListItemDTO;
 import com.satset.catalog.dto.PriceUpdateResult;
 import com.satset.catalog.dto.ProductDTO;
 import com.satset.catalog.dto.ProductDenomDTO;
@@ -160,14 +159,6 @@ public class AdminCatalogController {
         List<ProductDenomDTO> dtos = manageDenomsUseCase.findByProductForAdmin(productId).stream()
                 .map(CatalogDtoMapper::toDenomDTO).toList();
         return ResponseEntity.ok(dtos);
-    }
-
-    // Global denom list for the "Semua Denom" bulk-pricing page (main's all-denoms.html).
-    // Renamed off "/denoms" to avoid collision with listAllDenoms() above (ProductDenomDTO).
-    @GetMapping("/denoms/list")
-    @PreAuthorize("hasRole('" + OmniConstants.PERM_VIEW_CATALOG + "')")
-    public ResponseEntity<List<DenomListItemDTO>> listDenomsForList() {
-        return ResponseEntity.ok(manageDenomsUseCase.findAllForList());
     }
 
     @GetMapping("/denoms/{id}")
