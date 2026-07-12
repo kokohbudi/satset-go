@@ -141,13 +141,12 @@ Di `DenomDomainService`, imports:
 
 ```java
 import com.satset.catalog.dto.DenomListItemDTO;
-import com.satset.catalog.web.CatalogDtoMapper;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 ```
 
-Method (di section browse/read, mis. setelah `findByProductForAdmin`):
+Method (di section browse/read, mis. setelah `findByProductForAdmin`). Build DTO record inline — JANGAN panggil `web.CatalogDtoMapper` (service tidak boleh depend ke web layer; DTO record ada di `dto` package yang boleh dipakai service):
 
 ```java
     public List<DenomListItemDTO> findAllForList() {
@@ -161,24 +160,16 @@ Method (di section browse/read, mis. setelah `findByProductForAdmin`):
                     Products p = productById.get(d.getProductId());
                     String productName = p != null ? p.getName() : null;
                     String categoryName = (p != null) ? categoryNameById.get(p.getCategoryId()) : null;
-                    return CatalogDtoMapper.toDenomListItemDTO(d, productName, categoryName);
+                    return new DenomListItemDTO(
+                            d.getId(), d.getCode(), d.getName(), d.getDenomType(), d.getNominal(),
+                            d.getPrice(), d.getBasePrice(), d.isActive(), d.isDeleted(),
+                            d.getProductId(), productName, categoryName);
                 })
                 .toList();
     }
 ```
 
-- [ ] **Step 6: Mapper method**
-
-Di `CatalogDtoMapper`, import `com.satset.catalog.dto.DenomListItemDTO;`, tambah:
-
-```java
-    static DenomListItemDTO toDenomListItemDTO(ProductDenoms d, String productName, String categoryName) {
-        return new DenomListItemDTO(
-                d.getId(), d.getCode(), d.getName(), d.getDenomType(), d.getNominal(),
-                d.getPrice(), d.getBasePrice(), d.isActive(), d.isDeleted(),
-                d.getProductId(), productName, categoryName);
-    }
-```
+- [ ] **Step 6: (dihapus)** DTO dibangun inline di service (Step 5). `CatalogDtoMapper` TIDAK disentuh — hindari service→web dependency.
 
 - [ ] **Step 7: Run service test, verify PASS**
 
