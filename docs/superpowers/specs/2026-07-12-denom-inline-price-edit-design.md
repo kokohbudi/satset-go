@@ -15,7 +15,7 @@ Edit harga jual denom saat ini lewat modal full-form per denom (`openEditModal` 
 
 ## UI — `denoms.html`
 
-1. Kolom "Harga Jual": tampil `<input type="number">` inline per row (denom aktif, non-deleted). Perubahan tercatat di Alpine state `dirty` map: `{id → {code, name, oldPrice, newPrice}}`. Revert ke nilai awal = keluar dari dirty.
+1. Kolom "Harga Jual": tampil `<input type="number">` inline per row (non-deleted; denom inactive tetap editable — set harga dulu sebelum diaktifkan). Perubahan tercatat di Alpine state `dirty` map: `{id → {code, name, oldPrice, newPrice}}`. Revert ke nilai awal = keluar dari dirty.
 2. Tombol **"Simpan Perubahan (N)"** muncul saat `dirty` non-empty (di samping tombol Tambah).
 3. Klik → **confirmation modal**: tabel diff `code · name · harga lama → harga baru`. Tombol Batal / Konfirmasi.
 4. Konfirmasi → satu request bulk. Hasil per-denom ditampilkan di modal yang sama (badge sukses/gagal + pesan error), lalu `loadDenoms()` refresh tabel. Dirty entries yang sukses di-clear; yang gagal tetap dirty.
@@ -34,8 +34,8 @@ Response: [ { "id": "...", "code": "byu10", "ok": true },
 
 Service: `DenomDomainService.updatePrices(List<PriceUpdate>)`:
 - Loop per item: load denom (not found → item error), validasi `price > 0` di service (bukan bean validation — satu item invalid tidak boleh 400-kan seluruh batch, cukup item error), set price, save.
-- Per-item result — satu item gagal tidak menggagalkan yang lain (partial success by design; hasil per-item dilaporkan ke UI).
-- Optimistic lock (`@Version`) conflict → item error, bukan 500.
+- Validasi (not found / harga ≤ 0 / deleted) → per-item error, dicek sebelum save.
+- Persistensi: **satu transaksi** (`@Transactional` method-level, konsisten dengan method write lain di service). Optimistic lock conflict (edit bersamaan, langka) → seluruh batch batal, UI retain dirty state → user retry via tombol Konfirmasi.
 
 DTO baru: `BulkPriceUpdateRequest` record `(UUID id, BigDecimal price)` + response record `(UUID id, String code, boolean ok, String error)`.
 

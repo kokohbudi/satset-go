@@ -146,28 +146,17 @@ Test methods:
     }
 
     @Test
-    void updatePrices_SaveThrows_ItemError_OthersSucceed() {
-        UUID otherId = UUID.randomUUID();
-        ProductDenoms other = new ProductDenoms();
-        other.setId(otherId);
-        other.setCode("TLKM10");
-        when(denomRepository.findById(denomId)).thenReturn(Optional.of(existingDenom));
-        when(denomRepository.findById(otherId)).thenReturn(Optional.of(other));
-        when(denomRepository.save(same(existingDenom)))
-                .thenThrow(new org.springframework.orm.ObjectOptimisticLockingFailureException(ProductDenoms.class, denomId));
-        when(denomRepository.save(same(other))).thenAnswer(inv -> inv.getArgument(0));
+    void updatePrices_IsWriteTransactional() throws Exception {
+        // Regression guard: class-level @Transactional(readOnly=true) — tanpa override
+        // method-level, write tidak ke-flush. WAJIB @Transactional read-write.
+        var tx = DenomDomainService.class
+                .getMethod("updatePrices", List.class)
+                .getAnnotation(org.springframework.transaction.annotation.Transactional.class);
 
-        List<PriceUpdateResult> results = denomService.updatePrices(List.of(
-                new BulkPriceUpdateRequest(denomId, new BigDecimal("6000")),
-                new BulkPriceUpdateRequest(otherId, new BigDecimal("11000"))));
-
-        assertThat(results.get(0).ok()).isFalse();
-        assertThat(results.get(0).error()).isEqualTo("Gagal menyimpan, coba lagi");
-        assertThat(results.get(1).ok()).isTrue();
+        assertThat(tx).isNotNull();
+        assertThat(tx.readOnly()).isFalse();
     }
 ```
-
-Catatan: `same(...)` dari `org.mockito.ArgumentMatchers` — sudah ter-cover `import static org.mockito.Mockito.*;` yang ada.
 
 - [ ] **Step 3: Run test, verify FAIL**
 
@@ -185,15 +174,7 @@ Tambah imports:
 ```java
 import com.satset.catalog.dto.BulkPriceUpdateRequest;
 import com.satset.catalog.dto.PriceUpdateResult;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
-```
-
-Tambah field logger (di atas field repository):
-
-```java
-    private static final Logger log = LoggerFactory.getLogger(DenomDomainService.class);
 ```
 
 Tambah methods setelah `softDelete` (sebelum section `// === Supplier sync (Digiflazz) ===`):
@@ -202,11 +183,12 @@ Tambah methods setelah `softDelete` (sebelum section `// === Supplier sync (Digi
     // === Bulk price update (inline edit harga jual) ===
 
     /**
-     * Update harga jual banyak denom sekaligus. Per-item result — satu item gagal
-     * tidak menggagalkan yang lain (partial success by design).
-     * ponytail: sengaja TANPA @Transactional method-level — tiap save() commit sendiri
-     * supaya partial success beneran persist; bungkus satu txn kalau butuh all-or-nothing.
+     * Update harga jual banyak denom sekaligus. Error validasi (not found, harga ≤ 0,
+     * deleted) → per-item result, dicek sebelum save. Persistensi satu transaksi:
+     * ponytail: all-or-nothing — konflik optimistic-lock (edit bersamaan, langka)
+     * menggagalkan seluruh batch, UI retain dirty state → user retry.
      */
+    @Transactional
     public List<PriceUpdateResult> updatePrices(List<BulkPriceUpdateRequest> items) {
         List<PriceUpdateResult> results = new ArrayList<>(items.size());
         for (BulkPriceUpdateRequest item : items) {
@@ -228,17 +210,12 @@ Tambah methods setelah `softDelete` (sebelum section `// === Supplier sync (Digi
             return PriceUpdateResult.fail(item.id(), denom.getCode(), "Denom sudah dihapus");
         }
         denom.setPrice(item.price());
-        try {
-            denomRepository.save(denom);
-            return PriceUpdateResult.ok(item.id(), denom.getCode());
-        } catch (RuntimeException e) {
-            log.error("Bulk price update failed for denom {} ({})", item.id(), denom.getCode(), e);
-            return PriceUpdateResult.fail(item.id(), denom.getCode(), "Gagal menyimpan, coba lagi");
-        }
+        denomRepository.save(denom);
+        return PriceUpdateResult.ok(item.id(), denom.getCode());
     }
 ```
 
-PENTING: JANGAN taruh `@Transactional` di `updatePrices` — class-level `@Transactional(readOnly = true)` tidak apply ke write di sini karena tiap `denomRepository.save()` punya txn write sendiri dari `SimpleJpaRepository`. Satu txn luar akan bikin optimistic-lock failure baru muncul saat commit (di luar try-catch per-item) dan poison seluruh batch.
+PENTING: `@Transactional` method-level WAJIB — class-level `@Transactional(readOnly = true)` bikin method tanpa anotasi jalan read-only (write tidak ke-flush). Konsisten dengan semua method write lain di class ini. Tanpa try-catch di save: konflik optimistic-lock propagate → seluruh batch rollback → UI retry. Logger tidak diperlukan lagi (tidak ada exception yang di-swallow).
 
 - [ ] **Step 5: Run test, verify PASS**
 
