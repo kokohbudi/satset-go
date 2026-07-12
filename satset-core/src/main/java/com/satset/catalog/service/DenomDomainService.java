@@ -14,7 +14,6 @@ import com.satset.catalog.dto.DenomListItemDTO;
 import com.satset.catalog.dto.UpdateDenomRequest;
 import com.satset.catalog.dto.BulkPriceUpdateRequest;
 import com.satset.catalog.dto.PriceUpdateResult;
-import com.satset.catalog.web.CatalogDtoMapper;
 import com.satset.shared.exception.BusinessException;
 import com.satset.shared.exception.ResourceNotFoundException;
 import org.springframework.stereotype.Service;
@@ -89,7 +88,10 @@ public class DenomDomainService {
                     Products p = productById.get(d.getProductId());
                     String productName = p != null ? p.getName() : null;
                     String categoryName = (p != null) ? categoryNameById.get(p.getCategoryId()) : null;
-                    return CatalogDtoMapper.toDenomListItemDTO(d, productName, categoryName);
+                    return new DenomListItemDTO(
+                            d.getId(), d.getCode(), d.getName(), d.getDenomType(), d.getNominal(),
+                            d.getPrice(), d.getBasePrice(), d.isActive(), d.isDeleted(),
+                            d.getProductId(), productName, categoryName);
                 })
                 .toList();
     }

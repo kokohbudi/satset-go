@@ -207,6 +207,20 @@ class DenomDomainServiceTest {
     }
 
     @Test
+    void findAllForList_ProductFoundButCategoryMissing_NullCategoryName() {
+        product.setCategoryId(UUID.randomUUID()); // categoryId with no matching Category
+        when(denomRepository.findByDeletedFalseOrderByProductIdAscSortOrderAsc())
+                .thenReturn(List.of(existingDenom));
+        when(productRepository.findAll()).thenReturn(List.of(product));
+        when(categoryRepository.findAll()).thenReturn(List.of());
+
+        List<DenomListItemDTO> result = denomService.findAllForList();
+
+        assertThat(result.get(0).productName()).isEqualTo("Telkomsel");
+        assertThat(result.get(0).categoryName()).isNull();
+    }
+
+    @Test
     void findAllForList_UnknownProduct_NullNames() {
         when(denomRepository.findByDeletedFalseOrderByProductIdAscSortOrderAsc())
                 .thenReturn(List.of(existingDenom));
