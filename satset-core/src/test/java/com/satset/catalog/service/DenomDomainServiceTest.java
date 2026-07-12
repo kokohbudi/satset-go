@@ -6,6 +6,8 @@ import com.satset.catalog.model.ProductDenoms;
 import com.satset.catalog.model.Products;
 import com.satset.catalog.dto.CreateDenomRequest;
 import com.satset.catalog.dto.UpdateDenomRequest;
+import com.satset.catalog.dto.BulkPriceUpdateRequest;
+import com.satset.catalog.dto.PriceUpdateResult;
 import com.satset.catalog.repository.CategoryRepository;
 import com.satset.catalog.repository.DenomMetaRepository;
 import com.satset.catalog.repository.DenomRepository;
@@ -28,6 +30,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -415,6 +418,94 @@ class DenomDomainServiceTest {
         assertThrows(ResourceNotFoundException.class,
                 () -> denomService.softDelete(unknownId));
         verify(denomRepository, never()).save(any());
+    }
+
+    // === BULK PRICE UPDATE ===
+
+    @Test
+    void updatePrices_AllValid_UpdatesAndReturnsOk() {
+        UUID otherId = UUID.randomUUID();
+        ProductDenoms other = new ProductDenoms();
+        other.setId(otherId);
+        other.setCode("TLKM10");
+        other.setPrice(new BigDecimal("10500.00"));
+        when(denomRepository.findById(denomId)).thenReturn(Optional.of(existingDenom));
+        when(denomRepository.findById(otherId)).thenReturn(Optional.of(other));
+        when(denomRepository.save(any(ProductDenoms.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        List<PriceUpdateResult> results = denomService.updatePrices(List.of(
+                new BulkPriceUpdateRequest(denomId, new BigDecimal("6000")),
+                new BulkPriceUpdateRequest(otherId, new BigDecimal("11000"))));
+
+        assertThat(results).hasSize(2).allMatch(PriceUpdateResult::ok);
+        assertThat(existingDenom.getPrice()).isEqualByComparingTo("6000");
+        assertThat(other.getPrice()).isEqualByComparingTo("11000");
+        verify(denomRepository, times(2)).save(any(ProductDenoms.class));
+    }
+
+    @Test
+    void updatePrices_NotFound_ItemError_OthersSucceed() {
+        UUID missingId = UUID.randomUUID();
+        when(denomRepository.findById(missingId)).thenReturn(Optional.empty());
+        when(denomRepository.findById(denomId)).thenReturn(Optional.of(existingDenom));
+        when(denomRepository.save(any(ProductDenoms.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        List<PriceUpdateResult> results = denomService.updatePrices(List.of(
+                new BulkPriceUpdateRequest(missingId, new BigDecimal("5000")),
+                new BulkPriceUpdateRequest(denomId, new BigDecimal("6000"))));
+
+        assertThat(results.get(0).ok()).isFalse();
+        assertThat(results.get(0).error()).isEqualTo("Denom tidak ditemukan");
+        assertThat(results.get(1).ok()).isTrue();
+        verify(denomRepository, times(1)).save(any(ProductDenoms.class));
+    }
+
+    @Test
+    void updatePrices_NonPositivePrice_ItemError_NoSave() {
+        when(denomRepository.findById(denomId)).thenReturn(Optional.of(existingDenom));
+
+        List<PriceUpdateResult> results = denomService.updatePrices(List.of(
+                new BulkPriceUpdateRequest(denomId, new BigDecimal("-1")),
+                new BulkPriceUpdateRequest(denomId, BigDecimal.ZERO),
+                new BulkPriceUpdateRequest(denomId, null)));
+
+        assertThat(results).hasSize(3).noneMatch(PriceUpdateResult::ok);
+        assertThat(results).allMatch(r -> "Harga harus > 0".equals(r.error()));
+        verify(denomRepository, never()).save(any(ProductDenoms.class));
+    }
+
+    @Test
+    void updatePrices_DeletedDenom_ItemError_NoSave() {
+        existingDenom.setDeleted(true);
+        when(denomRepository.findById(denomId)).thenReturn(Optional.of(existingDenom));
+
+        List<PriceUpdateResult> results = denomService.updatePrices(List.of(
+                new BulkPriceUpdateRequest(denomId, new BigDecimal("6000"))));
+
+        assertThat(results.get(0).ok()).isFalse();
+        assertThat(results.get(0).error()).isEqualTo("Denom sudah dihapus");
+        verify(denomRepository, never()).save(any(ProductDenoms.class));
+    }
+
+    @Test
+    void updatePrices_SaveThrows_ItemError_OthersSucceed() {
+        UUID otherId = UUID.randomUUID();
+        ProductDenoms other = new ProductDenoms();
+        other.setId(otherId);
+        other.setCode("TLKM10");
+        when(denomRepository.findById(denomId)).thenReturn(Optional.of(existingDenom));
+        when(denomRepository.findById(otherId)).thenReturn(Optional.of(other));
+        when(denomRepository.save(same(existingDenom)))
+                .thenThrow(new org.springframework.orm.ObjectOptimisticLockingFailureException(ProductDenoms.class, denomId));
+        when(denomRepository.save(same(other))).thenAnswer(inv -> inv.getArgument(0));
+
+        List<PriceUpdateResult> results = denomService.updatePrices(List.of(
+                new BulkPriceUpdateRequest(denomId, new BigDecimal("6000")),
+                new BulkPriceUpdateRequest(otherId, new BigDecimal("11000"))));
+
+        assertThat(results.get(0).ok()).isFalse();
+        assertThat(results.get(0).error()).isEqualTo("Gagal menyimpan, coba lagi");
+        assertThat(results.get(1).ok()).isTrue();
     }
 
     // === SUPPLIER SYNC ===

@@ -11,12 +11,17 @@ import com.satset.catalog.model.ProductDenoms;
 import com.satset.catalog.model.Products;
 import com.satset.catalog.dto.CreateDenomRequest;
 import com.satset.catalog.dto.UpdateDenomRequest;
+import com.satset.catalog.dto.BulkPriceUpdateRequest;
+import com.satset.catalog.dto.PriceUpdateResult;
 import com.satset.shared.exception.BusinessException;
 import com.satset.shared.exception.ResourceNotFoundException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -24,6 +29,8 @@ import java.util.UUID;
 @Service
 @Transactional(readOnly = true)
 public class DenomDomainService {
+
+    private static final Logger log = LoggerFactory.getLogger(DenomDomainService.class);
 
     private final DenomRepository denomRepository;
     private final DenomMetaRepository metaRepository;
@@ -153,6 +160,44 @@ public class DenomDomainService {
         denom.setDeleted(true);
         denom.setActive(false);
         denomRepository.save(denom);
+    }
+
+    // === Bulk price update (inline edit harga jual) ===
+
+    /**
+     * Update harga jual banyak denom sekaligus. Per-item result — satu item gagal
+     * tidak menggagalkan yang lain (partial success by design).
+     * ponytail: sengaja TANPA @Transactional method-level — tiap save() commit sendiri
+     * supaya partial success beneran persist; bungkus satu txn kalau butuh all-or-nothing.
+     */
+    public List<PriceUpdateResult> updatePrices(List<BulkPriceUpdateRequest> items) {
+        List<PriceUpdateResult> results = new ArrayList<>(items.size());
+        for (BulkPriceUpdateRequest item : items) {
+            results.add(updateSinglePrice(item));
+        }
+        return results;
+    }
+
+    private PriceUpdateResult updateSinglePrice(BulkPriceUpdateRequest item) {
+        Optional<ProductDenoms> found = denomRepository.findById(item.id());
+        if (found.isEmpty()) {
+            return PriceUpdateResult.fail(item.id(), null, "Denom tidak ditemukan");
+        }
+        ProductDenoms denom = found.get();
+        if (item.price() == null || item.price().signum() <= 0) {
+            return PriceUpdateResult.fail(item.id(), denom.getCode(), "Harga harus > 0");
+        }
+        if (denom.isDeleted()) {
+            return PriceUpdateResult.fail(item.id(), denom.getCode(), "Denom sudah dihapus");
+        }
+        denom.setPrice(item.price());
+        try {
+            denomRepository.save(denom);
+            return PriceUpdateResult.ok(item.id(), denom.getCode());
+        } catch (RuntimeException e) {
+            log.error("Bulk price update failed for denom {} ({})", item.id(), denom.getCode(), e);
+            return PriceUpdateResult.fail(item.id(), denom.getCode(), "Gagal menyimpan, coba lagi");
+        }
     }
 
     // === Supplier sync (Digiflazz) ===
