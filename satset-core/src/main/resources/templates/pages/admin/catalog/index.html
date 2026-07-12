@@ -24,7 +24,7 @@
             <button sec:authorize="hasRole('REALM_manage_denoms')" x-show="driftDenoms.length > 0"
                     class="btn btn-warning btn-outline btn-sm tap" @click="applyBulkCost()" :disabled="applyingCost">
                 <span x-show="applyingCost" class="loading loading-spinner loading-xs"></span>
-                Samakan Beli (<span x-text="driftDenoms.length"></span>)
+                Samakan (<span x-text="driftDenoms.length"></span>)
             </button>
             <button sec:authorize="hasRole('REALM_manage_denoms')"
                     class="btn btn-outline btn-sm tap" @click="openSyncAll()" :disabled="syncing">
