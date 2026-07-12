@@ -30,6 +30,24 @@
                     class="btn btn-outline btn-sm tap" @click="openSyncAll()" :disabled="syncing">
                 <span x-show="syncing" class="loading loading-spinner loading-xs"></span> Sinkronkan Harga Suplier
             </button>
+            <button sec:authorize="hasRole('REALM_manage_denoms')" x-show="canManageDenom" class="btn btn-outline btn-sm tap" @click="showMarkup = !showMarkup">Atur Harga Massal</button>
+        </div>
+    </div>
+
+    <!-- Markup massal (bulk price uplift on selected denoms) -->
+    <div sec:authorize="hasRole('REALM_manage_denoms')" x-show="showMarkup" x-cloak class="card bg-base-100 shadow-sm p-4 mb-4">
+        <div class="flex flex-wrap items-end gap-3">
+            <label class="form-control"><span class="label-text text-xs">Hitung dari</span>
+                <select class="select select-bordered select-sm" x-model="markup.base">
+                    <option value="MODAL">Harga Beli</option><option value="CURRENT">Harga Jual Sekarang</option>
+                </select></label>
+            <label class="form-control"><span class="label-text text-xs">Naikkan pakai</span>
+                <select class="select select-bordered select-sm" x-model="markup.type">
+                    <option value="PERSEN">Persen (%)</option><option value="FIX">Nominal (Rp)</option>
+                </select></label>
+            <label class="form-control"><span class="label-text text-xs">Besarnya</span>
+                <input type="number" min="0" step="any" class="input input-bordered input-sm w-32" x-model.number="markup.value"/></label>
+            <button class="btn btn-primary btn-sm tap" @click="applyMarkup()">Terapkan ke terpilih (<span x-text="selectedIds.length"></span>)</button>
         </div>
     </div>
 
@@ -110,6 +128,9 @@
                 <table class="table table-zebra table-sm">
                     <thead>
                     <tr>
+                        <th sec:authorize="hasRole('REALM_manage_denoms')">
+                            <input type="checkbox" class="checkbox checkbox-sm" @change="toggleSelectAll($event.target.checked)" :checked="allVisibleSelected()"/>
+                        </th>
                         <th>Code</th>
                         <th>Nama</th>
                         <th>Kategori</th>
@@ -130,8 +151,11 @@
                     </tr>
                     </thead>
                     <tbody>
-                    <template x-for="d in filteredDenoms" :key="d.id">
+                    <template x-for="(d, idx) in filteredDenoms" :key="d.id">
                         <tr :class="d.deleted ? 'opacity-40' : ''">
+                            <td sec:authorize="hasRole('REALM_manage_denoms')">
+                                <input type="checkbox" class="checkbox checkbox-sm" :value="d.id" x-model="selectedIds" :disabled="d.deleted"/>
+                            </td>
                             <td class="font-mono text-xs" x-text="d.code"></td>
                             <td x-text="d.name"></td>
                             <td class="text-base-content/70" x-text="catNameOf(d.productId)"></td>
@@ -176,7 +200,7 @@
                         </tr>
                     </template>
                     <tr x-show="filteredDenoms.length === 0">
-                        <td colspan="12" class="text-center py-8 text-base-content/50">Belum ada denominasi</td>
+                        <td colspan="13" class="text-center py-8 text-base-content/50">Belum ada denominasi</td>
                     </tr>
                     </tbody>
                 </table>
@@ -543,6 +567,11 @@
             supplierPricesAt: null,
             supplierPricesError: null,   // pesan error DF (rc + message) utk kolom Harga Suplier
 
+            // ---- bulk markup (checkbox select + Atur Harga Massal) ----
+            selectedIds: [],
+            showMarkup: false,
+            markup: { base: 'MODAL', type: 'PERSEN', value: null },
+
             init() { this.loadSupplierPrices(); },
 
             async loadSupplierPrices() {
@@ -586,6 +615,32 @@
                     Alpine.store('toast').success('Harga Beli diperbarui dari suplier');
                 } catch (e) { Alpine.store('toast').error('Gagal menerapkan'); }
                 finally { this.applyingCost = false; }
+            },
+            allVisibleSelected() {
+                const vis = this.filteredDenoms.filter(d => !d.deleted);
+                return vis.length > 0 && vis.every(d => this.selectedIds.includes(d.id));
+            },
+            toggleSelectAll(checked) {
+                const visIds = this.filteredDenoms.filter(d => !d.deleted).map(d => d.id);
+                this.selectedIds = checked ? [...new Set([...this.selectedIds, ...visIds])]
+                                           : this.selectedIds.filter(id => !visIds.includes(id));
+            },
+            applyMarkup() {
+                if (this.selectedIds.length === 0) { Alpine.store('toast').error('Centang dulu denom yang mau diatur'); return; }
+                const v = Number(this.markup.value);
+                if (this.markup.value === null || this.markup.value === '' || !(v >= 0)) { Alpine.store('toast').error('Isi dulu besar kenaikannya'); return; }
+                let skipped = 0, applied = 0;
+                for (const id of this.selectedIds) {
+                    const d = this.denoms.find(x => x.id === id);
+                    if (!d || d.deleted) continue;
+                    const base = this.markup.base === 'MODAL' ? d.basePrice : (d.price ?? d.basePrice);
+                    if (base == null) { skipped++; continue; }
+                    const raw = this.markup.type === 'PERSEN' ? Number(base) * (1 + v / 100) : Number(base) + v;
+                    this.setPrice(d, Math.ceil(raw / 100) * 100);
+                    applied++;
+                }
+                if (skipped > 0) Alpine.store('toast').error(`${applied} di-set, ${skipped} dilewati (tak ada modal/harga)`);
+                else Alpine.store('toast').success(`${applied} harga di-set, cek & simpan`);
             },
             async applyBulkCost() {
                 const ids = this.driftDenoms.map(d => d.id);
