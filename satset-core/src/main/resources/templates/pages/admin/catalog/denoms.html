@@ -61,6 +61,13 @@
         </label>
     </div>
 
+    <!-- Unpriced Warning -->
+    <div x-show="unpricedCount > 0" x-cloak class="alert alert-warning py-2 mb-4 flex items-center justify-between">
+        <span>⚠ <b x-text="unpricedCount"></b> denom belum ada harga jual</span>
+        <button class="btn btn-xs tap" @click="filterUnpriced = !filterUnpriced"
+                x-text="filterUnpriced ? 'Tampilkan semua' : 'Tampilkan'"></button>
+    </div>
+
     <!-- Table -->
     <div class="card bg-base-100 shadow-sm animate-rise" style="--i:3">
         <div class="overflow-x-auto">
@@ -366,6 +373,7 @@
             showPriceModal: false,
             savingPrices: false,
             priceResults: [],
+            filterUnpriced: false,
             form: {
                 code: '', name: '', denomType: '', nominal: null, price: null,
                 basePrice: null, adminFee: null, validityDays: null, quotaMb: null,
@@ -374,9 +382,11 @@
             },
 
             get filteredDenoms() {
-                if (!this.searchQuery) return this.denoms;
+                let list = this.denoms;
+                if (this.filterUnpriced) list = list.filter(d => !d.deleted && d.price == null);
+                if (!this.searchQuery) return list;
                 const q = this.searchQuery.toLowerCase();
-                return this.denoms.filter(d =>
+                return list.filter(d =>
                     d.code.toLowerCase().includes(q) ||
                     d.name.toLowerCase().includes(q) ||
                     (d.denomType && d.denomType.toLowerCase().includes(q))
@@ -394,6 +404,9 @@
 
             // === Inline price edit ===
             get dirtyList() { return Object.values(this.dirty); },
+            get unpricedCount() {
+                return this.denoms.filter(d => !d.deleted && d.price == null).length;
+            },
             isDirty(d) { return !!this.dirty[d.id]; },
             pendingPrice(d) { return this.dirty[d.id] ? this.dirty[d.id].newPrice : d.price; },
             resultFor(id) { return this.priceResults.find(r => r.id === id); },
