@@ -1148,8 +1148,12 @@
                     basePrice: d.basePrice, adminFee: d.adminFee, validityDays: d.validityDays, quotaMb: d.quotaMb,
                     minAmount: d.minAmount, maxAmount: d.maxAmount, requiresInquiry: d.requiresInquiry,
                     stockAvailable: d.stockAvailable, active: d.active, sortOrder: d.sortOrder,
-                    categoryChoice: prod ? prod.categoryId : '', productChoice: d.productId };
+                    categoryChoice: prod ? prod.categoryId : '', productChoice: '' };
                 this.showDenomModal = true;
+                // Product <options> come from comboProducts (depends on categoryChoice),
+                // so they don't exist yet this tick — set productChoice after they render
+                // or the <select> can't match it and shows "-- Pilih --".
+                this.$nextTick(() => { this.denomForm.productChoice = d.productId; });
             },
 
             async resolveCategoryId() {
