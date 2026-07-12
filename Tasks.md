@@ -62,6 +62,7 @@
 - [ ] **C-1**: Separate domain models dari JPA `@Entity` — pure domain class + JPA entity + mapper per bounded context
 - [ ] **L-8**: Pagination untuk product listing (low urgency, tunggu >100 produk)
 - [ ] **INF-series**: HikariCP Virtual Thread stress test — validate apakah perlu migrasi ke Agroal
+- [ ] **CAT-PERM**: Redesign catalog permissions — split view-only vs edit (categories/products/denoms/prices). Rationalize `@PreAuthorize` (`AdminCatalogController` + `CatalogSyncController`, `OmniConstants.PERM_*`) + template `canManageCat/Prod/Denom` flags. Do in main checkout.
 
 ### Future
 - [-] White-label Storefront, Dashboard Analytics, API Key Reseller, Bulk Transaction
