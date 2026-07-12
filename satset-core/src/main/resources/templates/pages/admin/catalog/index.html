@@ -31,6 +31,8 @@
                 <span x-show="syncing" class="loading loading-spinner loading-xs"></span> Sinkronkan Harga Suplier
             </button>
             <button sec:authorize="hasRole('REALM_manage_denoms')" x-show="canManageDenom" class="btn btn-outline btn-sm tap" @click="showMarkup = !showMarkup">Atur Harga Massal</button>
+            <button sec:authorize="hasRole('REALM_manage_denoms')" x-show="nameDirtyList.length > 0" x-cloak class="btn btn-warning btn-sm tap" @click="openNameModal()">Simpan Nama (<span x-text="nameDirtyList.length"></span>)</button>
+            <button sec:authorize="hasRole('REALM_manage_denoms')" x-show="dirtyList.length > 0" x-cloak class="btn btn-warning btn-sm tap" @click="openPriceModal()">Simpan Harga (<span x-text="dirtyList.length"></span>)</button>
         </div>
     </div>
 
@@ -49,6 +51,12 @@
                 <input type="number" min="0" step="any" class="input input-bordered input-sm w-32" x-model.number="markup.value"/></label>
             <button class="btn btn-primary btn-sm tap" @click="applyMarkup()">Terapkan ke terpilih (<span x-text="selectedIds.length"></span>)</button>
         </div>
+    </div>
+
+    <!-- Unpriced Warning -->
+    <div x-show="unpricedCount > 0" x-cloak class="alert alert-warning py-2 mb-4 flex items-center justify-between">
+        <span>&#9888; <b x-text="unpricedCount"></b> denom belum ada harga jual</span>
+        <button class="btn btn-xs tap" @click="filterUnpriced = !filterUnpriced" x-text="filterUnpriced ? 'Lihat semua' : 'Lihat yang belum ada harga'"></button>
     </div>
 
     <!-- Tab kategori (level 1: primary selector — solid pills) -->
@@ -551,6 +559,52 @@
             </div>
         </div>
     </div>
+
+    <!-- Bulk Price Confirm Modal -->
+    <div th:replace="~{fragments/denom-price-confirm-modal :: modal}"></div>
+
+    <!-- Bulk Name Confirm Modal -->
+    <div class="modal" :class="{ 'modal-open': showNameModal }">
+        <div class="modal-box max-w-xl">
+            <h3 class="text-lg font-semibold mb-4">Konfirmasi Perubahan Nama Denom</h3>
+            <div class="overflow-x-auto max-h-80">
+                <table class="table table-sm">
+                    <thead>
+                    <tr>
+                        <th>Code</th>
+                        <th>Nama Lama</th>
+                        <th>Nama Baru</th>
+                        <th class="text-center" x-show="nameResults.length">Hasil</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <template x-for="item in nameDirtyList" :key="item.id">
+                        <tr>
+                            <td class="font-mono text-xs" x-text="item.code"></td>
+                            <td x-text="item.oldName"></td>
+                            <td class="font-semibold" x-text="item.newName"></td>
+                            <td class="text-center" x-show="nameResults.length">
+                                <template x-if="nameResultFor(item.id)">
+                                    <span class="badge badge-sm"
+                                          :class="nameResultFor(item.id).ok ? 'badge-success' : 'badge-error'"
+                                          :title="nameResultFor(item.id).error || ''"
+                                          x-text="nameResultFor(item.id).ok ? 'OK' : (nameResultFor(item.id).error || 'Gagal')"></span>
+                                </template>
+                            </td>
+                        </tr>
+                    </template>
+                    </tbody>
+                </table>
+            </div>
+            <div class="modal-action">
+                <button class="btn btn-ghost" @click="showNameModal = false" :disabled="savingNames">Batal</button>
+                <button class="btn btn-warning" @click="submitNames()" :disabled="savingNames">
+                    <span x-show="savingNames" class="loading loading-spinner loading-xs"></span>
+                    Konfirmasi
+                </button>
+            </div>
+        </div>
+    </div>
 </div>
 
 <th:block layout:fragment="scripts">
@@ -802,7 +856,9 @@
                 return this.denoms;
             },
             get filteredDenoms() {
-                const list = this.scopedDenoms;
+                if (this.filterUnpriced && this.unpricedCount === 0) this.filterUnpriced = false;
+                let list = this.scopedDenoms;
+                if (this.filterUnpriced) list = list.filter(d => !d.deleted && d.price == null);
                 if (!this.searchQuery) return list;
                 const q = this.searchQuery.toLowerCase();
                 return list.filter(d =>
