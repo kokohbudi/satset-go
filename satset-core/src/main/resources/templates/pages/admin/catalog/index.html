@@ -34,14 +34,19 @@
                 <span x-show="syncing" class="loading loading-spinner loading-xs"></span> Sinkronkan Suplier
             </button>
             <button sec:authorize="hasRole('REALM_manage_denoms')" class="btn btn-outline btn-quiet btn-sm tap" @click="showMarkup = !showMarkup">Atur Harga Massal</button>
+        </div>
+    </div>
 
-            <!-- Divider: unsaved edits stand apart from the always-on tools -->
-            <div class="hidden sm:block w-px self-stretch bg-base-300 mx-1"
-                 x-show="nameDirtyList.length > 0 || dirtyList.length > 0" x-cloak></div>
-
-            <!-- Pending saves (urgent → solid warning) -->
-            <button sec:authorize="hasRole('REALM_manage_denoms')" x-show="nameDirtyList.length > 0" x-cloak class="btn btn-warning btn-outline btn-sm tap" @click="openNameModal()">Simpan Nama (<span x-text="nameDirtyList.length"></span>)</button>
-            <button sec:authorize="hasRole('REALM_manage_denoms')" x-show="dirtyList.length > 0" x-cloak class="btn btn-warning btn-outline btn-sm tap" @click="openPriceModal()">Simpan Harga (<span x-text="dirtyList.length"></span>)</button>
+    <!-- Unsaved-changes bar: keeps the transient save actions out of the header
+         so they don't crowd/wrap the always-on tools. Shown only when dirty. -->
+    <div sec:authorize="hasRole('REALM_manage_denoms')" x-show="nameDirtyList.length > 0 || dirtyList.length > 0" x-cloak
+         class="flex flex-wrap items-center gap-3 mb-4 rounded-lg border border-base-300 bg-base-200 px-4 py-2.5">
+        <span class="text-sm font-medium">
+            <b x-text="nameDirtyList.length + dirtyList.length"></b> perubahan belum disimpan
+        </span>
+        <div class="flex flex-wrap gap-2 sm:ml-auto">
+            <button x-show="nameDirtyList.length > 0" x-cloak class="btn btn-warning btn-sm tap" @click="openNameModal()">Simpan Nama (<span x-text="nameDirtyList.length"></span>)</button>
+            <button x-show="dirtyList.length > 0" x-cloak class="btn btn-warning btn-sm tap" @click="openPriceModal()">Simpan Harga (<span x-text="dirtyList.length"></span>)</button>
         </div>
     </div>
 
@@ -141,14 +146,14 @@
         </div>
 
         <div class="card bg-base-100 shadow-sm">
-            <div class="denom-scroll">
+            <div class="denom-scroll" @scroll="$event.target.classList.toggle('is-scrolled', $event.target.scrollTop > 0)">
                 <table class="table table-zebra table-sm">
                     <thead>
                     <tr>
                         <th sec:authorize="hasRole('REALM_manage_denoms')">
                             <input type="checkbox" class="checkbox checkbox-sm" @change="toggleSelectAll($event.target.checked)" :checked="allVisibleSelected()"/>
                         </th>
-                        <th>Code</th>
+                        <th>Kode</th>
                         <th>Nama</th>
                         <th>Kategori</th>
                         <th>Produk</th>
@@ -159,12 +164,11 @@
                         <th class="text-right">
                             Harga Suplier
                             <span x-show="supplierPricesAt && !supplierPricesError" class="block text-[10px] font-normal text-base-content/40"
-                                  x-text="supplierPricesAt ? ('upd ' + new Date(supplierPricesAt).toLocaleString('id-ID', {day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'})) : ''"></span>
+                                  x-text="supplierPricesAt ? ('Update ' + new Date(supplierPricesAt).toLocaleString('id-ID', {day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'})) : ''"></span>
                             <span x-show="supplierPricesError" class="block text-[10px] font-normal normal-case text-error" x-text="supplierPricesError"></span>
                         </th>
-                        <th class="text-center">Sort</th>
                         <th class="text-center">Status</th>
-                        <th class="text-center">Aksi</th>
+                        <th class="text-center">Tindakan</th>
                     </tr>
                     </thead>
                     <tbody>
@@ -183,7 +187,7 @@
                                 <template x-if="!canManageDenom || d.deleted"><span x-text="d.name"></span></template>
                             </td>
                             <td class="text-base-content/70" x-text="catNameOf(d.productId)"></td>
-                            <td x-text="prodNameOf(d.productId)"></td>
+                            <td class="text-base-content/70" x-text="prodNameOf(d.productId)"></td>
                             <td><span class="badge badge-xs"
                                       :class="d.denomType === 'FIXED_DENOM' ? 'badge-info' : 'badge-accent'"
                                       x-text="d.denomType === 'FIXED_DENOM' ? 'Fixed' : 'Open Amount'"></span></td>
@@ -207,11 +211,10 @@
                                 </template>
                                 <template x-if="supplierCost(d.code) === null"><span class="text-base-content/40">-</span></template>
                             </td>
-                            <td class="text-center" x-text="d.sortOrder"></td>
                             <td class="text-center">
                                 <span class="badge badge-sm"
                                       :class="d.deleted ? 'badge-error' : (d.active ? 'badge-success' : 'badge-warning')"
-                                      x-text="d.deleted ? 'Deleted' : (d.active ? 'Active' : 'Inactive')"></span>
+                                      x-text="d.deleted ? 'Dihapus' : (d.active ? 'Aktif' : 'Nonaktif')"></span>
                                 <span x-show="d.inSupplier === false" class="badge badge-warning badge-outline badge-sm ml-1"
                                       title="Hilang dari supplier">&#9888; supplier</span>
                             </td>
@@ -246,15 +249,25 @@
                         </tr>
                     </template>
                     <tr x-show="filteredDenoms.length === 0">
-                        <td colspan="13" class="py-12">
-                            <div class="flex flex-col items-center gap-2 text-base-content/50">
-                                <svg class="w-8 h-8 opacity-60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2h6m4-2l2 2 4-4M9 8h6m-6 4h4"/>
-                                </svg>
-                                <span x-show="!searchQuery && !filterUnpriced">Belum ada denominasi</span>
-                                <span x-show="filterUnpriced && !searchQuery">Semua denom di sini sudah ada harga</span>
-                                <span x-show="searchQuery" x-text="'Tidak ada hasil untuk &quot;' + searchQuery + '&quot;'"></span>
-                            </div>
+                        <td colspan="12" class="py-12">
+                            <!-- Milestone: unpriced filter on and nothing left = all priced -->
+                            <template x-if="filterUnpriced && !searchQuery">
+                                <div class="flex flex-col items-center gap-2 text-success">
+                                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                    </svg>
+                                    <span class="font-medium">Semua denom di sini sudah ada harga</span>
+                                </div>
+                            </template>
+                            <template x-if="!(filterUnpriced && !searchQuery)">
+                                <div class="flex flex-col items-center gap-2 text-base-content/50">
+                                    <svg class="w-8 h-8 opacity-60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2h6m4-2l2 2 4-4M9 8h6m-6 4h4"/>
+                                    </svg>
+                                    <span x-show="!searchQuery">Belum ada denominasi</span>
+                                    <span x-show="searchQuery" x-text="'Tidak ada hasil untuk &quot;' + searchQuery + '&quot;'"></span>
+                                </div>
+                            </template>
                         </td>
                     </tr>
                     </tbody>
@@ -312,7 +325,7 @@
                             <label class="label"><span class="label-text">Status</span></label>
                             <label class="label cursor-pointer justify-start gap-3">
                                 <input type="checkbox" class="toggle toggle-primary" x-model="categoryForm.active" :disabled="categorySaving">
-                                <span class="label-text" x-text="categoryForm.active ? 'Active' : 'Inactive'"></span>
+                                <span class="label-text" x-text="categoryForm.active ? 'Aktif' : 'Nonaktif'"></span>
                             </label>
                         </div>
                     </div>
@@ -387,7 +400,7 @@
                             <label class="label"><span class="label-text">Status</span></label>
                             <label class="label cursor-pointer justify-start gap-3">
                                 <input type="checkbox" class="toggle toggle-primary" x-model="productForm.active" :disabled="productSaving">
-                                <span class="label-text" x-text="productForm.active ? 'Active' : 'Inactive'"></span>
+                                <span class="label-text" x-text="productForm.active ? 'Aktif' : 'Nonaktif'"></span>
                             </label>
                         </div>
                     </div>
@@ -500,7 +513,7 @@
                             <label class="label"><span class="label-text text-xs">Status</span></label>
                             <label class="label cursor-pointer justify-start gap-2">
                                 <input type="checkbox" class="toggle toggle-primary toggle-sm" x-model="denomForm.active" :disabled="denomSaving">
-                                <span class="label-text text-xs" x-text="denomForm.active ? 'Active' : 'Inactive'"></span>
+                                <span class="label-text text-xs" x-text="denomForm.active ? 'Aktif' : 'Nonaktif'"></span>
                             </label>
                         </div>
                         <div class="form-control">
@@ -691,6 +704,17 @@
                 } catch (e) { this.supplierPricesError = 'Gagal ambil Harga Suplier'; }
             },
             dfError(e) { return e && e.code ? ('DF ' + e.code + ': ' + e.message) : null; },
+            // Build a user-facing Error from a failed Response. Supplier (Digiflazz)
+            // business errors arrive as HTTP 502 {code,message} and MUST reach the
+            // admin (saldo, harga berubah, limit rc 83, dst). Backend-authored
+            // messages (validation) are safe to show. Everything else stays generic
+            // + a recovery hint — never surface raw internal exceptions.
+            async httpError(res, fallback) {
+                let p = {};
+                try { p = await res.json(); } catch (_) {}
+                if (res.status === 502 && p.code) return new Error(`Suplier bermasalah (DF ${p.code}): ${p.message}`);
+                return new Error(p.message || fallback || 'Terjadi kesalahan. Coba lagi.');
+            },
             supplierCost(code) {
                 // ponytail: space after `[` — `[(` is Thymeleaf's escaped-inline marker in th:inline="javascript"
                 const key = (code || '').toUpperCase();
@@ -711,10 +735,10 @@
                 this.applyingCost = true;
                 try {
                     const res = await fetch(`/api/admin/catalog/denoms/${d.id}/apply-supplier-cost`, { method: 'POST' });
-                    if (!res.ok) throw new Error();
+                    if (!res.ok) throw await this.httpError(res, 'Gagal menyamakan Harga Beli. Coba lagi.');
                     await this.refreshDenoms();
                     Alpine.store('toast').success('Harga Beli diperbarui dari suplier');
-                } catch (e) { Alpine.store('toast').error('Gagal menerapkan'); }
+                } catch (e) { Alpine.store('toast').error(e.message); }
                 finally { this.applyingCost = false; }
             },
             allVisibleSelected() {
@@ -751,11 +775,11 @@
                     const res = await fetch('/api/admin/catalog/denoms/apply-supplier-cost', {
                         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(ids)
                     });
-                    if (!res.ok) throw new Error();
+                    if (!res.ok) throw await this.httpError(res, 'Gagal menyamakan Harga Beli. Coba lagi.');
                     const r = await res.json();
                     await this.refreshDenoms();
                     Alpine.store('toast').success(`${r.applied} Harga Beli diperbarui dari suplier`);
-                } catch (e) { Alpine.store('toast').error('Gagal menerapkan'); }
+                } catch (e) { Alpine.store('toast').error(e.message); }
                 finally { this.applyingCost = false; }
             },
 
@@ -915,10 +939,11 @@
                 this.denomsLoading = true;
                 try {
                     const res = await fetch('/api/admin/catalog/denoms');
+                    if (!res.ok) throw await this.httpError(res, 'Gagal memuat denominasi. Coba lagi.');
                     this.denoms = await res.json();
                     this.selectedIds = [];
                 } catch (e) {
-                    Alpine.store('toast').error('Gagal memuat denominasi');
+                    Alpine.store('toast').error(e.message || 'Gagal memuat denominasi. Coba lagi.');
                 } finally {
                     this.denomsLoading = false;
                 }
