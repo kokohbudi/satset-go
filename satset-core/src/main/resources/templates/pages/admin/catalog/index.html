@@ -27,7 +27,7 @@
         <button type="button" class="inline-flex items-center h-9 px-4 rounded-full border text-sm font-medium whitespace-nowrap transition-colors tap"
                 :class="activeCategory === null ? 'bg-primary border-primary text-primary-content shadow-sm' : 'bg-base-100 border-base-300 text-base-content/70 hover:border-primary/40 hover:text-base-content'"
                 @click="selectCategory(null)">Semua</button>
-        <template x-for="c in categories" :key="c.id">
+        <template x-for="c in tabCategories" :key="c.id">
             <div class="group inline-flex items-center h-9 rounded-full border transition-colors"
                  :class="activeCategory === c.id ? 'bg-primary border-primary text-primary-content shadow-sm'
                           : (c.deleted ? 'bg-base-100 border-base-300 text-base-content/30' : 'bg-base-100 border-base-300 text-base-content/70 hover:border-primary/40 hover:text-base-content')">
@@ -53,7 +53,7 @@
         <button type="button" class="px-3 py-2 text-sm font-medium border-b-2 -mb-px transition-colors"
                 :class="activeProduct === null ? 'border-primary text-primary' : 'border-transparent text-base-content/60 hover:text-base-content'"
                 @click="selectProduct(null)">Semua</button>
-        <template x-for="p in productsInCategory" :key="p.id">
+        <template x-for="p in tabProducts" :key="p.id">
             <div class="group inline-flex items-center border-b-2 -mb-px transition-colors"
                  :class="activeProduct === p.id ? 'border-primary' : 'border-transparent'">
                 <button type="button" class="py-2 pl-3 text-sm font-medium transition-colors"
@@ -586,6 +586,22 @@
             get productsInCategory() {
                 return this.activeCategory === null ? []
                     : this.products.filter(p => p.categoryId === this.activeCategory);
+            },
+            get denomCategoryIds() {
+                return new Set(this.denoms.filter(d => !d.deleted).map(d => this.catIdOf(d.productId)).filter(Boolean));
+            },
+            get denomProductIds() {
+                return new Set(this.denoms.filter(d => !d.deleted).map(d => d.productId));
+            },
+            // ponytail: prune uses the full seeded denom set; a toggle refetch keeps it fresh. Cross-session staleness needs a reload — acceptable for a single-admin tool.
+            get tabCategories() {
+                const ids = this.denomCategoryIds;
+                return this.categories.filter(c => ids.has(c.id));
+            },
+            get tabProducts() {
+                if (this.activeCategory === null) return [];
+                const ids = this.denomProductIds;
+                return this.products.filter(p => p.categoryId === this.activeCategory && ids.has(p.id));
             },
             get visibleProducts() {
                 return this.activeCategory === null ? this.products : this.productsInCategory;
