@@ -28,7 +28,9 @@ public class AdminCatalogPageController {
         this.manageProductsUseCase = manageProductsUseCase;
     }
 
-    @GetMapping
+    // "/categories" kept: the sidebar nav URL lives in the Keycloak view_catalog
+    // role attribute (url=/admin/catalog/categories); serve the single page there too.
+    @GetMapping({"", "/categories"})
     public String catalogRoot(Model model) {
         model.addAttribute("currentPage", "admin-catalog");
         model.addAttribute("breadcrumb", "Katalog");
