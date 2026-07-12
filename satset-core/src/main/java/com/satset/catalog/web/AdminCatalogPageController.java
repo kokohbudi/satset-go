@@ -4,7 +4,6 @@ import com.satset.catalog.dto.CategoryDTO;
 import com.satset.catalog.dto.ProductDTO;
 import com.satset.catalog.model.*;
 import com.satset.catalog.service.CategoryDomainService;
-import com.satset.catalog.service.DenomDomainService;
 import com.satset.catalog.service.ProductDomainService;
 import com.satset.shared.constant.OmniConstants;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -22,14 +21,11 @@ public class AdminCatalogPageController {
 
     private final CategoryDomainService manageCategoriesUseCase;
     private final ProductDomainService manageProductsUseCase;
-    private final DenomDomainService manageDenomsUseCase;
 
     public AdminCatalogPageController(CategoryDomainService manageCategoriesUseCase,
-                                      ProductDomainService manageProductsUseCase,
-                                      DenomDomainService manageDenomsUseCase) {
+                                      ProductDomainService manageProductsUseCase) {
         this.manageCategoriesUseCase = manageCategoriesUseCase;
         this.manageProductsUseCase = manageProductsUseCase;
-        this.manageDenomsUseCase = manageDenomsUseCase;
     }
 
     @GetMapping

@@ -293,7 +293,7 @@
                         <label class="label"><span class="label-text">Kategori</span></label>
                         <select class="select select-bordered" x-model="productForm.categoryId" required :disabled="productSaving">
                             <option value="">-- Pilih Kategori --</option>
-                            <template x-for="cat in categories" :key="cat.id">
+                            <template x-for="cat in activeCategories" :key="cat.id">
                                 <option :value="cat.id" x-text="cat.name"></option>
                             </template>
                         </select>
@@ -455,8 +455,8 @@
                     <div class="grid grid-cols-2 gap-4" x-show="denomEditMode">
                         <div class="form-control">
                             <label class="label"><span class="label-text">Kategori</span></label>
-                            <select class="select select-bordered select-sm" x-model="denomForm.reassignCategory" :disabled="denomSaving">
-                                <template x-for="c in categories" :key="c.id">
+                            <select class="select select-bordered select-sm" x-model="denomForm.reassignCategory" @change="denomForm.productId = null" :disabled="denomSaving">
+                                <template x-for="c in activeCategories" :key="c.id">
                                     <option :value="c.id" x-text="c.name"></option>
                                 </template>
                             </select>
@@ -579,6 +579,9 @@
 
             // ==================== getters ====================
 
+            get activeCategories() {
+                return this.categories.filter(c => !c.deleted);
+            },
             get productsInCategory() {
                 return this.activeCategory === null ? []
                     : this.products.filter(p => p.categoryId === this.activeCategory);
