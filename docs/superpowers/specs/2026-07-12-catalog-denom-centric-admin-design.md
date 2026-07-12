@@ -101,7 +101,11 @@ then apply searchQuery (name/code/type/product name/category name)
 ### Denom table
 - Always visible. **Remove the products-table panel entirely.**
 - New columns **Kategori** and **Produk** (resolved from `d.productId` via the product/category maps).
-- `Harga DF` column → renamed **`Harga Suplier`** (see DF supplier pricing section); shown in every scope.
+- **Three price columns**, consistent vocabulary everywhere (table headers + denom-modal labels):
+  - **`Harga Suplier`** = DF supplier cost (renamed from `Harga DF`; see DF supplier pricing section); shown in every scope.
+  - **`Harga Beli`** = `basePrice` (renamed from `Harga Modal`) — our purchase cost.
+  - **`Harga Jual`** = `price` (unchanged) — sell price.
+- Diff flag on `Harga Suplier` fires when it ≠ `Harga Beli` (`basePrice`).
 - Deleted rows greyed (existing pattern).
 
 ### Tabs = filter + auto-prune
@@ -144,7 +148,7 @@ The DF pricelist is a single Caffeine-cached list of all SKUs (`@Cacheable("digi
 - Supplier slice: cache a `PriceListSnapshot(items, fetchedAt)` record instead of the bare list, so `fetchedAt` = the moment the cache was filled and caches alongside the data. Reading it never forces a fresh DF fetch (respects "ambil dari cache, jangan hitung ulang tanggalnya").
 - New endpoint `GET /api/admin/catalog/supplier-prices` → `{ fetchedAt, prices: { SKU(upper): cost } }` built from the cached snapshot.
 - Frontend loads it once on page load → `supplierPrices[code]` map + `supplierPricesAt` date. Column value = `supplierPrices[d.code]`; last-update date shown once (caption above the table / column-header tooltip). `-` when the SKU is not in DF.
-- **Diff flag**: when `supplierPrices[d.code] != d.basePrice` (Harga Modal = harga beli), mark the cell — warning colour + up/down arrow (supplier higher/lower than our cost). This is the signal that our modal price is stale vs the supplier.
+- **Diff flag**: when `supplierPrices[d.code] != d.basePrice` (**Harga Beli**), mark the cell — warning colour + up/down arrow (supplier higher/lower than our buy price). This is the signal that our Harga Beli is stale vs the supplier.
 
 **`Sync DF` button — Sync All + preview** (aggregate scope, always available):
 - Supplier slice: new `GET /api/admin/catalog/sync/all/preview` → aggregated `SyncPreviewItem`s across new categories, new products, and new/price-changed denoms (reuse the existing reconcile logic, run globally over the cached pricelist). New denoms carry the DF-derived category + product so the preview shows what will be created.
