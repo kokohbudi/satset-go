@@ -323,7 +323,7 @@ class DenomDomainServiceTest {
                 new BigDecimal("5000"), new BigDecimal("5800"),
                 new BigDecimal("5000"), new BigDecimal("500"),
                 30, 1024L, null, null,
-                false, 100, false, 5);
+                false, 100, false, 5, null);
         when(denomRepository.findById(denomId)).thenReturn(Optional.of(existingDenom));
         when(denomRepository.existsByCodeAndIdNot("TLKM5V2", denomId)).thenReturn(false);
         when(denomRepository.save(any(ProductDenoms.class))).thenAnswer(inv -> inv.getArgument(0));
@@ -351,7 +351,7 @@ class DenomDomainServiceTest {
                 "X", "X", DenomType.FIXED_DENOM,
                 null, new BigDecimal("1000"), null, null,
                 null, null, null, null,
-                false, null, true, 1);
+                false, null, true, 1, null);
         when(denomRepository.findById(unknownId)).thenReturn(Optional.empty());
 
         // Act & Assert
@@ -367,7 +367,7 @@ class DenomDomainServiceTest {
                 "TLKM10", "Clash", DenomType.FIXED_DENOM,
                 null, new BigDecimal("1000"), null, null,
                 null, null, null, null,
-                false, null, true, 1);
+                false, null, true, 1, null);
         when(denomRepository.findById(denomId)).thenReturn(Optional.of(existingDenom));
         when(denomRepository.existsByCodeAndIdNot("TLKM10", denomId)).thenReturn(true);
 
