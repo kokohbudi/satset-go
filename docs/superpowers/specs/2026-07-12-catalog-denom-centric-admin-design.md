@@ -70,8 +70,8 @@ Keep existing `initialCategories`, `initialProducts`, `categoryTypes`, `denomTyp
 ### Supplier slice additions (DF pricing + global sync)
 - `DigiflazzClient`: cache a `PriceListSnapshot(items, fetchedAt)` (record) under `digiflazzPriceList` instead of the raw list; `fetchedAt` stamped on cache-miss fetch. Existing `fetchPriceList()` returns `snapshot.items()` for callers that only want items.
 - `GET /api/admin/catalog/supplier-prices` → `{ fetchedAt, prices }` from the cached snapshot (no forced fetch).
-- `GET /api/admin/catalog/sync/all/preview` → aggregated `SyncPreviewItem`s (new categories / new products / new + price-changed denoms) over the cached pricelist.
-- `POST /api/admin/catalog/sync/all` extended to accept a selected-key list (apply-all when empty/all selected).
+- `GET /api/admin/catalog/sync/all/preview` → grouped read-only summary (counts + labels) of new categories / new products / new + price-changed denoms over the cached pricelist.
+- `POST /api/admin/catalog/sync/all` — **unchanged** (`syncAll()`, all-or-nothing cascade); wired to the modal's `Terapkan Semua`.
 - Existing per-product `GET /products/{id}/pricelist-compare` and `POST /products/{id}/sync/denoms` remain but are no longer wired into the admin page UI.
 
 ---
@@ -150,10 +150,11 @@ The DF pricelist is a single Caffeine-cached list of all SKUs (`@Cacheable("digi
 - Frontend loads it once on page load → `supplierPrices[code]` map + `supplierPricesAt` date. Column value = `supplierPrices[d.code]`; last-update date shown once (caption above the table / column-header tooltip). `-` when the SKU is not in DF.
 - **Diff flag**: when `supplierPrices[d.code] != d.basePrice` (**Harga Beli**), mark the cell — warning colour + up/down arrow (supplier higher/lower than our buy price). This is the signal that our Harga Beli is stale vs the supplier.
 
-**`Sync DF` button — Sync All + preview** (aggregate scope, always available):
-- Supplier slice: new `GET /api/admin/catalog/sync/all/preview` → aggregated `SyncPreviewItem`s across new categories, new products, and new/price-changed denoms (reuse the existing reconcile logic, run globally over the cached pricelist). New denoms carry the DF-derived category + product so the preview shows what will be created.
-- `POST /api/admin/catalog/sync/all` extended to accept a selected-key list (apply only checked items; existing `syncAll()` becomes the apply-all path). Confirm/preview modal mirrors the existing per-product sync modal (ADD / UPDATE-price grouped, "pilih semua" per group).
-- New categories/products are **defined from DF** for denoms that don't exist yet; **existing denoms keep their current category/product** (never moved); existing prices updated per the checked UPDATE items.
+**`Sync DF` button — Sync All, read-only preview then apply-all** (aggregate scope, always available):
+- Why not a selective checklist: denoms depend on products depend on categories. `syncAll()` cascades correctly (create categories → re-query products incl. new → denoms) in one pass. A flat pre-computed preview cannot reference not-yet-created products, so per-item selection would need a confusing second sync. Chosen: informational preview + apply-all.
+- Supplier slice: new `GET /api/admin/catalog/sync/all/preview` → grouped counts + labels of what a full sync would change: new categories, new products (for existing categories), new denoms + price-changed denoms (for existing products). Reuses `previewCategories()` / `previewProducts()` / `reconcileForProduct()` over the cached pricelist. **Read-only** — no keys returned for selection.
+- Apply = existing `POST /api/admin/catalog/sync/all` (`syncAll()`), unchanged, all-or-nothing cascade. New categories/products **defined from DF**; **existing denoms keep their category/product** (never moved, never deleted — only `inSupplier=false` flag); existing prices updated.
+- Modal: read-only grouped summary + `Batal` / `Terapkan Semua`, then result toast (`+X baru, Y update`).
 
 **`Tambah Denom`**: always available; product chosen via the combobox in the denom modal.
 
@@ -169,7 +170,7 @@ The DF pricelist is a single Caffeine-cached list of all SKUs (`@Cacheable("digi
 
 - `AdminCatalogControllerTest`: `GET /denoms` returns all denoms (incl. deleted) for a `view_catalog` user; 403 without the role.
 - `DenomDomainServiceTest`: `findAllForAdmin()` returns repository order.
-- `CatalogSyncServiceTest`: `PriceListSnapshot.fetchedAt` reads from cache without a new fetch; `supplier-prices` maps SKU→cost; `sync/all/preview` lists new cats/products/denoms; `sync/all` with a key subset applies only those.
+- `CatalogSyncServiceTest`: `PriceListSnapshot.fetchedAt` reads from cache without a new fetch; `supplierPrices()` maps SKU→cost; `syncAllPreview()` counts new cats/products/denoms + price changes.
 - Manual / browser: the three scope cases (Semua/Semua, A/Semua, A/B); auto-prune (delete a product's last denom → chip disappears after refetch); combobox create (new category+product+denom in one save); tab-pill edit; `Harga Suplier` populates across the aggregate with the diff flag when it ≠ `basePrice`, and shows the cache date; Sync All preview → apply subset.
 
 ## Risks / ceilings
