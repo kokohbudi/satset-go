@@ -218,6 +218,52 @@ class CatalogSyncServiceTest {
         verify(denomService, never()).softDelete(any());
     }
 
+    // ---- syncAll: TIDAK menimpa Harga Beli (basePrice) denom existing ----
+    @Test void syncAll_existingDenomPriceDrift_doesNotOverwriteBasePrice() throws Exception {
+        UUID catId = UUID.randomUUID(), pid = UUID.randomUUID();
+        Category pulsa = new Category(); pulsa.setId(catId); pulsa.setCode("PULSA"); pulsa.setName("Pulsa");
+        Products xl = new Products(); xl.setId(pid); xl.setCode("XL"); xl.setName("XL"); xl.setCategoryId(catId);
+        ProductDenoms existing = denom("xl5", BigDecimal.valueOf(5000)); existing.setId(UUID.randomUUID());
+
+        // DF harga 6000 vs basePrice 5000 -> NAIK (drift), bukan BARU
+        when(digiflazz.fetchSnapshot()).thenReturn(new PriceListSnapshot(List.of(df("xl5","XL 5K","XL",6000)), LocalDateTime.now()));
+        when(categoryService.findAllForAdmin()).thenReturn(List.of(pulsa));
+        when(categoryService.findById(catId)).thenReturn(Optional.of(pulsa));
+        when(productService.findByCategoryForAdmin(catId)).thenReturn(List.of(xl));
+        when(productService.findById(pid)).thenReturn(Optional.of(xl));
+        when(denomService.findActiveByProductId(pid)).thenReturn(List.of(existing));
+
+        service().syncAll();
+
+        verify(denomService, never()).updateCostById(any(), any());   // Harga Beli existing tidak ditimpa
+        verify(denomService, never()).createFromSupplier(any(), any(), any(), any());  // bukan denom baru
+    }
+
+    // ---- applySupplierCostBulk: Harga Suplier -> Harga Beli utk denom terpilih ----
+    @Test void applySupplierCostBulk_setsBasePriceFromDfCost() {
+        UUID id = UUID.randomUUID();
+        ProductDenoms d = denom("tsel5", BigDecimal.ONE); d.setId(id);
+        when(digiflazz.fetchSnapshot()).thenReturn(new PriceListSnapshot(List.of(df("tsel5","Tsel 5K","TELKOMSEL",5000)), LocalDateTime.now()));
+        when(denomService.findById(id)).thenReturn(Optional.of(d));
+
+        int applied = service().applySupplierCostBulk(List.of(id));
+
+        assertThat(applied).isEqualTo(1);
+        verify(denomService).updateCostById(id, BigDecimal.valueOf(5000));
+    }
+
+    @Test void applySupplierCostBulk_skipsDenomWithoutDfMatch() {
+        UUID id = UUID.randomUUID();
+        ProductDenoms d = denom("nomatch", BigDecimal.ONE); d.setId(id);
+        when(digiflazz.fetchSnapshot()).thenReturn(new PriceListSnapshot(List.of(df("tsel5","Tsel 5K","TELKOMSEL",5000)), LocalDateTime.now()));
+        when(denomService.findById(id)).thenReturn(Optional.of(d));
+
+        int applied = service().applySupplierCostBulk(List.of(id));
+
+        assertThat(applied).isZero();
+        verify(denomService, never()).updateCostById(any(), any());
+    }
+
     // ---- syncAllPreview: read-only aggregate summary of what syncAll() would change ----
     @Test void syncAllPreview_listsNewCategories() {
         // DF has a category the catalog lacks -> previewCategories() yields an ADD

@@ -20,10 +20,17 @@
             <h1 class="text-2xl font-bold">Katalog</h1>
             <p class="text-base-content/60 text-sm mt-1">Kategori, produk, dan denominasi dalam satu halaman</p>
         </div>
-        <button sec:authorize="hasRole('REALM_manage_denoms')" x-show="canManageDenom"
-                class="btn btn-outline btn-sm tap" @click="openSyncAll()" :disabled="syncing">
-            <span x-show="syncing" class="loading loading-spinner loading-xs"></span> Sync DF
-        </button>
+        <div class="flex items-center gap-2" x-show="canManageDenom">
+            <button sec:authorize="hasRole('REALM_manage_denoms')" x-show="driftDenoms.length > 0"
+                    class="btn btn-warning btn-outline btn-sm tap" @click="applyBulkCost()" :disabled="applyingCost">
+                <span x-show="applyingCost" class="loading loading-spinner loading-xs"></span>
+                Terapkan drift (<span x-text="driftDenoms.length"></span>)
+            </button>
+            <button sec:authorize="hasRole('REALM_manage_denoms')"
+                    class="btn btn-outline btn-sm tap" @click="openSyncAll()" :disabled="syncing">
+                <span x-show="syncing" class="loading loading-spinner loading-xs"></span> Sync DF
+            </button>
+        </div>
     </div>
 
     <!-- Tab kategori (level 1: primary selector — solid pills) -->
@@ -114,7 +121,7 @@
                         <th class="text-right">
                             Harga Suplier
                             <span x-show="supplierPricesAt" class="block text-[10px] font-normal text-base-content/40"
-                                  x-text="supplierPricesAt ? ('upd ' + new Date(supplierPricesAt).toLocaleDateString('id-ID')) : ''"></span>
+                                  x-text="supplierPricesAt ? ('upd ' + new Date(supplierPricesAt).toLocaleString('id-ID', {day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'})) : ''"></span>
                         </th>
                         <th class="text-center">Sort</th>
                         <th class="text-center">Status</th>
@@ -126,7 +133,7 @@
                         <tr :class="d.deleted ? 'opacity-40' : ''">
                             <td class="font-mono text-xs" x-text="d.code"></td>
                             <td x-text="d.name"></td>
-                            <td><span class="badge badge-outline badge-sm" x-text="catNameOf(d.productId)"></span></td>
+                            <td class="text-base-content/70" x-text="catNameOf(d.productId)"></td>
                             <td x-text="prodNameOf(d.productId)"></td>
                             <td><span class="badge badge-xs"
                                       :class="d.denomType === 'FIXED_DENOM' ? 'badge-info' : 'badge-accent'"
@@ -153,6 +160,10 @@
                             </td>
                             <td class="text-center">
                                 <div class="flex justify-center gap-1">
+                                    <template x-if="canManageDenom && supplierDiffers(d) && !d.deleted">
+                                        <button class="btn btn-warning btn-outline btn-xs tap" @click="applyRowCost(d)" :disabled="applyingCost"
+                                                title="Terapkan Harga Suplier ke Harga Beli">Terapkan</button>
+                                    </template>
                                     <template x-if="canManageDenom">
                                         <button class="btn btn-ghost btn-xs tap" @click="openEditModal(d)" :disabled="d.deleted">Edit</button>
                                     </template>
@@ -480,10 +491,10 @@
     <div class="modal" :class="{ 'modal-open': showSyncModal }">
         <div class="modal-box max-w-2xl">
             <h3 class="font-bold text-lg">Sync Digiflazz</h3>
-            <p class="text-sm text-base-content/60 mt-1">Preview perubahan. Terapkan semua = tambah item baru + update harga (tidak menghapus).</p>
+            <p class="text-sm text-base-content/60 mt-1">Terapkan Semua = tambah item baru + tandai yang hilang. <strong>Harga Beli tidak diubah</strong> — drift harga diterapkan manual di tabel (tombol Terapkan / Terapkan drift).</p>
             <template x-for="grp in [
                 {t:'Kategori baru', k:'newCategories'}, {t:'Produk baru', k:'newProducts'},
-                {t:'Denom baru', k:'newDenoms'}, {t:'Harga berubah', k:'priceChanges'}]" :key="grp.k">
+                {t:'Denom baru', k:'newDenoms'}, {t:'Drift harga (apply di tabel)', k:'priceChanges'}]" :key="grp.k">
               <div class="mt-4" x-show="syncPreview[grp.k] && syncPreview[grp.k].length">
                 <div class="font-semibold text-sm" x-text="grp.t + ' (' + syncPreview[grp.k].length + ')'"></div>
                 <div class="max-h-40 overflow-y-auto mt-1 text-sm text-base-content/70">
@@ -547,6 +558,37 @@
             supplierDiffers(d) {
                 const c = this.supplierCost(d.code);
                 return c != null && d.basePrice != null && Number(c) !== Number(d.basePrice);
+            },
+
+            // ---- apply Harga Suplier -> Harga Beli ----
+            applyingCost: false,
+            get driftDenoms() {
+                return this.filteredDenoms.filter(d => !d.deleted && this.supplierDiffers(d));
+            },
+            async applyRowCost(d) {
+                this.applyingCost = true;
+                try {
+                    const res = await fetch(`/api/admin/catalog/denoms/${d.id}/apply-supplier-cost`, { method: 'POST' });
+                    if (!res.ok) throw new Error();
+                    await this.refreshDenoms();
+                    Alpine.store('toast').success('Harga Beli diperbarui dari suplier');
+                } catch (e) { Alpine.store('toast').error('Gagal menerapkan'); }
+                finally { this.applyingCost = false; }
+            },
+            async applyBulkCost() {
+                const ids = this.driftDenoms.map(d => d.id);
+                if (ids.length === 0) return;
+                this.applyingCost = true;
+                try {
+                    const res = await fetch('/api/admin/catalog/denoms/apply-supplier-cost', {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(ids)
+                    });
+                    if (!res.ok) throw new Error();
+                    const r = await res.json();
+                    await this.refreshDenoms();
+                    Alpine.store('toast').success(`${r.applied} Harga Beli diperbarui dari suplier`);
+                } catch (e) { Alpine.store('toast').error('Gagal menerapkan'); }
+                finally { this.applyingCost = false; }
             },
 
             // ---- category modal ----
