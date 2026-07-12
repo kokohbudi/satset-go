@@ -382,6 +382,7 @@
             },
 
             get filteredDenoms() {
+                if (this.filterUnpriced && this.unpricedCount === 0) this.filterUnpriced = false; // auto-reset: banner+toggle hilang saat count 0
                 let list = this.denoms;
                 if (this.filterUnpriced) list = list.filter(d => !d.deleted && d.price == null);
                 if (!this.searchQuery) return list;
