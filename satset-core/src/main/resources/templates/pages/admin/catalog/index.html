@@ -10,7 +10,8 @@
 
 <body>
 <div layout:fragment="content" x-data="catalogManager()"
-     th:data-can-manage-cat="${#authorization.expression('hasRole(''REALM_manage_catalog'')')}"
+     th:data-can-manage-cat="${#authorization.expression('hasRole(''REALM_manage_categories'')')}"
+     th:data-can-manage-prod="${#authorization.expression('hasRole(''REALM_manage_products'')')}"
      th:data-can-manage-denom="${#authorization.expression('hasRole(''REALM_manage_denoms'')')}">
 
     <!-- Page Header -->
@@ -33,7 +34,7 @@
                         :disabled="c.deleted" @click.stop="openCategoryModal(c)">&#9998;</button>
             </div>
         </template>
-        <button sec:authorize="hasRole('REALM_manage_catalog')" x-show="canManageCat"
+        <button sec:authorize="hasRole('REALM_manage_categories')" x-show="canManageCat"
                 class="btn btn-ghost btn-xs ml-auto tap" @click="openCategoryModal()">+ Kategori</button>
     </div>
 
@@ -45,11 +46,11 @@
             <div role="tab" class="tab gap-1" :class="[activeProduct === p.id ? 'tab-active' : '', p.deleted ? 'opacity-40' : '']">
                 <span class="cursor-pointer" :class="p.deleted ? 'cursor-not-allowed' : ''"
                       @click="!p.deleted && selectProduct(p.id)" x-text="p.name"></span>
-                <button x-show="canManageCat" type="button" class="btn btn-ghost btn-xs px-1" title="Edit produk"
+                <button x-show="canManageProd" type="button" class="btn btn-ghost btn-xs px-1" title="Edit produk"
                         :disabled="p.deleted" @click.stop="openProductModal(p)">&#9998;</button>
             </div>
         </template>
-        <button sec:authorize="hasRole('REALM_manage_catalog')" x-show="canManageCat"
+        <button sec:authorize="hasRole('REALM_manage_products')" x-show="canManageProd"
                 class="btn btn-ghost btn-xs ml-auto tap" @click="openProductModal(activeCategory ? { categoryId: activeCategory } : null)">+ Produk</button>
     </div>
 
@@ -103,10 +104,10 @@
                         <td class="text-center">
                             <div class="flex justify-center gap-1">
                                 <button class="btn btn-ghost btn-xs tap" :disabled="prod.deleted" @click="openProductDenoms(prod)">Denoms</button>
-                                <template x-if="canManageCat">
+                                <template x-if="canManageProd">
                                     <button class="btn btn-ghost btn-xs tap" @click="openProductModal(prod)" :disabled="prod.deleted">Edit</button>
                                 </template>
-                                <template x-if="canManageCat">
+                                <template x-if="canManageProd">
                                     <button class="btn btn-ghost btn-xs text-error tap" @click="confirmDeleteProduct(prod)" :disabled="prod.deleted">Hapus</button>
                                 </template>
                             </div>
@@ -512,6 +513,7 @@
     function catalogManager() {
         return {
             canManageCat:   document.querySelector('[data-can-manage-cat]')?.dataset.canManageCat === 'true',
+            canManageProd:  document.querySelector('[data-can-manage-prod]')?.dataset.canManageProd === 'true',
             canManageDenom: document.querySelector('[data-can-manage-denom]')?.dataset.canManageDenom === 'true',
             categories: INITIAL_CATEGORIES,
             products:   INITIAL_PRODUCTS,
