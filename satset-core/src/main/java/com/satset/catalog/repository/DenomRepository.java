@@ -21,6 +21,9 @@ public interface DenomRepository extends JpaRepository<ProductDenoms, UUID> {
 
     List<ProductDenoms> findAllByOrderBySortOrder();
 
+    /** Semua denom aktif (non-deleted) lintas produk — buat sync batch (1 query, group by productId di memori). */
+    List<ProductDenoms> findByActiveTrueAndDeletedFalseOrderBySortOrder();
+
     boolean existsByCodeAndIdNot(String code, UUID id);
 
     /**

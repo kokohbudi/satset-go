@@ -471,8 +471,7 @@ class DenomDomainServiceTest {
         other.setId(otherId);
         other.setCode("TLKM10");
         other.setPrice(new BigDecimal("10500.00"));
-        when(denomRepository.findById(denomId)).thenReturn(Optional.of(existingDenom));
-        when(denomRepository.findById(otherId)).thenReturn(Optional.of(other));
+        when(denomRepository.findAllById(any())).thenReturn(List.of(existingDenom, other));
         when(denomRepository.save(any(ProductDenoms.class))).thenAnswer(inv -> inv.getArgument(0));
 
         List<PriceUpdateResult> results = denomService.updatePrices(List.of(
@@ -488,8 +487,7 @@ class DenomDomainServiceTest {
     @Test
     void updatePrices_NotFound_ItemError_OthersSucceed() {
         UUID missingId = UUID.randomUUID();
-        when(denomRepository.findById(missingId)).thenReturn(Optional.empty());
-        when(denomRepository.findById(denomId)).thenReturn(Optional.of(existingDenom));
+        when(denomRepository.findAllById(any())).thenReturn(List.of(existingDenom));  // missingId absen
         when(denomRepository.save(any(ProductDenoms.class))).thenAnswer(inv -> inv.getArgument(0));
 
         List<PriceUpdateResult> results = denomService.updatePrices(List.of(
@@ -504,7 +502,7 @@ class DenomDomainServiceTest {
 
     @Test
     void updatePrices_NonPositivePrice_ItemError_NoSave() {
-        when(denomRepository.findById(denomId)).thenReturn(Optional.of(existingDenom));
+        when(denomRepository.findAllById(any())).thenReturn(List.of(existingDenom));
 
         List<PriceUpdateResult> results = denomService.updatePrices(List.of(
                 new BulkPriceUpdateRequest(denomId, new BigDecimal("-1")),
@@ -519,7 +517,7 @@ class DenomDomainServiceTest {
     @Test
     void updatePrices_DeletedDenom_ItemError_NoSave() {
         existingDenom.setDeleted(true);
-        when(denomRepository.findById(denomId)).thenReturn(Optional.of(existingDenom));
+        when(denomRepository.findAllById(any())).thenReturn(List.of(existingDenom));
 
         List<PriceUpdateResult> results = denomService.updatePrices(List.of(
                 new BulkPriceUpdateRequest(denomId, new BigDecimal("6000"))));
@@ -536,7 +534,7 @@ class DenomDomainServiceTest {
 
         assertThat(results.get(0).ok()).isFalse();
         assertThat(results.get(0).error()).isEqualTo("Denom tidak ditemukan");
-        verify(denomRepository, never()).findById(any());
+        verify(denomRepository, never()).findAllById(any());   // null id -> no lookup
     }
 
     @Test
@@ -560,8 +558,7 @@ class DenomDomainServiceTest {
         other.setId(otherId);
         other.setCode("TLKM10");
         other.setName("Telkomsel 10K");
-        when(denomRepository.findById(denomId)).thenReturn(Optional.of(existingDenom));
-        when(denomRepository.findById(otherId)).thenReturn(Optional.of(other));
+        when(denomRepository.findAllById(any())).thenReturn(List.of(existingDenom, other));
         when(denomRepository.save(any(ProductDenoms.class))).thenAnswer(inv -> inv.getArgument(0));
 
         List<PriceUpdateResult> results = denomService.updateNames(List.of(
@@ -577,8 +574,7 @@ class DenomDomainServiceTest {
     @Test
     void updateNames_NotFound_ItemError_OthersSucceed() {
         UUID missingId = UUID.randomUUID();
-        when(denomRepository.findById(missingId)).thenReturn(Optional.empty());
-        when(denomRepository.findById(denomId)).thenReturn(Optional.of(existingDenom));
+        when(denomRepository.findAllById(any())).thenReturn(List.of(existingDenom));  // missingId absen
         when(denomRepository.save(any(ProductDenoms.class))).thenAnswer(inv -> inv.getArgument(0));
 
         List<PriceUpdateResult> results = denomService.updateNames(List.of(
@@ -593,7 +589,7 @@ class DenomDomainServiceTest {
 
     @Test
     void updateNames_BlankName_ItemError_NoSave() {
-        when(denomRepository.findById(denomId)).thenReturn(Optional.of(existingDenom));
+        when(denomRepository.findAllById(any())).thenReturn(List.of(existingDenom));
 
         List<PriceUpdateResult> results = denomService.updateNames(List.of(
                 new BulkNameUpdateRequest(denomId, "   "),
@@ -607,7 +603,7 @@ class DenomDomainServiceTest {
     @Test
     void updateNames_DeletedDenom_ItemError_NoSave() {
         existingDenom.setDeleted(true);
-        when(denomRepository.findById(denomId)).thenReturn(Optional.of(existingDenom));
+        when(denomRepository.findAllById(any())).thenReturn(List.of(existingDenom));
 
         List<PriceUpdateResult> results = denomService.updateNames(List.of(
                 new BulkNameUpdateRequest(denomId, "Telkomsel Baru")));
@@ -624,7 +620,7 @@ class DenomDomainServiceTest {
 
         assertThat(results.get(0).ok()).isFalse();
         assertThat(results.get(0).error()).isEqualTo("Denom tidak ditemukan");
-        verify(denomRepository, never()).findById(any());
+        verify(denomRepository, never()).findAllById(any());   // null id -> no lookup
     }
 
     @Test
@@ -680,5 +676,33 @@ class DenomDomainServiceTest {
         when(denomRepository.save(any(ProductDenoms.class))).thenAnswer(i -> i.getArgument(0));
         denomService.updateCostById(id, new BigDecimal("5450"));
         assertThat(e.getBasePrice()).isEqualByComparingTo("5450");
+    }
+
+    @Test
+    void reconcileSupplierFlags_batch_setsFlagFromPerProductSkuMap() {
+        UUID pid = UUID.randomUUID();
+        ProductDenoms d = new ProductDenoms(); d.setCode("xl5"); d.setProductId(pid); d.setInSupplier(false);
+        ProductDenoms gone = new ProductDenoms(); gone.setCode("old"); gone.setProductId(pid); gone.setInSupplier(true);
+        when(denomRepository.findAllByOrderBySortOrder()).thenReturn(List.of(d, gone));
+
+        int changed = denomService.reconcileSupplierFlags(java.util.Map.of(pid, java.util.Set.of("XL5")));
+
+        assertThat(changed).isEqualTo(2);        // d: false->true, gone: true->false
+        assertThat(d.isInSupplier()).isTrue();
+        assertThat(gone.isInSupplier()).isFalse();
+    }
+
+    @Test
+    void applySupplierCost_batch_setsBasePriceForMatched_skipsUnmatched() {
+        UUID id1 = UUID.randomUUID(), id2 = UUID.randomUUID();
+        ProductDenoms matched = new ProductDenoms(); matched.setId(id1); matched.setCode("tsel5");
+        ProductDenoms nomatch = new ProductDenoms(); nomatch.setId(id2); nomatch.setCode("xxx");
+        when(denomRepository.findAllById(List.of(id1, id2))).thenReturn(List.of(matched, nomatch));
+
+        int applied = denomService.applySupplierCost(List.of(id1, id2), java.util.Map.of("TSEL5", 5000L));
+
+        assertThat(applied).isEqualTo(1);
+        assertThat(matched.getBasePrice()).isEqualByComparingTo("5000");
+        assertThat(nomatch.getBasePrice()).isNull();   // tanpa match DF -> dilewati
     }
 }

@@ -14,14 +14,21 @@ import com.satset.catalog.dto.BulkPriceUpdateRequest;
 import com.satset.catalog.dto.PriceUpdateResult;
 import com.satset.shared.exception.BusinessException;
 import com.satset.shared.exception.ResourceNotFoundException;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 @Transactional(readOnly = true)
@@ -73,6 +80,7 @@ public class DenomDomainService {
     }
 
     @Transactional
+    @CacheEvict(value = "adminActiveDenoms", allEntries = true, cacheManager = "catalogCacheManager")
     public ProductDenoms create(UUID productId, CreateDenomRequest req) throws BusinessException {
         Products product = productRepository.findById(productId)
             .orElseThrow(() -> new ResourceNotFoundException("Product", productId));
@@ -120,6 +128,7 @@ public class DenomDomainService {
     }
 
     @Transactional
+    @CacheEvict(value = "adminActiveDenoms", allEntries = true, cacheManager = "catalogCacheManager")
     public ProductDenoms update(UUID id, UpdateDenomRequest req) throws BusinessException {
         ProductDenoms denom = denomRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Denom", id));
@@ -150,6 +159,7 @@ public class DenomDomainService {
     }
 
     @Transactional
+    @CacheEvict(value = "adminActiveDenoms", allEntries = true, cacheManager = "catalogCacheManager")
     public void softDelete(UUID id) {
         ProductDenoms denom = denomRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Denom", id));
@@ -168,12 +178,22 @@ public class DenomDomainService {
      * UI pertahankan dirty state, user coba lagi.
      */
     @Transactional
+    @CacheEvict(value = "adminActiveDenoms", allEntries = true, cacheManager = "catalogCacheManager")
     public List<PriceUpdateResult> updatePrices(List<BulkPriceUpdateRequest> items) {
+        Map<UUID, ProductDenoms> byId = denomsById(items.stream().map(BulkPriceUpdateRequest::id).toList());
         List<PriceUpdateResult> results = new ArrayList<>(items.size());
         for (BulkPriceUpdateRequest item : items) {
-            results.add(updateSinglePrice(item));
+            results.add(updateSinglePrice(item, byId));
         }
         return results;
+    }
+
+    /** Muat denom target sekali (1 query IN (...)) daripada findById per item. Null id dibuang. */
+    private Map<UUID, ProductDenoms> denomsById(List<UUID> ids) {
+        List<UUID> present = ids.stream().filter(Objects::nonNull).toList();
+        if (present.isEmpty()) return Map.of();
+        return denomRepository.findAllById(present).stream()
+                .collect(Collectors.toMap(ProductDenoms::getId, Function.identity()));
     }
 
     /**
@@ -181,23 +201,24 @@ public class DenomDomainService {
      * Satu transaksi, all-or-nothing. Reuse {@link PriceUpdateResult} sebagai amplop hasil.
      */
     @Transactional
+    @CacheEvict(value = "adminActiveDenoms", allEntries = true, cacheManager = "catalogCacheManager")
     public List<PriceUpdateResult> updateNames(List<BulkNameUpdateRequest> items) {
+        Map<UUID, ProductDenoms> byId = denomsById(items.stream().map(BulkNameUpdateRequest::id).toList());
         List<PriceUpdateResult> results = new ArrayList<>(items.size());
         for (BulkNameUpdateRequest item : items) {
-            results.add(updateSingleName(item));
+            results.add(updateSingleName(item, byId));
         }
         return results;
     }
 
-    private PriceUpdateResult updateSingleName(BulkNameUpdateRequest item) {
+    private PriceUpdateResult updateSingleName(BulkNameUpdateRequest item, Map<UUID, ProductDenoms> byId) {
         if (item.id() == null) {
             return PriceUpdateResult.fail(null, null, "Denom tidak ditemukan");
         }
-        Optional<ProductDenoms> found = denomRepository.findById(item.id());
-        if (found.isEmpty()) {
+        ProductDenoms denom = byId.get(item.id());
+        if (denom == null) {
             return PriceUpdateResult.fail(item.id(), null, "Denom tidak ditemukan");
         }
-        ProductDenoms denom = found.get();
         String name = item.name() == null ? "" : item.name().trim();
         if (name.isEmpty()) {
             return PriceUpdateResult.fail(item.id(), denom.getCode(), "Nama kosong");
@@ -213,15 +234,14 @@ public class DenomDomainService {
         return PriceUpdateResult.ok(item.id(), denom.getCode());
     }
 
-    private PriceUpdateResult updateSinglePrice(BulkPriceUpdateRequest item) {
+    private PriceUpdateResult updateSinglePrice(BulkPriceUpdateRequest item, Map<UUID, ProductDenoms> byId) {
         if (item.id() == null) {
             return PriceUpdateResult.fail(null, null, "Denom tidak ditemukan");
         }
-        Optional<ProductDenoms> found = denomRepository.findById(item.id());
-        if (found.isEmpty()) {
+        ProductDenoms denom = byId.get(item.id());
+        if (denom == null) {
             return PriceUpdateResult.fail(item.id(), null, "Denom tidak ditemukan");
         }
-        ProductDenoms denom = found.get();
         if (item.price() == null || item.price().signum() <= 0) {
             return PriceUpdateResult.fail(item.id(), denom.getCode(), "Harga harus > 0");
         }
@@ -239,7 +259,17 @@ public class DenomDomainService {
         return denomRepository.findByProductIdAndActiveTrueAndDeletedFalseOrderBySortOrder(productId);
     }
 
+    /**
+     * Semua denom aktif lintas produk, buat sync batch (group by productId di memori).
+     * Cached tanpa TTL — evict tiap mutasi denom (lihat {@code @CacheEvict} di method write).
+     */
+    @Cacheable(value = "adminActiveDenoms", cacheManager = "catalogCacheManager")
+    public List<ProductDenoms> findAllActiveForAdmin() {
+        return denomRepository.findByActiveTrueAndDeletedFalseOrderBySortOrder();
+    }
+
     @Transactional
+    @CacheEvict(value = "adminActiveDenoms", allEntries = true, cacheManager = "catalogCacheManager")
     public ProductDenoms createFromSupplier(UUID productId, String sku, String name, BigDecimal cost) {
         // revive kalau code (soft-deleted) sudah ada — hindari UNIQUE violation + biar gak muncul terus di sync
         ProductDenoms d = denomRepository.findByCode(sku).orElseGet(ProductDenoms::new);
@@ -254,6 +284,7 @@ public class DenomDomainService {
     }
 
     @Transactional
+    @CacheEvict(value = "adminActiveDenoms", allEntries = true, cacheManager = "catalogCacheManager")
     public void updateCostById(UUID denomId, BigDecimal cost) {
         ProductDenoms d = denomRepository.findById(denomId)
                 .orElseThrow(() -> new ResourceNotFoundException("Denom", denomId));
@@ -261,13 +292,39 @@ public class DenomDomainService {
         denomRepository.save(d);
     }
 
-    /** Set flag inSupplier tiap denom produk: true kalau code (uppercase) ada di {@code supplierCodesUpper}. */
+    /**
+     * Batch: apply Harga Suplier -> Harga Beli (basePrice) utk denom terpilih dalam 1 transaksi.
+     * Cost by code (uppercase); denom tanpa match dilewati. 1 load ({@code findAllById}), UPDATE
+     * ditunda + di-batch Hibernate saat commit (entity managed) — bukan trip per item.
+     * All-or-nothing: 1 optimistic-lock conflict -> rollback semua (user tinggal ulangi).
+     * @return jumlah denom yang benar-benar di-update.
+     */
     @Transactional
-    public int reconcileSupplierFlags(UUID productId, java.util.Set<String> supplierCodesUpper) {
+    @CacheEvict(value = "adminActiveDenoms", allEntries = true, cacheManager = "catalogCacheManager")
+    public int applySupplierCost(List<UUID> denomIds, Map<String, Long> costByCodeUpper) {
+        int applied = 0;
+        for (ProductDenoms d : denomRepository.findAllById(denomIds)) {
+            Long cost = costByCodeUpper.get(d.getCode().toUpperCase());
+            if (cost == null) continue;
+            d.setBasePrice(BigDecimal.valueOf(cost));   // managed -> dirty-flush di-batch saat commit
+            applied++;
+        }
+        return applied;
+    }
+
+    /**
+     * Batch: set flag inSupplier semua denom aktif dalam 1 load (bukan query per produk).
+     * {@code supplierSkusUpperByProduct}: productId -> set SKU (uppercase) yang ada di supplier.
+     * Denom yang produknya tak ada di map dianggap tak punya SKU supplier (flag false).
+     */
+    @Transactional
+    @CacheEvict(value = "adminActiveDenoms", allEntries = true, cacheManager = "catalogCacheManager")
+    public int reconcileSupplierFlags(Map<UUID, Set<String>> supplierSkusUpperByProduct) {
         int changed = 0;
-        for (ProductDenoms d : denomRepository.findByProductIdOrderBySortOrder(productId)) {
+        for (ProductDenoms d : denomRepository.findAllByOrderBySortOrder()) {
             if (d.isDeleted()) continue;
-            boolean present = supplierCodesUpper.contains(d.getCode().toUpperCase());
+            boolean present = supplierSkusUpperByProduct
+                    .getOrDefault(d.getProductId(), Set.of()).contains(d.getCode().toUpperCase());
             if (d.isInSupplier() != present) { d.setInSupplier(present); denomRepository.save(d); changed++; }
         }
         return changed;

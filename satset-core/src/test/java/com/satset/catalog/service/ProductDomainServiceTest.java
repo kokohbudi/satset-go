@@ -414,8 +414,7 @@ class ProductDomainServiceTest {
         other.setId(otherId);
         other.setCode("XL");
         other.setName("XL");
-        when(productRepository.findById(productId)).thenReturn(Optional.of(existingProduct));
-        when(productRepository.findById(otherId)).thenReturn(Optional.of(other));
+        when(productRepository.findAllById(any())).thenReturn(List.of(existingProduct, other));
         when(productRepository.save(any(Products.class))).thenAnswer(inv -> inv.getArgument(0));
 
         List<PriceUpdateResult> results = productService.updateNames(List.of(
@@ -431,8 +430,7 @@ class ProductDomainServiceTest {
     @Test
     void updateNames_NotFound_ItemError_OthersSucceed() {
         UUID missingId = UUID.randomUUID();
-        when(productRepository.findById(missingId)).thenReturn(Optional.empty());
-        when(productRepository.findById(productId)).thenReturn(Optional.of(existingProduct));
+        when(productRepository.findAllById(any())).thenReturn(List.of(existingProduct));  // missingId absen
         when(productRepository.save(any(Products.class))).thenAnswer(inv -> inv.getArgument(0));
 
         List<PriceUpdateResult> results = productService.updateNames(List.of(
@@ -447,7 +445,7 @@ class ProductDomainServiceTest {
 
     @Test
     void updateNames_BlankName_ItemError_NoSave() {
-        when(productRepository.findById(productId)).thenReturn(Optional.of(existingProduct));
+        when(productRepository.findAllById(any())).thenReturn(List.of(existingProduct));
 
         List<PriceUpdateResult> results = productService.updateNames(List.of(
                 new BulkNameUpdateRequest(productId, "   "),
@@ -461,7 +459,7 @@ class ProductDomainServiceTest {
     @Test
     void updateNames_DeletedProduct_ItemError_NoSave() {
         existingProduct.setDeleted(true);
-        when(productRepository.findById(productId)).thenReturn(Optional.of(existingProduct));
+        when(productRepository.findAllById(any())).thenReturn(List.of(existingProduct));
 
         List<PriceUpdateResult> results = productService.updateNames(List.of(
                 new BulkNameUpdateRequest(productId, "Telkomsel Baru")));
@@ -478,7 +476,7 @@ class ProductDomainServiceTest {
 
         assertFalse(results.get(0).ok());
         assertEquals("Produk tidak ditemukan", results.get(0).error());
-        verify(productRepository, never()).findById(any());
+        verify(productRepository, never()).findAllById(any());   // null id -> no lookup
     }
 
     @Test
@@ -491,5 +489,19 @@ class ProductDomainServiceTest {
 
         org.assertj.core.api.Assertions.assertThat(tx).isNotNull();
         org.assertj.core.api.Assertions.assertThat(tx.readOnly()).isFalse();
+    }
+
+    @Test
+    void reconcileSupplierFlags_batch_flagsPresentByCategory() {
+        UUID catId = UUID.randomUUID();
+        Products present = new Products(); present.setCode("XL"); present.setCategoryId(catId); present.setInSupplier(false);
+        Products absent = new Products(); absent.setCode("OLD"); absent.setCategoryId(catId); absent.setInSupplier(true);
+        when(productRepository.findByDeletedFalseOrderBySortOrder()).thenReturn(List.of(present, absent));
+
+        int changed = productService.reconcileSupplierFlags(java.util.Map.of(catId, java.util.Set.of("XL")));
+
+        org.assertj.core.api.Assertions.assertThat(changed).isEqualTo(2);
+        org.assertj.core.api.Assertions.assertThat(present.isInSupplier()).isTrue();
+        org.assertj.core.api.Assertions.assertThat(absent.isInSupplier()).isFalse();
     }
 }
