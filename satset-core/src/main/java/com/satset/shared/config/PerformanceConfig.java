@@ -69,6 +69,24 @@ public class PerformanceConfig {
         }
 
         /**
+         * Cache katalog admin TANPA TTL — valid selama tidak ada perubahan.
+         * Di-evict eksplisit tiap mutasi katalog (manual CRUD atau sync supplier), jadi tidak
+         * pernah stale tanpa harus expire by time. List admin kecil (1 key/cache) jadi murah.
+         * Used for: adminCategories, adminProducts, adminActiveDenoms
+         */
+        @Bean
+        public CacheManager catalogCacheManager() {
+                CaffeineCacheManager cacheManager = new CaffeineCacheManager(
+                                "adminCategories",
+                                "adminProducts",
+                                "adminActiveDenoms");
+                cacheManager.setCaffeine(Caffeine.newBuilder()
+                                .maximumSize(100)
+                                .recordStats());   // NO expireAfterWrite — evict-on-change only
+                return cacheManager;
+        }
+
+        /**
          * Standard cache manager untuk data yang jarang berubah.
          * TTL: 30 menit, Max size: 2000 entries.
          * Used for: categoriesAll, categoriesByType, products

@@ -50,6 +50,8 @@ public class CategoryDomainService {
 
     // === Manage (admin CRUD) ===
 
+    /** Semua kategori (incl. deleted) buat admin + sync batch. Cached tanpa TTL — evict tiap mutasi kategori. */
+    @Cacheable(value = "adminCategories", cacheManager = "catalogCacheManager")
     public List<Category> findAllForAdmin() {
         return categoryRepository.findAllByOrderBySortOrder();
     }
@@ -61,7 +63,8 @@ public class CategoryDomainService {
     @Transactional
     @Caching(evict = {
         @CacheEvict(value = "categoriesAll", allEntries = true, cacheManager = "standardCacheManager"),
-        @CacheEvict(value = "categoriesByType", allEntries = true, cacheManager = "standardCacheManager")
+        @CacheEvict(value = "categoriesByType", allEntries = true, cacheManager = "standardCacheManager"),
+        @CacheEvict(value = "adminCategories", allEntries = true, cacheManager = "catalogCacheManager")
     })
     public Category create(CreateCategoryRequest req) throws BusinessException {
         if (categoryRepository.findByCode(req.code().toUpperCase().trim()).isPresent()) {
@@ -81,7 +84,8 @@ public class CategoryDomainService {
     @Transactional
     @Caching(evict = {
         @CacheEvict(value = "categoriesAll", allEntries = true, cacheManager = "standardCacheManager"),
-        @CacheEvict(value = "categoriesByType", allEntries = true, cacheManager = "standardCacheManager")
+        @CacheEvict(value = "categoriesByType", allEntries = true, cacheManager = "standardCacheManager"),
+        @CacheEvict(value = "adminCategories", allEntries = true, cacheManager = "catalogCacheManager")
     })
     public Category update(UUID id, UpdateCategoryRequest req) throws BusinessException {
         Category cat = categoryRepository.findById(id)
@@ -101,7 +105,8 @@ public class CategoryDomainService {
     @Transactional
     @Caching(evict = {
         @CacheEvict(value = "categoriesAll", allEntries = true, cacheManager = "standardCacheManager"),
-        @CacheEvict(value = "categoriesByType", allEntries = true, cacheManager = "standardCacheManager")
+        @CacheEvict(value = "categoriesByType", allEntries = true, cacheManager = "standardCacheManager"),
+        @CacheEvict(value = "adminCategories", allEntries = true, cacheManager = "catalogCacheManager")
     })
     public Category findOrCreateByName(String dfName) {
         String code = CatalogCodeUtil.toCode(dfName);
@@ -125,7 +130,8 @@ public class CategoryDomainService {
     @Transactional
     @Caching(evict = {
         @CacheEvict(value = "categoriesAll", allEntries = true, cacheManager = "standardCacheManager"),
-        @CacheEvict(value = "categoriesByType", allEntries = true, cacheManager = "standardCacheManager")
+        @CacheEvict(value = "categoriesByType", allEntries = true, cacheManager = "standardCacheManager"),
+        @CacheEvict(value = "adminCategories", allEntries = true, cacheManager = "catalogCacheManager")
     })
     public int reconcileSupplierFlags(Set<String> supplierCodes) {
         int changed = 0;
@@ -140,7 +146,8 @@ public class CategoryDomainService {
     @Transactional
     @Caching(evict = {
         @CacheEvict(value = "categoriesAll", allEntries = true, cacheManager = "standardCacheManager"),
-        @CacheEvict(value = "categoriesByType", allEntries = true, cacheManager = "standardCacheManager")
+        @CacheEvict(value = "categoriesByType", allEntries = true, cacheManager = "standardCacheManager"),
+        @CacheEvict(value = "adminCategories", allEntries = true, cacheManager = "catalogCacheManager")
     })
     public void softDelete(UUID id) throws BusinessException {
         Category cat = categoryRepository.findById(id)

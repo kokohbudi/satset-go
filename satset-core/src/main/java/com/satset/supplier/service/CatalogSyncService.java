@@ -21,6 +21,7 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -139,50 +140,70 @@ public class CatalogSyncService {
      */
     public SyncResult syncAll() {
         // pakai snapshot cache (hormati rate-limit DF 5 jam); Harga Suplier refresh natural saat cache expire
-        List<PriceListItem> pl = digiflazz.fetchSnapshot().items();
+        DfIndex df = indexDf(digiflazz.fetchSnapshot().items());
 
-        // --- kategori: tambah yang baru, set flag ---
-        List<String> catAdds = previewCategories().stream()
-                .filter(i -> i.action() == SyncAction.ADD).map(SyncPreviewItem::key).toList();
-        SyncResult catRes = applyCategories(catAdds);
-        Set<String> dfCatCodes = pl.stream()
-                .map(i -> CatalogCodeUtil.toCode(i.category())).collect(Collectors.toSet());
-        categoryService.reconcileSupplierFlags(dfCatCodes);
+        // --- muat sekali (list admin di-cache tanpa TTL, evict tiap mutasi) ---
+        Map<UUID, Category> catsById = new LinkedHashMap<>();
+        for (Category c : categoryService.findAllForAdmin()) catsById.put(c.getId(), c);
+        Map<UUID, List<Products>> prodsByCat = groupProductsByCategory(productService.findAllForAdmin());
+        Map<UUID, List<ProductDenoms>> denomsByProduct = groupDenomsByProduct(denomService.findAllActiveForAdmin());
 
-        int added = catRes.added(), updated = 0, failed = catRes.failed();
+        int added = 0, failed = 0;
 
-        for (Category c : categoryService.findAllForAdmin()) {
+        // --- kategori: tambah yang baru ---
+        for (SyncPreviewItem it : previewCategories()) {
+            if (it.action() != SyncAction.ADD) continue;
+            try { Category nc = categoryService.findOrCreateByName(it.key()); catsById.put(nc.getId(), nc); added++; }
+            catch (Exception e) { log.error("syncAll tambah kategori {} gagal", it.label(), e); failed++; }
+        }
+
+        Map<UUID, Set<String>> prodFlagByCat = new HashMap<>();
+        Map<UUID, Set<String>> denomFlagByProduct = new HashMap<>();
+
+        for (Category c : catsById.values()) {
             if (c.isDeleted()) continue;
-            UUID catId = c.getId();
+            String catCode = c.getCode();
+            Set<String> dfBrands = df.brandsByCat().getOrDefault(catCode, Set.of());
+            prodFlagByCat.put(c.getId(), dfBrands);
+            List<Products> catalog = prodsByCat.computeIfAbsent(c.getId(), k -> new ArrayList<>());
 
-            // --- produk: tambah baru, set flag ---
-            List<String> prodAdds = previewProducts(catId).stream()
-                    .filter(i -> i.action() == SyncAction.ADD).map(SyncPreviewItem::key).toList();
-            SyncResult pr = applyProducts(catId, prodAdds);
-            added += pr.added(); failed += pr.failed();
-            Set<String> dfBrandCodes = pl.stream()
-                    .filter(i -> CatalogCodeUtil.toCode(i.category()).equals(c.getCode()))
-                    .map(i -> CatalogCodeUtil.toCode(i.brand())).collect(Collectors.toSet());
-            productService.reconcileSupplierFlags(catId, dfBrandCodes);
+            // --- produk: tambah brand DF yang belum ada (aktif) di katalog ---
+            Set<String> activeCodes = catalog.stream().filter(p -> p.isActive() && !p.isDeleted())
+                    .map(Products::getCode).collect(Collectors.toSet());
+            for (String brandCode : dfBrands) {
+                if (activeCodes.contains(brandCode)) continue;
+                try {
+                    Products np = productService.findOrCreateByBrand(df.brandName().get(catCode + "|" + brandCode), c.getId());
+                    catalog.add(np); added++;
+                } catch (Exception e) { log.error("syncAll tambah produk {} gagal", brandCode, e); failed++; }
+            }
 
-            // --- denom per produk: tambah denom BARU saja + set flag (HILANG tak dihapus).
+            // --- denom per produk: tambah denom BARU saja + kumpulkan flag (HILANG tak dihapus).
             //     Harga Beli (basePrice) denom existing TIDAK ditimpa — drift ditampilkan di tabel,
             //     admin apply Harga Suplier -> Harga Beli sendiri (per-row / bulk). ---
-            for (Products p : productService.findByCategoryForAdmin(catId)) {
+            for (Products p : catalog) {
                 if (p.isDeleted()) continue;
-                List<PriceCompareRow> rows = reconcileForProduct(p.getId());
-                List<String> skus = rows.stream()
-                        .filter(r -> r.status() == CompareStatus.BARU)
-                        .map(PriceCompareRow::buyerSku).toList();
-                SyncResult dr = applyDenoms(p.getId(), skus);
-                added += dr.added(); updated += dr.updated(); failed += dr.failed();
-                Set<String> dfSkuUpper = rows.stream()
+                List<PriceListItem> dfItems = df.byCatBrand().getOrDefault(catCode + "|" + p.getCode(), List.of());
+                if (dfItems.isEmpty()) continue;   // brand tak match DF -> jangan mass-deactivate
+                List<PriceCompareRow> rows = compareRows(p, dfItems,
+                        denomsByProduct.getOrDefault(p.getId(), List.of()));
+                for (PriceCompareRow r : rows) {
+                    if (r.status() != CompareStatus.BARU) continue;
+                    try { denomService.createFromSupplier(p.getId(), r.buyerSku(), r.productName(), r.dfCost()); added++; }
+                    catch (Exception e) { log.error("syncAll tambah denom {} gagal", r.buyerSku(), e); failed++; }
+                }
+                denomFlagByProduct.put(p.getId(), rows.stream()
                         .filter(r -> r.status() != CompareStatus.HILANG)
-                        .map(r -> r.buyerSku().toUpperCase()).collect(Collectors.toSet());
-                denomService.reconcileSupplierFlags(p.getId(), dfSkuUpper);
+                        .map(r -> r.buyerSku().toUpperCase()).collect(Collectors.toSet()));
             }
         }
-        return new SyncResult(added, updated, 0, 0, failed);
+
+        // --- set flag inSupplier sekali per level (batch, bukan query per item) ---
+        categoryService.reconcileSupplierFlags(df.catCodes());
+        productService.reconcileSupplierFlags(prodFlagByCat);
+        denomService.reconcileSupplierFlags(denomFlagByProduct);
+
+        return new SyncResult(added, 0, 0, 0, failed);
     }
 
     /**
@@ -191,6 +212,11 @@ public class CatalogSyncService {
      * kalau katalog membengkak & terasa lambat, cache pricelist di memori sekali per run.
      */
     public SyncAllPreview syncAllPreview() {
+        DfIndex df = indexDf(digiflazz.fetchSnapshot().items());
+
+        Map<UUID, List<Products>> prodsByCat = groupProductsByCategory(productService.findAllForAdmin());
+        Map<UUID, List<ProductDenoms>> denomsByProduct = groupDenomsByProduct(denomService.findAllActiveForAdmin());
+
         List<String> newCategories = previewCategories().stream()
                 .filter(i -> i.action() == SyncAction.ADD)
                 .map(SyncPreviewItem::label).toList();
@@ -200,12 +226,19 @@ public class CatalogSyncService {
         List<String> priceChanges = new ArrayList<>();
         for (Category c : categoryService.findAllForAdmin()) {
             if (c.isDeleted()) continue;
-            previewProducts(c.getId()).stream()
-                    .filter(i -> i.action() == SyncAction.ADD)
-                    .forEach(i -> newProducts.add(c.getName() + " / " + i.label()));
-            for (Products p : productService.findByCategoryForAdmin(c.getId())) {
+            String catCode = c.getCode();
+            List<Products> catalog = prodsByCat.getOrDefault(c.getId(), List.of());
+            Set<String> activeCodes = catalog.stream().filter(p -> p.isActive() && !p.isDeleted())
+                    .map(Products::getCode).collect(Collectors.toSet());
+            for (String brandCode : df.brandsByCat().getOrDefault(catCode, Set.of())) {
+                if (!activeCodes.contains(brandCode))
+                    newProducts.add(c.getName() + " / " + df.brandName().get(catCode + "|" + brandCode));
+            }
+            for (Products p : catalog) {
                 if (p.isDeleted()) continue;
-                for (PriceCompareRow r : reconcileForProduct(p.getId())) {
+                List<PriceListItem> dfItems = df.byCatBrand().getOrDefault(catCode + "|" + p.getCode(), List.of());
+                if (dfItems.isEmpty()) continue;
+                for (PriceCompareRow r : compareRows(p, dfItems, denomsByProduct.getOrDefault(p.getId(), List.of()))) {
                     if (r.status() == CompareStatus.BARU) newDenoms.add(p.getName() + " / " + r.productName());
                     else if (r.status() == CompareStatus.NAIK || r.status() == CompareStatus.TURUN)
                         priceChanges.add(p.getName() + " / " + r.buyerSku());
@@ -233,29 +266,37 @@ public class CatalogSyncService {
         return new SyncResult(added, updated, deleted, skipped, failed);
     }
 
-    /** Banding harga beli denom produk vs DF (buat kolom delta di halaman denom). */
+    /** Banding harga beli denom produk vs DF (buat kolom delta di halaman denom). Single-item: muat per id. */
     public List<PriceCompareRow> reconcileForProduct(UUID productId) {
         Products product = productService.findById(productId)
                 .orElseThrow(() -> new ResourceNotFoundException("Product", productId));
-        String productCode = product.getCode();
         String catCode = categoryService.findById(product.getCategoryId())
                 .map(Category::getCode).orElse(null);
         if (catCode == null) return List.of();
-
-        // SKU DF utk brand produk ini DI KATEGORI INI (dedup by sku, harga terendah)
-        Map<String, PriceListItem> uniq = new LinkedHashMap<>();
+        List<PriceListItem> dfItems = new ArrayList<>();
         for (PriceListItem it : digiflazz.fetchSnapshot().items()) {
-            if (!CatalogCodeUtil.toCode(it.brand()).equals(productCode)) continue;
-            if (!CatalogCodeUtil.toCode(it.category()).equals(catCode)) continue;
+            if (CatalogCodeUtil.toCode(it.brand()).equals(product.getCode())
+                    && CatalogCodeUtil.toCode(it.category()).equals(catCode)) dfItems.add(it);
+        }
+        // guard — brand tak match DF sama sekali -> jangan mass-deactivate; produk ini bukan produk DF.
+        if (dfItems.isEmpty()) return List.of();
+        return compareRows(product, dfItems, denomService.findActiveByProductId(productId));
+    }
+
+    /**
+     * Compare murni (tanpa DB): DF item utk brand+kategori produk ini (sudah difilter) vs denom aktif.
+     * Dipakai single-item {@link #reconcileForProduct} maupun batch {@link #syncAll}/{@link #syncAllPreview}.
+     */
+    private List<PriceCompareRow> compareRows(Products product, List<PriceListItem> dfForBrandCat,
+                                              List<ProductDenoms> activeDenoms) {
+        // dedup by sku, harga terendah menang
+        Map<String, PriceListItem> uniq = new LinkedHashMap<>();
+        for (PriceListItem it : dfForBrandCat) {
             uniq.merge(it.buyerSkuCode().toUpperCase(), it, (a, b) -> a.price() <= b.price() ? a : b);
         }
-        // guard — brand tak match DF sama sekali -> jangan mass-deactivate; produk ini
-        // dianggap bukan produk DF.
         if (uniq.isEmpty()) return List.of();
-
-        Map<String, ProductDenoms> byCode = denomService.findActiveByProductId(productId).stream()
+        Map<String, ProductDenoms> byCode = activeDenoms.stream()
                 .collect(Collectors.toMap(d -> d.getCode().toUpperCase(), Function.identity(), (a, b) -> a));
-
         List<PriceCompareRow> rows = new ArrayList<>();
         Set<String> matched = new HashSet<>();
         for (PriceListItem it : uniq.values()) {
@@ -288,6 +329,45 @@ public class CatalogSyncService {
         return rows;
     }
 
+    // ===== Index DF snapshot sekali (in-memory), biar sync tak walk snapshot per item =====
+
+    /**
+     * @param catCodes    set code kategori DF (buat flag kategori)
+     * @param brandsByCat catCode -> set code brand DF (buat deteksi produk baru + flag)
+     * @param byCatBrand  "catCode|brandCode" -> DF item (buat compare denom)
+     * @param brandName   "catCode|brandCode" -> nama brand DF asli (first-seen, buat label produk baru)
+     */
+    private record DfIndex(Set<String> catCodes, Map<String, Set<String>> brandsByCat,
+                           Map<String, List<PriceListItem>> byCatBrand, Map<String, String> brandName) {}
+
+    private static DfIndex indexDf(List<PriceListItem> items) {
+        Set<String> catCodes = new HashSet<>();
+        Map<String, Set<String>> brandsByCat = new HashMap<>();
+        Map<String, List<PriceListItem>> byCatBrand = new HashMap<>();
+        Map<String, String> brandName = new HashMap<>();
+        for (PriceListItem it : items) {
+            String cc = CatalogCodeUtil.toCode(it.category());
+            String bc = CatalogCodeUtil.toCode(it.brand());
+            String key = cc + "|" + bc;
+            catCodes.add(cc);
+            brandsByCat.computeIfAbsent(cc, k -> new HashSet<>()).add(bc);
+            byCatBrand.computeIfAbsent(key, k -> new ArrayList<>()).add(it);
+            brandName.putIfAbsent(key, it.brand());
+        }
+        return new DfIndex(catCodes, brandsByCat, byCatBrand, brandName);
+    }
+
+    private static Map<UUID, List<Products>> groupProductsByCategory(List<Products> products) {
+        Map<UUID, List<Products>> byCat = new LinkedHashMap<>();
+        for (Products p : products) byCat.computeIfAbsent(p.getCategoryId(), k -> new ArrayList<>()).add(p);
+        return byCat;
+    }
+
+    private static Map<UUID, List<ProductDenoms>> groupDenomsByProduct(List<ProductDenoms> denoms) {
+        // read-only downstream (tak pernah di-mutate) -> groupingBy aman
+        return denoms.stream().collect(Collectors.groupingBy(ProductDenoms::getProductId));
+    }
+
     // ===== Supplier prices (global SKU->cheapest cost map, for admin Harga Suplier column) =====
 
     /** Global SKU(upper) -> cheapest DF cost, from the cached snapshot (no forced fetch). */
@@ -306,20 +386,7 @@ public class CatalogSyncService {
      * @return jumlah denom yang benar-benar di-update.
      */
     public int applySupplierCostBulk(List<UUID> denomIds) {
-        Map<String, Long> prices = supplierPrices().prices();
-        int applied = 0;
-        for (UUID id : denomIds) {
-            var od = denomService.findById(id);
-            if (od.isEmpty()) continue;
-            Long cost = prices.get(od.get().getCode().toUpperCase());
-            if (cost == null) continue;
-            try {
-                denomService.updateCostById(id, BigDecimal.valueOf(cost));
-                applied++;
-            } catch (Exception e) {
-                log.error("applySupplierCost gagal utk denom {}", id, e);
-            }
-        }
-        return applied;
+        // batch di domain service: 1 load + write di-batch (bukan findById+updateCostById per item)
+        return denomService.applySupplierCost(denomIds, supplierPrices().prices());
     }
 }

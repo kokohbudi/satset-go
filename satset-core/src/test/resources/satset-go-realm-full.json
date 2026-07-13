@@ -562,7 +562,6 @@
       "clientAuthenticatorType": "client-secret",
       "secret": "DK7FlkfgrBrRbKEBNMhJuS3ta8oolUcj",
       "redirectUris": [
-        "http://localhost:8080/*",
         "http://localhost:8080/login/oauth2/code/keycloak"
       ],
       "webOrigins": [

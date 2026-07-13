@@ -191,19 +191,16 @@ class CatalogSyncServiceTest {
         assertThat(r.added()).isZero();
     }
 
-    // ---- syncAll: tambah + update + set flag, TANPA delete ----
+    // ---- syncAll: tambah + set flag, TANPA delete; batch load (no query per item) ----
     @Test void syncAll_addsDenom_setsFlags_neverDeletes() throws Exception {
         UUID catId = UUID.randomUUID(), pid = UUID.randomUUID();
         Category pulsa = new Category(); pulsa.setId(catId); pulsa.setCode("PULSA"); pulsa.setName("Pulsa");
-        Products xl = new Products(); xl.setId(pid); xl.setCode("XL"); xl.setName("XL"); xl.setCategoryId(catId);
+        Products xl = new Products(); xl.setId(pid); xl.setCode("XL"); xl.setName("XL"); xl.setCategoryId(catId); xl.setActive(true);
 
         when(digiflazz.fetchSnapshot()).thenReturn(new PriceListSnapshot(List.of(df("xl5","XL 5K","XL",5000)), LocalDateTime.now()));
         when(categoryService.findAllForAdmin()).thenReturn(List.of(pulsa));
-        when(categoryService.findById(catId)).thenReturn(Optional.of(pulsa));
-        when(productService.findByCategoryForAdmin(catId)).thenReturn(List.of(xl));
-        when(productService.findByCategoryAndCode("PULSA", "XL")).thenReturn(Optional.of(xl));
-        when(productService.findById(pid)).thenReturn(Optional.of(xl));
-        when(denomService.findActiveByProductId(pid)).thenReturn(List.of());  // denom baru → BARU
+        when(productService.findAllForAdmin()).thenReturn(List.of(xl));
+        when(denomService.findAllActiveForAdmin()).thenReturn(List.of());  // denom baru → BARU
 
         SyncResult r = service().syncAll();
 
@@ -211,8 +208,12 @@ class CatalogSyncServiceTest {
         assertThat(r.added()).isEqualTo(1);
         assertThat(r.deleted()).isZero();
         verify(categoryService).reconcileSupplierFlags(argThat(s -> s.contains("PULSA")));
-        verify(productService).reconcileSupplierFlags(eq(catId), argThat(s -> s.contains("XL")));
-        verify(denomService).reconcileSupplierFlags(eq(pid), argThat(s -> s.contains("XL5")));
+        verify(productService).reconcileSupplierFlags(argThat(m -> m.getOrDefault(catId, java.util.Set.of()).contains("XL")));
+        verify(denomService).reconcileSupplierFlags(argThat(m -> m.getOrDefault(pid, java.util.Set.of()).contains("XL5")));
+        // batch: NO per-item DB round-trip di dalam loop
+        verify(productService, never()).findByCategoryForAdmin(any());
+        verify(denomService, never()).findActiveByProductId(any());
+        verify(productService, never()).findById(any());
         verify(categoryService, never()).softDelete(any());
         verify(productService, never()).softDelete(any());
         verify(denomService, never()).softDelete(any());
@@ -222,16 +223,14 @@ class CatalogSyncServiceTest {
     @Test void syncAll_existingDenomPriceDrift_doesNotOverwriteBasePrice() throws Exception {
         UUID catId = UUID.randomUUID(), pid = UUID.randomUUID();
         Category pulsa = new Category(); pulsa.setId(catId); pulsa.setCode("PULSA"); pulsa.setName("Pulsa");
-        Products xl = new Products(); xl.setId(pid); xl.setCode("XL"); xl.setName("XL"); xl.setCategoryId(catId);
-        ProductDenoms existing = denom("xl5", BigDecimal.valueOf(5000)); existing.setId(UUID.randomUUID());
+        Products xl = new Products(); xl.setId(pid); xl.setCode("XL"); xl.setName("XL"); xl.setCategoryId(catId); xl.setActive(true);
+        ProductDenoms existing = denom("xl5", BigDecimal.valueOf(5000)); existing.setId(UUID.randomUUID()); existing.setProductId(pid);
 
         // DF harga 6000 vs basePrice 5000 -> NAIK (drift), bukan BARU
         when(digiflazz.fetchSnapshot()).thenReturn(new PriceListSnapshot(List.of(df("xl5","XL 5K","XL",6000)), LocalDateTime.now()));
         when(categoryService.findAllForAdmin()).thenReturn(List.of(pulsa));
-        when(categoryService.findById(catId)).thenReturn(Optional.of(pulsa));
-        when(productService.findByCategoryForAdmin(catId)).thenReturn(List.of(xl));
-        when(productService.findById(pid)).thenReturn(Optional.of(xl));
-        when(denomService.findActiveByProductId(pid)).thenReturn(List.of(existing));
+        when(productService.findAllForAdmin()).thenReturn(List.of(xl));
+        when(denomService.findAllActiveForAdmin()).thenReturn(List.of(existing));
 
         service().syncAll();
 
@@ -239,29 +238,18 @@ class CatalogSyncServiceTest {
         verify(denomService, never()).createFromSupplier(any(), any(), any(), any());  // bukan denom baru
     }
 
-    // ---- applySupplierCostBulk: Harga Suplier -> Harga Beli utk denom terpilih ----
-    @Test void applySupplierCostBulk_setsBasePriceFromDfCost() {
+    // ---- applySupplierCostBulk: delegasi ke batch domain service (1 load + write batch) ----
+    @Test void applySupplierCostBulk_delegatesToBatchWithSnapshotPrices() {
         UUID id = UUID.randomUUID();
-        ProductDenoms d = denom("tsel5", BigDecimal.ONE); d.setId(id);
         when(digiflazz.fetchSnapshot()).thenReturn(new PriceListSnapshot(List.of(df("tsel5","Tsel 5K","TELKOMSEL",5000)), LocalDateTime.now()));
-        when(denomService.findById(id)).thenReturn(Optional.of(d));
+        when(denomService.applySupplierCost(any(), any())).thenReturn(1);
 
         int applied = service().applySupplierCostBulk(List.of(id));
 
         assertThat(applied).isEqualTo(1);
-        verify(denomService).updateCostById(id, BigDecimal.valueOf(5000));
-    }
-
-    @Test void applySupplierCostBulk_skipsDenomWithoutDfMatch() {
-        UUID id = UUID.randomUUID();
-        ProductDenoms d = denom("nomatch", BigDecimal.ONE); d.setId(id);
-        when(digiflazz.fetchSnapshot()).thenReturn(new PriceListSnapshot(List.of(df("tsel5","Tsel 5K","TELKOMSEL",5000)), LocalDateTime.now()));
-        when(denomService.findById(id)).thenReturn(Optional.of(d));
-
-        int applied = service().applySupplierCostBulk(List.of(id));
-
-        assertThat(applied).isZero();
-        verify(denomService, never()).updateCostById(any(), any());
+        // prices map dari snapshot (SKU upper -> cheapest cost) diteruskan apa adanya
+        verify(denomService).applySupplierCost(eq(List.of(id)),
+                argThat(m -> Long.valueOf(5000L).equals(m.get("TSEL5"))));
     }
 
     // ---- syncAllPreview: read-only aggregate summary of what syncAll() would change ----
@@ -270,6 +258,8 @@ class CatalogSyncServiceTest {
         when(digiflazz.fetchSnapshot()).thenReturn(new PriceListSnapshot(List.of(
                 new PriceListItem("Tsel 5rb", "Pulsa", "Telkomsel", "tsel5", 5000L, true, "ok", "S")), LocalDateTime.now()));
         when(categoryService.findAllForAdmin()).thenReturn(List.of()); // nothing yet
+        when(productService.findAllForAdmin()).thenReturn(List.of());
+        when(denomService.findAllActiveForAdmin()).thenReturn(List.of());
 
         SyncAllPreview p = service().syncAllPreview();
 
@@ -280,7 +270,8 @@ class CatalogSyncServiceTest {
         UUID catId = UUID.randomUUID();
         UUID pid = UUID.randomUUID();
         Category pulsa = new Category(); pulsa.setId(catId); pulsa.setCode("PULSA"); pulsa.setName("Pulsa");
-        Products tsel = new Products(); tsel.setId(pid); tsel.setCode("TELKOMSEL"); tsel.setName("Telkomsel"); tsel.setCategoryId(catId);
+        Products tsel = new Products(); tsel.setId(pid); tsel.setCode("TELKOMSEL"); tsel.setName("Telkomsel"); tsel.setCategoryId(catId); tsel.setActive(true);
+        ProductDenoms tsel10 = denom("TSEL10", new BigDecimal("10000")); tsel10.setProductId(pid);
 
         when(digiflazz.fetchSnapshot()).thenReturn(new PriceListSnapshot(List.of(
                 df("xl1", "XL 1K", "XL", 1000),              // new product: brand XL not yet in catalog
@@ -288,12 +279,8 @@ class CatalogSyncServiceTest {
                 df("tsel10", "Tsel 10K", "TELKOMSEL", 10500) // price change (NAIK): db has 10000
         ), LocalDateTime.now()));
         when(categoryService.findAllForAdmin()).thenReturn(List.of(pulsa));
-        when(categoryService.findById(catId)).thenReturn(Optional.of(pulsa));
-        when(productService.findByCategoryForAdmin(catId)).thenReturn(List.of(tsel));
-        when(productService.findByCategoryAndCode("PULSA", "XL")).thenReturn(Optional.empty());
-        when(productService.findByCategoryAndCode("PULSA", "TELKOMSEL")).thenReturn(Optional.of(tsel));
-        when(productService.findById(pid)).thenReturn(Optional.of(tsel));
-        when(denomService.findActiveByProductId(pid)).thenReturn(List.of(denom("TSEL10", new BigDecimal("10000"))));
+        when(productService.findAllForAdmin()).thenReturn(List.of(tsel));
+        when(denomService.findAllActiveForAdmin()).thenReturn(List.of(tsel10));
 
         SyncAllPreview p = service().syncAllPreview();
 

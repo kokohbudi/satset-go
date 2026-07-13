@@ -14,13 +14,19 @@ import com.satset.shared.exception.BusinessException;
 import com.satset.shared.exception.ResourceNotFoundException;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 @Transactional(readOnly = true)
@@ -66,6 +72,8 @@ public class ProductDomainService {
         return productRepository.findByCategoryIdOrderBySortOrder(categoryId);
     }
 
+    /** Semua produk hidup, buat sync batch + tabel admin. Cached tanpa TTL — evict tiap mutasi produk. */
+    @Cacheable(value = "adminProducts", cacheManager = "catalogCacheManager")
     public List<Products> findAllForAdmin() {
         return productRepository.findByDeletedFalseOrderBySortOrder();
     }
@@ -75,7 +83,10 @@ public class ProductDomainService {
     }
 
     @Transactional
-    @CacheEvict(value = "products", allEntries = true, cacheManager = "standardCacheManager")
+    @Caching(evict = {
+        @CacheEvict(value = "products", allEntries = true, cacheManager = "standardCacheManager"),
+        @CacheEvict(value = "adminProducts", allEntries = true, cacheManager = "catalogCacheManager")
+    })
     public Products create(CreateProductRequest req) throws BusinessException {
         Category category = categoryRepository.findById(req.categoryId())
             .orElseThrow(() -> new ResourceNotFoundException("Category", req.categoryId()));
@@ -96,7 +107,10 @@ public class ProductDomainService {
     }
 
     @Transactional
-    @CacheEvict(value = "products", allEntries = true, cacheManager = "standardCacheManager")
+    @Caching(evict = {
+        @CacheEvict(value = "products", allEntries = true, cacheManager = "standardCacheManager"),
+        @CacheEvict(value = "adminProducts", allEntries = true, cacheManager = "catalogCacheManager")
+    })
     public Products update(UUID id, UpdateProductRequest req) throws BusinessException {
         Products product = productRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Product", id));
@@ -125,24 +139,30 @@ public class ProductDomainService {
      * ponytail: optimistic-lock conflict menggagalkan seluruh batch — UI simpan dirty, coba lagi.
      */
     @Transactional
-    @CacheEvict(value = "products", allEntries = true, cacheManager = "standardCacheManager")
+    @Caching(evict = {
+        @CacheEvict(value = "products", allEntries = true, cacheManager = "standardCacheManager"),
+        @CacheEvict(value = "adminProducts", allEntries = true, cacheManager = "catalogCacheManager")
+    })
     public List<PriceUpdateResult> updateNames(List<BulkNameUpdateRequest> items) {
+        List<UUID> ids = items.stream().map(BulkNameUpdateRequest::id).filter(Objects::nonNull).toList();
+        Map<UUID, Products> byId = ids.isEmpty() ? Map.of()
+                : productRepository.findAllById(ids).stream()
+                        .collect(Collectors.toMap(Products::getId, Function.identity()));
         List<PriceUpdateResult> results = new ArrayList<>(items.size());
         for (BulkNameUpdateRequest item : items) {
-            results.add(updateSingleName(item));
+            results.add(updateSingleName(item, byId));
         }
         return results;
     }
 
-    private PriceUpdateResult updateSingleName(BulkNameUpdateRequest item) {
+    private PriceUpdateResult updateSingleName(BulkNameUpdateRequest item, Map<UUID, Products> byId) {
         if (item.id() == null) {
             return PriceUpdateResult.fail(null, null, "Produk tidak ditemukan");
         }
-        Optional<Products> found = productRepository.findById(item.id());
-        if (found.isEmpty()) {
+        Products product = byId.get(item.id());
+        if (product == null) {
             return PriceUpdateResult.fail(item.id(), null, "Produk tidak ditemukan");
         }
-        Products product = found.get();
         String name = item.name() == null ? "" : item.name().trim();
         if (name.isEmpty()) {
             return PriceUpdateResult.fail(item.id(), product.getCode(), "Nama kosong");
@@ -159,7 +179,10 @@ public class ProductDomainService {
     }
 
     @Transactional
-    @CacheEvict(value = "products", allEntries = true, cacheManager = "standardCacheManager")
+    @Caching(evict = {
+        @CacheEvict(value = "products", allEntries = true, cacheManager = "standardCacheManager"),
+        @CacheEvict(value = "adminProducts", allEntries = true, cacheManager = "catalogCacheManager")
+    })
     public Products findOrCreateByBrand(String brand, UUID categoryId) {
         String code = CatalogCodeUtil.toCode(brand);
         return productRepository.findByCategoryIdAndCode(categoryId, code).map(existing -> {
@@ -178,7 +201,11 @@ public class ProductDomainService {
     }
 
     @Transactional
-    @CacheEvict(value = "products", allEntries = true, cacheManager = "standardCacheManager")
+    @Caching(evict = {
+        @CacheEvict(value = "products", allEntries = true, cacheManager = "standardCacheManager"),
+        @CacheEvict(value = "adminProducts", allEntries = true, cacheManager = "catalogCacheManager"),
+        @CacheEvict(value = "adminActiveDenoms", allEntries = true, cacheManager = "catalogCacheManager")
+    })
     public void softDelete(UUID id) {
         Products product = productRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Product", id));
@@ -196,14 +223,21 @@ public class ProductDomainService {
         productRepository.save(product);
     }
 
-    /** Set flag inSupplier tiap produk hidup di kategori: true kalau code-nya ada di {@code supplierCodes}. */
+    /**
+     * Batch: set flag inSupplier semua produk hidup dalam 1 load (bukan query per kategori).
+     * {@code supplierCodesByCategory}: categoryId -> set code brand yang ada di supplier.
+     * Produk yang kategorinya tak ada di map dianggap tak ada di supplier (flag false).
+     */
     @Transactional
-    @CacheEvict(value = "products", allEntries = true, cacheManager = "standardCacheManager")
-    public int reconcileSupplierFlags(UUID categoryId, java.util.Set<String> supplierCodes) {
+    @Caching(evict = {
+        @CacheEvict(value = "products", allEntries = true, cacheManager = "standardCacheManager"),
+        @CacheEvict(value = "adminProducts", allEntries = true, cacheManager = "catalogCacheManager")
+    })
+    public int reconcileSupplierFlags(Map<UUID, Set<String>> supplierCodesByCategory) {
         int changed = 0;
-        for (Products p : productRepository.findByCategoryIdOrderBySortOrder(categoryId)) {
-            if (p.isDeleted()) continue;
-            boolean present = supplierCodes.contains(p.getCode());
+        for (Products p : productRepository.findByDeletedFalseOrderBySortOrder()) {
+            boolean present = supplierCodesByCategory
+                    .getOrDefault(p.getCategoryId(), Set.of()).contains(p.getCode());
             if (p.isInSupplier() != present) { p.setInSupplier(present); productRepository.save(p); changed++; }
         }
         return changed;
