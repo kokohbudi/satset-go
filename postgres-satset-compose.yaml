@@ -1,0 +1,21 @@
+name: postgres-satset
+
+services:
+  postgres-satset:
+    image: postgres:15-alpine
+    container_name: postgres-satset
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: ${KEYCLOAK_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - /Users/kokohbudi/docker_data/postgres-data:/var/lib/postgresql/data
+    networks:
+      - ${NETWORK}
+
+networks:
+  satset-network:
+    name: ${NETWORK}
+    external: true

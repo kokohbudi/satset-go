@@ -1,19 +1,5 @@
 
 services:
-  postgres-satset:
-    image: postgres:15-alpine
-    container_name: postgres-satset
-    ports:
-      - "5432:5432"
-    environment:
-      POSTGRES_DB: ${KEYCLOAK_DB}
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-    volumes:
-      - /Users/kokohbudi/docker_data/postgres-data:/var/lib/postgresql/data
-    networks:
-      - ${NETWORK}
-
   keycloak-satset:
     image: quay.io/keycloak/keycloak:26.2.1
     container_name: keycloak-satset
@@ -23,15 +9,15 @@ services:
     environment:
       KC_FEATURES: organization
       KC_DB: postgres
-      KC_DB_URL_HOST: postgres-satset
+      KC_DB_URL_HOST: ${KC_NEON_HOST}
       KC_DB_URL_PORT: 5432
-      KC_DB_URL_DATABASE: ${KEYCLOAK_DB}
-      KC_DB_USERNAME: ${POSTGRES_USER}
-      KC_DB_PASSWORD: ${POSTGRES_PASSWORD}
+      KC_DB_URL_DATABASE: ${KC_NEON_DB}
+      KC_DB_SCHEMA: ${KC_NEON_SCHEMA}
+      KC_DB_URL_PROPERTIES: "?sslmode=require&channel_binding=require"
+      KC_DB_USERNAME: ${KC_NEON_USER}
+      KC_DB_PASSWORD: ${KC_NEON_PASSWORD}
       KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN:-admin}
       KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
-    depends_on:
-      - postgres-satset
     networks:
       - ${NETWORK}
     volumes:
