@@ -7,4 +7,5 @@ public record SyncAllPreview(
         List<String> newCategories,
         List<String> newProducts,
         List<String> newDenoms,
-        List<String> priceChanges) {}
+        List<String> priceChanges,
+        List<String> removed) {}

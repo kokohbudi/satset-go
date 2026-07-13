@@ -289,6 +289,42 @@ class CatalogSyncServiceTest {
         assertThat(p.priceChanges()).contains("Telkomsel / tsel10");
     }
 
+    // ---- syncAllPreview: HILANG denom (SKU tak ada lagi di DF) -> removed ----
+    @Test void syncAllPreview_listsRemovedDenom() {
+        UUID catId = UUID.randomUUID(), pid = UUID.randomUUID();
+        Category pulsa = new Category(); pulsa.setId(catId); pulsa.setCode("PULSA"); pulsa.setName("Pulsa");
+        Products xl = new Products(); xl.setId(pid); xl.setCode("XL"); xl.setName("XL"); xl.setCategoryId(catId); xl.setActive(true);
+        ProductDenoms gone = denom("XOLD", new BigDecimal("5000")); gone.setProductId(pid);  // code tak ada di DF
+
+        when(digiflazz.fetchSnapshot()).thenReturn(new PriceListSnapshot(List.of(df("xl5","XL 5K","XL",5000)), LocalDateTime.now()));
+        when(categoryService.findAllForAdmin()).thenReturn(List.of(pulsa));
+        when(productService.findAllForAdmin()).thenReturn(List.of(xl));
+        when(denomService.findAllActiveForAdmin()).thenReturn(List.of(gone));
+
+        SyncAllPreview p = service().syncAllPreview();
+
+        assertThat(p.removed()).anySatisfy(s -> assertThat(s).contains("XOLD"));
+    }
+
+    // ---- deactivateMissingFromSupplier: nonaktifkan denom HILANG (recompute server) ----
+    @Test void deactivateMissingFromSupplier_deactivatesHilangDenoms() {
+        UUID catId = UUID.randomUUID(), pid = UUID.randomUUID(), did = UUID.randomUUID();
+        Category pulsa = new Category(); pulsa.setId(catId); pulsa.setCode("PULSA"); pulsa.setName("Pulsa");
+        Products xl = new Products(); xl.setId(pid); xl.setCode("XL"); xl.setName("XL"); xl.setCategoryId(catId); xl.setActive(true);
+        ProductDenoms gone = denom("XOLD", new BigDecimal("5000")); gone.setId(did); gone.setProductId(pid);
+
+        when(digiflazz.fetchSnapshot()).thenReturn(new PriceListSnapshot(List.of(df("xl5","XL 5K","XL",5000)), LocalDateTime.now()));
+        when(categoryService.findAllForAdmin()).thenReturn(List.of(pulsa));
+        when(productService.findAllForAdmin()).thenReturn(List.of(xl));
+        when(denomService.findAllActiveForAdmin()).thenReturn(List.of(gone));
+        when(denomService.deactivate(any())).thenReturn(1);
+
+        int n = service().deactivateMissingFromSupplier();
+
+        assertThat(n).isEqualTo(1);
+        verify(denomService).deactivate(argThat(ids -> ids.contains(did)));
+    }
+
     // ---- supplierPrices: global SKU->cheapest cost map ----
     @Test void supplierPrices_mapsSkuUpperToCost_lowestWins() {
         LocalDateTime at = LocalDateTime.of(2026, 7, 12, 8, 0);
