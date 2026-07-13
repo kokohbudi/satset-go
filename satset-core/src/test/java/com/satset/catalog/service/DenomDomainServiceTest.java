@@ -705,4 +705,20 @@ class DenomDomainServiceTest {
         assertThat(matched.getBasePrice()).isEqualByComparingTo("5000");
         assertThat(nomatch.getBasePrice()).isNull();   // tanpa match DF -> dilewati
     }
+
+    @Test
+    void deactivate_batch_setsActiveFalse_skipsDeletedAndInactive() {
+        UUID a = UUID.randomUUID(), b = UUID.randomUUID(), c = UUID.randomUUID();
+        ProductDenoms active = new ProductDenoms(); active.setId(a); active.setActive(true); active.setDeleted(false); active.setInSupplier(true);
+        ProductDenoms deleted = new ProductDenoms(); deleted.setId(b); deleted.setActive(false); deleted.setDeleted(true);
+        ProductDenoms already = new ProductDenoms(); already.setId(c); already.setActive(false); already.setDeleted(false);
+        when(denomRepository.findAllById(List.of(a, b, c))).thenReturn(List.of(active, deleted, already));
+
+        int n = denomService.deactivate(List.of(a, b, c));
+
+        assertThat(n).isEqualTo(1);              // cuma yang aktif+non-deleted
+        assertThat(active.isActive()).isFalse();
+        assertThat(active.isInSupplier()).isFalse();
+        assertThat(deleted.isDeleted()).isTrue();   // tak disentuh
+    }
 }

@@ -21,6 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -310,6 +311,25 @@ public class DenomDomainService {
             applied++;
         }
         return applied;
+    }
+
+    /**
+     * Batch: nonaktifkan (active=false) denom terpilih dalam 1 load. Bukan hapus (deleted tetap false)
+     * — reversible. Denom yang sudah terhapus/nonaktif dilewati. inSupplier ikut di-set false.
+     * UPDATE di-batch Hibernate saat commit (entity managed).
+     * @return jumlah denom yang benar-benar dinonaktifkan.
+     */
+    @Transactional
+    @CacheEvict(value = "adminActiveDenoms", allEntries = true, cacheManager = "catalogCacheManager")
+    public int deactivate(Collection<UUID> denomIds) {
+        int changed = 0;
+        for (ProductDenoms d : denomRepository.findAllById(denomIds)) {
+            if (d.isDeleted() || !d.isActive()) continue;
+            d.setActive(false);
+            d.setInSupplier(false);
+            changed++;
+        }
+        return changed;
     }
 
     /**

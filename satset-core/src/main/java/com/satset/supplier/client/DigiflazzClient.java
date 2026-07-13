@@ -60,7 +60,7 @@ public class DigiflazzClient {
      * nge-rate-limit endpoint ini (rc 83) dan datanya lag 10-15 menit — jadi cukup 1 hit / 5 jam.
      * {@code fetchedAt} = momen cache-miss (baru di-fill); cache-hit tetap pakai timestamp lama.
      */
-    @Cacheable(value = "digiflazzPriceList", cacheManager = "digiflazzCacheManager")
+    @Cacheable(value = "digiflazzPriceList", cacheManager = "digiflazzCacheManager", sync = true)
     public PriceListSnapshot fetchSnapshot() {
         return new PriceListSnapshot(doFetchPriceList(), LocalDateTime.now());
     }

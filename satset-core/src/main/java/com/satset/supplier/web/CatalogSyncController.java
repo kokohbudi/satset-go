@@ -81,4 +81,11 @@ public class CatalogSyncController {
     public Map<String, Integer> applySupplierCostBulk(@RequestBody List<UUID> denomIds) {
         return Map.of("applied", sync.applySupplierCostBulk(denomIds));
     }
+
+    // Nonaktifkan semua denom yang HILANG dari suplier (recompute di server, active=false)
+    @PostMapping("/denoms/deactivate-missing")
+    @PreAuthorize("hasRole('" + SatsetConstants.PERM_MANAGE_DENOMS + "')")
+    public Map<String, Integer> deactivateMissing() {
+        return Map.of("deactivated", sync.deactivateMissingFromSupplier());
+    }
 }

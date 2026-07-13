@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -212,40 +213,49 @@ public class CatalogSyncService {
      * kalau katalog membengkak & terasa lambat, cache pricelist di memori sekali per run.
      */
     public SyncAllPreview syncAllPreview() {
+        // produk baru = brand DF yang belum ada (aktif) di katalog — level brand, bukan per compareRow
         DfIndex df = indexDf(digiflazz.fetchSnapshot().items());
-
         Map<UUID, List<Products>> prodsByCat = groupProductsByCategory(productService.findAllForAdmin());
-        Map<UUID, List<ProductDenoms>> denomsByProduct = groupDenomsByProduct(denomService.findAllActiveForAdmin());
 
         List<String> newCategories = previewCategories().stream()
                 .filter(i -> i.action() == SyncAction.ADD)
                 .map(SyncPreviewItem::label).toList();
 
         List<String> newProducts = new ArrayList<>();
-        List<String> newDenoms = new ArrayList<>();
-        List<String> priceChanges = new ArrayList<>();
         for (Category c : categoryService.findAllForAdmin()) {
             if (c.isDeleted()) continue;
-            String catCode = c.getCode();
-            List<Products> catalog = prodsByCat.getOrDefault(c.getId(), List.of());
-            Set<String> activeCodes = catalog.stream().filter(p -> p.isActive() && !p.isDeleted())
-                    .map(Products::getCode).collect(Collectors.toSet());
-            for (String brandCode : df.brandsByCat().getOrDefault(catCode, Set.of())) {
+            Set<String> activeCodes = prodsByCat.getOrDefault(c.getId(), List.of()).stream()
+                    .filter(p -> p.isActive() && !p.isDeleted()).map(Products::getCode).collect(Collectors.toSet());
+            for (String brandCode : df.brandsByCat().getOrDefault(c.getCode(), Set.of()))
                 if (!activeCodes.contains(brandCode))
-                    newProducts.add(c.getName() + " / " + df.brandName().get(catCode + "|" + brandCode));
-            }
-            for (Products p : catalog) {
-                if (p.isDeleted()) continue;
-                List<PriceListItem> dfItems = df.byCatBrand().getOrDefault(catCode + "|" + p.getCode(), List.of());
-                if (dfItems.isEmpty()) continue;
-                for (PriceCompareRow r : compareRows(p, dfItems, denomsByProduct.getOrDefault(p.getId(), List.of()))) {
-                    if (r.status() == CompareStatus.BARU) newDenoms.add(p.getName() + " / " + r.productName());
-                    else if (r.status() == CompareStatus.NAIK || r.status() == CompareStatus.TURUN)
-                        priceChanges.add(p.getName() + " / " + r.buyerSku());
-                }
-            }
+                    newProducts.add(c.getName() + " / " + df.brandName().get(c.getCode() + "|" + brandCode));
         }
-        return new SyncAllPreview(newCategories, newProducts, newDenoms, priceChanges);
+
+        // denom baru / beda harga / hilang — walk bersama dgn deactivate (reuse df+prodsByCat, no double indexDf)
+        List<String> newDenoms = new ArrayList<>(), priceChanges = new ArrayList<>(), removed = new ArrayList<>();
+        eachSupplierCompare(df, prodsByCat, (p, r) -> {
+            switch (r.status()) {
+                case BARU -> newDenoms.add(p.getName() + " / " + r.productName());
+                case NAIK, TURUN -> priceChanges.add(p.getName() + " / " + r.buyerSku());
+                case HILANG -> removed.add(p.getName() + " / " + r.buyerSku());
+                default -> { }
+            }
+        });
+        return new SyncAllPreview(newCategories, newProducts, newDenoms, priceChanges, removed);
+    }
+
+    /**
+     * Nonaktifkan (active=false) semua denom yang HILANG dari suplier — SKU-nya tak ada lagi di DF
+     * untuk brand+kategori produk DF-nya. Recompute di server (tak percaya id stale dari client).
+     * Bukan hapus (deleted tetap false) — reversible, muncul lagi kalau suplier balikin SKU-nya.
+     * @return jumlah denom yang dinonaktifkan.
+     */
+    public int deactivateMissingFromSupplier() {
+        List<UUID> missing = new ArrayList<>();
+        eachSupplierCompare((p, r) -> {
+            if (r.status() == CompareStatus.HILANG && r.denomId() != null) missing.add(r.denomId());
+        });
+        return denomService.deactivate(missing);
     }
 
     // ===== Denoms (preview = reconcileForProduct; UI map status->action) =====
@@ -366,6 +376,33 @@ public class CatalogSyncService {
     private static Map<UUID, List<ProductDenoms>> groupDenomsByProduct(List<ProductDenoms> denoms) {
         // read-only downstream (tak pernah di-mutate) -> groupingBy aman
         return denoms.stream().collect(Collectors.groupingBy(ProductDenoms::getProductId));
+    }
+
+    /**
+     * Walk katalog vs suplier sekali: tiap produk-DF, hasil {@link #compareRows} diteruskan ke {@code visit}.
+     * Muat 3 list admin (cached) + snapshot DF (cached) = O(1) query. Dipakai bareng oleh
+     * {@link #syncAllPreview()} (denom baru/beda/hilang) & {@link #deactivateMissingFromSupplier()}.
+     */
+    /** Bangun context sendiri lalu delegasi. Dipakai {@link #deactivateMissingFromSupplier()} yang tak pegang data. */
+    private void eachSupplierCompare(BiConsumer<Products, PriceCompareRow> visit) {
+        eachSupplierCompare(indexDf(digiflazz.fetchSnapshot().items()),
+                groupProductsByCategory(productService.findAllForAdmin()), visit);
+    }
+
+    /** Pakai {@code df}+{@code prodsByCat} yang sudah dibangun caller (hindari double indexDf). Denom di-load di sini. */
+    private void eachSupplierCompare(DfIndex df, Map<UUID, List<Products>> prodsByCat,
+                                     BiConsumer<Products, PriceCompareRow> visit) {
+        Map<UUID, List<ProductDenoms>> denomsByProduct = groupDenomsByProduct(denomService.findAllActiveForAdmin());
+        for (Category c : categoryService.findAllForAdmin()) {
+            if (c.isDeleted()) continue;
+            for (Products p : prodsByCat.getOrDefault(c.getId(), List.of())) {
+                if (p.isDeleted()) continue;
+                List<PriceListItem> dfItems = df.byCatBrand().getOrDefault(c.getCode() + "|" + p.getCode(), List.of());
+                if (dfItems.isEmpty()) continue;   // produk bukan DF -> jangan sentuh (guard sama kayak reconcile)
+                for (PriceCompareRow r : compareRows(p, dfItems, denomsByProduct.getOrDefault(p.getId(), List.of())))
+                    visit.accept(p, r);
+            }
+        }
     }
 
     // ===== Supplier prices (global SKU->cheapest cost map, for admin Harga Suplier column) =====
