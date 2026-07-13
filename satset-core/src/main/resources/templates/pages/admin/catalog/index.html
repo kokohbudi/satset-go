@@ -168,11 +168,10 @@
                         <th>Tipe</th>
                         <th class="text-right">Nominal</th>
                         <th class="text-right">Harga Jual</th>
-                        <th class="text-right">Harga Beli</th>
                         <th class="text-right">
-                            Harga Suplier
+                            Harga Beli
                             <span x-show="supplierPricesAt && !supplierPricesError" class="block text-[10px] font-normal text-base-content/40"
-                                  x-text="supplierPricesAt ? ('Update ' + new Date(supplierPricesAt).toLocaleString('id-ID', {day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'})) : ''"></span>
+                                  x-text="supplierPricesAt ? ('Suplier ' + new Date(supplierPricesAt).toLocaleString('id-ID', {day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'})) : ''"></span>
                             <span x-show="supplierPricesError" class="block text-[10px] font-normal normal-case text-error" x-text="supplierPricesError"></span>
                         </th>
                         <th class="text-center">Status</th>
@@ -209,15 +208,22 @@
                                 </template>
                                 <template x-if="!canManageDenom || d.deleted"><span class="font-mono" x-text="formatRp(d.price)"></span></template>
                             </td>
-                            <td class="text-right font-mono" x-text="formatRp(d.basePrice)"></td>
                             <td class="text-right font-mono">
-                                <template x-if="supplierCost(d.code) !== null">
-                                    <span :class="supplierDiffers(d) ? 'text-warning font-semibold' : ''">
-                                        <span x-text="formatRp(supplierCost(d.code))"></span>
-                                        <span x-show="supplierDiffers(d)" x-text="Number(supplierCost(d.code)) > Number(d.basePrice ?? 0) ? '▲' : '▼'"></span>
-                                    </span>
-                                </template>
-                                <template x-if="supplierCost(d.code) === null"><span class="text-base-content/40">-</span></template>
+                                <div class="inline-flex items-center justify-end gap-1.5">
+                                    <span x-text="formatRp(d.basePrice)"></span>
+                                    <template x-if="supplierDiffers(d)">
+                                        <span class="inline-flex items-center gap-1 text-warning font-semibold">
+                                            <span x-text="Number(supplierCost(d.code)) > Number(d.basePrice ?? 0) ? '▲' : '▼'"></span>
+                                            <span x-text="formatRp(supplierCost(d.code))"></span>
+                                            <button x-show="canManageDenom && !d.deleted" class="btn btn-warning btn-outline btn-xs btn-square tap ml-0.5" @click="applyRowCost(d)" :disabled="applyingCost"
+                                                    title="Samakan Harga Beli dengan Harga Suplier" aria-label="Samakan Harga Beli dengan Harga Suplier">
+                                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                                                </svg>
+                                            </button>
+                                        </span>
+                                    </template>
+                                </div>
                             </td>
                             <td class="text-center">
                                 <span class="badge badge-sm"
@@ -228,14 +234,6 @@
                             </td>
                             <td class="text-center">
                                 <div class="flex justify-center items-center gap-0.5">
-                                    <template x-if="canManageDenom && supplierDiffers(d) && !d.deleted">
-                                        <button class="btn btn-warning btn-outline btn-xs btn-square tap" @click="applyRowCost(d)" :disabled="applyingCost"
-                                                title="Samakan Harga Beli dengan Harga Suplier" aria-label="Samakan Harga Beli dengan Harga Suplier">
-                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
-                                            </svg>
-                                        </button>
-                                    </template>
                                     <template x-if="canManageDenom">
                                         <button class="btn btn-ghost btn-xs btn-square tap" @click="openEditModal(d)" :disabled="d.deleted"
                                                 title="Edit denom" aria-label="Edit denom">
@@ -257,7 +255,7 @@
                         </tr>
                     </template>
                     <tr x-show="filteredDenoms.length === 0">
-                        <td colspan="12" class="py-12">
+                        <td colspan="11" class="py-12">
                             <!-- Milestone: unpriced filter on and nothing left = all priced -->
                             <template x-if="filterUnpriced && !searchQuery">
                                 <div class="flex flex-col items-center gap-2 text-success">
