@@ -2,8 +2,6 @@ package com.satset.wallet.service;
 
 import com.satset.wallet.repository.WalletAccountRepository;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Service for generating wallet IDs in bank account format.
@@ -25,12 +23,12 @@ public class WalletIdGenerator {
      * Generates a new wallet ID.
      * Format: 700xxxxxxx where x is zero-padded sequence number.
      *
-     * <p>Runs in a separate transaction so the sequence is consumed even if the
-     * caller's transaction rolls back.
+     * <p>Joins the caller's transaction. No separate transaction is needed: a
+     * Postgres sequence ({@code nextval}) is non-transactional, so the value is
+     * consumed permanently regardless of whether the caller commits or rolls back.
      *
      * @return unique wallet ID string (10 characters)
      */
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public String generate() {
         long sequence = walletAccountRepository.nextWalletIdSequence();
         return PREFIX + String.format("%0" + SEQUENCE_LENGTH + "d", sequence);
