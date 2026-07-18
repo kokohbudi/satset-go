@@ -30,15 +30,18 @@ public class TransactionDomainService {
         private final DenomRepository denomRepository;
         private final WalletGateway balanceService;
         private final ProviderPort providerService;
+        private final RefNoGenerator refNoGenerator;
 
         public TransactionDomainService(TransactionRepository transactionRepository,
                         DenomRepository denomRepository,
                         WalletGateway balanceService,
-                        ProviderPort providerService) {
+                        ProviderPort providerService,
+                        RefNoGenerator refNoGenerator) {
                 this.transactionRepository = transactionRepository;
                 this.denomRepository = denomRepository;
                 this.balanceService = balanceService;
                 this.providerService = providerService;
+                this.refNoGenerator = refNoGenerator;
         }
 
         @Transactional
@@ -83,6 +86,7 @@ public class TransactionDomainService {
                 transaction.setAdminFee(adminFee);
                 transaction.setTotal(total);
                 transaction.setStatus(TransactionStatus.PENDING);
+                transaction.setRefNo(refNoGenerator.next());
                 transaction = transactionRepository.save(transaction);
 
                 log.info("Transaction created: id={} store={} denom={} total={}",
@@ -99,7 +103,7 @@ public class TransactionDomainService {
 
                 // 4. Send to provider
                 ProviderResponse response = providerService.sendTransaction(
-                                targetNumber, denom.code(), total, transaction.getId().toString());
+                                targetNumber, denom.code(), total, transaction.getRefNo());
 
                 reconcileProviderResult(transaction, response, walletId, denom);
 
@@ -166,6 +170,7 @@ public class TransactionDomainService {
         private TransactionDTO toDTO(Transactions tx) {
                 return new TransactionDTO(
                                 tx.getId(),
+                                tx.getRefNo(),
                                 tx.getStoreId(),
                                 tx.getTargetNumber(),
                                 tx.getDenomName(),

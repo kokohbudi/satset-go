@@ -153,7 +153,7 @@ class TransactionControllerTest {
 
     private TransactionDTO buildSummary(UUID id, TransactionStatus status, BigDecimal total) {
         return new TransactionDTO(
-                id, storeId, "081234567890", "Pulsa 10K", "Telkomsel",
+                id, "20260718000001", storeId, "081234567890", "Pulsa 10K", "Telkomsel",
                 total, BigDecimal.ZERO, total, status,
                 "PROV-REF-123", "SN-456", LocalDateTime.now());
     }

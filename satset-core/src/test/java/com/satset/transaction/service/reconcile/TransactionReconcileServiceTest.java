@@ -76,6 +76,23 @@ class TransactionReconcileServiceTest {
     }
 
     @Test
+    void reconcile_usesStoredRefNo_notUuid() {
+        Transactions tx = stale();
+        tx.setRefNo("2026071800042");
+        when(txRepo.findByStatusAndCreatedAtBefore(eq(TransactionStatus.PROCESSING), any(), any()))
+                .thenReturn(List.of(tx));
+        when(txRepo.findById(tx.getId())).thenReturn(Optional.of(tx));
+        when(denomRepo.findDenomInfoById(denomId)).thenReturn(Optional.of(denom));
+        ProviderResponse resp = new ProviderResponse(ProviderStatus.SUCCESS, "REF", "SN", "Sukses", new BigDecimal("24500"));
+        when(provider.sendTransaction("0878", "xld25", new BigDecimal("25000.00"), "2026071800042"))
+                .thenReturn(resp);
+
+        reconcile.reconcileStalePending();
+
+        verify(provider).sendTransaction("0878", "xld25", new BigDecimal("25000.00"), "2026071800042");
+    }
+
+    @Test
     void reconcile_empty_doesNothing() {
         when(txRepo.findByStatusAndCreatedAtBefore(eq(TransactionStatus.PROCESSING), any(), any()))
                 .thenReturn(List.of());

@@ -49,6 +49,7 @@ public class TransactionController {
         Map<String, Object> response = new HashMap<>();
         response.put("status", transaction.status().name());
         response.put("transactionId", transaction.id());
+        response.put("refNo", transaction.refNo());
         response.put("total", transaction.total());
         response.put("providerRef", transaction.providerRef());
         response.put("serialNumber", transaction.serialNumber());

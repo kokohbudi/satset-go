@@ -142,10 +142,13 @@ class PurchaseFlowIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value(TransactionStatus.SUCCESS.name()))
                 .andExpect(jsonPath("$.providerRef").value("REF-123"))
-                .andExpect(jsonPath("$.serialNumber").value("SN-123"));
+                .andExpect(jsonPath("$.serialNumber").value("SN-123"))
+                // ref_no = YYYYMMDD + 5-digit counter, surfaced to the client as the invoice number
+                .andExpect(jsonPath("$.refNo").value(org.hamcrest.Matchers.matchesPattern("\\d{8}\\d{5,}")));
 
+        // the SAME ref_no (not the UUID) is what went to Digiflazz as ref_id
         verify(providerService, times(1))
-                .sendTransaction(eq("081234567890"), eq("PULSA10"), eq(new BigDecimal("10000.00")), anyString());
+                .sendTransaction(eq("081234567890"), eq("PULSA10"), eq(new BigDecimal("10000.00")), matches("\\d{8}\\d{5,}"));
     }
 
     // ==============================================

@@ -36,6 +36,8 @@ class TransactionDomainServiceTest {
     private WalletGateway balanceService;
     @Mock
     private ProviderPort providerService;
+    @Mock
+    private RefNoGenerator refNoGenerator;
 
     @InjectMocks
     private TransactionDomainService transactionService;
@@ -50,6 +52,8 @@ class TransactionDomainServiceTest {
         storeId = UUID.randomUUID();
         walletId = "7001234567";
         denomId = UUID.randomUUID();
+        // lenient: duplicate-check tests throw before ref_no is generated
+        lenient().when(refNoGenerator.next()).thenReturn("20260718000001");
 
         denom = new DenomInfo(
             denomId,

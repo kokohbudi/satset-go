@@ -68,6 +68,9 @@ public class Transactions {
     @Column(length = 100)
     private String serialNumber;
 
+    @Column(name = "ref_no", unique = true, length = 20)
+    private String refNo;
+
     @CreatedDate
     @Column(updatable = false)
     private LocalDateTime createdAt;

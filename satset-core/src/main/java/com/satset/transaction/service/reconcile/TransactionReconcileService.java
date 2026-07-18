@@ -91,7 +91,12 @@ public class TransactionReconcileService {
             return;
         }
         ProviderResponse resp = provider.sendTransaction(
-                tx.getTargetNumber(), denom.code(), tx.getTotal(), tx.getId().toString());
+                tx.getTargetNumber(), denom.code(), tx.getTotal(), refIdFor(tx));
         txService.reconcileProviderResult(tx, resp, tx.getWalletId(), denom);
+    }
+
+    /** Pre-ref_no rows have a null ref_no; fall back to the UUID so their re-POST still matches Digiflazz. */
+    private static String refIdFor(Transactions tx) {
+        return tx.getRefNo() != null ? tx.getRefNo() : tx.getId().toString();
     }
 }
