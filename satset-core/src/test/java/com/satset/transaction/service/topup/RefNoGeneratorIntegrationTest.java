@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.sql.Date;
 import java.time.LocalDate;
@@ -28,6 +29,7 @@ class RefNoGeneratorIntegrationTest {
 
     @Autowired RefNoGenerator generator;
     @Autowired JdbcTemplate jdbc;
+    @Autowired TransactionTemplate txTemplate;
 
     @AfterEach
     void cleanup() {
@@ -65,5 +67,31 @@ class RefNoGeneratorIntegrationTest {
                 .format(java.time.format.DateTimeFormatter.BASIC_ISO_DATE);
         assertThat(generator.next()).startsWith(expectedPrefix).hasSize(13);
         // note: this bumps today's real counter by 1 — harmless, gaps are expected.
+    }
+
+    @Test
+    void next_commitsCounterIndependentlyOfCallersRollback() {
+        // note: this bumps today's real counter by 1 — harmless, gaps are expected
+        // (same as next_prefixesTodayInWib above). next() is hardcoded to "today" WIB.
+        String[] ref = new String[1];
+        txTemplate.executeWithoutResult(status -> {
+            ref[0] = generator.next();
+            status.setRollbackOnly();
+        });
+        long refSeq = Long.parseLong(ref[0].substring(8));
+
+        // Outer tx rolled back. If next() ran inside it (self-invocation bypassing
+        // the proxy, so REQUIRES_NEW on nextSeq() never took effect), the counter
+        // UPSERT would have rolled back too, and a fresh read afterward would show
+        // either no row or a seq lower than what next() returned. Reading it back
+        // via a fresh JdbcTemplate query (its own implicit tx) proves whether the
+        // counter row was actually committed independently.
+        LocalDate today = LocalDate.now(java.time.ZoneId.of("Asia/Jakarta"));
+        java.util.List<Long> rows = jdbc.query(
+                "SELECT seq FROM ref_counter WHERE day = ?",
+                (rs, rowNum) -> rs.getLong("seq"), Date.valueOf(today));
+
+        assertThat(rows).isNotEmpty();
+        assertThat(rows.get(0)).isGreaterThanOrEqualTo(refSeq);
     }
 }

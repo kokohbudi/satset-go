@@ -25,7 +25,14 @@ public class RefNoGenerator {
         this.jdbc = jdbc;
     }
 
-    /** Full ref_no for today (WIB). */
+    /**
+     * Full ref_no for today (WIB). REQUIRES_NEW so this proxy boundary — not the
+     * internal self-invoked {@link #nextSeq(LocalDate)} call — is where the isolated
+     * transaction is actually established (plain self-invocation bypasses the Spring
+     * AOP proxy, so {@code @Transactional} on {@code nextSeq} alone has no effect
+     * when reached via this method).
+     */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public String next() {
         LocalDate day = LocalDate.now(WIB);
         return format(day, nextSeq(day));
