@@ -3,6 +3,7 @@ package com.satset.transaction.service;
 import com.satset.catalog.repository.DenomRepository;
 import com.satset.shared.exception.InsufficientBalanceException;
 import com.satset.shared.exception.ResourceNotFoundException;
+import com.satset.shared.logging.LogContext;
 import com.satset.shared.model.DenomInfo;
 import com.satset.transaction.dto.TransactionDTO;
 import com.satset.transaction.repository.TransactionRepository;
@@ -22,6 +23,7 @@ import java.util.UUID;
 
 @Slf4j
 @Service
+@LogContext("Topup")
 public class TransactionDomainService {
 
         private final TransactionRepository transactionRepository;
