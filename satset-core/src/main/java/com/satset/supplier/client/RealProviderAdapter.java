@@ -4,7 +4,6 @@ import com.satset.transaction.client.ProviderPort;
 import com.satset.transaction.model.ProviderResponse;
 import com.satset.transaction.model.ProviderStatus;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -12,14 +11,16 @@ import java.util.Set;
 
 /**
  * Adapter supplier ASLI — delegasi ke {@link DigiflazzClient#topup} lalu memetakan
- * status/rc Digiflazz ke {@link ProviderStatus}. Aktif kalau {@code supplier.mode=real}.
+ * status/rc Digiflazz ke {@link ProviderStatus}.
  *
  * <p>Money-safe: status tak dikenal / Gagal dgn rc yang bisa membentuk transaksi
  * (timeout, not-found) dipetakan ke PENDING agar tidak auto-refund (poll yang menyelesaikan).
+ *
+ * <p>Satu-satunya {@link ProviderPort} — real vs sandbox diatur di sisi Digiflazz
+ * (mode akun development/production), bukan lewat flag aplikasi.
  */
 @Slf4j
 @Service
-@ConditionalOnProperty(name = "supplier.mode", havingValue = "real")
 public class RealProviderAdapter implements ProviderPort {
 
     // rc "Gagal" yang berarti transaksi benar-benar tidak terbentuk -> boleh refund.
