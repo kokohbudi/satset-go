@@ -80,6 +80,10 @@ digiflazz:
   base-url: ${DIGIFLAZZ_BASE_URL:https://api.digiflazz.com/v1}
   username: ${DIGIFLAZZ_USERNAME:}
   api-key: ${DIGIFLAZZ_DEV_KEY:}
+  # DEV default TRUE = kirim "testing":true → DF balikin respons kaleng utk test customer_no
+  # (087800001230=Sukses, 087800001233=Pending→Sukses) TANPA charge deposit asli.
+  # Prod overlay (application-prod.yml) MEMAKSA false. Override lokal: DIGIFLAZZ_TESTING=false.
+  testing: ${DIGIFLAZZ_TESTING:true}
 
 # Performance optimizations
 server:

@@ -44,16 +44,22 @@ public class DigiflazzClient {
     private final String baseUrl;
     private final String username;
     private final String apiKey;
+    /** Dev-only: sends {@code "testing":true} on /transaction so DF returns canned
+     *  responses for its test customer_no (087800001230=Sukses, ...233=Pending→Sukses)
+     *  WITHOUT charging real deposit. MUST be false in prod. */
+    private final boolean testing;
 
     public DigiflazzClient(
             RestClient providerRestClient,
             @Value("${digiflazz.base-url:https://api.digiflazz.com/v1}") String baseUrl,
             @Value("${digiflazz.username:}") String username,
-            @Value("${digiflazz.api-key:}") String apiKey) {
+            @Value("${digiflazz.api-key:}") String apiKey,
+            @Value("${digiflazz.testing:false}") boolean testing) {
         this.http = providerRestClient;
         this.baseUrl = baseUrl;
         this.username = username;
         this.apiKey = apiKey;
+        this.testing = testing;
     }
 
     /**
@@ -124,7 +130,7 @@ public class DigiflazzClient {
      */
     public DigiTxResult topup(String refId, String buyerSkuCode, String customerNo) {
         log.info("Digiflazz topup refId={} sku={} — nembak /transaction", refId, buyerSkuCode);
-        var req = new TransactionRequest(username, buyerSkuCode, customerNo, refId, sign(refId));
+        var req = new TransactionRequest(username, buyerSkuCode, customerNo, refId, sign(refId), testing);
         String raw;
         try {
             raw = http.post()
@@ -156,7 +162,8 @@ public class DigiflazzClient {
     }
 
     private record TransactionRequest(String username, String buyer_sku_code,
-                                      String customer_no, String ref_id, String sign) {}
+                                      String customer_no, String ref_id, String sign,
+                                      boolean testing) {}
 
     private record PriceListRequest(String cmd, String username, String sign) {}
 }

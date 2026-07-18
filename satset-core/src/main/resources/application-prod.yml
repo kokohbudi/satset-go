@@ -143,3 +143,10 @@ management:
   health:
     db:
       enabled: true
+
+# =============================================================================
+# DIGIFLAZZ - hard override: prod MUST hit real DF (real fulfillment + charge).
+# Base application.yml defaults testing=true for dev; this forces it off in prod.
+# =============================================================================
+digiflazz:
+  testing: false

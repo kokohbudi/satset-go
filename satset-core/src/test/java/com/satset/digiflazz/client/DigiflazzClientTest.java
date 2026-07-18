@@ -45,7 +45,7 @@ class DigiflazzClientTest {
                         ]}""", APPLICATION_JSON));
 
         DigiflazzClient client = new DigiflazzClient(
-                builder.build(), "https://api.digiflazz.com/v1", "user1", "key1");
+                builder.build(), "https://api.digiflazz.com/v1", "user1", "key1", false);
 
         List<PriceListItem> items = client.fetchSnapshot().items();
 
@@ -74,7 +74,7 @@ class DigiflazzClientTest {
                         APPLICATION_JSON));
 
         DigiflazzClient client = new DigiflazzClient(
-                builder.build(), "https://api.digiflazz.com/v1", "user1", "key1");
+                builder.build(), "https://api.digiflazz.com/v1", "user1", "key1", false);
 
         assertThatThrownBy(() -> client.fetchSnapshot().items())
                 .isInstanceOf(SupplierException.class)

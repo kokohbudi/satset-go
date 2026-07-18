@@ -23,8 +23,8 @@ class DigiflazzClientTopupTest {
         builder = RestClient.builder();
         server = MockRestServiceServer.bindTo(builder).build();
         RestClient rc = builder.build();
-        // username="u", apiKey="k" -> sign = md5("u" + "k" + "ref1")
-        client = new DigiflazzClient(rc, "https://api.digiflazz.com/v1", "u", "k");
+        // username="u", apiKey="k" -> sign = md5("u" + "k" + "ref1"); testing=false (prod default)
+        client = new DigiflazzClient(rc, "https://api.digiflazz.com/v1", "u", "k", false);
     }
 
     @Test
@@ -36,6 +36,7 @@ class DigiflazzClientTopupTest {
               .andExpect(jsonPath("$.ref_id").value("ref1"))
               // md5("ukref1")
               .andExpect(jsonPath("$.sign").value("c28850e81191973e911ac305b9cc7c42"))
+              .andExpect(jsonPath("$.testing").value(false))   // prod default: no test mode
               .andRespond(withSuccess("""
                   {"data":{"ref_id":"ref1","customer_no":"0878","buyer_sku_code":"xld25",
                   "message":"Transaksi Pending","status":"Pending","rc":"03","sn":"",
@@ -63,6 +64,22 @@ class DigiflazzClientTopupTest {
         assertThat(r.status()).isEqualTo("Sukses");
         assertThat(r.sn()).isEqualTo("SN123");
         assertThat(r.price()).isEqualByComparingTo(new BigDecimal("24500"));
+    }
+
+    @Test
+    void topup_testingMode_sendsTestingTrue() {
+        DigiflazzClient testClient = new DigiflazzClient(builder.build(),
+                "https://api.digiflazz.com/v1", "u", "k", true);
+        server.expect(requestTo("https://api.digiflazz.com/v1/transaction"))
+              .andExpect(jsonPath("$.testing").value(true))   // dev test mode -> DF canned response, no charge
+              .andRespond(withSuccess("""
+                  {"data":{"ref_id":"ref1","status":"Sukses","rc":"00","sn":"SN1","price":10000}}
+                  """, MediaType.APPLICATION_JSON));
+
+        var r = testClient.topup("ref1", "xld10", "087800001230");
+
+        assertThat(r.status()).isEqualTo("Sukses");
+        server.verify();
     }
 
     @Test
