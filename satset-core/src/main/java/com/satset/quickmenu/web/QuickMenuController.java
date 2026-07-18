@@ -1,6 +1,6 @@
 package com.satset.quickmenu.web;
 
-import com.satset.quickmenu.service.QuickMenuService;
+import com.satset.quickmenu.service.menu.QuickMenuService;
 import com.satset.shared.dto.UserDTO;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;

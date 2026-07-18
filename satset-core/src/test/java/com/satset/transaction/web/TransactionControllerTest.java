@@ -6,7 +6,7 @@ import com.satset.transaction.dto.PurchaseRequest;
 import com.satset.transaction.client.WalletGateway;
 import com.satset.transaction.dto.TransactionDTO;
 import com.satset.transaction.model.TransactionStatus;
-import com.satset.transaction.service.TransactionDomainService;
+import com.satset.transaction.service.topup.TransactionDomainService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

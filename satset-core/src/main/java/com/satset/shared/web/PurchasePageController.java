@@ -2,7 +2,7 @@ package com.satset.shared.web;
 
 import com.satset.catalog.dto.CategoryDTO;
 import com.satset.catalog.model.CategoryType;
-import com.satset.catalog.service.CategoryDomainService;
+import com.satset.catalog.service.category.CategoryDomainService;
 import com.satset.catalog.web.CatalogDtoMapper;
 import com.satset.shared.constant.SatsetConstants;
 import com.satset.shared.dto.UserDTO;

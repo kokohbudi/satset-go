@@ -3,7 +3,7 @@ package com.satset.shared.web;
 import com.satset.UserSessionControllerAdvice;
 
 import com.satset.identity.client.KeycloakIdentityPort;
-import com.satset.quickmenu.service.QuickMenuService;
+import com.satset.quickmenu.service.menu.QuickMenuService;
 import com.satset.shared.dto.RoleInfo;
 import com.satset.shared.dto.UserDTO;
 import org.junit.jupiter.api.AfterEach;

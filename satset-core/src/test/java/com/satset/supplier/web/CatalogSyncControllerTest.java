@@ -2,8 +2,8 @@ package com.satset.supplier.web;
 
 import com.satset.supplier.model.SyncAction;
 import com.satset.supplier.model.SyncPreviewItem;
-import com.satset.supplier.service.CatalogSyncService;
-import com.satset.supplier.service.SyncResult;
+import com.satset.supplier.service.pricelist.CatalogSyncService;
+import com.satset.supplier.service.pricelist.SyncResult;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;

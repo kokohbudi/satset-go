@@ -3,10 +3,10 @@ package com.satset.supplier.web;
 import com.satset.shared.constant.SatsetConstants;
 import com.satset.supplier.model.PriceCompareRow;
 import com.satset.supplier.model.SyncPreviewItem;
-import com.satset.supplier.service.CatalogSyncService;
-import com.satset.supplier.service.SupplierPriceView;
-import com.satset.supplier.service.SyncAllPreview;
-import com.satset.supplier.service.SyncResult;
+import com.satset.supplier.service.pricelist.CatalogSyncService;
+import com.satset.supplier.service.pricelist.SupplierPriceView;
+import com.satset.supplier.service.pricelist.SyncAllPreview;
+import com.satset.supplier.service.pricelist.SyncResult;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 

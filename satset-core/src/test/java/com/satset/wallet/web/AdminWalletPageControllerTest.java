@@ -3,7 +3,7 @@ package com.satset.wallet.web;
 import com.satset.onboarding.model.Stores;
 import com.satset.onboarding.repository.StoreRepository;
 import com.satset.wallet.model.WalletAccountEntity;
-import com.satset.wallet.service.WalletService;
+import com.satset.wallet.service.account.WalletService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

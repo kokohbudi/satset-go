@@ -1,6 +1,6 @@
 package com.satset.identity.web;
 
-import com.satset.identity.service.IdentityDomainService;
+import com.satset.identity.service.provisioning.IdentityDomainService;
 import com.satset.shared.dto.UserDTO;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

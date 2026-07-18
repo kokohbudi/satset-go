@@ -1,6 +1,6 @@
 package com.satset.onboarding.client;
 
-import com.satset.wallet.service.WalletService;
+import com.satset.wallet.service.account.WalletService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;

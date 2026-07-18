@@ -2,7 +2,7 @@ package com.satset.transaction.web;
 
 import com.satset.shared.constant.SatsetConstants;
 import com.satset.shared.dto.UserDTO;
-import com.satset.transaction.service.TransactionDomainService;
+import com.satset.transaction.service.topup.TransactionDomainService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;

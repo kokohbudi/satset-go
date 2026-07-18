@@ -1,6 +1,6 @@
 package com.satset.onboarding.web;
 
-import com.satset.onboarding.service.AdminOnboardingDomainService;
+import com.satset.onboarding.service.enrollment.AdminOnboardingDomainService;
 import com.satset.shared.constant.SatsetConstants;
 import com.satset.shared.exception.BusinessException;
 import lombok.extern.slf4j.Slf4j;

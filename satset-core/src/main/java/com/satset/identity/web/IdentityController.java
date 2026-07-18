@@ -3,7 +3,7 @@ package com.satset.identity.web;
 import com.satset.identity.dto.CreateUserRequest;
 import com.satset.identity.model.KeycloakGroup;
 import com.satset.identity.model.KeycloakRole;
-import com.satset.identity.service.IdentityDomainService;
+import com.satset.identity.service.provisioning.IdentityDomainService;
 import com.satset.shared.constant.SatsetConstants;
 import com.satset.shared.dto.UserDTO;
 import com.satset.shared.exception.BusinessException;

@@ -1,6 +1,6 @@
 package com.satset.onboarding.web;
 
-import com.satset.onboarding.service.AdminOnboardingDomainService;
+import com.satset.onboarding.service.enrollment.AdminOnboardingDomainService;
 import com.satset.shared.exception.BusinessException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

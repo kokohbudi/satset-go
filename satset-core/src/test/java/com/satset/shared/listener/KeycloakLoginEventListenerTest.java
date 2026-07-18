@@ -4,7 +4,7 @@ import com.satset.KeycloakLoginEventListener;
 
 import com.satset.identity.model.Users;
 import com.satset.identity.repository.UserRepository;
-import com.satset.identity.service.UserDomainService;
+import com.satset.identity.service.user.UserDomainService;
 import com.satset.onboarding.repository.StoreRepository;
 import com.satset.shared.constant.SatsetConstants;
 import com.satset.shared.dto.UserDTO;

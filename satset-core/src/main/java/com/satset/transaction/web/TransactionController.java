@@ -7,7 +7,7 @@ import com.satset.shared.exception.ResourceNotFoundException;
 import com.satset.transaction.dto.PurchaseRequest;
 import com.satset.transaction.dto.TransactionDTO;
 import com.satset.transaction.client.WalletGateway;
-import com.satset.transaction.service.TransactionDomainService;
+import com.satset.transaction.service.topup.TransactionDomainService;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;

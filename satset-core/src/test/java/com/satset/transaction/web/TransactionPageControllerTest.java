@@ -1,7 +1,7 @@
 package com.satset.transaction.web;
 
 import com.satset.shared.dto.UserDTO;
-import com.satset.transaction.service.TransactionDomainService;
+import com.satset.transaction.service.topup.TransactionDomainService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
