@@ -7,6 +7,8 @@ import com.satset.shared.dto.UserDTO;
 import com.satset.shared.exception.BusinessException;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+
 /**
  * Service yang menangani operasi manajemen pengguna.
  * Menyediakan metode untuk operasi CRUD pengguna dan manajemen akun.
@@ -14,21 +16,16 @@ import org.springframework.stereotype.Service;
 @Service
 public class UserDomainService {
     private final UserRepository usersRepository;
-    private final UserManagementHelper userManagementBusiness;
     private final UserDTO userDTO;
 
     /**
      * Konstruktor dengan dependency injection.
      *
-     * @param usersRepository        Repository untuk operasi data pengguna
-     * @param userManagementBusiness Komponen bisnis untuk logika manajemen
-     *                               pengguna
-     * @param userDTO                DTO yang mewakili pengguna saat ini
+     * @param usersRepository Repository untuk operasi data pengguna
+     * @param userDTO         DTO yang mewakili pengguna saat ini
      */
-    public UserDomainService(UserRepository usersRepository, UserManagementHelper userManagementBusiness,
-            UserDTO userDTO) {
+    public UserDomainService(UserRepository usersRepository, UserDTO userDTO) {
         this.usersRepository = usersRepository;
-        this.userManagementBusiness = userManagementBusiness;
         this.userDTO = userDTO;
     }
 
@@ -63,7 +60,31 @@ public class UserDomainService {
         UserDTO requestedUserDTO = new UserDTO();
         requestedUserDTO.setEmail(email);
         requestedUserDTO.setActive(status);
-        this.userManagementBusiness.setUserStatus(this.userDTO, requestedUserDTO, this.usersRepository);
+
+        Users user = getRequestedUserOnStore(this.userDTO, requestedUserDTO);
+        if (!(user.isActive() && requestedUserDTO.isActive())) {
+            user.setActive(requestedUserDTO.isActive());
+            usersRepository.save(user);
+        }
+    }
+
+    /**
+     * Mendapatkan pengguna yang diminta pada toko yang sama dengan pengguna sesi.
+     * Memvalidasi bahwa kedua pengguna berada pada toko yang sama.
+     */
+    private Users getRequestedUserOnStore(UserDTO sessionUserDTO, UserDTO requestUserDTO) throws BusinessException {
+        String[] emails = { sessionUserDTO.getEmail(), requestUserDTO.getEmail() };
+        List<Users> users = usersRepository.findByEmailInAndStoreId(List.of(emails),
+                sessionUserDTO.getStoreId().toString());
+
+        if (users.size() != 2) {
+            throw new BusinessException("Email tidak terdaftar di toko anda");
+        }
+
+        return users.stream()
+                .filter(user -> user.getEmail().equals(requestUserDTO.getEmail()))
+                .findFirst()
+                .get();
     }
 
     /**

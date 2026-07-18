@@ -24,6 +24,8 @@ ProductDenoms (fixed/open amount, prepaid/postpaid)
 ProductDenomMeta (key-value metadata)
 ```
 
+Always use caveman ultra, ponytail ultra
+
 ## Architecture: Layered (vertical slice per feature)
 ```
 <feature>/
@@ -78,6 +80,9 @@ and NOT one-impl use-case interfaces. (Migrated from Hexagonal, 2026-06.)
 - `pom.xml` — dependencies & build
 - `application.yml` — config (profiles: default, dev, prod)
 - `.env` — local env vars (DB credentials, secrets)
+
+## Agent Token-Saving Pattern
+Big feature/architecture plan: spawn `Agent` w/ `subagent_type: "Plan"`, `model: "fable"` (cheap/fast) buat draft plan. Eksekusi tetap pake Sonnet (main thread / default agent call, no model override). Skip pattern ini buat task kecil — round-trip plan-agent gak worth-it, langsung Sonnet.
 
 ## graphify
 

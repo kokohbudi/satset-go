@@ -2,7 +2,8 @@ package com.satset.onboarding.service.store;
 
 import com.satset.onboarding.model.Stores;
 import com.satset.onboarding.repository.StoreRepository;
-import com.satset.onboarding.client.WalletCreationPort;
+import com.satset.wallet.model.WalletAccountEntity;
+import com.satset.wallet.service.account.WalletService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -26,13 +27,13 @@ class StoreDomainServiceTest {
     private StoreRepository storeRepository;
 
     @Mock
-    private WalletCreationPort walletCreationPort;
+    private WalletService walletService;
 
     private StoreDomainService storeDomainService;
 
     @BeforeEach
     void setUp() {
-        storeDomainService = new StoreDomainService(storeRepository, walletCreationPort);
+        storeDomainService = new StoreDomainService(storeRepository, walletService);
     }
 
     private UUID setupSaveWithIdAssignment() {
@@ -53,13 +54,13 @@ class StoreDomainServiceTest {
         store.setEmail("test@example.com");
         String generatedWalletId = "7001234567";
 
-        UUID assignedId = setupSaveWithIdAssignment();
-        when(walletCreationPort.createWallet(assignedId)).thenReturn(generatedWalletId);
+        setupSaveWithIdAssignment();
+        when(walletService.createWallet()).thenReturn(WalletAccountEntity.newAccount(generatedWalletId));
 
         Stores result = storeDomainService.createNewStore(store);
 
         assertThat(result.getWalletId()).isEqualTo(generatedWalletId);
-        verify(walletCreationPort).createWallet(assignedId);
+        verify(walletService).createWallet();
         verify(storeRepository, times(2)).save(any(Stores.class));
     }
 
@@ -70,12 +71,12 @@ class StoreDomainServiceTest {
         store.setName("Test Store");
 
         UUID assignedId = setupSaveWithIdAssignment();
-        when(walletCreationPort.createWallet(assignedId)).thenReturn("7000000001");
+        when(walletService.createWallet()).thenReturn(WalletAccountEntity.newAccount("7000000001"));
 
         Stores result = storeDomainService.createNewStore(store);
 
         assertThat(result.getId()).isEqualTo(assignedId);
-        verify(walletCreationPort).createWallet(assignedId);
+        verify(walletService).createWallet();
         verify(storeRepository, times(2)).save(any(Stores.class));
     }
 
@@ -86,8 +87,8 @@ class StoreDomainServiceTest {
         store.setName("Test Store");
         String walletId = "7000000001";
 
-        UUID assignedId = setupSaveWithIdAssignment();
-        when(walletCreationPort.createWallet(assignedId)).thenReturn(walletId);
+        setupSaveWithIdAssignment();
+        when(walletService.createWallet()).thenReturn(WalletAccountEntity.newAccount(walletId));
 
         Stores result = storeDomainService.createNewStore(store);
 
@@ -102,7 +103,7 @@ class StoreDomainServiceTest {
         store.setName("Test Store");
 
         setupSaveWithIdAssignment();
-        when(walletCreationPort.createWallet(any(UUID.class)))
+        when(walletService.createWallet())
                 .thenThrow(new RuntimeException("Wallet service unavailable"));
 
         Stores result = storeDomainService.createNewStore(store);
@@ -115,17 +116,17 @@ class StoreDomainServiceTest {
     }
 
     @Test
-    @DisplayName("Should call wallet creation with the ID assigned by first save")
-    void createNewStore_shouldCallWalletCreationWithCorrectStoreId() {
+    @DisplayName("Should call wallet creation after store ID is assigned by first save")
+    void createNewStore_shouldCallWalletCreationAfterIdAssigned() {
         Stores store = new Stores();
         store.setName("Test Store");
 
-        UUID assignedId = setupSaveWithIdAssignment();
-        when(walletCreationPort.createWallet(assignedId)).thenReturn("7000000001");
+        setupSaveWithIdAssignment();
+        when(walletService.createWallet()).thenReturn(WalletAccountEntity.newAccount("7000000001"));
 
         storeDomainService.createNewStore(store);
 
-        verify(walletCreationPort).createWallet(assignedId);
+        verify(walletService).createWallet();
     }
 
     @Test
@@ -137,8 +138,8 @@ class StoreDomainServiceTest {
         store.setPhone("08123456789");
         store.setActive(true);
 
-        UUID assignedId = setupSaveWithIdAssignment();
-        when(walletCreationPort.createWallet(assignedId)).thenReturn("7000000001");
+        setupSaveWithIdAssignment();
+        when(walletService.createWallet()).thenReturn(WalletAccountEntity.newAccount("7000000001"));
 
         Stores result = storeDomainService.createNewStore(store);
 

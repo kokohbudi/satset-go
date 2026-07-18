@@ -4,8 +4,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.satset.catalog.repository.DenomRepository;
 import com.satset.identity.client.KeycloakIdentityPort;
 import com.satset.onboarding.repository.StoreRepository;
-import com.satset.identity.client.KeycloakOrganizationPort;
-import com.satset.onboarding.client.WalletCreationPort;
 import com.satset.shared.dto.UserDTO;
 import com.satset.shared.exception.InsufficientBalanceException;
 import com.satset.shared.model.DenomInfo;
@@ -64,12 +62,6 @@ class PurchaseFlowIntegrationTest {
 
     @MockitoBean
     private KeycloakIdentityPort keycloakIdentityPort;
-
-    @MockitoBean
-    private KeycloakOrganizationPort keycloakOrganizationPort;
-
-    @MockitoBean
-    private WalletCreationPort walletCreationPort;
 
     @MockitoBean
     private UserDTO userDTO;
@@ -200,5 +192,29 @@ class PurchaseFlowIntegrationTest {
         // deductBalance (purchase) + refundBalance (refund) both called
         verify(balanceManagementUseCase, times(1)).deductBalance(eq(walletId), any(), any(), any());
         verify(balanceManagementUseCase, times(1)).refundBalance(eq(walletId), any(), any(), any());
+    }
+
+    // ==============================================
+    // @LogContext weaving: MDC logctx=Topup harus aktif selama createPurchase
+    // (bukti log service ke-route ke logs/Topup/). Capture MDC di downstream mock.
+    // ==============================================
+    @Test
+    void createPurchase_runsWithinTopupLogContext() throws Exception {
+        String[] captured = new String[1];
+        when(providerService.sendTransaction(anyString(), anyString(), any(BigDecimal.class), anyString()))
+                .thenAnswer(inv -> {
+                    captured[0] = org.slf4j.MDC.get("logctx");
+                    return new ProviderResponse(ProviderStatus.SUCCESS, "REF-1", "SN-1", "Success", null);
+                });
+
+        PurchaseRequest request = new PurchaseRequest(denomId, "081234567890");
+        mockMvc.perform(post("/api/transactions/purchase")
+                .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_CLIENT_purchase")))
+                .with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk());
+
+        org.assertj.core.api.Assertions.assertThat(captured[0]).isEqualTo("Topup");
     }
 }

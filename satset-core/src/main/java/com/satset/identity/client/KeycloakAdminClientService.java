@@ -21,7 +21,7 @@ import java.util.List;
 
 @Service
 @Slf4j
-public class KeycloakAdminClientService implements KeycloakIdentityPort, KeycloakOrganizationPort {
+public class KeycloakAdminClientService implements KeycloakIdentityPort {
 
         private static final java.util.Set<String> SYSTEM_ROLES = java.util.Set.of(
                         "offline_access", "uma_authorization", "default-roles-satset-go",

@@ -200,52 +200,12 @@
                 </exclusion>
             </exclusions>
         </dependency>
+        <!-- Logback — excluded from every starter above, added once here to avoid duplication -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-logging</artifactId>
+        </dependency>
     </dependencies>
-
-    <!-- =====================================================
-         LOGGING PROFILES — independen dari env profiles
-         Default : Logback async  (tidak perlu -Dlog.impl)
-         Log4j2  : mvn ... -Dlog.impl=log4j2
-         ===================================================== -->
-    <profiles>
-
-        <profile>
-            <id>logging-logback</id>
-            <activation>
-                <property>
-                    <name>!log.impl</name>
-                </property>
-            </activation>
-            <dependencies>
-                <dependency>
-                    <groupId>org.springframework.boot</groupId>
-                    <artifactId>spring-boot-starter-logging</artifactId>
-                </dependency>
-            </dependencies>
-        </profile>
-
-        <profile>
-            <id>logging-log4j2</id>
-            <activation>
-                <property>
-                    <name>log.impl</name>
-                    <value>log4j2</value>
-                </property>
-            </activation>
-            <dependencies>
-                <dependency>
-                    <groupId>org.springframework.boot</groupId>
-                    <artifactId>spring-boot-starter-log4j2</artifactId>
-                </dependency>
-                <dependency>
-                    <groupId>com.lmax</groupId>
-                    <artifactId>disruptor</artifactId>
-                    <version>4.0.0</version>
-                </dependency>
-            </dependencies>
-        </profile>
-
-    </profiles>
 
     <build>
         <plugins>
@@ -335,15 +295,15 @@
                         <exclude>com/satset/shared/config/LazyInitConfig.class</exclude>
                         <exclude>com/satset/shared/config/PerformanceConfig.class</exclude>
                         <exclude>com/satset/shared/config/WebMvcConfig.class</exclude>
-                        <exclude>com/satset/shared/bean/Beans.class</exclude>
+                        <exclude>com/satset/Beans.class</exclude>
                         <!-- Keycloak listener — tightly coupled to OIDC session events -->
-                        <exclude>com/satset/shared/listener/KeycloakLoginEventListener.class</exclude>
+                        <exclude>com/satset/KeycloakLoginEventListener.class</exclude>
                         <!-- DB seeder — requires live DB -->
                         <exclude>com/satset/shared/config/DataSeeder.class</exclude>
                         <!-- Constants utility class — no testable logic -->
-                        <exclude>com/satset/shared/constant/OmniConstants.class</exclude>
+                        <exclude>com/satset/shared/constant/SatsetConstants.class</exclude>
                         <!-- LogoutController — tightly coupled to OIDC infrastructure -->
-                        <exclude>com/satset/identity/adapter/in/web/LogoutController.class</exclude>
+                        <exclude>com/satset/identity/web/LogoutController.class</exclude>
                         <!-- Spring Boot entry point -->
                         <exclude>com/satset/SatsetGoApplication.class</exclude>
                         <!-- JPA repository interfaces (Spring-generated) -->

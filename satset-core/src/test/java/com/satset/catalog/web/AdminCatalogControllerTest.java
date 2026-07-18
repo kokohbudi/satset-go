@@ -250,7 +250,7 @@ class AdminCatalogControllerTest {
                 .andExpect(jsonPath("$").isEmpty());
     }
 
-    // worktree: denom-centric aggregate (ProductDenomDTO) at /denoms
+    // denom-centric aggregate (ProductDenoms) at /denoms
     @Test
     void listAllDenoms_returnsAll() throws Exception {
         com.satset.catalog.model.ProductDenoms d = new com.satset.catalog.model.ProductDenoms();

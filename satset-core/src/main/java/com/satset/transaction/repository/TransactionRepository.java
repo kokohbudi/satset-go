@@ -29,9 +29,6 @@ public interface TransactionRepository extends JpaRepository<Transactions, UUID>
             Collection<TransactionStatus> statuses,
             LocalDateTime since);
 
-    List<Transactions> findByStatusAndCreatedAtBefore(
-            TransactionStatus status, LocalDateTime cutoff, Pageable pageable);
-
     // ponytail: raw aggregate over transactions; add a daily rollup table only if this query gets slow at volume
     @Query("""
             SELECT new com.satset.accounting.dto.PnlSummary(

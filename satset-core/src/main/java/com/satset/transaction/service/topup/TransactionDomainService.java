@@ -1,6 +1,7 @@
 package com.satset.transaction.service.topup;
 
 import com.satset.catalog.repository.DenomRepository;
+import com.satset.shared.exception.BusinessException;
 import com.satset.shared.exception.InsufficientBalanceException;
 import com.satset.shared.exception.ResourceNotFoundException;
 import com.satset.shared.logging.LogContext;
@@ -46,7 +47,7 @@ public class TransactionDomainService {
 
         @Transactional
         public TransactionDTO createPurchase(UUID storeId, String walletId, UUID denomId, String targetNumber)
-                        throws InsufficientBalanceException {
+                        throws BusinessException {
 
                 // Use DenomInfo (shared kernel) instead of ProductDenoms (catalog domain entity)
                 DenomInfo denom = denomRepository.findDenomInfoById(denomId)
@@ -70,7 +71,9 @@ public class TransactionDomainService {
                                                                 TransactionStatus.SUCCESS),
                                                 oneMinuteAgo);
                 if (isDuplicate) {
-                        throw new IllegalArgumentException(
+                        log.warn("Duplicate transaction blocked: store={} denom={} target={}",
+                                        storeId, denomId, targetNumber);
+                        throw new BusinessException("DUPLICATE_TRANSACTION",
                                         "Harap tunggu 1 menit sebelum melakukan transaksi ke nomor yang sama.");
                 }
 

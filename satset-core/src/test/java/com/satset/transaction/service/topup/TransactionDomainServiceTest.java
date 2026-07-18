@@ -1,6 +1,7 @@
 package com.satset.transaction.service.topup;
 
 import com.satset.catalog.repository.DenomRepository;
+import com.satset.shared.exception.BusinessException;
 import com.satset.shared.exception.InsufficientBalanceException;
 import com.satset.shared.model.DenomInfo;
 import com.satset.transaction.dto.TransactionDTO;
@@ -69,7 +70,7 @@ class TransactionDomainServiceTest {
     }
 
     @Test
-    void createPurchase_Success_WhenBalanceIsExact() throws InsufficientBalanceException {
+    void createPurchase_Success_WhenBalanceIsExact() throws BusinessException {
         // "Saldo pas-pasan → SUCCESS, balance = 0"
         DenomInfo expensiveDenom = new DenomInfo(
             denomId, "TLKM10", "Telkomsel 10K", "Telkomsel",
@@ -100,7 +101,7 @@ class TransactionDomainServiceTest {
     }
 
     @Test
-    void createPurchase_ThrowsException_WhenBalanceInsufficient() throws InsufficientBalanceException {
+    void createPurchase_ThrowsException_WhenBalanceInsufficient() throws BusinessException {
         // "Saldo kurang Rp 1 → REJECTED, balance unchanged"
         DenomInfo expensiveDenom = new DenomInfo(
             denomId, "TLKM10", "Telkomsel 10K", "Telkomsel",
@@ -128,7 +129,7 @@ class TransactionDomainServiceTest {
     }
 
     @Test
-    void createPurchase_ProviderFailed_RefundsBalance() throws InsufficientBalanceException {
+    void createPurchase_ProviderFailed_RefundsBalance() throws BusinessException {
         // "Provider timeout → FAILED → auto refund"
         when(denomRepository.findDenomInfoById(denomId)).thenReturn(Optional.of(denom));
         when(transactionRepository.save(any(Transactions.class))).thenAnswer(invocation -> {
@@ -158,7 +159,7 @@ class TransactionDomainServiceTest {
     }
 
     @Test
-    void createPurchase_Success_SnapshotsMargin_FallbackToBasePrice() throws InsufficientBalanceException {
+    void createPurchase_Success_SnapshotsMargin_FallbackToBasePrice() throws BusinessException {
         when(denomRepository.findDenomInfoById(denomId)).thenReturn(Optional.of(denom)); // basePrice 4600, total 5000
         when(transactionRepository.save(any(Transactions.class))).thenAnswer(inv -> {
             Transactions tx = inv.getArgument(0);
@@ -179,7 +180,7 @@ class TransactionDomainServiceTest {
     }
 
     @Test
-    void createPurchase_Success_ProviderCostOverridesBasePrice() throws InsufficientBalanceException {
+    void createPurchase_Success_ProviderCostOverridesBasePrice() throws BusinessException {
         when(denomRepository.findDenomInfoById(denomId)).thenReturn(Optional.of(denom));
         when(transactionRepository.save(any(Transactions.class))).thenAnswer(inv -> {
             Transactions tx = inv.getArgument(0);
@@ -199,7 +200,7 @@ class TransactionDomainServiceTest {
     }
 
     @Test
-    void createPurchase_Failed_LeavesCostAndMarginNull() throws InsufficientBalanceException {
+    void createPurchase_Failed_LeavesCostAndMarginNull() throws BusinessException {
         when(denomRepository.findDenomInfoById(denomId)).thenReturn(Optional.of(denom));
         when(transactionRepository.save(any(Transactions.class))).thenAnswer(inv -> {
             Transactions tx = inv.getArgument(0);
@@ -219,7 +220,7 @@ class TransactionDomainServiceTest {
     }
 
     @Test
-    void createPurchase_DenomInactive_ThrowsException() throws InsufficientBalanceException {
+    void createPurchase_DenomInactive_ThrowsException() throws BusinessException {
         // "Purchase denom inactive/deleted → REJECTED"
         DenomInfo inactiveDenom = new DenomInfo(
             denomId, "TLKM5", "Telkomsel 5K", "Telkomsel",
@@ -235,13 +236,13 @@ class TransactionDomainServiceTest {
     }
 
     @Test
-    void createPurchase_DoubleSubmit_ThrowsException() throws InsufficientBalanceException {
+    void createPurchase_DoubleSubmit_ThrowsException() throws BusinessException {
         // "Double submit (idempotency) → second rejected"
         when(denomRepository.findDenomInfoById(denomId)).thenReturn(Optional.of(denom));
         when(transactionRepository.existsByStoreIdAndProductDenomIdAndTargetNumberAndStatusInAndCreatedAtAfter(
                 eq(storeId), eq(denomId), eq("081234567890"), any(), any())).thenReturn(true);
 
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(BusinessException.class,
                 () -> transactionService.createPurchase(storeId, walletId, denomId, "081234567890"));
 
         verify(transactionRepository, never()).save(any());
@@ -249,7 +250,7 @@ class TransactionDomainServiceTest {
     }
 
     @Test
-    void createPurchase_RefundFails_LeavesStatusFailed() throws InsufficientBalanceException {
+    void createPurchase_RefundFails_LeavesStatusFailed() throws BusinessException {
         // "Refund gagal setelah provider fail → alert"
         when(denomRepository.findDenomInfoById(denomId)).thenReturn(Optional.of(denom));
         when(transactionRepository.save(any(Transactions.class))).thenAnswer(invocation -> {
@@ -275,7 +276,7 @@ class TransactionDomainServiceTest {
 
 
     @Test
-    void createPurchase_Pending_StaysProcessing_NoRefund() throws InsufficientBalanceException {
+    void createPurchase_Pending_StaysProcessing_NoRefund() throws BusinessException {
         when(denomRepository.findDenomInfoById(denomId)).thenReturn(Optional.of(denom));
         when(transactionRepository.save(any(Transactions.class))).thenAnswer(inv -> {
             Transactions tx = inv.getArgument(0);
@@ -340,7 +341,7 @@ class TransactionDomainServiceTest {
     }
 
     @Test
-    void createPurchase_PersistsWalletId() throws InsufficientBalanceException {
+    void createPurchase_PersistsWalletId() throws BusinessException {
         when(denomRepository.findDenomInfoById(denomId)).thenReturn(Optional.of(denom));
         when(transactionRepository.save(any(Transactions.class))).thenAnswer(inv -> {
             Transactions tx = inv.getArgument(0);
@@ -358,7 +359,7 @@ class TransactionDomainServiceTest {
     }
 
     @Test
-    void createPurchase_ConcurrentPurchases_OnlyOneSucceeds() throws InsufficientBalanceException {
+    void createPurchase_ConcurrentPurchases_OnlyOneSucceeds() throws BusinessException {
         // "Concurrent purchase (2 thread, 1 saldo) → hanya 1 berhasil"
         when(denomRepository.findDenomInfoById(denomId)).thenReturn(Optional.of(denom));
         when(transactionRepository.save(any(Transactions.class))).thenAnswer(invocation -> {

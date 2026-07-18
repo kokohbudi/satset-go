@@ -4,7 +4,7 @@
 
 **Goal:** Replace the `RealProviderAdapter` stub with a real Digiflazz prepaid topup call, make the purchase flow three-state (SUCCESS/PENDING/FAILED), and settle Pending transactions with an outbound reconcile poll — no public webhook.
 
-**Architecture:** `ProviderPort` gains a `refId` (the transaction UUID → Digiflazz `ref_id`). `DigiflazzClient` (supplier slice) owns the `POST /v1/transaction` protocol; `RealProviderAdapter` maps its result to a three-state `ProviderResponse`. `TransactionDomainService.createPurchase` routes on status via an extracted `applyProviderResult`. A `@Scheduled` `TransactionReconcileService` re-polls stale PROCESSING rows (re-POST same `ref_id`, idempotent) and settles them through the same method. The charged `walletId` is persisted on the transaction row so the scheduled job can refund without request context.
+**Architecture:** `ProviderPort` gains a `refId` (the transaction UUID → Digiflazz `ref_id`). `DigiflazzClient` (supplier slice) owns the `POST /v1/transaction` protocol; `RealProviderAdapter` maps its result to a three-state `ProviderResponse`. `TransactionDomainService.createPurchase` routes on status via an extracted `reconcileProviderResult`. A `@Scheduled` `TransactionReconcileService` re-polls stale PROCESSING rows (re-POST same `ref_id`, idempotent) and settles them through the same method. The charged `walletId` is persisted on the transaction row so the scheduled job can refund without request context.
 
 **Tech Stack:** Spring Boot 4, Java 25, Hibernate/JPA (PostgreSQL), `RestClient`, Jackson, JUnit 5 + AssertJ + Mockito, `MockRestServiceServer`.
 
@@ -565,14 +565,14 @@ git commit -m "feat(supplier): RealProviderAdapter maps Digiflazz status/rc (mon
 
 ---
 
-### Task 5: `createPurchase` PENDING branch + extract `applyProviderResult`
+### Task 5: `createPurchase` PENDING branch + extract `reconcileProviderResult`
 
 **Files:**
 - Modify: `satset-core/src/main/java/com/satset/transaction/service/TransactionDomainService.java`
 - Test: `satset-core/src/test/java/com/satset/transaction/service/TransactionDomainServiceTest.java`
 
 **Interfaces:**
-- Produces: `void applyProviderResult(Transactions tx, ProviderResponse r, String walletId, DenomInfo denom)` (package-private, reused by Task 6)
+- Produces: `void reconcileProviderResult(Transactions tx, ProviderResponse r, String walletId, DenomInfo denom)` (package-private, reused by Task 6)
 
 - [ ] **Step 1: Write the failing test**
 
@@ -607,7 +607,7 @@ Expected: FAIL — current code treats non-success as FAILED→refund, status en
 In `TransactionDomainService.createPurchase`, replace the whole
 `if (response.success()) { … } else { … }` block (lines ~101–133) with:
 ```java
-                applyProviderResult(transaction, response, walletId, denom);
+                reconcileProviderResult(transaction, response, walletId, denom);
 ```
 Then add this method to the class (below `createPurchase`):
 ```java
@@ -620,7 +620,7 @@ Then add this method to the class (below `createPurchase`):
          *   <li>FAILED   → refund; on refund failure leave FAILED for manual Ops.
          * </ul>
          */
-        void applyProviderResult(Transactions transaction, ProviderResponse response,
+        void reconcileProviderResult(Transactions transaction, ProviderResponse response,
                         String walletId, DenomInfo denom) {
                 if (response.status() == ProviderStatus.PENDING) {
                         if (response.referenceNumber() != null) {
@@ -678,7 +678,7 @@ Expected: PASS — new PENDING test plus all existing SUCCESS/FAILED/REFUNDED te
 ```bash
 git add satset-core/src/main/java/com/satset/transaction/service/TransactionDomainService.java \
         satset-core/src/test/java/com/satset/transaction/service/TransactionDomainServiceTest.java
-git commit -m "feat(transaction): PENDING keeps PROCESSING; extract applyProviderResult"
+git commit -m "feat(transaction): PENDING keeps PROCESSING; extract reconcileProviderResult"
 ```
 
 ---
@@ -693,7 +693,7 @@ git commit -m "feat(transaction): PENDING keeps PROCESSING; extract applyProvide
 - Test: `satset-core/src/test/java/com/satset/transaction/service/TransactionReconcileServiceTest.java` (create)
 
 **Interfaces:**
-- Consumes: `TransactionDomainService.applyProviderResult(...)` (Task 5); `ProviderPort` (Task 1); `DenomRepository.findDenomInfoById`; `Transactions.getWalletId()` (Task 2)
+- Consumes: `TransactionDomainService.reconcileProviderResult(...)` (Task 5); `ProviderPort` (Task 1); `DenomRepository.findDenomInfoById`; `Transactions.getWalletId()` (Task 2)
 - Produces: `List<Transactions> TransactionRepository.findByStatusAndCreatedAtBefore(TransactionStatus, LocalDateTime, Pageable)`
 
 - [ ] **Step 1: Add the repository query**
@@ -774,7 +774,7 @@ class TransactionReconcileServiceTest {
         reconcile.reconcileStalePending();
 
         verify(provider).sendTransaction("0878", "xld25", new BigDecimal("25000.00"), tx.getId().toString());
-        verify(txService).applyProviderResult(tx, resp, "w1", denom);
+        verify(txService).reconcileProviderResult(tx, resp, "w1", denom);
     }
 
     @Test
@@ -820,7 +820,7 @@ import java.util.List;
 /**
  * Settles PROCESSING transactions left in-flight by a Digiflazz "Pending" response.
  * Re-POSTs /transaction with the same ref_id (idempotent, no re-charge) and applies
- * the current status via {@link TransactionDomainService#applyProviderResult}.
+ * the current status via {@link TransactionDomainService#reconcileProviderResult}.
  *
  * <p>ponytail: batch cap per run so a backlog can't stampede Digiflazz's rate limit
  * (rc 85). Widen {@code supplier.reconcile.batch-size} if throughput needs it.
@@ -869,7 +869,7 @@ public class TransactionReconcileService {
                 }
                 ProviderResponse resp = provider.sendTransaction(
                         tx.getTargetNumber(), denom.code(), tx.getTotal(), tx.getId().toString());
-                txService.applyProviderResult(tx, resp, tx.getWalletId(), denom);
+                txService.reconcileProviderResult(tx, resp, tx.getWalletId(), denom);
             } catch (Exception e) {
                 log.error("Reconcile error tx {}: {}", tx.getId(), e.getMessage(), e);
                 // leave PROCESSING → retried next run
@@ -922,7 +922,7 @@ git commit -m "feat(transaction): scheduled reconcile poll settles stale PENDING
 
 ## Self-Review
 
-- **Spec coverage:** ProviderStatus (T1) · ProviderResponse status (T1) · ProviderPort+refId (T1) · walletId persistence 5b (T2) · DigiflazzClient.topup 4 (T3) · RealProviderAdapter map + rc table 5 (T4) · createPurchase PENDING + applyProviderResult 6 (T5) · reconcile poll 7 (T6) · config 8 (T6). Non-goals (webhook, egress IP, saldo check) intentionally absent.
+- **Spec coverage:** ProviderStatus (T1) · ProviderResponse status (T1) · ProviderPort+refId (T1) · walletId persistence 5b (T2) · DigiflazzClient.topup 4 (T3) · RealProviderAdapter map + rc table 5 (T4) · createPurchase PENDING + reconcileProviderResult 6 (T5) · reconcile poll 7 (T6) · config 8 (T6). Non-goals (webhook, egress IP, saldo check) intentionally absent.
 - **Money-safe mapping:** enforced + tested in T4 (`Gagal`+01/50 → PENDING; +44 → FAILED; null → PENDING).
-- **Type consistency:** `applyProviderResult(Transactions, ProviderResponse, String, DenomInfo)` defined T5, consumed T6 identically. `sendTransaction(..., String refId)` 4-arg consistent T1/T4/T6. `DigiTxResult` fields consistent T3/T4.
+- **Type consistency:** `reconcileProviderResult(Transactions, ProviderResponse, String, DenomInfo)` defined T5, consumed T6 identically. `sendTransaction(..., String refId)` 4-arg consistent T1/T4/T6. `DigiTxResult` fields consistent T3/T4.
 - **`PurchaseFlowIntegrationTest`:** exercised by the full-suite run in T6 step 7 (may construct `ProviderResponse` or stub `sendTransaction` — if it fails to compile, apply the same two replacements from T1 step 7 before committing T6).

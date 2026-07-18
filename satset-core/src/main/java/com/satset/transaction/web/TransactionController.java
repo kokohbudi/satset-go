@@ -2,7 +2,7 @@ package com.satset.transaction.web;
 
 import com.satset.shared.constant.SatsetConstants;
 import com.satset.shared.dto.UserDTO;
-import com.satset.shared.exception.InsufficientBalanceException;
+import com.satset.shared.exception.BusinessException;
 import com.satset.shared.exception.ResourceNotFoundException;
 import com.satset.transaction.dto.PurchaseRequest;
 import com.satset.transaction.dto.TransactionDTO;
@@ -41,7 +41,7 @@ public class TransactionController {
     @PostMapping("/purchase")
     @PreAuthorize("hasRole('" + SatsetConstants.PERM_PURCHASE + "')")
     public ResponseEntity<Map<String, Object>> purchase(@Valid @RequestBody PurchaseRequest request)
-            throws InsufficientBalanceException {
+            throws BusinessException {
 
         TransactionDTO transaction = transactionService.createPurchase(
                 getStoreId(), getWalletId(), request.denomId(), request.targetNumber());

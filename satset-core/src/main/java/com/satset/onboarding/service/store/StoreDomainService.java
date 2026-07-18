@@ -2,7 +2,7 @@ package com.satset.onboarding.service.store;
 
 import com.satset.onboarding.repository.StoreRepository;
 import com.satset.onboarding.model.Stores;
-import com.satset.onboarding.client.WalletCreationPort;
+import com.satset.wallet.service.account.WalletService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -18,12 +18,12 @@ public class StoreDomainService {
     private static final Logger log = LoggerFactory.getLogger(StoreDomainService.class);
 
     private final StoreRepository storeRepository;
-    private final WalletCreationPort walletCreationPort;
+    private final WalletService walletService;
 
     public StoreDomainService(StoreRepository storeRepository,
-                              WalletCreationPort walletCreationPort) {
+                              WalletService walletService) {
         this.storeRepository = storeRepository;
-        this.walletCreationPort = walletCreationPort;
+        this.walletService = walletService;
     }
 
     public Stores createNewStore(Stores stores) {
@@ -31,7 +31,7 @@ public class StoreDomainService {
         Stores saved = storeRepository.save(stores);
 
         try {
-            String walletId = walletCreationPort.createWallet(saved.getId());
+            String walletId = walletService.createWallet().getWalletId();
             saved.setWalletId(walletId);
             log.info("Wallet {} created for store {}", walletId, saved.getId());
             return storeRepository.save(saved);

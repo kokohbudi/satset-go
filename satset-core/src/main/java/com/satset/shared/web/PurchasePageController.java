@@ -1,9 +1,8 @@
 package com.satset.shared.web;
 
-import com.satset.catalog.dto.CategoryDTO;
+import com.satset.catalog.model.Category;
 import com.satset.catalog.model.CategoryType;
 import com.satset.catalog.service.category.CategoryDomainService;
-import com.satset.catalog.web.CatalogDtoMapper;
 import com.satset.shared.constant.SatsetConstants;
 import com.satset.shared.dto.UserDTO;
 import com.satset.transaction.client.WalletGateway;
@@ -34,8 +33,7 @@ public class PurchasePageController {
         model.addAttribute("currentPage", "purchase");
         model.addAttribute("breadcrumb", "Beli Pulsa");
         // SSR categories + balance so client doesn't refetch on render
-        List<CategoryDTO> categories = categoryService.findByType(CategoryType.PREPAID).stream()
-                .map(CatalogDtoMapper::toCategoryDTO).toList();
+        List<Category> categories = categoryService.findByType(CategoryType.PREPAID);
         BigDecimal balance = userDTO.getWalletId() == null
                 ? BigDecimal.ZERO
                 : walletGateway.getBalance(userDTO.getWalletId());

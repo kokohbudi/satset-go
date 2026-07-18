@@ -1,40 +1,33 @@
 # SatSetGo - Task Board
 
 > **Owner**: August (Senior PM)
-> **Last Updated**: 2026-03-10
-> **Sprint**: W-series — W-7 & W-8 remaining
+> **Last Updated**: 2026-07-18
+> **Sprint**: WH-series (Digiflazz webhook) + CAT-PERM (catalog permissions) — prioritas
 
 ---
 
 ## 🔥 CURRENT SPRINT
 
-### Wallet Service Separation — W-series
-> Design: `TechSpecs.md` → "Wallet Service — Technical Design"
-> DB: schema `wallet` di `satset_go` DB yang sama. Multi-module Maven.
+### Digiflazz Webhook — WH-series
+> **Goal**: ganti polling reconciler (`TransactionReconcileService`, `@Scheduled` tiap 60s, dihapus 2026-07-18)
+> dengan callback push dari Digiflazz. Status PROCESSING gak lagi di-re-POST aktif, nunggu webhook.
+> `TransactionDomainService.reconcileProviderResult(...)` tetap dipakai sbg settlement logic — webhook handler
+> tinggal panggil ini, bukan re-implement.
 
-- [x] **W-0**: Keputusan repo structure → Multi-module Maven, DB schema terpisah ✅
-- [x] **W-SETUP**: Restructure project → multi-module Maven (satset-core + satset-wallet) ✅
-- [x] **W-1**: `satset-wallet` module skeleton — Spring Boot, SecurityConfig, actuator ✅
-- [x] **W-2**: Wallet domain model — `WalletAccount`, `WalletMutation` domain records + JPA entities ✅
-- [x] **W-3**: Wallet use cases + domain service — `WalletUseCase` (6 methods) + `WalletDomainService` ✅
-- [x] **W-4**: Wallet REST endpoints — 6 endpoints: `GET /balance`, `POST /debit`, `POST /credit`, `POST /refund`, `GET /mutations`, `POST /accounts` ✅
-- [x] **W-5**: Core: `WalletClientAdapter` (RestClient + OAuth2 client_credentials) + `WalletCreationAdapter` ✅
-- [x] **W-6**: Core: `WalletClientAdapter` aktif via `WALLET_CLIENT_ENABLED=true` di `.env` ✅
-- [ ] **W-7**: Data migration — seed `wallet_accounts` dari Core DB ke satset-wallet schema
-- [ ] **W-8**: Integration test E2E — purchase flow Saga (Core → Wallet debit → Provider → Wallet refund), Testcontainers 2-service
+- [ ] **WH-0**: Cek dokumentasi Digiflazz — apakah mereka expose webhook/callback utk update status transaksi (endpoint URL registration, payload format, signature scheme)
+- [ ] **WH-1**: `POST /api/webhooks/digiflazz` endpoint — terima callback status transaksi
+- [ ] **WH-2**: Verifikasi signature/secret webhook (JANGAN percaya payload tanpa validasi — cegah spoofed status update dari luar)
+- [ ] **WH-3**: Wire ke `TransactionDomainService.reconcileProviderResult(...)` — mapping payload webhook → `ProviderResponse`
+- [ ] **WH-4**: Idempotency — webhook bisa kekirim >1x (retry Digiflazz), pastiin re-delivery gak dobel proses (cek status transaksi udah final sebelum apply)
+- [ ] **WH-5**: `@LogContext("Webhook")` di service webhook (outbound/inbound trace policy — lihat CLAUDE.md)
+- [ ] **WH-6**: Test — signature invalid ditolak, replay/duplicate delivery idempotent, payload PENDING/SUCCESS/FAILED ke-handle bener
+- [ ] **WH-7**: (optional, kalau Digiflazz webhook delivery gak reliable) fallback safety net — cron jarang (misal 1x/jam) buat catch transaksi yg kelewat webhook, BUKAN polling agresif kayak yg lama
 
-### Secure Inter-Service Auth — TX-series
-> **Goal**: Token Exchange (RFC 8693) — user context (userId, orgId) terbawa tamper-proof ke wallet.
-> Token relay & custom header ditolak. Token Exchange dipilih — Keycloak signed, aud=satset-wallet.
-> Claims: `org_wallet_id` + `user_id`. Cached 240s (buffer dari KC 5 menit).
-> Design: `TechSpecs.md` → "Secure Inter-Service Auth"
+### Catalog Permissions — CAT-PERM
+> Split view-only vs edit permission (categories/products/denoms/prices), rationalize `@PreAuthorize`
+> di `AdminCatalogController` + `CatalogSyncController`. Role source: Keycloak (`SatsetConstants.PERM_*`).
 
-- [ ] **TX-0**: Enable Token Exchange di Keycloak — fitur preview + permission policy `satset-core` → `satset-wallet`
-- [ ] **TX-1**: `satset-wallet` SecurityConfig — `.hasAuthority("SCOPE_wallet:internal")` di `/internal/wallet/**`
-- [ ] **TX-2**: `KeycloakTokenExchangeService` di satset-core — POST token exchange ke Keycloak
-- [ ] **TX-3**: Cache hasil exchange token — Caffeine key `userId:audience`, TTL 240s
-- [ ] **TX-4**: `WalletClientAdapter` — ganti OAuth2 client_credentials → token exchange service
-- [ ] **TX-5**: Verify E2E — user login → beli → token exchange → wallet terima token + `SCOPE_wallet:internal`
+- [ ] **CAT-PERM**: Redesign catalog permissions — split view-only vs edit (categories/products/denoms/prices). Rationalize `@PreAuthorize` (`AdminCatalogController` + `CatalogSyncController`, `SatsetConstants.PERM_*`) + template `canManageCat/Prod/Denom` flags. Do in main checkout.
 
 ---
 
@@ -62,7 +55,6 @@
 - [ ] **C-1**: Separate domain models dari JPA `@Entity` — pure domain class + JPA entity + mapper per bounded context
 - [ ] **L-8**: Pagination untuk product listing (low urgency, tunggu >100 produk)
 - [ ] **INF-series**: HikariCP Virtual Thread stress test — validate apakah perlu migrasi ke Agroal
-- [ ] **CAT-PERM**: Redesign catalog permissions — split view-only vs edit (categories/products/denoms/prices). Rationalize `@PreAuthorize` (`AdminCatalogController` + `CatalogSyncController`, `OmniConstants.PERM_*`) + template `canManageCat/Prod/Denom` flags. Do in main checkout.
 
 ### Future
 - [-] White-label Storefront, Dashboard Analytics, API Key Reseller, Bulk Transaction
@@ -90,3 +82,4 @@
 | W-SETUP + Phase A-C | Multi-module Maven, Hexagonal fix, Test fix (413 tests pass) | 2026-03-07 |
 | WI-series | Single-save store creation (pre-generate UUID) | 2026-03-07 |
 | W-1..W-6 | satset-wallet service + WalletClientAdapter aktif | 2026-03-10 |
+| W-7, W-8, TX-series | **CANCELLED (YAGNI)** — wallet-split gak jadi, wallet direabsorb in-process ke satset-core (`WalletGateway`→`WalletService`, JPA langsung, no HTTP/token-exchange) | 2026-07-18 |

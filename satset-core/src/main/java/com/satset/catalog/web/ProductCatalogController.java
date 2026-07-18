@@ -1,8 +1,5 @@
 package com.satset.catalog.web;
 
-import com.satset.catalog.dto.CategoryDTO;
-import com.satset.catalog.dto.ProductDTO;
-import com.satset.catalog.dto.ProductDenomDTO;
 import com.satset.catalog.model.*;
 import com.satset.catalog.service.category.CategoryDomainService;
 import com.satset.catalog.service.denom.DenomDomainService;
@@ -37,23 +34,18 @@ public class ProductCatalogController {
     // ==================== Categories ====================
 
     @GetMapping("/categories")
-    public ResponseEntity<List<CategoryDTO>> getAllCategories() {
-        List<CategoryDTO> dtos = browseCategoriesUseCase.findAll().stream()
-                .map(CatalogDtoMapper::toCategoryDTO).toList();
-        return ResponseEntity.ok(dtos);
+    public ResponseEntity<List<Category>> getAllCategories() {
+        return ResponseEntity.ok(browseCategoriesUseCase.findAll());
     }
 
     @GetMapping("/categories/type/{type}")
-    public ResponseEntity<List<CategoryDTO>> getCategoriesByType(@PathVariable CategoryType type) {
-        List<CategoryDTO> dtos = browseCategoriesUseCase.findByType(type).stream()
-                .map(CatalogDtoMapper::toCategoryDTO).toList();
-        return ResponseEntity.ok(dtos);
+    public ResponseEntity<List<Category>> getCategoriesByType(@PathVariable CategoryType type) {
+        return ResponseEntity.ok(browseCategoriesUseCase.findByType(type));
     }
 
     @GetMapping("/categories/{code}")
-    public ResponseEntity<CategoryDTO> getCategoryByCode(@PathVariable String code) {
+    public ResponseEntity<Category> getCategoryByCode(@PathVariable String code) {
         return browseCategoriesUseCase.findByCode(code)
-                .map(CatalogDtoMapper::toCategoryDTO)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
@@ -61,17 +53,14 @@ public class ProductCatalogController {
     // ==================== Products ====================
 
     @GetMapping("/categories/{code}/products")
-    public ResponseEntity<List<ProductDTO>> getProductsByCategory(@PathVariable String code) {
-        List<ProductDTO> dtos = browseProductsUseCase.findByCategory(code).stream()
-                .map(CatalogDtoMapper::toProductDTO).toList();
-        return ResponseEntity.ok(dtos);
+    public ResponseEntity<List<Products>> getProductsByCategory(@PathVariable String code) {
+        return ResponseEntity.ok(browseProductsUseCase.findByCategory(code));
     }
 
     @GetMapping("/categories/{catCode}/products/{prodCode}")
-    public ResponseEntity<ProductDTO> getProductByCategoryAndCode(
+    public ResponseEntity<Products> getProductByCategoryAndCode(
             @PathVariable String catCode, @PathVariable String prodCode) {
         return browseProductsUseCase.findByCategoryAndCode(catCode, prodCode)
-                .map(CatalogDtoMapper::toProductDTO)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
@@ -79,17 +68,14 @@ public class ProductCatalogController {
     // ==================== Denominations ====================
 
     @GetMapping("/categories/{catCode}/products/{prodCode}/denoms")
-    public ResponseEntity<List<ProductDenomDTO>> getDenomsByCategoryAndProduct(
+    public ResponseEntity<List<ProductDenoms>> getDenomsByCategoryAndProduct(
             @PathVariable String catCode, @PathVariable String prodCode) {
-        List<ProductDenomDTO> dtos = browseDenomsUseCase.findByProduct(catCode, prodCode).stream()
-                .map(CatalogDtoMapper::toDenomDTO).toList();
-        return ResponseEntity.ok(dtos);
+        return ResponseEntity.ok(browseDenomsUseCase.findByProduct(catCode, prodCode));
     }
 
     @GetMapping("/denoms/{code}")
-    public ResponseEntity<ProductDenomDTO> getDenomByCode(@PathVariable String code) {
+    public ResponseEntity<ProductDenoms> getDenomByCode(@PathVariable String code) {
         return browseDenomsUseCase.getDenomWithMeta(code)
-                .map(CatalogDtoMapper::toDenomDTO)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }

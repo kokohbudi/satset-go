@@ -4,7 +4,7 @@ import com.satset.onboarding.service.store.StoreDomainService;
 
 import com.satset.identity.model.Users;
 import com.satset.onboarding.model.Stores;
-import com.satset.identity.client.KeycloakOrganizationPort;
+import com.satset.identity.client.KeycloakIdentityPort;
 import com.satset.identity.repository.UserRepository;
 import com.satset.onboarding.repository.StoreRepository;
 import com.satset.shared.exception.BusinessException;
@@ -30,7 +30,7 @@ import static org.mockito.Mockito.*;
 class AdminOnboardingDomainServiceTest {
 
     @Mock
-    private KeycloakOrganizationPort keycloakOrgPort;
+    private KeycloakIdentityPort keycloakOrgPort;
 
     @Mock
     private StoreRepository storeRepository;

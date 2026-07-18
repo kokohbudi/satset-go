@@ -5,7 +5,7 @@ import com.satset.onboarding.service.store.StoreDomainService;
 import com.satset.identity.model.Users;
 import com.satset.onboarding.repository.StoreRepository;
 import com.satset.onboarding.model.Stores;
-import com.satset.identity.client.KeycloakOrganizationPort;
+import com.satset.identity.client.KeycloakIdentityPort;
 import com.satset.identity.repository.UserRepository;
 import com.satset.shared.exception.BusinessException;
 import lombok.extern.slf4j.Slf4j;
@@ -18,12 +18,12 @@ import java.util.UUID;
 @Slf4j
 public class AdminOnboardingDomainService {
 
-    private final KeycloakOrganizationPort keycloakAdminClientService;
+    private final KeycloakIdentityPort keycloakAdminClientService;
     private final StoreRepository storeRepository;
     private final UserRepository usersRepository;
     private final StoreDomainService storeService;
 
-    public AdminOnboardingDomainService(KeycloakOrganizationPort keycloakAdminClientService,
+    public AdminOnboardingDomainService(KeycloakIdentityPort keycloakAdminClientService,
             StoreRepository storeRepository,
                                         UserRepository usersRepository,
                                         StoreDomainService storeService) {

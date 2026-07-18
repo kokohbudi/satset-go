@@ -115,7 +115,7 @@ DDL-auto `update` adds the column in dev; prod needs `ALTER TABLE`.
 After `sendTransaction`, replace the `if (success) … else …` with a call to a
 new private/package method:
 ```java
-void applyProviderResult(Transactions tx, ProviderResponse r,
+void reconcileProviderResult(Transactions tx, ProviderResponse r,
                          String walletId, DenomInfo denom);
 ```
 - `SUCCESS` → set SUCCESS, providerRef, sn, costPrice, margin (as today).
@@ -132,7 +132,7 @@ void reconcileStalePending() { ... }
   (>1 min, DF's own re-query throttle).
 - For each: re-call `providerService.sendTransaction(target, code, total,
   tx.getId().toString())` (same refId → DF returns current status) →
-  `applyProviderResult`. Needs `walletId`/`denom` for the refund branch:
+  `reconcileProviderResult`. Needs `walletId`/`denom` for the refund branch:
   `walletId` is read from a new `transactions.wallet_id` column (set at
   `createPurchase` time — `userDTO.getWalletId()` is request-scoped and absent
   in a scheduled job, so the charged wallet must be persisted on the row);
