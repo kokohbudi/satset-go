@@ -25,7 +25,7 @@ import java.util.List;
  * the current status via {@link TransactionDomainService#applyProviderResult}.
  *
  * <p>ponytail: batch cap per run so a backlog can't stampede Digiflazz's rate limit
- * (rc 85). Widen {@code supplier.reconcile.batch-size} if throughput needs it.
+ * (rc 85). Widen {@code topup.reconcile.batch-size} if throughput needs it.
  */
 @Slf4j
 @Service
@@ -45,8 +45,8 @@ public class TransactionReconcileService {
             ProviderPort provider,
             TransactionDomainService txService,
             TransactionTemplate transactionTemplate,
-            @Value("${supplier.reconcile.stale-after-ms:120000}") long staleAfterMs,
-            @Value("${supplier.reconcile.batch-size:100}") int batchSize) {
+            @Value("${topup.reconcile.stale-after-ms:120000}") long staleAfterMs,
+            @Value("${topup.reconcile.batch-size:100}") int batchSize) {
         this.txRepo = txRepo;
         this.denomRepo = denomRepo;
         this.provider = provider;
@@ -63,7 +63,7 @@ public class TransactionReconcileService {
      * inside a single {@code @Transactional} method does NOT protect against this — Spring
      * still throws {@code UnexpectedRollbackException} at commit).
      */
-    @Scheduled(fixedDelayString = "${supplier.reconcile.interval-ms:60000}")
+    @Scheduled(fixedDelayString = "${topup.reconcile.interval-ms:60000}")
     public void reconcileStalePending() {
         LocalDateTime cutoff = LocalDateTime.now().minusNanos(staleAfterMs * 1_000_000);
         List<Transactions> stale = txRepo.findByStatusAndCreatedAtBefore(
