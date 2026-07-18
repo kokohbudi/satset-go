@@ -318,6 +318,24 @@ class TransactionDomainServiceTest {
     }
 
     @Test
+    void createPurchase_PersistsWalletId() throws InsufficientBalanceException {
+        when(denomRepository.findDenomInfoById(denomId)).thenReturn(Optional.of(denom));
+        when(transactionRepository.save(any(Transactions.class))).thenAnswer(inv -> {
+            Transactions tx = inv.getArgument(0);
+            if (tx.getId() == null) tx.setId(UUID.randomUUID());
+            return tx;
+        });
+        when(providerService.sendTransaction(anyString(), anyString(), any(BigDecimal.class), anyString()))
+                .thenReturn(new ProviderResponse(ProviderStatus.SUCCESS, "REF-1", "SN-1", "OK", null));
+
+        transactionService.createPurchase(storeId, walletId, denomId, "081234567890");
+
+        ArgumentCaptor<Transactions> captor = ArgumentCaptor.forClass(Transactions.class);
+        verify(transactionRepository, atLeastOnce()).save(captor.capture());
+        assertEquals(walletId, captor.getValue().getWalletId());
+    }
+
+    @Test
     void createPurchase_ConcurrentPurchases_OnlyOneSucceeds() throws InsufficientBalanceException {
         // "Concurrent purchase (2 thread, 1 saldo) → hanya 1 berhasil"
         when(denomRepository.findDenomInfoById(denomId)).thenReturn(Optional.of(denom));

@@ -72,6 +72,7 @@ public class TransactionDomainService {
                 // 1. Create transaction (PENDING)
                 Transactions transaction = new Transactions();
                 transaction.setStoreId(storeId);
+                transaction.setWalletId(walletId);
                 transaction.setProductDenomId(denomId);
                 transaction.setDenomName(denom.name());
                 transaction.setProductName(denom.productName());

@@ -28,6 +28,9 @@ public class Transactions {
     @Column(name = "store_id", nullable = false, columnDefinition = "uuid")
     private UUID storeId;
 
+    @Column(name = "wallet_id", length = 50)
+    private String walletId;
+
     @Column(name = "product_denom_id", nullable = false, columnDefinition = "uuid")
     private UUID productDenomId;
 
