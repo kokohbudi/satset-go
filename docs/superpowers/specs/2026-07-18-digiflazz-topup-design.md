@@ -105,6 +105,12 @@ Replace the stub: call `digiflazzClient.topup(refId, denomCode, targetNumber)`,
 apply the status/rc mapping table above, return `ProviderResponse`. Inject
 `DigiflazzClient` (drop the raw `RestClient` field).
 
+### 5b. `Transactions.walletId` — persist the charged wallet
+Add `@Column(name = "wallet_id", length = 50) private String walletId;`
+(nullable — legacy rows have none). Set `transaction.setWalletId(walletId)` in
+`createPurchase` so the reconcile job can refund without request context.
+DDL-auto `update` adds the column in dev; prod needs `ALTER TABLE`.
+
 ### 6. `createPurchase` — three-state settle, extracted for reuse
 After `sendTransaction`, replace the `if (success) … else …` with a call to a
 new private/package method:
@@ -126,8 +132,11 @@ void reconcileStalePending() { ... }
   (>1 min, DF's own re-query throttle).
 - For each: re-call `providerService.sendTransaction(target, code, total,
   tx.getId().toString())` (same refId → DF returns current status) →
-  `applyProviderResult`. Needs `walletId`/`denom` for the refund branch —
-  resolve from the transaction (store→wallet, `denomRepository`).
+  `applyProviderResult`. Needs `walletId`/`denom` for the refund branch:
+  `walletId` is read from a new `transactions.wallet_id` column (set at
+  `createPurchase` time — `userDTO.getWalletId()` is request-scoped and absent
+  in a scheduled job, so the charged wallet must be persisted on the row);
+  `denom` via `denomRepository.findDenomInfoById(tx.getProductDenomId())`.
 - Idempotent: SUCCESS/FAILED/REFUNDED rows are never selected again.
 - `ponytail:` batch cap per run (e.g. 100) so a backlog can't stampede DF's
   rate limit (rc 85); widen if throughput needs it.
