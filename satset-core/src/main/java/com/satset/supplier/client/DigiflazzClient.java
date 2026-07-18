@@ -14,6 +14,7 @@ import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 
+import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -105,6 +106,39 @@ public class DigiflazzClient {
             throw new IllegalStateException("MD5 tidak tersedia", e); // JDK selalu punya MD5
         }
     }
+
+    /** Result of a /transaction call (topup or status re-query). Supplier-local — no transaction types leak. */
+    public record DigiTxResult(String status, String rc, String refId,
+                               String sn, BigDecimal price, String message) {}
+
+    /**
+     * Prepaid topup — POST /transaction. Idempotent per {@code refId}: re-calling with the
+     * same refId returns the current status without re-charging (also used for status polling).
+     * Sign = md5(username + apiKey + refId).
+     */
+    public DigiTxResult topup(String refId, String buyerSkuCode, String customerNo) {
+        var req = new TransactionRequest(username, buyerSkuCode, customerNo, refId, sign(refId));
+        String raw = http.post()
+                .uri(baseUrl + "/transaction")
+                .contentType(APPLICATION_JSON)
+                .body(req)
+                .retrieve()
+                .body(String.class);
+        try {
+            JsonNode d = MAPPER.readTree(raw == null ? "" : raw).path("data");
+            BigDecimal price = d.hasNonNull("price") ? d.get("price").decimalValue() : null;
+            String status = d.path("status").isMissingNode() ? null : d.path("status").asText(null);
+            return new DigiTxResult(status, d.path("rc").asText(""),
+                    d.path("ref_id").asText(refId), d.path("sn").asText(""),
+                    price, d.path("message").asText(""));
+        } catch (Exception e) {
+            log.error("Gagal parse respons Digiflazz /transaction refId={}", refId, e);
+            return new DigiTxResult(null, "PARSE", refId, "", null, "Respons Digiflazz tidak valid");
+        }
+    }
+
+    private record TransactionRequest(String username, String buyer_sku_code,
+                                      String customer_no, String ref_id, String sign) {}
 
     private record PriceListRequest(String cmd, String username, String sign) {}
 }
