@@ -31,11 +31,8 @@ public class RealProviderAdapter implements ProviderPort {
     }
 
     @Override
-    public ProviderResponse sendTransaction(String targetNumber, String denomCode, BigDecimal amount) {
-        // TODO(supplier-api): ganti dgn call asli, mis:
-        //   return http.post().uri("https://api-supplier.com/topup")
-        //       .body(new SupplierReq(targetNumber, denomCode, amount))
-        //       .retrieve().body(SupplierResp.class) -> map ke ProviderResponse
+    public ProviderResponse sendTransaction(String targetNumber, String denomCode,
+                                            BigDecimal amount, String refId) {
         throw new UnsupportedOperationException(
                 "Kontrak API supplier belum ada — pakai supplier.mode=mock sampai dok turun");
     }

@@ -13,7 +13,7 @@ class MockProviderAdapterTest {
 
     @Test
     void sendTransaction_ReturnsNonNullResponse() {
-        ProviderResponse response = adapter.sendTransaction("08123456789", "TEL10K", new BigDecimal("10000"));
+        ProviderResponse response = adapter.sendTransaction("08123456789", "TEL10K", new BigDecimal("10000"), "REFID-TEST");
 
         assertNotNull(response);
     }
@@ -24,7 +24,7 @@ class MockProviderAdapterTest {
         // With 100 tries, probability of never succeeding is 0.1^100 ≈ 0
         ProviderResponse successResponse = null;
         for (int i = 0; i < 100; i++) {
-            ProviderResponse r = adapter.sendTransaction("08123456789", "TEL10K", new BigDecimal("10000"));
+            ProviderResponse r = adapter.sendTransaction("08123456789", "TEL10K", new BigDecimal("10000"), "REFID-TEST");
             if (r.success()) {
                 successResponse = r;
                 break;
@@ -44,7 +44,7 @@ class MockProviderAdapterTest {
         // With 100 tries, probability of never failing is 0.9^100 ≈ 2.6e-5
         ProviderResponse failResponse = null;
         for (int i = 0; i < 100; i++) {
-            ProviderResponse r = adapter.sendTransaction("08123456789", "TEL10K", new BigDecimal("10000"));
+            ProviderResponse r = adapter.sendTransaction("08123456789", "TEL10K", new BigDecimal("10000"), "REFID-TEST");
             if (!r.success()) {
                 failResponse = r;
                 break;

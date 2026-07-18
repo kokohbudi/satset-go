@@ -129,8 +129,8 @@ class PurchaseFlowIntegrationTest {
 
     @Test
     void whenPurchase_withSufficientBalance_andProviderSuccess_thenTransactionSuccess() throws Exception {
-        when(providerService.sendTransaction(anyString(), anyString(), any(BigDecimal.class)))
-                .thenReturn(new ProviderResponse(true, "REF-123", "SN-123", "Success", null));
+        when(providerService.sendTransaction(anyString(), anyString(), any(BigDecimal.class), anyString()))
+                .thenReturn(new ProviderResponse(ProviderStatus.SUCCESS, "REF-123", "SN-123", "Success", null));
 
         PurchaseRequest request = new PurchaseRequest(denomId, "081234567890");
 
@@ -145,7 +145,7 @@ class PurchaseFlowIntegrationTest {
                 .andExpect(jsonPath("$.serialNumber").value("SN-123"));
 
         verify(providerService, times(1))
-                .sendTransaction(eq("081234567890"), eq("PULSA10"), eq(new BigDecimal("10000.00")));
+                .sendTransaction(eq("081234567890"), eq("PULSA10"), eq(new BigDecimal("10000.00")), anyString());
     }
 
     // ==============================================
@@ -169,7 +169,7 @@ class PurchaseFlowIntegrationTest {
                 .andExpect(jsonPath("$.message").exists());
 
         verify(providerService, never())
-                .sendTransaction(anyString(), anyString(), any(BigDecimal.class));
+                .sendTransaction(anyString(), anyString(), any(BigDecimal.class), anyString());
     }
 
     // ==============================================
@@ -178,8 +178,8 @@ class PurchaseFlowIntegrationTest {
 
     @Test
     void whenPurchase_withProviderFailure_thenTransactionRefunded() throws Exception {
-        when(providerService.sendTransaction(anyString(), anyString(), any(BigDecimal.class)))
-                .thenReturn(new ProviderResponse(false, null, null, "Timeout Biller", null));
+        when(providerService.sendTransaction(anyString(), anyString(), any(BigDecimal.class), anyString()))
+                .thenReturn(new ProviderResponse(ProviderStatus.FAILED, null, null, "Timeout Biller", null));
 
         PurchaseRequest request = new PurchaseRequest(denomId, "081234567890");
 
@@ -192,7 +192,7 @@ class PurchaseFlowIntegrationTest {
                 .andExpect(jsonPath("$.status").value(TransactionStatus.REFUNDED.name()));
 
         verify(providerService, times(1))
-                .sendTransaction(eq("081234567890"), eq("PULSA10"), eq(new BigDecimal("10000.00")));
+                .sendTransaction(eq("081234567890"), eq("PULSA10"), eq(new BigDecimal("10000.00")), anyString());
 
         // deductBalance (purchase) + refundBalance (refund) both called
         verify(balanceManagementUseCase, times(1)).deductBalance(eq(walletId), any(), any(), any());

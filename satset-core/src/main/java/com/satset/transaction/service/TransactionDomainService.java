@@ -96,7 +96,7 @@ public class TransactionDomainService {
 
                 // 4. Send to provider
                 ProviderResponse response = providerService.sendTransaction(
-                                targetNumber, denom.code(), total);
+                                targetNumber, denom.code(), total, transaction.getId().toString());
 
                 if (response.success()) {
                         // 5a. SUCCESS

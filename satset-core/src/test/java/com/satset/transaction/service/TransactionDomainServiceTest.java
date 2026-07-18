@@ -81,8 +81,8 @@ class TransactionDomainServiceTest {
             return tx;
         });
 
-        when(providerService.sendTransaction(anyString(), anyString(), any(BigDecimal.class)))
-                .thenReturn(new ProviderResponse(true, "REF-123", "SN-123", "Success", null));
+        when(providerService.sendTransaction(anyString(), anyString(), any(BigDecimal.class), anyString()))
+                .thenReturn(new ProviderResponse(ProviderStatus.SUCCESS, "REF-123", "SN-123", "Success", null));
 
         TransactionDTO result = transactionService.createPurchase(storeId, walletId, denomId, "081234567890");
 
@@ -92,7 +92,7 @@ class TransactionDomainServiceTest {
 
         verify(balanceService, times(1)).deductBalance(eq(walletId), eq(new BigDecimal("10000.00")),
                 any(UUID.class), anyString());
-        verify(providerService, times(1)).sendTransaction("081234567890", "TLKM10", new BigDecimal("10000.00"));
+        verify(providerService, times(1)).sendTransaction(eq("081234567890"), eq("TLKM10"), eq(new BigDecimal("10000.00")), anyString());
     }
 
     @Test
@@ -120,7 +120,7 @@ class TransactionDomainServiceTest {
                 () -> transactionService.createPurchase(storeId, walletId, denomId, "081234567890"));
 
         // Verify provider is never called
-        verify(providerService, never()).sendTransaction(anyString(), anyString(), any(BigDecimal.class));
+        verify(providerService, never()).sendTransaction(anyString(), anyString(), any(BigDecimal.class), anyString());
     }
 
     @Test
@@ -136,8 +136,8 @@ class TransactionDomainServiceTest {
         });
 
         // Provider fails
-        when(providerService.sendTransaction(anyString(), anyString(), any(BigDecimal.class)))
-                .thenReturn(new ProviderResponse(false, null, null, "Timeout API", null));
+        when(providerService.sendTransaction(anyString(), anyString(), any(BigDecimal.class), anyString()))
+                .thenReturn(new ProviderResponse(ProviderStatus.FAILED, null, null, "Timeout API", null));
 
         TransactionDTO result = transactionService.createPurchase(storeId, walletId, denomId, "081234567890");
 
@@ -162,8 +162,8 @@ class TransactionDomainServiceTest {
             return tx;
         });
         // provider reports no cost -> fallback to basePrice
-        when(providerService.sendTransaction(anyString(), anyString(), any(BigDecimal.class)))
-                .thenReturn(new ProviderResponse(true, "REF-1", "SN-1", "OK", null));
+        when(providerService.sendTransaction(anyString(), anyString(), any(BigDecimal.class), anyString()))
+                .thenReturn(new ProviderResponse(ProviderStatus.SUCCESS, "REF-1", "SN-1", "OK", null));
 
         transactionService.createPurchase(storeId, walletId, denomId, "081234567890");
 
@@ -182,8 +182,8 @@ class TransactionDomainServiceTest {
             if (tx.getId() == null) tx.setId(UUID.randomUUID());
             return tx;
         });
-        when(providerService.sendTransaction(anyString(), anyString(), any(BigDecimal.class)))
-                .thenReturn(new ProviderResponse(true, "REF-2", "SN-2", "OK", new BigDecimal("4800.00")));
+        when(providerService.sendTransaction(anyString(), anyString(), any(BigDecimal.class), anyString()))
+                .thenReturn(new ProviderResponse(ProviderStatus.SUCCESS, "REF-2", "SN-2", "OK", new BigDecimal("4800.00")));
 
         transactionService.createPurchase(storeId, walletId, denomId, "081234567890");
 
@@ -202,8 +202,8 @@ class TransactionDomainServiceTest {
             if (tx.getId() == null) tx.setId(UUID.randomUUID());
             return tx;
         });
-        when(providerService.sendTransaction(anyString(), anyString(), any(BigDecimal.class)))
-                .thenReturn(new ProviderResponse(false, null, null, "Timeout", null));
+        when(providerService.sendTransaction(anyString(), anyString(), any(BigDecimal.class), anyString()))
+                .thenReturn(new ProviderResponse(ProviderStatus.FAILED, null, null, "Timeout", null));
 
         transactionService.createPurchase(storeId, walletId, denomId, "081234567890");
 
@@ -256,8 +256,8 @@ class TransactionDomainServiceTest {
             return tx;
         });
 
-        when(providerService.sendTransaction(anyString(), anyString(), any(BigDecimal.class)))
-                .thenReturn(new ProviderResponse(false, null, null, "Timeout API", null));
+        when(providerService.sendTransaction(anyString(), anyString(), any(BigDecimal.class), anyString()))
+                .thenReturn(new ProviderResponse(ProviderStatus.FAILED, null, null, "Timeout API", null));
 
         doThrow(new RuntimeException("Database error during refund"))
                 .when(balanceService).refundBalance(any(String.class), any(BigDecimal.class),
@@ -334,8 +334,8 @@ class TransactionDomainServiceTest {
                 .doThrow(new InsufficientBalanceException("Saldo tidak mencukupi"))
                 .when(balanceService).deductBalance(any(), any(), any(), any());
 
-        when(providerService.sendTransaction(anyString(), anyString(), any(BigDecimal.class)))
-                .thenReturn(new ProviderResponse(true, "REF-123", "SN-123", "Success", null));
+        when(providerService.sendTransaction(anyString(), anyString(), any(BigDecimal.class), anyString()))
+                .thenReturn(new ProviderResponse(ProviderStatus.SUCCESS, "REF-123", "SN-123", "Success", null));
 
         // Call 1 - Succeeds
         TransactionDTO tx1 = transactionService.createPurchase(storeId, walletId, denomId, "081234567890");
