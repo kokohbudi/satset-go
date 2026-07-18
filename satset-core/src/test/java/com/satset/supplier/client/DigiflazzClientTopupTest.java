@@ -75,4 +75,13 @@ class DigiflazzClientTopupTest {
         assertThat(r.status()).isNull();   // adapter maps null-status -> PENDING (money-safe)
         assertThat(r.rc()).isEqualTo("PARSE");
     }
+
+    @Test
+    void topup_httpError_returnsPendingSafeResult_noThrow() {
+        server.expect(requestTo("https://api.digiflazz.com/v1/transaction"))
+              .andRespond(org.springframework.test.web.client.response.MockRestResponseCreators.withServerError());
+        var r = client.topup("ref1", "xld25", "0878");
+        assertThat(r.status()).isNull();
+        assertThat(r.rc()).isEqualTo("HTTP");
+    }
 }

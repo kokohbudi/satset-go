@@ -118,12 +118,21 @@ public class DigiflazzClient {
      */
     public DigiTxResult topup(String refId, String buyerSkuCode, String customerNo) {
         var req = new TransactionRequest(username, buyerSkuCode, customerNo, refId, sign(refId));
-        String raw = http.post()
-                .uri(baseUrl + "/transaction")
-                .contentType(APPLICATION_JSON)
-                .body(req)
-                .retrieve()
-                .body(String.class);
+        String raw;
+        try {
+            raw = http.post()
+                    .uri(baseUrl + "/transaction")
+                    .contentType(APPLICATION_JSON)
+                    .body(req)
+                    .retrieve()
+                    .body(String.class);
+        } catch (org.springframework.web.client.RestClientException e) {
+            // DF 4xx/5xx or connect/read timeout: DF may already have delivered the topup.
+            // Money-safe: return null status -> RealProviderAdapter maps to PENDING -> tx stays
+            // PROCESSING -> reconcile re-POSTs same ref_id and settles on DF's real status.
+            log.error("Digiflazz /transaction HTTP gagal refId={}", refId, e);
+            return new DigiTxResult(null, "HTTP", refId, "", null, "Digiflazz tidak dapat dihubungi");
+        }
         try {
             JsonNode d = MAPPER.readTree(raw == null ? "" : raw).path("data");
             BigDecimal price = d.hasNonNull("price") ? d.get("price").decimalValue() : null;
