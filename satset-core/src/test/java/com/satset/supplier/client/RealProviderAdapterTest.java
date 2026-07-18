@@ -56,4 +56,11 @@ class RealProviderAdapterTest {
         assertThat(adapter.sendTransaction("0878", "xld25", new BigDecimal("25000"), "ref1").status())
                 .isEqualTo(ProviderStatus.PENDING);
     }
+
+    @Test void gagalNullRc_mapsPending_noNpe() {
+        when(df.topup("ref1", "xld25", "0878")).thenReturn(
+                new DigiflazzClient.DigiTxResult("Gagal", null, "ref1", "SN9", new BigDecimal("24500"), "msg"));
+        assertThat(adapter.sendTransaction("0878", "xld25", new BigDecimal("25000"), "ref1").status())
+                .isEqualTo(ProviderStatus.PENDING);
+    }
 }

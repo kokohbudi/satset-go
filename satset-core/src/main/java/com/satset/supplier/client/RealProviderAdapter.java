@@ -43,7 +43,7 @@ public class RealProviderAdapter implements ProviderPort {
 
     private static ProviderStatus mapStatus(String dfStatus, String rc) {
         if ("Sukses".equalsIgnoreCase(dfStatus)) return ProviderStatus.SUCCESS;
-        if ("Gagal".equalsIgnoreCase(dfStatus) && !FORMS_TRANSACTION.contains(rc)) return ProviderStatus.FAILED;
+        if ("Gagal".equalsIgnoreCase(dfStatus) && rc != null && !FORMS_TRANSACTION.contains(rc)) return ProviderStatus.FAILED;
         // Pending, Gagal+forms-transaction, null/unknown -> PENDING (poll resolves)
         return ProviderStatus.PENDING;
     }
