@@ -22,7 +22,7 @@ import java.util.List;
 /**
  * Settles PROCESSING transactions left in-flight by a Digiflazz "Pending" response.
  * Re-POSTs /transaction with the same ref_id (idempotent, no re-charge) and applies
- * the current status via {@link TransactionDomainService#applyProviderResult}.
+ * the current status via {@link TransactionDomainService#reconcileProviderResult}.
  *
  * <p>ponytail: batch cap per run so a backlog can't stampede Digiflazz's rate limit
  * (rc 85). Widen {@code topup.reconcile.batch-size} if throughput needs it.
@@ -92,6 +92,6 @@ public class TransactionReconcileService {
         }
         ProviderResponse resp = provider.sendTransaction(
                 tx.getTargetNumber(), denom.code(), tx.getTotal(), tx.getId().toString());
-        txService.applyProviderResult(tx, resp, tx.getWalletId(), denom);
+        txService.reconcileProviderResult(tx, resp, tx.getWalletId(), denom);
     }
 }

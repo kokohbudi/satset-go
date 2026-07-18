@@ -72,7 +72,7 @@ class TransactionReconcileServiceTest {
         reconcile.reconcileStalePending();
 
         verify(provider).sendTransaction("0878", "xld25", new BigDecimal("25000.00"), tx.getId().toString());
-        verify(txService).applyProviderResult(tx, resp, "w1", denom);
+        verify(txService).reconcileProviderResult(tx, resp, "w1", denom);
     }
 
     @Test
@@ -104,7 +104,7 @@ class TransactionReconcileServiceTest {
 
         verify(provider).sendTransaction("0878", "xld25", new BigDecimal("25000.00"), tx1.getId().toString());
         verify(provider).sendTransaction("0878", "xld25", new BigDecimal("25000.00"), tx2.getId().toString());
-        verify(txService, never()).applyProviderResult(eq(tx1), any(), any(), any());
-        verify(txService).applyProviderResult(tx2, resp2, "w1", denom);
+        verify(txService, never()).reconcileProviderResult(eq(tx1), any(), any(), any());
+        verify(txService).reconcileProviderResult(tx2, resp2, "w1", denom);
     }
 }

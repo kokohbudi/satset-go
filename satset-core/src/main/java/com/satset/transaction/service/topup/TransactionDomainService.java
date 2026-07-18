@@ -101,7 +101,7 @@ public class TransactionDomainService {
                 ProviderResponse response = providerService.sendTransaction(
                                 targetNumber, denom.code(), total, transaction.getId().toString());
 
-                applyProviderResult(transaction, response, walletId, denom);
+                reconcileProviderResult(transaction, response, walletId, denom);
 
                 return toDTO(transaction);
         }
@@ -115,8 +115,7 @@ public class TransactionDomainService {
          *   <li>FAILED   → refund; on refund failure leave FAILED for manual Ops.
          * </ul>
          */
-        public void applyProviderResult(Transactions transaction, ProviderResponse response,
-                        String walletId, DenomInfo denom) {
+        public void reconcileProviderResult(Transactions transaction, ProviderResponse response, String walletId, DenomInfo denom) {
                 if (response.status() == ProviderStatus.PENDING) {
                         if (response.referenceNumber() != null) {
                                 transaction.setProviderRef(response.referenceNumber());
