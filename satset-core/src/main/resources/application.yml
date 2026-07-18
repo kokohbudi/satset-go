@@ -71,6 +71,10 @@ keycloak:
   client-secret: ${KEYCLOAK_CLIENT_SECRET:dummy-secret}
 
 supplier:
+  reconcile:
+    interval-ms: 60000
+    stale-after-ms: 120000
+    batch-size: 100
   digiflazz:
     base-url: ${DIGIFLAZZ_BASE_URL:https://api.digiflazz.com/v1}
     username: ${DIGIFLAZZ_USERNAME:}
