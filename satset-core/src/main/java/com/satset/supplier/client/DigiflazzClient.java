@@ -73,6 +73,7 @@ public class DigiflazzClient {
      * — dideteksi (data bukan array) dan dilempar {@link IllegalStateException}, bukan crash parser.
      */
     private List<PriceListItem> doFetchPriceList() {
+        log.info("Digiflazz price-list — fetch prepaid");
         var req = new PriceListRequest("prepaid", username, sign("pricelist"));
         String raw = http.post()
                 .uri(baseUrl + "/price-list")
@@ -80,11 +81,16 @@ public class DigiflazzClient {
                 .body(req)
                 .retrieve()
                 .body(String.class);
-        if (raw == null || raw.isBlank()) return List.of();
+        if (raw == null || raw.isBlank()) {
+            log.warn("Digiflazz price-list: respons kosong");
+            return List.of();
+        }
         try {
             JsonNode data = MAPPER.readTree(raw).path("data");
             if (data.isArray()) {
-                return MAPPER.convertValue(data, LIST_TYPE);
+                List<PriceListItem> items = MAPPER.convertValue(data, LIST_TYPE);
+                log.info("Digiflazz price-list OK: {} item", items.size());
+                return items;
             }
             // data = object -> DF error (rc 83 = limit price-list, dll). Teruskan rc + pesan asli DF ke admin.
             String rc = data.path("rc").asText("");
@@ -117,6 +123,7 @@ public class DigiflazzClient {
      * Sign = md5(username + apiKey + refId).
      */
     public DigiTxResult topup(String refId, String buyerSkuCode, String customerNo) {
+        log.info("Digiflazz topup refId={} sku={} — nembak /transaction", refId, buyerSkuCode);
         var req = new TransactionRequest(username, buyerSkuCode, customerNo, refId, sign(refId));
         String raw;
         try {
@@ -137,7 +144,9 @@ public class DigiflazzClient {
             JsonNode d = MAPPER.readTree(raw == null ? "" : raw).path("data");
             BigDecimal price = d.hasNonNull("price") ? d.get("price").decimalValue() : null;
             String status = d.path("status").isMissingNode() ? null : d.path("status").asText(null);
-            return new DigiTxResult(status, d.path("rc").asText(""),
+            String rc = d.path("rc").asText("");
+            log.info("Digiflazz topup refId={} -> status={} rc={}", refId, status, rc);
+            return new DigiTxResult(status, rc,
                     d.path("ref_id").asText(refId), d.path("sn").asText(""),
                     price, d.path("message").asText(""));
         } catch (Exception e) {
