@@ -10,6 +10,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -26,6 +27,7 @@ class TransactionReconcileServiceTest {
     @Mock DenomRepository denomRepo;
     @Mock ProviderPort provider;
     @Mock TransactionDomainService txService;
+    @Mock TransactionTemplate transactionTemplate;
 
     TransactionReconcileService reconcile;
 
@@ -35,7 +37,13 @@ class TransactionReconcileServiceTest {
 
     @BeforeEach
     void setUp() {
-        reconcile = new TransactionReconcileService(txRepo, denomRepo, provider, txService, 120000L, 100);
+        // run the callback inline
+        org.mockito.Mockito.lenient().doAnswer(inv -> {
+            java.util.function.Consumer<org.springframework.transaction.TransactionStatus> c = inv.getArgument(0);
+            c.accept(null);
+            return null;
+        }).when(transactionTemplate).executeWithoutResult(any());
+        reconcile = new TransactionReconcileService(txRepo, denomRepo, provider, txService, transactionTemplate, 120000L, 100);
     }
 
     private Transactions stale() {
@@ -54,6 +62,7 @@ class TransactionReconcileServiceTest {
         Transactions tx = stale();
         when(txRepo.findByStatusAndCreatedAtBefore(eq(TransactionStatus.PROCESSING), any(), any()))
                 .thenReturn(List.of(tx));
+        when(txRepo.findById(tx.getId())).thenReturn(Optional.of(tx));
         when(denomRepo.findDenomInfoById(denomId)).thenReturn(Optional.of(denom));
         ProviderResponse resp = new ProviderResponse(ProviderStatus.SUCCESS, "REF", "SN", "Sukses", new BigDecimal("24500"));
         when(provider.sendTransaction("0878", "xld25", new BigDecimal("25000.00"), tx.getId().toString()))
@@ -73,5 +82,28 @@ class TransactionReconcileServiceTest {
         reconcile.reconcileStalePending();
 
         verifyNoInteractions(provider, txService);
+    }
+
+    @Test
+    void reconcile_oneRowThrows_doesNotPoisonOtherRows() {
+        Transactions tx1 = stale();
+        Transactions tx2 = stale();
+        when(txRepo.findByStatusAndCreatedAtBefore(eq(TransactionStatus.PROCESSING), any(), any()))
+                .thenReturn(List.of(tx1, tx2));
+        when(txRepo.findById(tx1.getId())).thenReturn(Optional.of(tx1));
+        when(txRepo.findById(tx2.getId())).thenReturn(Optional.of(tx2));
+        when(denomRepo.findDenomInfoById(denomId)).thenReturn(Optional.of(denom));
+        ProviderResponse resp2 = new ProviderResponse(ProviderStatus.SUCCESS, "REF", "SN", "Sukses", new BigDecimal("24500"));
+        when(provider.sendTransaction("0878", "xld25", new BigDecimal("25000.00"), tx1.getId().toString()))
+                .thenThrow(new RuntimeException("boom"));
+        when(provider.sendTransaction("0878", "xld25", new BigDecimal("25000.00"), tx2.getId().toString()))
+                .thenReturn(resp2);
+
+        reconcile.reconcileStalePending();
+
+        verify(provider).sendTransaction("0878", "xld25", new BigDecimal("25000.00"), tx1.getId().toString());
+        verify(provider).sendTransaction("0878", "xld25", new BigDecimal("25000.00"), tx2.getId().toString());
+        verify(txService, never()).applyProviderResult(eq(tx1), any(), any(), any());
+        verify(txService).applyProviderResult(tx2, resp2, "w1", denom);
     }
 }
