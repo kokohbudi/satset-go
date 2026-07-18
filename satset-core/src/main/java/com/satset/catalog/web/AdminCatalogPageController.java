@@ -1,12 +1,9 @@
 package com.satset.catalog.web;
 
-import com.satset.catalog.dto.CategoryDTO;
-import com.satset.catalog.dto.ProductDTO;
-import com.satset.catalog.dto.ProductDenomDTO;
 import com.satset.catalog.model.*;
-import com.satset.catalog.service.CategoryDomainService;
-import com.satset.catalog.service.DenomDomainService;
-import com.satset.catalog.service.ProductDomainService;
+import com.satset.catalog.service.category.CategoryDomainService;
+import com.satset.catalog.service.denom.DenomDomainService;
+import com.satset.catalog.service.product.ProductDomainService;
 import com.satset.shared.constant.SatsetConstants;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
@@ -42,18 +39,9 @@ public class AdminCatalogPageController {
         model.addAttribute("categoryTypes", CategoryType.values());
         model.addAttribute("denomTypes", DenomType.values());
 
-        List<Category> allCategories = manageCategoriesUseCase.findAllForAdmin();
-        List<CategoryDTO> categories = allCategories.stream()
-                .map(CatalogDtoMapper::toCategoryDTO).toList();
-        model.addAttribute("initialCategories", categories);
-
-        List<ProductDTO> products = manageProductsUseCase.findAllForAdmin().stream()
-                .map(CatalogDtoMapper::toProductDTO).toList();
-        model.addAttribute("initialProducts", products);
-
-        List<ProductDenomDTO> denoms = manageDenomsUseCase.findAllForAdmin().stream()
-                .map(CatalogDtoMapper::toDenomDTO).toList();
-        model.addAttribute("initialDenoms", denoms);
+        model.addAttribute("initialCategories", manageCategoriesUseCase.findAllForAdmin());
+        model.addAttribute("initialProducts", manageProductsUseCase.findAllForAdmin());
+        model.addAttribute("initialDenoms", manageDenomsUseCase.findAllForAdmin());
 
         return "pages/admin/catalog/index";
     }

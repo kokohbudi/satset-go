@@ -32,11 +32,11 @@
         </encoder>
     </appender>
 
-    <!-- Log slice supplier (Digiflazz price-list/sync/transaction call) di folder sendiri -->
-    <appender name="SUPPLIER_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>logs/supplier/supplier.log</file>
+    <!-- Log slice digiflazz (Digiflazz price-list/sync/transaction call) di folder sendiri -->
+    <appender name="DIGIFLAZZ_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>logs/digiflazz/digiflazz.log</file>
         <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
-            <fileNamePattern>logs/supplier/supplier-%d{yyyy-MM-dd}-%i.log.gz</fileNamePattern>
+            <fileNamePattern>logs/digiflazz/digiflazz-%d{yyyy-MM-dd}-%i.log.gz</fileNamePattern>
             <maxFileSize>50MB</maxFileSize>
             <maxHistory>30</maxHistory>
         </rollingPolicy>
@@ -86,11 +86,11 @@
         <appender-ref ref="FILE"/>
     </appender>
 
-    <appender name="ASYNC_SUPPLIER" class="ch.qos.logback.classic.AsyncAppender">
+    <appender name="ASYNC_DIGIFLAZZ" class="ch.qos.logback.classic.AsyncAppender">
         <queueSize>512</queueSize>
         <neverBlock>false</neverBlock>
         <discardingThreshold>0</discardingThreshold>
-        <appender-ref ref="SUPPLIER_FILE"/>
+        <appender-ref ref="DIGIFLAZZ_FILE"/>
     </appender>
 
     <appender name="ASYNC_SIFT" class="ch.qos.logback.classic.AsyncAppender">
@@ -110,10 +110,10 @@
         <appender-ref ref="ASYNC_SIFT"/>
     </logger>
 
-    <!-- Slice supplier: file sendiri (full payload, no truncate) + console + folder gate (SIFT) -->
-    <logger name="com.satset.supplier" level="DEBUG" additivity="false">
+    <!-- Slice digiflazz: file sendiri (full payload, no truncate) + console + folder gate (SIFT) -->
+    <logger name="com.satset.digiflazz" level="DEBUG" additivity="false">
         <appender-ref ref="ASYNC_CONSOLE"/>
-        <appender-ref ref="ASYNC_SUPPLIER"/>
+        <appender-ref ref="ASYNC_DIGIFLAZZ"/>
         <appender-ref ref="ASYNC_SIFT"/>
     </logger>
 

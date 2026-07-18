@@ -8,6 +8,7 @@ import java.util.UUID;
 
 public record TransactionDTO(
         UUID id,
+        String refNo,
         UUID storeId,
         String targetNumber,
         String denomName,

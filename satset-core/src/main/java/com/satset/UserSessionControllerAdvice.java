@@ -1,7 +1,7 @@
 package com.satset;
 
 import com.satset.identity.client.KeycloakIdentityPort;
-import com.satset.quickmenu.service.QuickMenuService;
+import com.satset.quickmenu.service.menu.QuickMenuService;
 import com.satset.shared.dto.RoleInfo;
 import com.satset.shared.dto.UserDTO;
 import lombok.extern.slf4j.Slf4j;

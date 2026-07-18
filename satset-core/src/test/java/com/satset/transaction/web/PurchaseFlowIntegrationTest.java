@@ -4,8 +4,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.satset.catalog.repository.DenomRepository;
 import com.satset.identity.client.KeycloakIdentityPort;
 import com.satset.onboarding.repository.StoreRepository;
-import com.satset.identity.client.KeycloakOrganizationPort;
-import com.satset.onboarding.client.WalletCreationPort;
 import com.satset.shared.dto.UserDTO;
 import com.satset.shared.exception.InsufficientBalanceException;
 import com.satset.shared.model.DenomInfo;
@@ -66,12 +64,6 @@ class PurchaseFlowIntegrationTest {
     private KeycloakIdentityPort keycloakIdentityPort;
 
     @MockitoBean
-    private KeycloakOrganizationPort keycloakOrganizationPort;
-
-    @MockitoBean
-    private WalletCreationPort walletCreationPort;
-
-    @MockitoBean
     private UserDTO userDTO;
 
     private UUID storeId;
@@ -129,8 +121,8 @@ class PurchaseFlowIntegrationTest {
 
     @Test
     void whenPurchase_withSufficientBalance_andProviderSuccess_thenTransactionSuccess() throws Exception {
-        when(providerService.sendTransaction(anyString(), anyString(), any(BigDecimal.class)))
-                .thenReturn(new ProviderResponse(true, "REF-123", "SN-123", "Success", null));
+        when(providerService.sendTransaction(anyString(), anyString(), any(BigDecimal.class), anyString()))
+                .thenReturn(new ProviderResponse(ProviderStatus.SUCCESS, "REF-123", "SN-123", "Success", null));
 
         PurchaseRequest request = new PurchaseRequest(denomId, "081234567890");
 
@@ -142,10 +134,13 @@ class PurchaseFlowIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value(TransactionStatus.SUCCESS.name()))
                 .andExpect(jsonPath("$.providerRef").value("REF-123"))
-                .andExpect(jsonPath("$.serialNumber").value("SN-123"));
+                .andExpect(jsonPath("$.serialNumber").value("SN-123"))
+                // ref_no = YYYYMMDD + 5-digit counter, surfaced to the client as the invoice number
+                .andExpect(jsonPath("$.refNo").value(org.hamcrest.Matchers.matchesPattern("\\d{8}\\d{5,}")));
 
+        // the SAME ref_no (not the UUID) is what went to Digiflazz as ref_id
         verify(providerService, times(1))
-                .sendTransaction(eq("081234567890"), eq("PULSA10"), eq(new BigDecimal("10000.00")));
+                .sendTransaction(eq("081234567890"), eq("PULSA10"), eq(new BigDecimal("10000.00")), matches("\\d{8}\\d{5,}"));
     }
 
     // ==============================================
@@ -169,7 +164,7 @@ class PurchaseFlowIntegrationTest {
                 .andExpect(jsonPath("$.message").exists());
 
         verify(providerService, never())
-                .sendTransaction(anyString(), anyString(), any(BigDecimal.class));
+                .sendTransaction(anyString(), anyString(), any(BigDecimal.class), anyString());
     }
 
     // ==============================================
@@ -178,8 +173,8 @@ class PurchaseFlowIntegrationTest {
 
     @Test
     void whenPurchase_withProviderFailure_thenTransactionRefunded() throws Exception {
-        when(providerService.sendTransaction(anyString(), anyString(), any(BigDecimal.class)))
-                .thenReturn(new ProviderResponse(false, null, null, "Timeout Biller", null));
+        when(providerService.sendTransaction(anyString(), anyString(), any(BigDecimal.class), anyString()))
+                .thenReturn(new ProviderResponse(ProviderStatus.FAILED, null, null, "Timeout Biller", null));
 
         PurchaseRequest request = new PurchaseRequest(denomId, "081234567890");
 
@@ -192,10 +187,34 @@ class PurchaseFlowIntegrationTest {
                 .andExpect(jsonPath("$.status").value(TransactionStatus.REFUNDED.name()));
 
         verify(providerService, times(1))
-                .sendTransaction(eq("081234567890"), eq("PULSA10"), eq(new BigDecimal("10000.00")));
+                .sendTransaction(eq("081234567890"), eq("PULSA10"), eq(new BigDecimal("10000.00")), anyString());
 
         // deductBalance (purchase) + refundBalance (refund) both called
         verify(balanceManagementUseCase, times(1)).deductBalance(eq(walletId), any(), any(), any());
         verify(balanceManagementUseCase, times(1)).refundBalance(eq(walletId), any(), any(), any());
+    }
+
+    // ==============================================
+    // @LogContext weaving: MDC logctx=Topup harus aktif selama createPurchase
+    // (bukti log service ke-route ke logs/Topup/). Capture MDC di downstream mock.
+    // ==============================================
+    @Test
+    void createPurchase_runsWithinTopupLogContext() throws Exception {
+        String[] captured = new String[1];
+        when(providerService.sendTransaction(anyString(), anyString(), any(BigDecimal.class), anyString()))
+                .thenAnswer(inv -> {
+                    captured[0] = org.slf4j.MDC.get("logctx");
+                    return new ProviderResponse(ProviderStatus.SUCCESS, "REF-1", "SN-1", "Success", null);
+                });
+
+        PurchaseRequest request = new PurchaseRequest(denomId, "081234567890");
+        mockMvc.perform(post("/api/transactions/purchase")
+                .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_CLIENT_purchase")))
+                .with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk());
+
+        org.assertj.core.api.Assertions.assertThat(captured[0]).isEqualTo("Topup");
     }
 }

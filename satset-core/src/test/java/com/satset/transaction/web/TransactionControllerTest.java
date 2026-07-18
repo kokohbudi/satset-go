@@ -6,7 +6,7 @@ import com.satset.transaction.dto.PurchaseRequest;
 import com.satset.transaction.client.WalletGateway;
 import com.satset.transaction.dto.TransactionDTO;
 import com.satset.transaction.model.TransactionStatus;
-import com.satset.transaction.service.TransactionDomainService;
+import com.satset.transaction.service.topup.TransactionDomainService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -153,7 +153,7 @@ class TransactionControllerTest {
 
     private TransactionDTO buildSummary(UUID id, TransactionStatus status, BigDecimal total) {
         return new TransactionDTO(
-                id, storeId, "081234567890", "Pulsa 10K", "Telkomsel",
+                id, "20260718000001", storeId, "081234567890", "Pulsa 10K", "Telkomsel",
                 total, BigDecimal.ZERO, total, status,
                 "PROV-REF-123", "SN-456", LocalDateTime.now());
     }

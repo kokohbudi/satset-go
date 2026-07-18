@@ -6,9 +6,9 @@ import com.satset.catalog.model.Category;
 import com.satset.catalog.model.CategoryType;
 import com.satset.catalog.model.DenomType;
 import com.satset.catalog.model.Products;
-import com.satset.catalog.service.CategoryDomainService;
-import com.satset.catalog.service.DenomDomainService;
-import com.satset.catalog.service.ProductDomainService;
+import com.satset.catalog.service.category.CategoryDomainService;
+import com.satset.catalog.service.denom.DenomDomainService;
+import com.satset.catalog.service.product.ProductDomainService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -250,7 +250,7 @@ class AdminCatalogControllerTest {
                 .andExpect(jsonPath("$").isEmpty());
     }
 
-    // worktree: denom-centric aggregate (ProductDenomDTO) at /denoms
+    // denom-centric aggregate (ProductDenoms) at /denoms
     @Test
     void listAllDenoms_returnsAll() throws Exception {
         com.satset.catalog.model.ProductDenoms d = new com.satset.catalog.model.ProductDenoms();

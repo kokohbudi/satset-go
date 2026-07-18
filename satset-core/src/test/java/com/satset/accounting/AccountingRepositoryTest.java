@@ -54,18 +54,24 @@ class AccountingRepositoryTest {
 
     @Test
     void summarizePnl_sumsOnlySuccessRowsInRange() {
-        LocalDateTime now = LocalDateTime.now();
+        // This @SpringBootTest runs the aggregate JPQL against the SHARED dev Postgres,
+        // so a now()-relative window would also sum real SUCCESS rows created in the last
+        // day. Anchor the seeded rows + query window in the far past (2001), where no real
+        // transaction can exist, so summarizePnl sees ONLY the rows this test seeds (and
+        // rolls back). ponytail: isolated window; switch to a Testcontainers DB if this
+        // test ever needs to assert against live data.
+        LocalDateTime anchor = LocalDateTime.of(2001, 1, 1, 12, 0);
         // in-range SUCCESS: revenue 6500, cost 6000, margin 500
-        save(6500, 6000L, 500L, TransactionStatus.SUCCESS, now.minusHours(1), "IM3");
+        save(6500, 6000L, 500L, TransactionStatus.SUCCESS, anchor.minusHours(1), "IM3");
         // in-range SUCCESS second product
-        save(11000, 10000L, 1000L, TransactionStatus.SUCCESS, now.minusHours(2), "Telkomsel");
+        save(11000, 10000L, 1000L, TransactionStatus.SUCCESS, anchor.minusHours(2), "Telkomsel");
         // FAILED -> excluded
-        save(5000, null, null, TransactionStatus.FAILED, now.minusHours(1), "IM3");
+        save(5000, null, null, TransactionStatus.FAILED, anchor.minusHours(1), "IM3");
         // out of range -> excluded
-        save(9999, 9000L, 999L, TransactionStatus.SUCCESS, now.minusDays(5), "IM3");
+        save(9999, 9000L, 999L, TransactionStatus.SUCCESS, anchor.minusDays(5), "IM3");
 
-        LocalDateTime from = now.minusDays(1);
-        LocalDateTime to = now.plusMinutes(1);
+        LocalDateTime from = anchor.minusDays(1);
+        LocalDateTime to = anchor.plusMinutes(1);
 
         PnlSummary s = transactionRepository.summarizePnl(from, to);
         assertThat(s.revenue()).isEqualByComparingTo("17500");

@@ -182,7 +182,14 @@
                     <h2 class="text-2xl font-bold">Transaksi Berhasil</h2>
                     <p class="opacity-90 mt-1 text-sm">Pembelian telah diproses.</p>
                 </div>
-                <div x-show="resultData?.status !== 'SUCCESS'" class="bg-error text-error-content p-8 text-center">
+                <div x-show="['PENDING','PROCESSING'].includes(resultData?.status)" class="bg-warning text-warning-content p-8 text-center">
+                    <span class="w-16 h-16 rounded-full bg-white/20 grid place-items-center mx-auto mb-3 backdrop-blur-sm">
+                        <svg class="w-9 h-9" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    </span>
+                    <h2 class="text-2xl font-bold">Transaksi Diproses</h2>
+                    <p class="opacity-90 mt-1 text-sm">Sedang diproses provider. Saldo aman, hasil menyusul.</p>
+                </div>
+                <div x-show="resultData && resultData.status !== 'SUCCESS' && !['PENDING','PROCESSING'].includes(resultData.status)" class="bg-error text-error-content p-8 text-center">
                     <span class="w-16 h-16 rounded-full bg-white/20 grid place-items-center mx-auto mb-3 backdrop-blur-sm">
                         <svg class="w-9 h-9" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
                     </span>
@@ -215,6 +222,10 @@
                         <div x-show="resultData?.status === 'REFUNDED'" class="flex items-center gap-2 rounded-lg bg-warning/10 border border-warning/20 p-3 mt-2 text-warning-content text-sm">
                             <svg class="w-5 h-5 shrink-0 text-warning" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/></svg>
                             <span>Saldo telah dikembalikan otomatis ke akun Anda.</span>
+                        </div>
+                        <div x-show="['PENDING','PROCESSING'].includes(resultData?.status)" class="flex items-center gap-2 rounded-lg bg-warning/10 border border-warning/20 p-3 mt-2 text-warning-content text-sm">
+                            <svg class="w-5 h-5 shrink-0 text-warning" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                            <span>Jangan ulangi pembelian. Cek riwayat untuk status terkini.</span>
                         </div>
                     </div>
                 </div>

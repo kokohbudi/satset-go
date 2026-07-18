@@ -1,5 +1,6 @@
 package com.satset.catalog.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Data;
 import org.hibernate.annotations.UuidGenerator;
@@ -51,17 +52,22 @@ public class Products {
     private int sortOrder;
 
     @CreatedDate
+    @JsonIgnore
     private LocalDateTime createdAt;
 
     @LastModifiedDate
+    @JsonIgnore
     private LocalDateTime updatedAt;
 
     @CreatedBy
+    @JsonIgnore
     private String createdBy;
 
     @LastModifiedBy
+    @JsonIgnore
     private String updatedBy;
 
     @Version
+    @JsonIgnore
     private Long version;
 }

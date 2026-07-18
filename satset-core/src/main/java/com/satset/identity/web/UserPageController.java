@@ -1,6 +1,6 @@
 package com.satset.identity.web;
 
-import com.satset.identity.service.IdentityDomainService;
+import com.satset.identity.service.provisioning.IdentityDomainService;
 import com.satset.shared.constant.SatsetConstants;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

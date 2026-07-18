@@ -2,7 +2,7 @@ package com.satset.accounting.web;
 
 import com.satset.accounting.dto.PnlReport;
 import com.satset.accounting.dto.PnlSummary;
-import com.satset.accounting.service.AccountingService;
+import com.satset.accounting.service.report.AccountingService;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;

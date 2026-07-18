@@ -1,6 +1,6 @@
 package com.satset.identity.web;
 
-import com.satset.identity.service.UserSelfServiceDomainService;
+import com.satset.identity.service.user.UserSelfServiceDomainService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

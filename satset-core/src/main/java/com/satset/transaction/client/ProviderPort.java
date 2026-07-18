@@ -6,5 +6,6 @@ import java.math.BigDecimal;
 
 public interface ProviderPort {
 
-    ProviderResponse sendTransaction(String targetNumber, String denomCode, BigDecimal amount);
+    ProviderResponse sendTransaction(String targetNumber, String denomCode,
+                                     BigDecimal amount, String refId);
 }

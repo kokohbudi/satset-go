@@ -2,7 +2,6 @@ package com.satset.shared.dto;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.Data;
-import lombok.EqualsAndHashCode;
 
 import java.util.List;
 import java.util.UUID;
@@ -13,13 +12,14 @@ import java.util.UUID;
  * 
  * This breaks the dependency from shared layer to identity.domain.model package.
  */
-@EqualsAndHashCode(callSuper = true)
 @JsonIgnoreProperties({
         "targetSource", "advisors", "targetClass", "frozen", "exposeProxy", "preFiltered",
         "targetObject", "proxyTargetClass", "advisorCount", "proxiedInterfaces"
 })
 @Data
-public class UserDTO extends BaseDTO {
+public class UserDTO {
+    private String status;
+    private String message;
     private String email;
     private String username;
     private String fullname;

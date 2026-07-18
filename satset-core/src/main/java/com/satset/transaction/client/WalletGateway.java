@@ -2,7 +2,7 @@ package com.satset.transaction.client;
 
 import com.satset.shared.exception.InsufficientBalanceException;
 import com.satset.shared.exception.ResourceNotFoundException;
-import com.satset.wallet.service.WalletService;
+import com.satset.wallet.service.account.WalletService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -33,9 +33,9 @@ public class WalletGateway {
             var result = walletService.debit(walletId, amount, referenceId,
                     com.satset.wallet.model.MutationReferenceType.TRANSACTION, description);
             log.info("DEBIT wallet={} amount={} balanceAfter={}", walletId, amount, result.newBalance());
-        } catch (com.satset.wallet.service.InsufficientBalanceException e) {
+        } catch (com.satset.wallet.service.account.InsufficientBalanceException e) {
             throw new InsufficientBalanceException("Saldo tidak mencukupi");
-        } catch (com.satset.wallet.service.ResourceNotFoundException e) {
+        } catch (com.satset.wallet.service.account.ResourceNotFoundException e) {
             throw new ResourceNotFoundException("WalletAccount", walletId);
         }
     }
@@ -46,7 +46,7 @@ public class WalletGateway {
         try {
             var result = walletService.refund(walletId, amount, referenceId, description);
             log.info("REFUND wallet={} amount={} balanceAfter={}", walletId, amount, result.newBalance());
-        } catch (com.satset.wallet.service.ResourceNotFoundException e) {
+        } catch (com.satset.wallet.service.account.ResourceNotFoundException e) {
             throw new ResourceNotFoundException("WalletAccount", walletId);
         }
     }
@@ -54,7 +54,7 @@ public class WalletGateway {
     public BigDecimal getBalance(String walletId) {
         try {
             return walletService.getBalance(walletId);
-        } catch (com.satset.wallet.service.ResourceNotFoundException e) {
+        } catch (com.satset.wallet.service.account.ResourceNotFoundException e) {
             throw new ResourceNotFoundException("WalletAccount", walletId);
         }
     }

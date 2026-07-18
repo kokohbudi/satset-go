@@ -5,7 +5,9 @@ import org.springframework.modulith.core.ApplicationModules;
 
 /**
  * Enforces the modular-monolith boundaries between feature modules
- * (identity, onboarding, catalog, transaction) at build time.
+ * (identity, onboarding, catalog, transaction, pricelist, wallet, accounting,
+ * quickmenu) plus the leaf {@code digiflazz} module (allowedDependencies={"shared"})
+ * at build time — cycles and disallowed dependencies fail the build.
  */
 class ModularityTest {
 

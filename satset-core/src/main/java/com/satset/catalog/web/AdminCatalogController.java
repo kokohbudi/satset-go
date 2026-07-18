@@ -2,10 +2,7 @@ package com.satset.catalog.web;
 
 import com.satset.catalog.dto.BulkNameUpdateRequest;
 import com.satset.catalog.dto.BulkPriceUpdateRequest;
-import com.satset.catalog.dto.CategoryDTO;
 import com.satset.catalog.dto.PriceUpdateResult;
-import com.satset.catalog.dto.ProductDTO;
-import com.satset.catalog.dto.ProductDenomDTO;
 import com.satset.catalog.model.Category;
 import com.satset.catalog.model.ProductDenoms;
 import com.satset.catalog.model.Products;
@@ -15,9 +12,9 @@ import com.satset.catalog.dto.CreateProductRequest;
 import com.satset.catalog.dto.UpdateCategoryRequest;
 import com.satset.catalog.dto.UpdateDenomRequest;
 import com.satset.catalog.dto.UpdateProductRequest;
-import com.satset.catalog.service.CategoryDomainService;
-import com.satset.catalog.service.DenomDomainService;
-import com.satset.catalog.service.ProductDomainService;
+import com.satset.catalog.service.category.CategoryDomainService;
+import com.satset.catalog.service.denom.DenomDomainService;
+import com.satset.catalog.service.product.ProductDomainService;
 import com.satset.shared.constant.SatsetConstants;
 import com.satset.shared.exception.BusinessException;
 import jakarta.validation.Valid;
@@ -50,17 +47,14 @@ public class AdminCatalogController {
 
     @GetMapping("/categories")
     @PreAuthorize("hasRole('" + SatsetConstants.PERM_VIEW_CATALOG + "')")
-    public ResponseEntity<List<CategoryDTO>> listCategories() {
-        List<CategoryDTO> dtos = manageCategoriesUseCase.findAllForAdmin().stream()
-                .map(CatalogDtoMapper::toCategoryDTO).toList();
-        return ResponseEntity.ok(dtos);
+    public ResponseEntity<List<Category>> listCategories() {
+        return ResponseEntity.ok(manageCategoriesUseCase.findAllForAdmin());
     }
 
     @GetMapping("/categories/{id}")
     @PreAuthorize("hasRole('" + SatsetConstants.PERM_VIEW_CATALOG + "')")
-    public ResponseEntity<CategoryDTO> getCategory(@PathVariable UUID id) {
+    public ResponseEntity<Category> getCategory(@PathVariable UUID id) {
         return manageCategoriesUseCase.findById(id)
-                .map(CatalogDtoMapper::toCategoryDTO)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
@@ -70,7 +64,7 @@ public class AdminCatalogController {
     public ResponseEntity<?> createCategory(@Valid @RequestBody CreateCategoryRequest req)
             throws BusinessException {
         Category created = manageCategoriesUseCase.create(req);
-        return ResponseEntity.status(HttpStatus.CREATED).body(CatalogDtoMapper.toCategoryDTO(created));
+        return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 
     @PutMapping("/categories/{id}")
@@ -78,7 +72,7 @@ public class AdminCatalogController {
     public ResponseEntity<?> updateCategory(@PathVariable UUID id,
             @Valid @RequestBody UpdateCategoryRequest req) throws BusinessException {
         Category updated = manageCategoriesUseCase.update(id, req);
-        return ResponseEntity.ok(CatalogDtoMapper.toCategoryDTO(updated));
+        return ResponseEntity.ok(updated);
     }
 
     @DeleteMapping("/categories/{id}")
@@ -92,7 +86,7 @@ public class AdminCatalogController {
 
     @GetMapping("/products")
     @PreAuthorize("hasRole('" + SatsetConstants.PERM_VIEW_CATALOG + "')")
-    public ResponseEntity<List<ProductDTO>> listProducts(
+    public ResponseEntity<List<Products>> listProducts(
             @RequestParam(required = false) UUID categoryId) {
         List<Products> products;
         if (categoryId != null) {
@@ -100,15 +94,13 @@ public class AdminCatalogController {
         } else {
             products = manageProductsUseCase.findAllForAdmin();
         }
-        List<ProductDTO> dtos = products.stream().map(CatalogDtoMapper::toProductDTO).toList();
-        return ResponseEntity.ok(dtos);
+        return ResponseEntity.ok(products);
     }
 
     @GetMapping("/products/{id}")
     @PreAuthorize("hasRole('" + SatsetConstants.PERM_VIEW_CATALOG + "')")
-    public ResponseEntity<ProductDTO> getProduct(@PathVariable UUID id) {
+    public ResponseEntity<Products> getProduct(@PathVariable UUID id) {
         return manageProductsUseCase.findById(id)
-                .map(CatalogDtoMapper::toProductDTO)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
@@ -118,7 +110,7 @@ public class AdminCatalogController {
     public ResponseEntity<?> createProduct(@Valid @RequestBody CreateProductRequest req)
             throws BusinessException {
         Products created = manageProductsUseCase.create(req);
-        return ResponseEntity.status(HttpStatus.CREATED).body(CatalogDtoMapper.toProductDTO(created));
+        return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 
     @PutMapping("/products/{id}")
@@ -126,7 +118,7 @@ public class AdminCatalogController {
     public ResponseEntity<?> updateProduct(@PathVariable UUID id,
             @Valid @RequestBody UpdateProductRequest req) throws BusinessException {
         Products updated = manageProductsUseCase.update(id, req);
-        return ResponseEntity.ok(CatalogDtoMapper.toProductDTO(updated));
+        return ResponseEntity.ok(updated);
     }
 
     @PutMapping("/products/names")
@@ -147,25 +139,20 @@ public class AdminCatalogController {
 
     @GetMapping("/denoms")
     @PreAuthorize("hasRole('" + SatsetConstants.PERM_VIEW_CATALOG + "')")
-    public ResponseEntity<List<ProductDenomDTO>> listAllDenoms() {
-        List<ProductDenomDTO> dtos = manageDenomsUseCase.findAllForAdmin().stream()
-                .map(CatalogDtoMapper::toDenomDTO).toList();
-        return ResponseEntity.ok(dtos);
+    public ResponseEntity<List<ProductDenoms>> listAllDenoms() {
+        return ResponseEntity.ok(manageDenomsUseCase.findAllForAdmin());
     }
 
     @GetMapping("/products/{productId}/denoms")
     @PreAuthorize("hasRole('" + SatsetConstants.PERM_VIEW_CATALOG + "')")
-    public ResponseEntity<List<ProductDenomDTO>> listDenoms(@PathVariable UUID productId) {
-        List<ProductDenomDTO> dtos = manageDenomsUseCase.findByProductForAdmin(productId).stream()
-                .map(CatalogDtoMapper::toDenomDTO).toList();
-        return ResponseEntity.ok(dtos);
+    public ResponseEntity<List<ProductDenoms>> listDenoms(@PathVariable UUID productId) {
+        return ResponseEntity.ok(manageDenomsUseCase.findByProductForAdmin(productId));
     }
 
     @GetMapping("/denoms/{id}")
     @PreAuthorize("hasRole('" + SatsetConstants.PERM_VIEW_CATALOG + "')")
-    public ResponseEntity<ProductDenomDTO> getDenom(@PathVariable UUID id) {
+    public ResponseEntity<ProductDenoms> getDenom(@PathVariable UUID id) {
         return manageDenomsUseCase.findById(id)
-                .map(CatalogDtoMapper::toDenomDTO)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
@@ -175,7 +162,7 @@ public class AdminCatalogController {
     public ResponseEntity<?> createDenom(@PathVariable UUID productId,
             @Valid @RequestBody CreateDenomRequest req) throws BusinessException {
         ProductDenoms created = manageDenomsUseCase.create(productId, req);
-        return ResponseEntity.status(HttpStatus.CREATED).body(CatalogDtoMapper.toDenomDTO(created));
+        return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 
     @PutMapping("/denoms/{id}")
@@ -183,7 +170,7 @@ public class AdminCatalogController {
     public ResponseEntity<?> updateDenom(@PathVariable UUID id,
             @Valid @RequestBody UpdateDenomRequest req) throws BusinessException {
         ProductDenoms updated = manageDenomsUseCase.update(id, req);
-        return ResponseEntity.ok(CatalogDtoMapper.toDenomDTO(updated));
+        return ResponseEntity.ok(updated);
     }
 
     @PutMapping("/denoms/prices")

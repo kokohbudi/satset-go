@@ -2,12 +2,12 @@ package com.satset.transaction.web;
 
 import com.satset.shared.constant.SatsetConstants;
 import com.satset.shared.dto.UserDTO;
-import com.satset.shared.exception.InsufficientBalanceException;
+import com.satset.shared.exception.BusinessException;
 import com.satset.shared.exception.ResourceNotFoundException;
 import com.satset.transaction.dto.PurchaseRequest;
 import com.satset.transaction.dto.TransactionDTO;
 import com.satset.transaction.client.WalletGateway;
-import com.satset.transaction.service.TransactionDomainService;
+import com.satset.transaction.service.topup.TransactionDomainService;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -41,7 +41,7 @@ public class TransactionController {
     @PostMapping("/purchase")
     @PreAuthorize("hasRole('" + SatsetConstants.PERM_PURCHASE + "')")
     public ResponseEntity<Map<String, Object>> purchase(@Valid @RequestBody PurchaseRequest request)
-            throws InsufficientBalanceException {
+            throws BusinessException {
 
         TransactionDTO transaction = transactionService.createPurchase(
                 getStoreId(), getWalletId(), request.denomId(), request.targetNumber());
@@ -49,6 +49,7 @@ public class TransactionController {
         Map<String, Object> response = new HashMap<>();
         response.put("status", transaction.status().name());
         response.put("transactionId", transaction.id());
+        response.put("refNo", transaction.refNo());
         response.put("total", transaction.total());
         response.put("providerRef", transaction.providerRef());
         response.put("serialNumber", transaction.serialNumber());

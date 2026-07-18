@@ -1,6 +1,6 @@
 package com.satset.quickmenu.web;
 
-import com.satset.quickmenu.service.QuickMenuService;
+import com.satset.quickmenu.service.menu.QuickMenuService;
 import com.satset.shared.dto.UserDTO;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

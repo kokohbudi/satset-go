@@ -1,7 +1,7 @@
 package com.satset.shared.web;
 
 import com.satset.onboarding.repository.StoreRepository;
-import com.satset.quickmenu.service.QuickMenuService;
+import com.satset.quickmenu.service.menu.QuickMenuService;
 import com.satset.shared.dto.UserDTO;
 import com.satset.transaction.client.WalletGateway;
 import org.junit.jupiter.api.BeforeEach;

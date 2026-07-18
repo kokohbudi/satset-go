@@ -1,6 +1,6 @@
 package com.satset.shared.web;
 
-import com.satset.catalog.service.CategoryDomainService;
+import com.satset.catalog.service.category.CategoryDomainService;
 import com.satset.shared.dto.UserDTO;
 import com.satset.transaction.client.WalletGateway;
 import org.junit.jupiter.api.BeforeEach;

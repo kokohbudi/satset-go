@@ -1,6 +1,6 @@
 package com.satset.onboarding.web;
 
-import com.satset.onboarding.service.StoreOnboardingDomainService;
+import com.satset.onboarding.service.enrollment.StoreOnboardingDomainService;
 import com.satset.shared.constant.SatsetConstants;
 import com.satset.shared.dto.UserDTO;
 import jakarta.servlet.http.HttpSession;

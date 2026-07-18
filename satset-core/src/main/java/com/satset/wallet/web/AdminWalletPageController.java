@@ -5,7 +5,7 @@ import com.satset.onboarding.repository.StoreRepository;
 import com.satset.shared.constant.SatsetConstants;
 import com.satset.wallet.dto.WalletAccountDTO;
 import com.satset.wallet.model.WalletAccountEntity;
-import com.satset.wallet.service.WalletService;
+import com.satset.wallet.service.account.WalletService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;

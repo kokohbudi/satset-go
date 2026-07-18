@@ -1,7 +1,7 @@
 package com.satset.identity.web;
 
 import com.satset.identity.model.ChangeMyPasswordRequest;
-import com.satset.identity.service.UserSelfServiceDomainService;
+import com.satset.identity.service.user.UserSelfServiceDomainService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
