@@ -99,41 +99,61 @@ public class TransactionDomainService {
                 ProviderResponse response = providerService.sendTransaction(
                                 targetNumber, denom.code(), total, transaction.getId().toString());
 
+                applyProviderResult(transaction, response, walletId, denom);
+
+                return toDTO(transaction);
+        }
+
+        /**
+         * Settle a PROCESSING transaction against a provider result. Shared by the
+         * purchase flow and the reconcile poll.
+         * <ul>
+         *   <li>SUCCESS  → mark SUCCESS, snapshot ref/sn/cost/margin.
+         *   <li>PENDING  → leave PROCESSING, keep providerRef, NO refund (poll settles later).
+         *   <li>FAILED   → refund; on refund failure leave FAILED for manual Ops.
+         * </ul>
+         */
+        void applyProviderResult(Transactions transaction, ProviderResponse response,
+                        String walletId, DenomInfo denom) {
+                if (response.status() == ProviderStatus.PENDING) {
+                        if (response.referenceNumber() != null) {
+                                transaction.setProviderRef(response.referenceNumber());
+                        }
+                        transactionRepository.save(transaction); // stays PROCESSING
+                        log.info("Transaction PENDING: id={} ref={} — awaiting reconcile",
+                                        transaction.getId(), response.referenceNumber());
+                        return;
+                }
+
                 if (response.success()) {
-                        // 5a. SUCCESS
                         transaction.setStatus(TransactionStatus.SUCCESS);
                         transaction.setProviderRef(response.referenceNumber());
                         transaction.setSerialNumber(response.serialNumber());
                         BigDecimal costPrice = response.cost() != null ? response.cost() : denom.basePrice();
                         transaction.setCostPrice(costPrice);
-                        transaction.setMargin(costPrice != null ? total.subtract(costPrice) : null);
-                        transaction = transactionRepository.save(transaction);
-
+                        transaction.setMargin(costPrice != null
+                                        ? transaction.getTotal().subtract(costPrice) : null);
+                        transactionRepository.save(transaction);
                         log.info("Transaction SUCCESS: id={} ref={} sn={}",
                                         transaction.getId(), response.referenceNumber(), response.serialNumber());
-                } else {
-                        // 5b. FAILED → refund
-                        transaction.setStatus(TransactionStatus.FAILED);
-                        transactionRepository.save(transaction);
-
-                        try {
-                                balanceService.refundBalance(walletId, total,
-                                                transaction.getId(),
-                                                "Refund " + denom.name() + " - " + response.message());
-
-                                transaction.setStatus(TransactionStatus.REFUNDED);
-                                transaction = transactionRepository.save(transaction);
-
-                                log.warn("Transaction REFUNDED: id={} reason={}",
-                                                transaction.getId(), response.message());
-                        } catch (Exception e) {
-                                log.error("ALERT: Failed to refund transaction {} for wallet {}. Reason: {}",
-                                        transaction.getId(), walletId, e.getMessage(), e);
-                                // Leave status as FAILED so Ops team can retry manual refund
-                        }
+                        return;
                 }
 
-                return toDTO(transaction);
+                // FAILED → refund
+                transaction.setStatus(TransactionStatus.FAILED);
+                transactionRepository.save(transaction);
+                try {
+                        balanceService.refundBalance(walletId, transaction.getTotal(),
+                                        transaction.getId(),
+                                        "Refund " + denom.name() + " - " + response.message());
+                        transaction.setStatus(TransactionStatus.REFUNDED);
+                        transactionRepository.save(transaction);
+                        log.warn("Transaction REFUNDED: id={} reason={}",
+                                        transaction.getId(), response.message());
+                } catch (Exception e) {
+                        log.error("ALERT: Failed to refund transaction {} for wallet {}. Reason: {}",
+                                        transaction.getId(), walletId, e.getMessage(), e);
+                }
         }
 
         @Transactional(readOnly = true)

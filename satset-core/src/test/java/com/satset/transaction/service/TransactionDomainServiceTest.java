@@ -271,6 +271,24 @@ class TransactionDomainServiceTest {
 
 
     @Test
+    void createPurchase_Pending_StaysProcessing_NoRefund() throws InsufficientBalanceException {
+        when(denomRepository.findDenomInfoById(denomId)).thenReturn(Optional.of(denom));
+        when(transactionRepository.save(any(Transactions.class))).thenAnswer(inv -> {
+            Transactions tx = inv.getArgument(0);
+            if (tx.getId() == null) tx.setId(UUID.randomUUID());
+            return tx;
+        });
+        when(providerService.sendTransaction(anyString(), anyString(), any(BigDecimal.class), anyString()))
+                .thenReturn(new ProviderResponse(ProviderStatus.PENDING, "REF-P", null, "Transaksi Pending", null));
+
+        TransactionDTO result = transactionService.createPurchase(storeId, walletId, denomId, "081234567890");
+
+        assertEquals(TransactionStatus.PROCESSING, result.status());
+        assertEquals("REF-P", result.providerRef());
+        verify(balanceService, never()).refundBalance(any(), any(), any(), any());
+    }
+
+    @Test
     void createPurchase_DenomNotFound_ThrowsException() {
         when(denomRepository.findDenomInfoById(denomId)).thenReturn(Optional.empty());
 
