@@ -1,0 +1,39 @@
+# Standalone Digiflazz webhook receiver — see
+# docs/superpowers/specs/2026-07-20-webhook-split-deploy-design.md
+#
+# Deploy from the REPO ROOT (build context must include satset-core):
+#   fly launch --config fly.toml --dockerfile satset-webhook/Dockerfile --no-deploy
+#   fly secrets set -c fly.toml \
+#     DIGIFLAZZ_WEBHOOK_SECRET=... DB_URL=... DB_USERNAME=... DB_PASSWORD=...
+#   fly deploy -c fly.toml --dockerfile satset-webhook/Dockerfile
+#
+# Then register the deployed URL + secret in Digiflazz's dashboard
+# (Atur Koneksi > API > Webhook) and verify with their ping endpoint:
+#   POST https://api.digiflazz.com/v1/report/hooks/[WEBHOOK-ID]/pings
+
+app = "satset-webhook"
+primary_region = "sin"
+
+[build]
+  dockerfile = "satset-webhook/Dockerfile"
+
+[env]
+  TZ = "Asia/Jakarta"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  # "suspend" freezes the machine's memory to disk and resumes it instantly on
+  # the next request — NOT a stop/cold-restart (that took ~20s, measured earlier).
+  # Settlement still needs to be fast even idle, so this is the middle ground
+  # between always-on (2 machines) cost and a full cold JVM boot per request.
+  min_machines_running = 0
+  auto_stop_machines = "suspend"
+  auto_start_machines = true
+
+[[vm]]
+  # 256MB default OOM-killed the JVM (-Xmx512m alone exceeds it) — this app
+  # pulls in satset-core's full multi-entity Hibernate EMF, not a slim service.
+  memory = "1024mb"
+  cpu_kind = "shared"
+  cpus = 1

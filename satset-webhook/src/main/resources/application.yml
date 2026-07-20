@@ -1,0 +1,34 @@
+spring:
+  config:
+    import: optional:file:.env[.properties],optional:file:../.env[.properties]
+  application:
+    name: satset-webhook
+  threads:
+    virtual:
+      enabled: true
+  main:
+    lazy-initialization: false
+  jmx:
+    enabled: false
+  autoconfigure:
+    # Excluding oauth2-client (no login here) removed the class that used to make
+    # Boot's default-user auto-config back off — without this it'd generate a
+    # random password every boot for a security chain WebhookSecurityConfig
+    # already fully owns (unused, but an unwanted extra bean regardless).
+    exclude: org.springframework.boot.security.autoconfigure.UserDetailsServiceAutoConfiguration
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/satset_go?socketTimeout=30&connectTimeout=10&tcpKeepAlive=true}
+    username: ${DB_USERNAME:admin}
+    password: ${DB_PASSWORD:password}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+      idle-timeout: 30000
+
+server:
+  port: ${PORT:8080}
+
+digiflazz:
+  webhook:
+    secret: ${DIGIFLAZZ_WEBHOOK_SECRET:}

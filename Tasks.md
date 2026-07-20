@@ -14,14 +14,16 @@
 > `TransactionDomainService.reconcileProviderResult(...)` tetap dipakai sbg settlement logic — webhook handler
 > tinggal panggil ini, bukan re-implement.
 
-- [ ] **WH-0**: Cek dokumentasi Digiflazz — apakah mereka expose webhook/callback utk update status transaksi (endpoint URL registration, payload format, signature scheme)
-- [ ] **WH-1**: `POST /api/webhooks/digiflazz` endpoint — terima callback status transaksi
-- [ ] **WH-2**: Verifikasi signature/secret webhook (JANGAN percaya payload tanpa validasi — cegah spoofed status update dari luar)
-- [ ] **WH-3**: Wire ke `TransactionDomainService.reconcileProviderResult(...)` — mapping payload webhook → `ProviderResponse`
-- [ ] **WH-4**: Idempotency — webhook bisa kekirim >1x (retry Digiflazz), pastiin re-delivery gak dobel proses (cek status transaksi udah final sebelum apply)
-- [ ] **WH-5**: `@LogContext("Webhook")` di service webhook (outbound/inbound trace policy — lihat CLAUDE.md)
-- [ ] **WH-6**: Test — signature invalid ditolak, replay/duplicate delivery idempotent, payload PENDING/SUCCESS/FAILED ke-handle bener
+- [x] **WH-0**: Cek dokumentasi Digiflazz — apakah mereka expose webhook/callback utk update status transaksi (endpoint URL registration, payload format, signature scheme). Hasil: `developer.digiflazz.com/api/buyer/webhook/` — HMAC-SHA1 raw body, header `X-Hub-Signature: sha1=<hex>`, registrasi manual di dashboard DF (Atur Koneksi > API > Webhook).
+- [x] **WH-1**: `POST /api/webhooks/digiflazz` endpoint — terima callback status transaksi. Deploy standalone (`satset-webhook` module, Fly.io — https://satset-webhook.fly.dev), reuse `satset-core` domain code langsung (bukan HTTP), fold ke core pas core deploy prod. Design: `docs/superpowers/specs/2026-07-20-webhook-split-deploy-design.md`.
+- [x] **WH-2**: Verifikasi signature/secret webhook — `DigiflazzSignatureVerifier` (HMAC-SHA1, raw body).
+- [x] **WH-3**: Wire ke `TransactionDomainService.reconcileProviderResult(...)` — `DigiflazzWebhookService` + `DigiflazzWebhookPayload.toProviderResponse()` (reuse `DigiflazzStatusMapper`, di-extract dari `RealProviderAdapter`).
+- [x] **WH-4**: Idempotency — guard di `reconcileProviderResult` (no-op kalau transaksi udah SUCCESS/FAILED/REFUNDED).
+- [x] **WH-5**: `@LogContext("Webhook")` di `DigiflazzWebhookService`.
+- [x] **WH-6**: Test — 28/28 pass (`satset-webhook` module): signature valid/invalid, payload mapping, idempotency guard, full HTTP→DB integration (Sukses/Gagal/replay/bad-sig/unknown-ref/malformed).
 - [ ] **WH-7**: (optional, kalau Digiflazz webhook delivery gak reliable) fallback safety net — cron jarang (misal 1x/jam) buat catch transaksi yg kelewat webhook, BUKAN polling agresif kayak yg lama
+- [ ] **WH-8**: Register URL `https://satset-webhook.fly.dev/api/webhooks/digiflazz` di dashboard DF (Atur Koneksi > API > Webhook), ambil/pasang secret final, set `DIGIFLAZZ_WEBHOOK_SECRET` Fly secret, verify pake ping endpoint DF (`POST /v1/report/hooks/[ID]/pings`)
+- [ ] **WH-9**: Postpaid webhook support — DF kirim prepaid/postpaid/hotel ke URL **yang sama**, dibedain lewat header `User-Agent` (`Digiflazz-Hookshot`/`Digiflazz-Pasca-Hookshot`/`Digiflazz-Hotel-Hookshot`). Skarang kode assume semua payload prepaid shape, gak cek `User-Agent` — aman selama akun cuma jalanin prepaid. Kalau postpaid/hotel diaktifin: tambah check `User-Agent` di `DigiflazzWebhookController`, reject/route beda kalau bukan `Digiflazz-Hookshot`, plus payload shape postpaid beda (perlu DTO/mapping sendiri)
 
 ### Catalog Permissions — CAT-PERM
 > Split view-only vs edit permission (categories/products/denoms/prices), rationalize `@PreAuthorize`

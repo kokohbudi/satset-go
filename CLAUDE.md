@@ -82,7 +82,17 @@ and NOT one-impl use-case interfaces. (Migrated from Hexagonal, 2026-06.)
 - `.env` — local env vars (DB credentials, secrets)
 
 ## Agent Token-Saving Pattern
-Big feature/architecture plan: spawn `Agent` w/ `subagent_type: "Plan"`, `model: "fable"` (cheap/fast) buat draft plan. Eksekusi tetap pake Sonnet (main thread / default agent call, no model override). Skip pattern ini buat task kecil — round-trip plan-agent gak worth-it, langsung Sonnet.
+**Trigger check WAJIB sebelum EnterPlanMode / mulai kerja multi-file** — jangan judgment call, cek checklist:
+- Scope nyentuh **3+ file**, ATAU
+- Nambah/ubah **arsitektur** (layer baru, slice baru, ganti pola), ATAU
+- User pake kata "plan", "design", "arsitektur", "roadmap" buat kerjaan non-trivial
+
+3-tier cost stack (per harga real Anthropic — Fable 5 = tier TERMAHAL/paling capable, bukan murah):
+- **Plan**: kalau salah satu checklist TRUE → spawn `Agent` w/ `subagent_type: "Plan"`, `model: "fable"` — dipanggil JARANG (sekali per big feature), draft plan pendek. Mahal per-token, tapi volume rendah = worth it buat keputusan arsitektur high-leverage.
+- **Main/orchestrate**: session ini sendiri, jalan Opus (`claude --model claude-opus-4-8`) — koordinasi/judgment kualitas tinggi tiap turn.
+- **Eksekusi**: Agent call biasa pasca-plan, `model: "sonnet"` (default, coding/logic) atau `model: "haiku"` (kerjaan mekanis murni: grep, format, baca file) — paling sering dipanggil, jadi paling murah per-token.
+
+Kalau semua FALSE (task kecil, 1-2 file, fix/typo/rename) → skip plan-agent, langsung eksekusi.
 
 ## graphify
 

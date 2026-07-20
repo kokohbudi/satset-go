@@ -123,6 +123,14 @@ public class TransactionDomainService {
          * </ul>
          */
         public void reconcileProviderResult(Transactions transaction, ProviderResponse response, String walletId, DenomInfo denom) {
+                if (transaction.getStatus() == TransactionStatus.SUCCESS
+                                || transaction.getStatus() == TransactionStatus.FAILED
+                                || transaction.getStatus() == TransactionStatus.REFUNDED) {
+                        log.info("Reconcile replay ignored: id={} status={} (already terminal)",
+                                        transaction.getId(), transaction.getStatus());
+                        return;
+                }
+
                 if (response.status() == ProviderStatus.PENDING) {
                         if (response.referenceNumber() != null) {
                                 transaction.setProviderRef(response.referenceNumber());
@@ -156,11 +164,11 @@ public class TransactionDomainService {
                                         "Refund " + denom.name() + " - " + response.message());
                         transaction.setStatus(TransactionStatus.REFUNDED);
                         transactionRepository.save(transaction);
-                        log.warn("Transaction REFUNDED: id={} reason={}",
-                                        transaction.getId(), response.message());
+                        log.warn("Transaction REFUNDED: id={} ref={} reason={}",
+                                        transaction.getId(), transaction.getRefNo(), response.message());
                 } catch (Exception e) {
-                        log.error("ALERT: Failed to refund transaction {} for wallet {}. Reason: {}",
-                                        transaction.getId(), walletId, e.getMessage(), e);
+                        log.error("ALERT: Failed to refund transaction {} ref={} for wallet {}. Reason: {}",
+                                        transaction.getId(), transaction.getRefNo(), walletId, e.getMessage(), e);
                 }
         }
 

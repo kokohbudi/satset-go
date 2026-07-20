@@ -358,6 +358,49 @@ class TransactionDomainServiceTest {
         assertEquals(walletId, captor.getValue().getWalletId());
     }
 
+    // ==================== reconcileProviderResult idempotency (WH-4) ====================
+
+    @Test
+    void reconcileProviderResult_AlreadySuccess_IgnoresIncomingFailed() {
+        Transactions tx = buildTransaction(UUID.randomUUID());
+        tx.setStatus(TransactionStatus.SUCCESS);
+
+        transactionService.reconcileProviderResult(tx,
+                new ProviderResponse(ProviderStatus.FAILED, null, null, "Gagal", null),
+                walletId, denom);
+
+        assertEquals(TransactionStatus.SUCCESS, tx.getStatus());
+        verify(transactionRepository, never()).save(any());
+        verify(balanceService, never()).refundBalance(any(), any(), any(), any());
+    }
+
+    @Test
+    void reconcileProviderResult_AlreadyFailed_IgnoresIncomingSuccess() {
+        Transactions tx = buildTransaction(UUID.randomUUID());
+        tx.setStatus(TransactionStatus.FAILED);
+
+        transactionService.reconcileProviderResult(tx,
+                new ProviderResponse(ProviderStatus.SUCCESS, "REF-X", "SN-X", "Sukses", null),
+                walletId, denom);
+
+        assertEquals(TransactionStatus.FAILED, tx.getStatus());
+        verify(transactionRepository, never()).save(any());
+    }
+
+    @Test
+    void reconcileProviderResult_AlreadyRefunded_NoSecondRefund() {
+        Transactions tx = buildTransaction(UUID.randomUUID());
+        tx.setStatus(TransactionStatus.REFUNDED);
+
+        transactionService.reconcileProviderResult(tx,
+                new ProviderResponse(ProviderStatus.FAILED, null, null, "Gagal lagi", null),
+                walletId, denom);
+
+        assertEquals(TransactionStatus.REFUNDED, tx.getStatus());
+        verify(transactionRepository, never()).save(any());
+        verify(balanceService, never()).refundBalance(any(), any(), any(), any());
+    }
+
     @Test
     void createPurchase_ConcurrentPurchases_OnlyOneSucceeds() throws BusinessException {
         // "Concurrent purchase (2 thread, 1 saldo) → hanya 1 berhasil"

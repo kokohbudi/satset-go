@@ -17,6 +17,7 @@
 
     <modules>
         <module>satset-core</module>
+        <module>satset-webhook</module>
     </modules>
 
     <properties>

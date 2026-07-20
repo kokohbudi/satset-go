@@ -1,0 +1,96 @@
+<configuration debug="true">
+
+    <conversionRule conversionWord="clr"
+                    class="org.springframework.boot.logging.logback.ColorConverter"/>
+    <conversionRule conversionWord="wex"
+                    class="org.springframework.boot.logging.logback.WhitespaceThrowableProxyConverter"/>
+
+    <property name="LOG_FILE" value="logs/satset-webhook.log"/>
+    <property name="LOG_PATTERN"
+              value="%d{yyyy-MM-dd HH:mm:ss.SSS} %clr(%-5level){faint} %clr([%t]){magenta} %clr(%logger{1}){cyan} : %msg%n%wex"/>
+    <property name="FILE_PATTERN"
+              value="%d{yyyy-MM-dd HH:mm:ss.SSS} [%t] %-5level %logger{1} : %msg%n"/>
+
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>${LOG_PATTERN}</pattern>
+        </encoder>
+    </appender>
+
+    <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_FILE}</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>logs/satset-webhook-%d{yyyy-MM-dd}-%i.log.gz</fileNamePattern>
+            <maxFileSize>10MB</maxFileSize>
+            <maxHistory>10</maxHistory>
+        </rollingPolicy>
+        <encoder>
+            <pattern>${FILE_PATTERN}</pattern>
+        </encoder>
+    </appender>
+
+    <!-- Per-call-context: @LogContext("Webhook") routes here (WH-5) -->
+    <appender name="SIFT" class="ch.qos.logback.classic.sift.SiftingAppender">
+        <filter class="com.satset.shared.logging.MdcPresentFilter">
+            <expectPresent>true</expectPresent>
+        </filter>
+        <discriminator>
+            <key>logctx</key>
+            <defaultValue>none</defaultValue>
+        </discriminator>
+        <sift>
+            <appender name="CTX-${logctx}" class="ch.qos.logback.core.rolling.RollingFileAppender">
+                <file>logs/${logctx}/${logctx}.log</file>
+                <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+                    <fileNamePattern>logs/${logctx}/${logctx}-%d{yyyy-MM-dd}-%i.log.gz</fileNamePattern>
+                    <maxFileSize>50MB</maxFileSize>
+                    <maxHistory>30</maxHistory>
+                </rollingPolicy>
+                <encoder>
+                    <pattern>${FILE_PATTERN}</pattern>
+                </encoder>
+            </appender>
+        </sift>
+    </appender>
+
+    <appender name="ASYNC_CONSOLE" class="ch.qos.logback.classic.AsyncAppender">
+        <queueSize>512</queueSize>
+        <neverBlock>false</neverBlock>
+        <discardingThreshold>0</discardingThreshold>
+        <appender-ref ref="CONSOLE"/>
+    </appender>
+
+    <appender name="ASYNC_FILE" class="ch.qos.logback.classic.AsyncAppender">
+        <queueSize>512</queueSize>
+        <neverBlock>false</neverBlock>
+        <discardingThreshold>0</discardingThreshold>
+        <appender-ref ref="FILE"/>
+    </appender>
+
+    <appender name="ASYNC_SIFT" class="ch.qos.logback.classic.AsyncAppender">
+        <queueSize>512</queueSize>
+        <neverBlock>false</neverBlock>
+        <discardingThreshold>0</discardingThreshold>
+        <appender-ref ref="SIFT"/>
+    </appender>
+
+    <logger name="com.satset" level="DEBUG" additivity="false">
+        <appender-ref ref="ASYNC_CONSOLE"/>
+        <appender-ref ref="ASYNC_FILE"/>
+        <appender-ref ref="ASYNC_SIFT"/>
+    </logger>
+
+    <logger name="org.springframework.security" level="INFO" additivity="false">
+        <appender-ref ref="ASYNC_CONSOLE"/>
+    </logger>
+
+    <logger name="org.hibernate.SQL" level="INFO" additivity="false">
+        <appender-ref ref="ASYNC_CONSOLE"/>
+    </logger>
+
+    <root level="INFO">
+        <appender-ref ref="ASYNC_CONSOLE"/>
+        <appender-ref ref="ASYNC_FILE"/>
+    </root>
+
+</configuration>

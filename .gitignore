@@ -65,6 +65,7 @@ satset-core/src/main/resources/static/css/output.css
 /satset-core/target/site/surefire-reports/
 /satset-core/target
 /satset-wallet/target
+/satset-webhook/target
 /satset-wallet-rs
 # Runtime + tooling artifacts
 logs/

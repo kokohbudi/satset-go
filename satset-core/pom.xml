@@ -272,6 +272,9 @@
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
                 <configuration>
+                    <!-- classifier=exec keeps the plain jar as the main artifact, so satset-webhook
+                         can depend on satset-core normally (a repackaged fat jar isn't consumable). -->
+                    <classifier>exec</classifier>
                     <excludes>
                         <exclude>
                             <groupId>org.projectlombok</groupId>
