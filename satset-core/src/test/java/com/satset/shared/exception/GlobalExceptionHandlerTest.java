@@ -56,6 +56,18 @@ class GlobalExceptionHandlerTest {
         assertEquals("Email sudah dipakai", response.getBody().get("message"));
     }
 
+    @Test
+    void handleBusinessException_BillChanged_Returns409() {
+        BusinessException ex = new BusinessException("BILL_CHANGED", "Tagihan berubah. Silakan cek ulang.");
+
+        ResponseEntity<Map<String, Object>> response = handler.handleBusinessException(ex);
+
+        assertEquals(409, response.getStatusCode().value());
+        assertEquals("error", response.getBody().get("status"));
+        assertEquals("BILL_CHANGED", response.getBody().get("code"));
+        assertEquals("Tagihan berubah. Silakan cek ulang.", response.getBody().get("message"));
+    }
+
     // ==================== handleResourceNotFound ====================
 
     @Test

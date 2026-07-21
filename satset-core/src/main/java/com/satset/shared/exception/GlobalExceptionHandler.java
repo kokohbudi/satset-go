@@ -72,7 +72,10 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(BusinessException.class)
     public ResponseEntity<Map<String, Object>> handleBusinessException(BusinessException ex) {
         log.error("Business exception: {} - {}", ex.getErrorCode(), ex.getErrorMessage());
-        return body(ex.getErrorCode(), ex.getErrorMessage(), HttpStatus.BAD_REQUEST);
+        HttpStatus status = "BILL_CHANGED".equals(ex.getErrorCode())
+                ? HttpStatus.CONFLICT
+                : HttpStatus.BAD_REQUEST;
+        return body(ex.getErrorCode(), ex.getErrorMessage(), status);
     }
 
     /**
