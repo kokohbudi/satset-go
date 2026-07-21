@@ -51,6 +51,25 @@ Consequences: no `postpaid_inquiries` table, no `INQUIRED` intermediate status, 
 stale-bill risk. The charge is always the freshly-fetched amount. One ledger
 (`Transactions`), consistent with the existing one-ledger decision.
 
+## Product types: full-bill vs input-amount
+
+Per Digiflazz docs, `pay-pasca` has **no amount param** — pure pascabayar always
+pays the full inquired bill. But `inq-pasca` **accepts an `amount`** for certain
+products (e-money top-up), which is the "input nominal" case. Our catalog already
+carries the discriminators (`DenomType`, `minAmount`, `maxAmount`, `requiresInquiry`),
+so the flow is driven by the denom, not hardcoded:
+
+| Denom                              | Flow                                                        |
+|------------------------------------|-------------------------------------------------------------|
+| `FIXED_DENOM` + `requiresInquiry`  | pasca murni: inquiry (no amount) → pay **full bill**         |
+| `OPEN_AMOUNT` + `requiresInquiry`  | e-money: user inputs nominal (validate `minAmount`/`maxAmount`) → inquiry(**amount**) → pay |
+| `FIXED_DENOM`, no inquiry          | existing prepaid direct-pay (unchanged)                      |
+
+Implication: `inquiry(...)` and `pay(...)` take an **optional `amount`**
+(`BigDecimal`, null for full-bill). It is sent to DF only when the denom is
+`OPEN_AMOUNT`; for `FIXED_DENOM` it must be null (server rejects a non-null amount
+on a fixed denom, and rejects a null/out-of-range amount on an open denom).
+
 ---
 
 ## Architecture / boundaries
@@ -77,24 +96,27 @@ stale-bill risk. The charge is always the freshly-fetched amount. One ledger
 
 ## Phase 1 — Inquiry (backend, read-only)
 
-- `POST /api/transactions/inquiry` — body `{denomId, customerNo}`.
-- `PostpaidService.inquiry(denomId, customerNo)`:
-  - Load `DenomInfo`; require `requiresInquiry` / postpaid; reject if unavailable.
+- `POST /api/transactions/inquiry` — body `{denomId, customerNo, amount?}`.
+- `PostpaidService.inquiry(denomId, customerNo, amount)`:
+  - Load `DenomInfo`; require `requiresInquiry`; reject if unavailable.
+  - **Amount rule**: `OPEN_AMOUNT` → `amount` required and within `minAmount`/`maxAmount`;
+    `FIXED_DENOM` → `amount` must be null. Violation → `BusinessException`.
   - `ref = refNoGenerator.next()` (throwaway for display).
-  - `provider.inquiry(customerNo, denom.code(), ref)`.
+  - `provider.inquiry(customerNo, denom.code(), ref, amount)` (amount sent to DF
+    only for `OPEN_AMOUNT`).
   - Compute `total = bill + dfAdmin + denom.adminFee` (our markup).
   - Return DTO: `customerName, bill, dfAdmin, ourMarkup(=denom.adminFee), total, rincian`.
 - No DB row, no deduct. Inquiry failure → error response to UI, zero side effects.
 
 ## Phase 2 — Pay (backend, money path)
 
-`PostpaidService.pay(denomId, customerNo, expectedTotal)`:
+`PostpaidService.pay(denomId, customerNo, amount, expectedTotal)`:
 
-1. Load `DenomInfo` (validate postpaid + available).
+1. Load `DenomInfo` (validate `requiresInquiry` + available + same amount rule as Phase 1).
 2. Double-submit guard: reuse
    `existsByStoreIdAndProductDenomIdAndTargetNumberAndStatusInAndCreatedAtAfter`.
 3. `ref = refNoGenerator.next()` — used for **both** DF calls this attempt.
-4. `inqNow = provider.inquiry(customerNo, denom.code(), ref)` — fresh bill + dfAdmin.
+4. `inqNow = provider.inquiry(customerNo, denom.code(), ref, amount)` — fresh bill + dfAdmin.
    Inquiry failure → abort, no charge.
 5. `total = inqNow.bill + inqNow.admin + denom.adminFee`.
 6. **Mismatch guard**: if `expectedTotal != total` → `409` (bill changed since the
@@ -103,22 +125,33 @@ stale-bill risk. The charge is always the freshly-fetched amount. One ledger
    `adminFee=dfAdmin + markup`, `total`, `refNo=ref`, `customerName`.
 8. `deduct(walletId, total, txId, ...)`.
 9. `payResp = provider.payPostpaid(customerNo, denom.code(), ref)` — same ref, DF
-   ties to the step-4 inquiry, no double-charge.
+   ties to the step-4 inquiry, no double-charge. `pay-pasca` sends **no amount**
+   (the ref-bound inquiry already fixed it).
 10. **Reuse `reconcileProviderResult(tx, payResp, walletId, denom)`**:
     - SUCCESS → `sn` = struk/token, `cost` = `payResp.price` (DF's price = our cost).
     - PENDING → stays PROCESSING, poll settles (money-safe, existing path).
     - FAILED → refund; refund-fail leaves FAILED for Ops (existing path).
 
-`POST /api/transactions/pay` — body `{denomId, customerNo, expectedTotal}`.
+`POST /api/transactions/pay` — body `{denomId, customerNo, amount?, expectedTotal}`.
 
-## Phase 3 — UI (Thymeleaf)
+## Phase 3 — UI (reuse existing grid, no new page)
 
-- Page under transaction UI: select postpaid product → input `customerNo`.
-- `fetch` → `/api/transactions/inquiry` → render bill card (nama pelanggan,
-  tagihan, admin, total).
-- Confirm → `fetch` → `/api/transactions/pay` (passes `expectedTotal` from the
-  card) → render struk / SN, or re-confirm on 409.
-- Follows SSR-first + Alpine.js + `fetch`-mutasi pattern (existing table/tx pattern).
+**Reuse the existing category/product/denom selection UI.** No new standalone
+page. The only change is the flow *after* a denom is picked, branched on the
+denom's `requiresInquiry` + `DenomType`:
+
+- `requiresInquiry == false` → **existing prepaid direct-pay** (unchanged).
+- `requiresInquiry == true`, `FIXED_DENOM` → input `customerNo` → `fetch`
+  `/api/transactions/inquiry` (no amount) → bill card (nama pelanggan, tagihan,
+  admin, total) → confirm → `fetch` `/api/transactions/pay` (send `expectedTotal`)
+  → struk / SN, or re-confirm on 409.
+- `requiresInquiry == true`, `OPEN_AMOUNT` → input `customerNo` **+ nominal**
+  (validate `minAmount`/`maxAmount` client-side, server re-validates) → `fetch`
+  inquiry(amount) → total card → confirm → pay(amount, expectedTotal).
+
+The denom payload the page already loads must expose `requiresInquiry`,
+`denomType`, `minAmount`, `maxAmount` so the client can branch. Follows the
+existing SSR-first + Alpine.js + `fetch`-mutasi pattern.
 
 ---
 
