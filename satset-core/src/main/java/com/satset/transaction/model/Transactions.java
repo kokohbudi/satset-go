@@ -71,6 +71,9 @@ public class Transactions {
     @Column(name = "ref_no", unique = true, length = 20)
     private String refNo;
 
+    @Column(name = "customer_name", length = 100)
+    private String customerName;
+
     @CreatedDate
     @Column(updatable = false)
     private LocalDateTime createdAt;
