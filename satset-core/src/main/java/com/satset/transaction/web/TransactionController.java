@@ -4,9 +4,12 @@ import com.satset.shared.constant.SatsetConstants;
 import com.satset.shared.dto.UserDTO;
 import com.satset.shared.exception.BusinessException;
 import com.satset.shared.exception.ResourceNotFoundException;
+import com.satset.transaction.dto.InquiryDTO;
+import com.satset.transaction.dto.InquiryRequest;
 import com.satset.transaction.dto.PurchaseRequest;
 import com.satset.transaction.dto.TransactionDTO;
 import com.satset.transaction.client.WalletGateway;
+import com.satset.transaction.service.postpaid.PostpaidService;
 import com.satset.transaction.service.topup.TransactionDomainService;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
@@ -28,13 +31,16 @@ public class TransactionController {
 
     private final TransactionDomainService transactionService;
     private final WalletGateway balanceService;
+    private final PostpaidService postpaidService;
     private final UserDTO userDTO;
 
     public TransactionController(TransactionDomainService transactionService,
             WalletGateway balanceService,
+            PostpaidService postpaidService,
             UserDTO userDTO) {
         this.transactionService = transactionService;
         this.balanceService = balanceService;
+        this.postpaidService = postpaidService;
         this.userDTO = userDTO;
     }
 
@@ -55,6 +61,14 @@ public class TransactionController {
         response.put("serialNumber", transaction.serialNumber());
 
         return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/inquiry")
+    @PreAuthorize("hasRole('" + SatsetConstants.PERM_PURCHASE + "')")
+    public ResponseEntity<InquiryDTO> inquiry(@Valid @RequestBody InquiryRequest request)
+            throws BusinessException {
+        return ResponseEntity.ok(
+                postpaidService.inquiry(request.denomId(), request.customerNo(), request.amount()));
     }
 
     @GetMapping("/balance")

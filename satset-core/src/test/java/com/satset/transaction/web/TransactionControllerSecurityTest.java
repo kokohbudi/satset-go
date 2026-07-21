@@ -2,7 +2,9 @@ package com.satset.transaction.web;
 
 import com.satset.shared.dto.UserDTO;
 import com.satset.transaction.client.WalletGateway;
+import com.satset.transaction.dto.InquiryRequest;
 import com.satset.transaction.dto.PurchaseRequest;
+import com.satset.transaction.service.postpaid.PostpaidService;
 import com.satset.transaction.service.topup.TransactionDomainService;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -41,6 +43,11 @@ class TransactionControllerSecurityTest {
         }
 
         @Bean
+        PostpaidService postpaidService() {
+            return Mockito.mock(PostpaidService.class);
+        }
+
+        @Bean
         UserDTO userDTO() {
             UserDTO u = new UserDTO();
             u.setStoreId(UUID.randomUUID());
@@ -49,8 +56,8 @@ class TransactionControllerSecurityTest {
         }
 
         @Bean
-        TransactionController controller(TransactionDomainService s, WalletGateway w, UserDTO u) {
-            return new TransactionController(s, w, u);
+        TransactionController controller(TransactionDomainService s, WalletGateway w, PostpaidService p, UserDTO u) {
+            return new TransactionController(s, w, p, u);
         }
     }
 
@@ -59,6 +66,10 @@ class TransactionControllerSecurityTest {
 
     private PurchaseRequest purchaseRequest() {
         return new PurchaseRequest(UUID.randomUUID(), "081234567890");
+    }
+
+    private InquiryRequest inquiryRequest() {
+        return new InquiryRequest(UUID.randomUUID(), "530000000001", null);
     }
 
     /** Authz passed: either no throw, or any throw other than AccessDeniedException (mocked-dep NPEs are fine). */
@@ -91,6 +102,19 @@ class TransactionControllerSecurityTest {
     @WithMockUser(authorities = "ROLE_CLIENT_transaction")
     void purchase_denied_withoutPurchaseRole() {
         assertThat(catchThrowable(() -> controller.purchase(purchaseRequest())))
+                .isInstanceOf(AccessDeniedException.class);
+    }
+
+    @Test
+    @WithMockUser(authorities = "ROLE_CLIENT_purchase")
+    void inquiry_allowed_withPurchaseRole() {
+        assertAuthorized(() -> controller.inquiry(inquiryRequest()));
+    }
+
+    @Test
+    @WithMockUser(authorities = "ROLE_CLIENT_transaction")
+    void inquiry_denied_withoutPurchaseRole() {
+        assertThat(catchThrowable(() -> controller.inquiry(inquiryRequest())))
                 .isInstanceOf(AccessDeniedException.class);
     }
 }
