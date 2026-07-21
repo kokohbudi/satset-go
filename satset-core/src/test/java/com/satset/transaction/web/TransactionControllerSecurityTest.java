@@ -3,6 +3,7 @@ package com.satset.transaction.web;
 import com.satset.shared.dto.UserDTO;
 import com.satset.transaction.client.WalletGateway;
 import com.satset.transaction.dto.InquiryRequest;
+import com.satset.transaction.dto.PayRequest;
 import com.satset.transaction.dto.PurchaseRequest;
 import com.satset.transaction.service.postpaid.PostpaidService;
 import com.satset.transaction.service.topup.TransactionDomainService;
@@ -16,6 +17,7 @@ import org.springframework.security.config.annotation.method.configuration.Enabl
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.junit.jupiter.SpringJUnitConfig;
 
+import java.math.BigDecimal;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -72,6 +74,10 @@ class TransactionControllerSecurityTest {
         return new InquiryRequest(UUID.randomUUID(), "530000000001", null);
     }
 
+    private PayRequest payRequest() {
+        return new PayRequest(UUID.randomUUID(), "530000000001", null, new BigDecimal("149000"));
+    }
+
     /** Authz passed: either no throw, or any throw other than AccessDeniedException (mocked-dep NPEs are fine). */
     private void assertAuthorized(ThrowingCallable call) {
         Throwable t = catchThrowable(call);
@@ -115,6 +121,19 @@ class TransactionControllerSecurityTest {
     @WithMockUser(authorities = "ROLE_CLIENT_transaction")
     void inquiry_denied_withoutPurchaseRole() {
         assertThat(catchThrowable(() -> controller.inquiry(inquiryRequest())))
+                .isInstanceOf(AccessDeniedException.class);
+    }
+
+    @Test
+    @WithMockUser(authorities = "ROLE_CLIENT_purchase")
+    void pay_allowed_withPurchaseRole() {
+        assertAuthorized(() -> controller.pay(payRequest()));
+    }
+
+    @Test
+    @WithMockUser(authorities = "ROLE_CLIENT_transaction")
+    void pay_denied_withoutPurchaseRole() {
+        assertThat(catchThrowable(() -> controller.pay(payRequest())))
                 .isInstanceOf(AccessDeniedException.class);
     }
 }

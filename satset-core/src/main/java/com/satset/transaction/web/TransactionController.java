@@ -6,6 +6,7 @@ import com.satset.shared.exception.BusinessException;
 import com.satset.shared.exception.ResourceNotFoundException;
 import com.satset.transaction.dto.InquiryDTO;
 import com.satset.transaction.dto.InquiryRequest;
+import com.satset.transaction.dto.PayRequest;
 import com.satset.transaction.dto.PurchaseRequest;
 import com.satset.transaction.dto.TransactionDTO;
 import com.satset.transaction.client.WalletGateway;
@@ -69,6 +70,14 @@ public class TransactionController {
             throws BusinessException {
         return ResponseEntity.ok(
                 postpaidService.inquiry(request.denomId(), request.customerNo(), request.amount()));
+    }
+
+    @PostMapping("/pay")
+    @PreAuthorize("hasRole('" + SatsetConstants.PERM_PURCHASE + "')")
+    public ResponseEntity<TransactionDTO> pay(@Valid @RequestBody PayRequest request)
+            throws BusinessException {
+        return ResponseEntity.ok(postpaidService.pay(getStoreId(), getWalletId(),
+                request.denomId(), request.customerNo(), request.amount(), request.expectedTotal()));
     }
 
     @GetMapping("/balance")
