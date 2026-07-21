@@ -86,7 +86,7 @@
 
                     <!-- Target number -->
                     <label class="block text-sm font-medium mb-1.5" x-text="activeCat ? catMeta(activeCat).field : 'Nomor Tujuan'"></label>
-                    <input x-model="number" @input="detect" inputmode="numeric" autocomplete="off" maxlength="20"
+                    <input x-model="number" @input="detect(); inquiryData = null" inputmode="numeric" autocomplete="off" maxlength="20"
                         placeholder="0812 3456 7890"
                         class="w-full text-lg font-semibold tabular-nums bg-base-100 border border-base-300 rounded-xl px-4 py-3 outline-none focus:border-primary focus:ring-4 focus:ring-primary/15 transition">
                     <div class="h-6 mt-1.5 flex items-center text-sm">
@@ -127,7 +127,7 @@
                         <!-- chips -->
                         <div x-show="product && !loadingDenoms" class="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
                             <template x-for="(d, idx) in denoms" :key="d.id">
-                                <button @click="denom = d"
+                                <button @click="denom = d; inquiryData = null; nominal = null"
                                     class="lift press animate-rise relative rounded-xl border px-4 py-3 text-left transition"
                                     :style="'--i: ' + idx"
                                     :class="denom?.id === d.id ? 'border-primary bg-primary/5 ring-2 ring-primary/30' : 'border-base-300 hover:border-primary/50'">
@@ -142,6 +142,43 @@
                             </template>
                             <div x-show="denoms.length === 0" class="col-span-full py-6 text-center text-sm text-base-content/50">
                                 Tidak ada nominal untuk produk ini.
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Postpaid: nominal (open amount) + cek tagihan + bill card -->
+                    <div x-show="isPostpaid" x-cloak class="mt-5 space-y-3">
+                        <div x-show="isOpenAmount">
+                            <label class="block text-sm font-medium mb-2">Nominal</label>
+                            <input type="number" x-model.number="nominal" @input="inquiryData = null"
+                                class="input input-bordered w-full tabular-nums" placeholder="Masukkan nominal"
+                                :min="denom?.minAmount" :max="denom?.maxAmount">
+                            <p x-show="nominalError" class="text-xs text-error mt-1" x-text="nominalError"></p>
+                        </div>
+                        <button @click="checkBill()" :disabled="!canInquire"
+                            class="btn btn-outline btn-primary w-full">
+                            <span x-show="!inquiring">Cek Tagihan</span>
+                            <span x-show="inquiring" class="loading loading-spinner loading-sm"></span>
+                        </button>
+                        <div x-show="inquiryData" x-cloak
+                            class="rounded-xl border border-base-300 bg-base-200/50 p-4 space-y-2 text-sm">
+                            <div class="flex justify-between gap-4">
+                                <span class="text-base-content/55">Nama Pelanggan</span>
+                                <span class="font-semibold" x-text="inquiryData?.customerName || '—'"></span>
+                            </div>
+                            <div class="flex justify-between gap-4">
+                                <span class="text-base-content/55">Tagihan</span>
+                                <span class="tabular-nums" x-text="formatCurrency(inquiryData?.bill)"></span>
+                            </div>
+                            <div class="flex justify-between gap-4">
+                                <span class="text-base-content/55">Biaya Admin</span>
+                                <span class="tabular-nums"
+                                    x-text="formatCurrency((inquiryData?.admin || 0) + (inquiryData?.markup || 0))"></span>
+                            </div>
+                            <div class="flex justify-between gap-4 border-t border-dashed border-base-300 pt-2">
+                                <span class="font-medium">Total Bayar</span>
+                                <span class="font-bold tabular-nums text-primary"
+                                    x-text="formatCurrency(inquiryData?.total)"></span>
                             </div>
                         </div>
                     </div>
@@ -260,6 +297,11 @@
                     number: '', operator: '',
                     isSubmitting: false,
 
+                    // postpaid
+                    inquiryData: null,
+                    inquiring: false,
+                    nominal: null,
+
                     // result
                     resultData: null, resultError: '',
 
@@ -278,9 +320,29 @@
                         return { ic: '🛒', bg: 'bg-slate-600', field: 'Nomor Tujuan', phone: false };
                     },
 
-                    get total() { return this.denom ? this.denom.price + (this.denom.adminFee || 0) : 0; },
+                    get isPostpaid() { return !!this.denom?.requiresInquiry; },
+                    get isOpenAmount() { return this.denom?.denomType === 'OPEN_AMOUNT'; },
+                    get nominalError() {
+                        if (!this.isPostpaid || !this.isOpenAmount || !this.nominal) return '';
+                        if (this.denom.minAmount != null && this.nominal < this.denom.minAmount)
+                            return 'Minimal ' + this.formatCurrency(this.denom.minAmount);
+                        if (this.denom.maxAmount != null && this.nominal > this.denom.maxAmount)
+                            return 'Maksimal ' + this.formatCurrency(this.denom.maxAmount);
+                        return '';
+                    },
+                    get canInquire() {
+                        return this.isPostpaid && this.number.length >= 5 && !this.inquiring
+                            && (!this.isOpenAmount || (this.nominal > 0 && !this.nominalError));
+                    },
+                    get total() {
+                        if (this.isPostpaid) return this.inquiryData ? this.inquiryData.total : 0;
+                        return this.denom ? this.denom.price + (this.denom.adminFee || 0) : 0;
+                    },
                     get isInsufficient() { return this.denom ? this.currentBalance < this.total : false; },
-                    get canPay() { return !!this.denom && this.number.length >= 10 && !this.isInsufficient; },
+                    get canPay() {
+                        if (this.isPostpaid) return !!this.inquiryData && !this.isInsufficient;
+                        return !!this.denom && this.number.length >= 10 && !this.isInsufficient;
+                    },
 
                     // categories + balance SSR-seeded; methods kept for post-purchase refresh
 
@@ -312,6 +374,7 @@
                         this.products = []; this.product = null;
                         this.denoms = []; this.denom = null;
                         this.number = ''; this.operator = '';
+                        this.inquiryData = null; this.nominal = null;
                         this.loadProducts(c);
                     },
 
@@ -331,6 +394,7 @@
                     async selectProduct(p) {
                         this.product = p;
                         this.denom = null; this.denoms = [];
+                        this.inquiryData = null; this.nominal = null;
                         this.loadingDenoms = true;
                         try {
                             const r = await fetch(`/api/categories/${this.activeCat.code}/products/${p.code}/denoms`);
@@ -358,7 +422,7 @@
                         }
                     },
 
-                    async pay() {
+                    async payPrepaid() {
                         if (!this.canPay) return;
                         this.isSubmitting = true;
                         try {
@@ -392,11 +456,75 @@
                         }
                     },
 
+                    async checkBill() {
+                        if (!this.canInquire) return;
+                        this.inquiring = true; this.inquiryData = null;
+                        try {
+                            const res = await fetch('/api/transactions/inquiry', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    denomId: this.denom.id,
+                                    customerNo: this.number,
+                                    amount: this.isOpenAmount ? this.nominal : null
+                                })
+                            });
+                            const data = await res.json();
+                            if (res.ok) this.inquiryData = data;
+                            else Alpine.store('toast').error(data.message || 'Cek tagihan gagal');
+                        } catch (e) { Alpine.store('toast').error('Terjadi kesalahan jaringan'); }
+                        this.inquiring = false;
+                    },
+
+                    async pay() {
+                        if (!this.canPay) return;
+                        if (!this.isPostpaid) return this.payPrepaid();
+                        this.isSubmitting = true;
+                        try {
+                            const res = await fetch('/api/transactions/pay', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    denomId: this.denom.id,
+                                    customerNo: this.number,
+                                    amount: this.isOpenAmount ? this.nominal : null,
+                                    expectedTotal: this.inquiryData.total
+                                })
+                            });
+                            const data = await res.json();
+                            if (res.ok) {
+                                this.closeModal();
+                                this.resultData = { ...data, transactionId: data.id };
+                                this.resultError = '';
+                                this.view = 'result';
+                                Alpine.store('toast').success('Pembayaran diproses');
+                                this.fetchBalance();
+                            } else if (res.status === 409) {
+                                Alpine.store('toast').error('Tagihan berubah. Menampilkan tagihan terbaru — silakan konfirmasi ulang.');
+                                this.inquiryData = null;
+                                await this.checkBill(); // re-inquiry; user confirms the fresh total
+                            } else if (res.status === 422) {
+                                Alpine.store('toast').error(data.message || 'Saldo tidak cukup');
+                                this.fetchBalance();
+                            } else {
+                                this.closeModal();
+                                this.resultData = { status: 'FAILED' };
+                                this.resultError = data.message || 'Terjadi kesalahan sistem';
+                                this.view = 'result';
+                            }
+                        } catch (e) {
+                            Alpine.store('toast').error('Terjadi kesalahan jaringan');
+                        } finally {
+                            this.isSubmitting = false;
+                        }
+                    },
+
                     resetForm() {
                         this.view = 'grid';
                         this.resultData = null; this.resultError = '';
                         this.activeCat = null; this.product = null; this.denom = null;
                         this.number = ''; this.operator = '';
+                        this.inquiryData = null; this.nominal = null;
                         this.fetchBalance();
                         window.scrollTo({ top: 0, behavior: 'smooth' });
                     },
