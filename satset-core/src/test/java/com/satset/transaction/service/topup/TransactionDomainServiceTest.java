@@ -1,5 +1,6 @@
 package com.satset.transaction.service.topup;
 
+import com.satset.catalog.model.DenomType;
 import com.satset.catalog.repository.DenomRepository;
 import com.satset.shared.exception.BusinessException;
 import com.satset.shared.exception.InsufficientBalanceException;
@@ -65,7 +66,8 @@ class TransactionDomainServiceTest {
             BigDecimal.ZERO,
             new BigDecimal("4600.00"),
             true,
-            false
+            false,
+            false, DenomType.FIXED_DENOM, null, null
         );
     }
 
@@ -74,7 +76,8 @@ class TransactionDomainServiceTest {
         // "Saldo pas-pasan → SUCCESS, balance = 0"
         DenomInfo expensiveDenom = new DenomInfo(
             denomId, "TLKM10", "Telkomsel 10K", "Telkomsel",
-            new BigDecimal("10000.00"), BigDecimal.ZERO, new BigDecimal("9000.00"), true, false
+            new BigDecimal("10000.00"), BigDecimal.ZERO, new BigDecimal("9000.00"), true, false,
+            false, DenomType.FIXED_DENOM, null, null
         );
 
         when(denomRepository.findDenomInfoById(denomId)).thenReturn(Optional.of(expensiveDenom));
@@ -105,7 +108,8 @@ class TransactionDomainServiceTest {
         // "Saldo kurang Rp 1 → REJECTED, balance unchanged"
         DenomInfo expensiveDenom = new DenomInfo(
             denomId, "TLKM10", "Telkomsel 10K", "Telkomsel",
-            new BigDecimal("10001.00"), BigDecimal.ZERO, new BigDecimal("9000.00"), true, false
+            new BigDecimal("10001.00"), BigDecimal.ZERO, new BigDecimal("9000.00"), true, false,
+            false, DenomType.FIXED_DENOM, null, null
         );
 
         when(denomRepository.findDenomInfoById(denomId)).thenReturn(Optional.of(expensiveDenom));
@@ -224,7 +228,8 @@ class TransactionDomainServiceTest {
         // "Purchase denom inactive/deleted → REJECTED"
         DenomInfo inactiveDenom = new DenomInfo(
             denomId, "TLKM5", "Telkomsel 5K", "Telkomsel",
-            new BigDecimal("5000.00"), BigDecimal.ZERO, new BigDecimal("4600.00"), false, false
+            new BigDecimal("5000.00"), BigDecimal.ZERO, new BigDecimal("4600.00"), false, false,
+            false, DenomType.FIXED_DENOM, null, null
         );
         when(denomRepository.findDenomInfoById(denomId)).thenReturn(Optional.of(inactiveDenom));
 

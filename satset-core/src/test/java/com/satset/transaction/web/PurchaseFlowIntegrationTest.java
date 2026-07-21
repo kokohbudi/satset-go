@@ -1,6 +1,7 @@
 package com.satset.transaction.web;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.satset.catalog.model.DenomType;
 import com.satset.catalog.repository.DenomRepository;
 import com.satset.identity.client.KeycloakIdentityPort;
 import com.satset.onboarding.repository.StoreRepository;
@@ -84,7 +85,8 @@ class PurchaseFlowIntegrationTest {
 
         // Setup denom info (shared kernel value object used by TransactionDomainService)
         denomInfo = new DenomInfo(denomId, "PULSA10", "Telkomsel 10K", "Telkomsel",
-                new BigDecimal("10000.00"), BigDecimal.ZERO, new BigDecimal("9000.00"), true, false);
+                new BigDecimal("10000.00"), BigDecimal.ZERO, new BigDecimal("9000.00"), true, false,
+                false, DenomType.FIXED_DENOM, null, null);
 
         // BalanceManagementUseCase mock — TransactionDomainService uses this for balance operations
         doNothing().when(balanceManagementUseCase).deductBalance(any(), any(), any(), any());

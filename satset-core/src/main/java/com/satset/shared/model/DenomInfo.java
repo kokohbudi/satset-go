@@ -1,5 +1,7 @@
 package com.satset.shared.model;
 
+import com.satset.catalog.model.DenomType;
+
 import java.math.BigDecimal;
 import java.util.UUID;
 
@@ -19,7 +21,11 @@ public record DenomInfo(
     BigDecimal adminFee,
     BigDecimal basePrice,
     boolean active,
-    boolean deleted
+    boolean deleted,
+    boolean requiresInquiry,
+    DenomType denomType,
+    BigDecimal minAmount,
+    BigDecimal maxAmount
 ) {
     /**
      * Calculate total price (price + admin fee).
