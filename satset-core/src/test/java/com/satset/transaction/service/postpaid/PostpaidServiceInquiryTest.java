@@ -83,6 +83,24 @@ class PostpaidServiceInquiryTest {
     }
 
     @Test
+    void openAmountExactBoundariesAreAccepted() throws Exception {
+        when(denomRepository.findDenomInfoById(DENOM_ID)).thenReturn(Optional.of(emoneyDenom()));
+        when(refNoGenerator.next()).thenReturn("TRXMIN", "TRXMAX");
+        // amount == minAmount (10000) and == maxAmount (1000000) must both be ALLOWED (inclusive bounds)
+        when(providerPort.inquiry("0812345678", "gopay", "TRXMIN", new BigDecimal("10000")))
+                .thenReturn(new InquiryResult("BUDI", new BigDecimal("10000"),
+                        new BigDecimal("1000"), "00", "Sukses", null));
+        when(providerPort.inquiry("0812345678", "gopay", "TRXMAX", new BigDecimal("1000000")))
+                .thenReturn(new InquiryResult("BUDI", new BigDecimal("1000000"),
+                        new BigDecimal("1000"), "00", "Sukses", null));
+
+        assertThat(service.inquiry(DENOM_ID, "0812345678", new BigDecimal("10000")).total())
+                .isEqualByComparingTo("12000"); // 10000 + 1000 + 1000
+        assertThat(service.inquiry(DENOM_ID, "0812345678", new BigDecimal("1000000")).total())
+                .isEqualByComparingTo("1002000"); // 1000000 + 1000 + 1000
+    }
+
+    @Test
     void unknownDenomThrowsResourceNotFound() {
         when(denomRepository.findDenomInfoById(DENOM_ID)).thenReturn(Optional.empty());
 
