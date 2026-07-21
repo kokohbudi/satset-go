@@ -1,5 +1,6 @@
 package com.satset.digiflazz.client;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
@@ -13,6 +14,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
+import org.springframework.web.client.RestClientException;
 
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
@@ -23,6 +25,7 @@ import java.util.HexFormat;
 import java.util.List;
 
 import static org.springframework.http.MediaType.APPLICATION_JSON;
+import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
 
 /**
  * Client Digiflazz — nembak lewat {@code providerRestClient} (proxy Fly, egress statis
@@ -160,6 +163,48 @@ public class DigiflazzClient {
             return new DigiTxResult(null, "PARSE", refId, "", null, "Respons Digiflazz tidak valid");
         }
     }
+
+    /** Result of postpaid inquiry (inq-pasca) call. */
+    public record DigiInquiryResult(String status, String rc, String refId, String customerName,
+                                    BigDecimal price, BigDecimal admin, String sn, String message,
+                                    JsonNode desc) {}
+
+    /**
+     * Postpaid inquiry — POST /transaction with commands=inq-pasca. Checks customer bill info
+     * without charging. Sign = md5(username + apiKey + refId).
+     */
+    public DigiInquiryResult inquiry(String refId, String buyerSkuCode, String customerNo, BigDecimal amount) {
+        var request = new PascaRequest("inq-pasca", username, buyerSkuCode, customerNo,
+                refId, sign(refId), testing, amount);
+        try {
+            String raw = http.post()
+                    .uri(baseUrl + "/transaction")
+                    .contentType(APPLICATION_JSON)
+                    .body(request)
+                    .retrieve()
+                    .body(String.class);
+            JsonNode data = MAPPER.readTree(raw).path("data");
+            return new DigiInquiryResult(
+                    data.path("status").asText(null),
+                    data.path("rc").asText(null),
+                    data.path("ref_id").asText(null),
+                    data.path("customer_name").asText(null),
+                    data.hasNonNull("price") ? data.get("price").decimalValue() : null,
+                    data.hasNonNull("admin") ? data.get("admin").decimalValue() : null,
+                    data.path("sn").asText(null),
+                    data.path("message").asText(null),
+                    data.path("desc"));
+        } catch (RestClientException e) {
+            return new DigiInquiryResult(null, "HTTP", refId, null, null, null, null, e.getMessage(), null);
+        } catch (JsonProcessingException e) {
+            return new DigiInquiryResult(null, "PARSE", refId, null, null, null, null, e.getMessage(), null);
+        }
+    }
+
+    @JsonInclude(NON_NULL)
+    private record PascaRequest(String commands, String username, String buyer_sku_code,
+                                String customer_no, String ref_id, String sign, boolean testing,
+                                BigDecimal amount) {}
 
     private record TransactionRequest(String username, String buyer_sku_code,
                                       String customer_no, String ref_id, String sign,
