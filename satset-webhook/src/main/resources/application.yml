@@ -17,14 +17,30 @@ spring:
     # already fully owns (unused, but an unwanted extra bean regardless).
     exclude: org.springframework.boot.security.autoconfigure.UserDetailsServiceAutoConfiguration
   datasource:
-    url: ${DB_URL:jdbc:postgresql://localhost:5432/satset_go?socketTimeout=30&connectTimeout=10&tcpKeepAlive=true}
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/satset_go?socketTimeout=15&connectTimeout=10&tcpKeepAlive=true&ApplicationName=satset-webhook}
     username: ${DB_USERNAME:admin}
     password: ${DB_PASSWORD:password}
     driver-class-name: org.postgresql.Driver
+    # Tuned for Fly suspend + shared-cpu-1x + Neon (scale-to-zero closes conns
+    # out of the JVM's view). minimum-idle=0 is the core fix: pool empties when
+    # idle, so no stale conn is dragged across a suspend/resume. First request
+    # after idle pays a fresh handshake (~50-200ms) — the accepted price.
     hikari:
-      maximum-pool-size: 10
-      minimum-idle: 2
-      idle-timeout: 30000
+      maximum-pool-size: 5          # 1 vCPU can't process more in parallel
+      minimum-idle: 0               # core fix — no stale conns survive suspend
+      idle-timeout: 60000
+      max-lifetime: 300000          # must be < server/pgbouncer idle timeout
+      keepalive-time: 30000
+      connection-timeout: 10000
+      validation-timeout: 3000
+      initialization-fail-timeout: -1   # boot even if DB not ready yet
+      # pgjdbc driver props — applied to prod's Neon conn regardless of what the
+      # DB_URL secret contains, so no secret reset needed.
+      data-source-properties:
+        socketTimeout: 15               # kill a query stuck >15s, not forever
+        connectTimeout: 10              # TCP handshake cap
+        tcpKeepAlive: true              # OS detects dead sockets
+        ApplicationName: satset-webhook # shows in pg_stat_activity
 
 server:
   port: ${PORT:8080}

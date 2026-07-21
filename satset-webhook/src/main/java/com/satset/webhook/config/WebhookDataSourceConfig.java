@@ -47,7 +47,13 @@ public class WebhookDataSourceConfig {
 
     @Primary
     @Bean
+    @ConfigurationProperties("spring.datasource.hikari")
     public DataSource dataSource(DataSourceProperties dataSourceProperties) {
+        // @ConfigurationProperties above is REQUIRED — without it, a manually-built
+        // DataSource ignores spring.datasource.hikari.* (pool size, minimum-idle,
+        // max-lifetime, socketTimeout via data-source-properties). Boot only
+        // auto-binds those to its own auto-configured DataSource, which this
+        // @Primary bean replaces.
         return dataSourceProperties.initializeDataSourceBuilder().build();
     }
 
