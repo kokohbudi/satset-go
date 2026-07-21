@@ -10,18 +10,23 @@ import com.satset.shared.model.DenomInfo;
 import com.satset.transaction.client.ProviderPort;
 import com.satset.transaction.client.WalletGateway;
 import com.satset.transaction.dto.InquiryDTO;
+import com.satset.transaction.dto.TransactionDTO;
 import com.satset.transaction.model.InquiryResult;
+import com.satset.transaction.model.ProviderResponse;
+import com.satset.transaction.model.TransactionStatus;
+import com.satset.transaction.model.Transactions;
 import com.satset.transaction.repository.TransactionRepository;
 import com.satset.transaction.service.topup.RefNoGenerator;
 import com.satset.transaction.service.topup.TransactionDomainService;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 /**
- * Pascabayar (postpaid) inquiry + pay. This task covers inquiry only — no DB row,
- * no balance deduction (see Task 9 for pay).
+ * Pascabayar (postpaid) inquiry + pay.
  */
 @Service
 @LogContext("Postpaid")
@@ -56,6 +61,72 @@ public class PostpaidService {
         BigDecimal markup = denom.adminFee() != null ? denom.adminFee() : BigDecimal.ZERO;
         BigDecimal total = r.bill().add(r.admin()).add(markup);
         return new InquiryDTO(r.customerName(), r.bill(), r.admin(), markup, total, r.desc());
+    }
+
+    /**
+     * Pascabayar money path: re-inquiry (fresh bill, never trust the client-supplied one) →
+     * mismatch guard → charge → provider pay → reconcile. Ordering is the safety contract:
+     * no DB row and no wallet deduction happen until the bill is re-confirmed against
+     * {@code expectedTotal}.
+     */
+    public TransactionDTO pay(UUID storeId, String walletId, UUID denomId, String customerNo,
+            BigDecimal amount, BigDecimal expectedTotal) throws BusinessException {
+        DenomInfo denom = loadPostpaidDenom(denomId);
+        validateAmountRule(denom, amount);
+
+        boolean duplicate = transactionRepository
+                .existsByStoreIdAndProductDenomIdAndTargetNumberAndStatusInAndCreatedAtAfter(
+                        storeId, denomId, customerNo,
+                        List.of(TransactionStatus.PENDING, TransactionStatus.PROCESSING,
+                                TransactionStatus.SUCCESS),
+                        LocalDateTime.now().minusMinutes(1));
+        if (duplicate) {
+            throw new BusinessException("DUPLICATE_TRANSACTION",
+                    "Transaksi serupa baru saja dibuat. Tunggu 1 menit sebelum mencoba lagi.");
+        }
+
+        String ref = refNoGenerator.next();
+        InquiryResult inqNow = providerPort.inquiry(customerNo, denom.code(), ref, amount);
+        if (!inqNow.ok()) {
+            throw new SupplierException(inqNow.rc(), inqNow.message());
+        }
+
+        BigDecimal markup = denom.adminFee() != null ? denom.adminFee() : BigDecimal.ZERO;
+        BigDecimal total = inqNow.bill().add(inqNow.admin()).add(markup);
+        if (expectedTotal.compareTo(total) != 0) {
+            throw new BusinessException("BILL_CHANGED",
+                    "Tagihan berubah sejak pengecekan. Silakan cek tagihan ulang.");
+        }
+
+        Transactions tx = new Transactions();
+        tx.setStoreId(storeId);
+        tx.setWalletId(walletId);
+        tx.setProductDenomId(denomId);
+        tx.setDenomName(denom.name());
+        tx.setProductName(denom.productName());
+        tx.setTargetNumber(customerNo);
+        tx.setPrice(inqNow.bill());
+        tx.setAdminFee(inqNow.admin().add(markup));
+        tx.setTotal(total);
+        tx.setStatus(TransactionStatus.PROCESSING);
+        tx.setRefNo(ref);
+        tx.setCustomerName(inqNow.customerName());
+        tx = transactionRepository.save(tx);
+
+        walletGateway.deductBalance(walletId, total, tx.getId(),
+                "Pembayaran " + denom.productName() + " " + customerNo);
+
+        ProviderResponse payResp = providerPort.payPostpaid(customerNo, denom.code(), ref);
+        transactionDomainService.reconcileProviderResult(tx, payResp, walletId, denom);
+
+        Transactions settled = transactionRepository.findById(tx.getId()).orElse(tx);
+        return toDTO(settled);
+    }
+
+    private TransactionDTO toDTO(Transactions tx) {
+        return new TransactionDTO(tx.getId(), tx.getRefNo(), tx.getStoreId(), tx.getTargetNumber(),
+                tx.getDenomName(), tx.getProductName(), tx.getPrice(), tx.getAdminFee(), tx.getTotal(),
+                tx.getStatus(), tx.getProviderRef(), tx.getSerialNumber(), tx.getCreatedAt());
     }
 
     private DenomInfo loadPostpaidDenom(UUID denomId) throws BusinessException {
