@@ -46,6 +46,9 @@
 - [-] `/admin/user-management` — filter hanya backoffice users
 - [-] Refactor User Search — migrasi Keycloak Admin API → DB lokal (database-level pagination)
 
+### Transaction ref_no
+- [-] Fixed-length ref_no — sequence global `tx_ref_seq` pad `%05d` jadi 6+ digit setelah lewat 99.999 (panjang goyang). Opsi A: lebarin pad `%09d` (1 char, tetap global). Opsi B: reset harian via `tx_ref_counter` table (nomor urut per-hari, 5 digit cukup). Pilih A kalau cuma mau panjang stabil, B kalau CS butuh urut harian. Lihat `RefNoGenerator.java`.
+
 ### Revenue & Pricing (Post-MVP)
 - [-] Reseller Tier & Dynamic Pricing (Bronze/Silver/Gold/Platinum)
 - [-] Markup per Store
