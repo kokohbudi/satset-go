@@ -82,7 +82,27 @@ and NOT one-impl use-case interfaces. (Migrated from Hexagonal, 2026-06.)
 - `.env` — local env vars (DB credentials, secrets)
 
 ## Agent Token-Saving Pattern
-Big feature/architecture plan: spawn `Agent` w/ `subagent_type: "Plan"`, `model: "fable"` (cheap/fast) buat draft plan. Eksekusi tetap pake Sonnet (main thread / default agent call, no model override). Skip pattern ini buat task kecil — round-trip plan-agent gak worth-it, langsung Sonnet.
+**Trigger check WAJIB sebelum EnterPlanMode / mulai kerja multi-file** — jangan judgment call, cek checklist:
+- Scope nyentuh **3+ file**, ATAU
+- Nambah/ubah **arsitektur** (layer baru, slice baru, ganti pola), ATAU
+- User pake kata "plan", "design", "arsitektur", "roadmap" buat kerjaan non-trivial
+
+Cost stack (per harga real Anthropic — Fable 5 = tier TERMAHAL/paling capable, bukan murah):
+- **Plan default = Opus in-session** (session ini, `claude --model claude-opus-4-8`). Checklist TRUE → Opus yang draft plan sendiri, TANPA spawn. Opus udah jalan = gratis, hampir selalu cukup buat plan.
+- **Plan = Fable HANYA darurat high-leverage**: spawn `Agent` w/ `subagent_type: "Plan"`, `model: "fable"` cuma kalau keputusan arsitektur berat + ambigu + mahal-kalau-salah (skema baru, ganti pola lintas modul). Tier termahal → tombol darurat, BUKAN reflex tiap plan.
+- **Eksekusi = Sonnet/Haiku** (win token utama, paling sering dipanggil):
+  - `model: "sonnet"` → default coding/logic: nulis fitur, edit multi-langkah, test.
+  - `model: "haiku"` → mekanis murni: grep, list, baca file, format, rename tanpa logika (locator/investigator).
+
+Aturan praktis:
+```
+plan berat + ambigu + mahal-kalau-salah → Fable (jarang, darurat)
+plan biasa                              → Opus session ini, no spawn
+coding/logic                            → Sonnet
+mekanis murni                           → Haiku
+```
+
+Kalau semua checklist FALSE (task kecil, 1-2 file, fix/typo/rename) → skip plan, langsung eksekusi.
 
 ## graphify
 
