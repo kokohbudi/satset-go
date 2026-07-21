@@ -18,6 +18,7 @@ import com.satset.transaction.model.Transactions;
 import com.satset.transaction.repository.TransactionRepository;
 import com.satset.transaction.service.topup.RefNoGenerator;
 import com.satset.transaction.service.topup.TransactionDomainService;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -28,6 +29,7 @@ import java.util.UUID;
 /**
  * Pascabayar (postpaid) inquiry + pay.
  */
+@Slf4j
 @Service
 @LogContext("Postpaid")
 public class PostpaidService {
@@ -56,7 +58,7 @@ public class PostpaidService {
         String ref = refNoGenerator.next();
         InquiryResult r = providerPort.inquiry(customerNo, denom.code(), ref, amount);
         if (!r.ok()) {
-            throw new SupplierException(r.rc(), r.message());
+            throw supplierError(r.rc(), r.message(), "Inquiry");
         }
         BigDecimal markup = denom.adminFee() != null ? denom.adminFee() : BigDecimal.ZERO;
         BigDecimal total = r.bill().add(r.admin()).add(markup);
@@ -88,7 +90,7 @@ public class PostpaidService {
         String ref = refNoGenerator.next();
         InquiryResult inqNow = providerPort.inquiry(customerNo, denom.code(), ref, amount);
         if (!inqNow.ok()) {
-            throw new SupplierException(inqNow.rc(), inqNow.message());
+            throw supplierError(inqNow.rc(), inqNow.message(), "Pay re-inquiry");
         }
 
         BigDecimal markup = denom.adminFee() != null ? denom.adminFee() : BigDecimal.ZERO;
@@ -154,5 +156,19 @@ public class PostpaidService {
         } else if (amount != null) {
             throw new BusinessException("AMOUNT_NOT_ALLOWED", "Produk ini membayar tagihan penuh tanpa nominal");
         }
+    }
+
+    /**
+     * Build a client-safe {@link SupplierException} from a failed supplier result. Transport/parse
+     * failures ({@code rc} HTTP/PARSE) carry raw exception text — never leak that to the client;
+     * substitute a generic message and keep the detail in the log. A numeric Digiflazz rc is a real
+     * business message (e.g. "Nomor tidak ditemukan") and is safe to surface.
+     */
+    private SupplierException supplierError(String rc, String rawMessage, String context) {
+        log.error("{} gagal — supplier rc={} detail={}", context, rc, rawMessage);
+        String clientMsg = ("HTTP".equals(rc) || "PARSE".equals(rc))
+                ? "Layanan supplier sedang tidak tersedia. Coba lagi sebentar."
+                : rawMessage;
+        return new SupplierException(rc, clientMsg);
     }
 }

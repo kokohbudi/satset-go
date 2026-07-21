@@ -165,6 +165,22 @@ class PostpaidServiceInquiryTest {
     }
 
     @Test
+    void transportErrorYieldsGenericMessageNotRawDetail() {
+        when(denomRepository.findDenomInfoById(DENOM_ID)).thenReturn(Optional.of(pascaDenom()));
+        when(refNoGenerator.next()).thenReturn("TRX004");
+        // rc "HTTP" carries raw Java exception text — must NOT reach the client (project rule).
+        when(providerPort.inquiry(any(), any(), any(), any()))
+                .thenReturn(new InquiryResult(null, null, null, "HTTP",
+                        "I/O error on POST request for \"https://api.digiflazz.com/v1\": Connection timed out", null));
+
+        assertThatThrownBy(() -> service.inquiry(DENOM_ID, "530000000001", null))
+                .isInstanceOf(SupplierException.class)
+                .hasMessageNotContaining("Connection timed out")
+                .hasMessageNotContaining("digiflazz")
+                .hasMessage("Layanan supplier sedang tidak tersedia. Coba lagi sebentar.");
+    }
+
+    @Test
     void supplierFailureThrowsSupplierException() {
         when(denomRepository.findDenomInfoById(DENOM_ID)).thenReturn(Optional.of(pascaDenom()));
         when(refNoGenerator.next()).thenReturn("TRX003");
