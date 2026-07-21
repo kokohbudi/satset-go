@@ -85,9 +85,11 @@ public class DenomDomainService {
     public ProductDenoms create(UUID productId, CreateDenomRequest req) throws BusinessException {
         Products product = productRepository.findById(productId)
             .orElseThrow(() -> new ResourceNotFoundException("Product", productId));
+        // code == DF buyer_sku_code, sent verbatim at topup (DF SKUs are case-sensitive,
+        // e.g. "xld10") — preserve case, only trim. Matches createFromSupplier's rule.
         String code = (req.code() == null || req.code().isBlank())
             ? generateSku(product, req.nominal())
-            : req.code().toUpperCase().trim();
+            : req.code().trim();
         if (denomRepository.findByCode(code).isPresent()) {
             throw new BusinessException("DUPLICATE_CODE", "Denom code already exists: " + code);
         }
@@ -133,10 +135,10 @@ public class DenomDomainService {
     public ProductDenoms update(UUID id, UpdateDenomRequest req) throws BusinessException {
         ProductDenoms denom = denomRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Denom", id));
-        if (denomRepository.existsByCodeAndIdNot(req.code().toUpperCase().trim(), id)) {
+        if (denomRepository.existsByCodeAndIdNot(req.code().trim(), id)) {
             throw new BusinessException("DUPLICATE_CODE", "Denom code already exists: " + req.code());
         }
-        denom.setCode(req.code().toUpperCase().trim());
+        denom.setCode(req.code().trim());
         denom.setName(req.name());
         denom.setDenomType(req.denomType());
         denom.setNominal(req.nominal());

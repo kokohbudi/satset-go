@@ -208,7 +208,7 @@ class DenomDomainServiceTest {
                 null, null, null, null,
                 false, null, true, 2);
         when(productRepository.findById(productId)).thenReturn(Optional.of(product));
-        when(denomRepository.findByCode("TLKM10")).thenReturn(Optional.empty());
+        when(denomRepository.findByCode("tlkm10")).thenReturn(Optional.empty());
         when(denomRepository.save(any(ProductDenoms.class))).thenAnswer(inv -> {
             ProductDenoms d = inv.getArgument(0);
             d.setId(UUID.randomUUID());
@@ -220,7 +220,7 @@ class DenomDomainServiceTest {
 
         // Assert
         assertNotNull(result.getId());
-        assertEquals("TLKM10", result.getCode()); // uppercased
+        assertEquals("tlkm10", result.getCode()); // exact-case = DF SKU, NOT uppercased
         assertEquals("Telkomsel 10K", result.getName());
         assertEquals(DenomType.FIXED_DENOM, result.getDenomType());
         assertEquals(new BigDecimal("10500"), result.getPrice());
@@ -311,22 +311,23 @@ class DenomDomainServiceTest {
     }
 
     @Test
-    void create_CodeIsUppercasedAndTrimmed() throws BusinessException {
-        // Arrange
+    void create_CodeIsTrimmedNotUppercased() throws BusinessException {
+        // Arrange — code is the DF buyer_sku_code, sent verbatim at topup, so case
+        // MUST be preserved (DF SKUs are lowercase, e.g. "xld10"). Only trim.
         CreateDenomRequest req = new CreateDenomRequest(
                 "  tlkm25  ", "Telkomsel 25K", DenomType.FIXED_DENOM,
                 null, new BigDecimal("26000"), null, null,
                 null, null, null, null,
                 false, null, true, 3);
         when(productRepository.findById(productId)).thenReturn(Optional.of(product));
-        when(denomRepository.findByCode("TLKM25")).thenReturn(Optional.empty());
+        when(denomRepository.findByCode("tlkm25")).thenReturn(Optional.empty());
         when(denomRepository.save(any(ProductDenoms.class))).thenAnswer(inv -> inv.getArgument(0));
 
         // Act
         ProductDenoms result = denomService.create(productId, req);
 
         // Assert
-        assertEquals("TLKM25", result.getCode());
+        assertEquals("tlkm25", result.getCode());
     }
 
     // === UPDATE ===
@@ -335,20 +336,20 @@ class DenomDomainServiceTest {
     void update_Success() throws BusinessException {
         // Arrange
         UpdateDenomRequest req = new UpdateDenomRequest(
-                "TLKM5V2", "Telkomsel 5K V2", DenomType.FIXED_DENOM,
+                "tlkm5v2", "Telkomsel 5K V2", DenomType.FIXED_DENOM,
                 new BigDecimal("5000"), new BigDecimal("5800"),
                 new BigDecimal("5000"), new BigDecimal("500"),
                 30, 1024L, null, null,
                 false, 100, false, 5, null);
         when(denomRepository.findById(denomId)).thenReturn(Optional.of(existingDenom));
-        when(denomRepository.existsByCodeAndIdNot("TLKM5V2", denomId)).thenReturn(false);
+        when(denomRepository.existsByCodeAndIdNot("tlkm5v2", denomId)).thenReturn(false);
         when(denomRepository.save(any(ProductDenoms.class))).thenAnswer(inv -> inv.getArgument(0));
 
         // Act
         ProductDenoms result = denomService.update(denomId, req);
 
         // Assert
-        assertEquals("TLKM5V2", result.getCode());
+        assertEquals("tlkm5v2", result.getCode()); // exact-case preserved, not uppercased
         assertEquals("Telkomsel 5K V2", result.getName());
         assertEquals(new BigDecimal("5800"), result.getPrice());
         assertEquals(new BigDecimal("500"), result.getAdminFee());
