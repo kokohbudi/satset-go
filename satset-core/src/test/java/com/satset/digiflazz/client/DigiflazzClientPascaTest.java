@@ -104,4 +104,37 @@ class DigiflazzClientPascaTest {
         assertThat(r.status()).isNull();
         assertThat(r.rc()).isNotEqualTo("00");
     }
+
+    @Test
+    void payPostpaidSendsPayPascaWithoutAmountAndParsesStruk() {
+        server.expect(requestTo("https://api.digiflazz.com/v1/transaction"))
+                .andExpect(method(HttpMethod.POST))
+                .andExpect(jsonPath("$.commands").value("pay-pasca"))
+                .andExpect(jsonPath("$.ref_id").value("ref1"))
+                .andExpect(jsonPath("$.sign").value("c28850e81191973e911ac305b9cc7c42"))
+                .andExpect(jsonPath("$.amount").doesNotExist())
+                .andRespond(withSuccess("""
+                        {"data":{"ref_id":"ref1","customer_no":"530000000001","buyer_sku_code":"pln",
+                         "admin":2500,"price":147500,"selling_price":149000,"rc":"00","status":"Sukses",
+                         "sn":"STRUK/PLN/1234567890","message":"Pembayaran Sukses"}}
+                        """, MediaType.APPLICATION_JSON));
+
+        DigiflazzClient.DigiTxResult r = client.payPostpaid("ref1", "pln", "530000000001");
+
+        assertThat(r.status()).isEqualTo("Sukses");
+        assertThat(r.rc()).isEqualTo("00");
+        assertThat(r.sn()).isEqualTo("STRUK/PLN/1234567890");
+        assertThat(r.price()).isEqualByComparingTo("147500");
+    }
+
+    @Test
+    void payPostpaidReturnsHttpRcOnTransportError() {
+        server.expect(requestTo("https://api.digiflazz.com/v1/transaction"))
+                .andRespond(withServerError());
+
+        DigiflazzClient.DigiTxResult r = client.payPostpaid("ref1", "pln", "530000000001");
+
+        assertThat(r.status()).isNull();
+        assertThat(r.rc()).isEqualTo("HTTP");
+    }
 }

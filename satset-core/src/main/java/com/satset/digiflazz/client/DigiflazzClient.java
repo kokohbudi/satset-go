@@ -201,6 +201,36 @@ public class DigiflazzClient {
         }
     }
 
+    /**
+     * Postpaid payment — POST /transaction with commands=pay-pasca. Charges customer and delivers
+     * payment receipt. Idempotent per {@code refId}: re-calling with the same refId returns the
+     * current status without re-charging. Sign = md5(username + apiKey + refId).
+     */
+    public DigiTxResult payPostpaid(String refId, String buyerSkuCode, String customerNo) {
+        PascaRequest request = new PascaRequest("pay-pasca", username, buyerSkuCode, customerNo,
+                refId, sign(refId), testing, null);
+        try {
+            String raw = http.post()
+                    .uri(baseUrl + "/transaction")
+                    .contentType(APPLICATION_JSON)
+                    .body(request)
+                    .retrieve()
+                    .body(String.class);
+            JsonNode data = MAPPER.readTree(raw == null ? "" : raw).path("data");
+            return new DigiTxResult(
+                    data.path("status").asText(null),
+                    data.path("rc").asText(null),
+                    data.path("ref_id").asText(null),
+                    data.path("sn").asText(null),
+                    data.hasNonNull("price") ? data.get("price").decimalValue() : null,
+                    data.path("message").asText(null));
+        } catch (RestClientException e) {
+            return new DigiTxResult(null, "HTTP", refId, null, null, e.getMessage());
+        } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
+            return new DigiTxResult(null, "PARSE", refId, null, null, e.getMessage());
+        }
+    }
+
     @JsonInclude(NON_NULL)
     private record PascaRequest(String commands, String username, String buyer_sku_code,
                                 String customer_no, String ref_id, String sign, boolean testing,
