@@ -1,6 +1,7 @@
 package com.satset.transaction.client;
 
 import com.satset.digiflazz.client.DigiflazzClient;
+import com.satset.transaction.model.InquiryResult;
 import com.satset.transaction.model.ProviderResponse;
 import com.satset.transaction.model.ProviderStatus;
 import lombok.extern.slf4j.Slf4j;
@@ -40,6 +41,20 @@ public class RealProviderAdapter implements ProviderPort {
         ProviderStatus status = mapStatus(r.status(), r.rc());
         log.info("Digiflazz /transaction refId={} status={} rc={} -> {}", refId, r.status(), r.rc(), status);
         return new ProviderResponse(status, r.refId(), emptyToNull(r.sn()), r.message(), r.price());
+    }
+
+    @Override
+    public InquiryResult inquiry(String customerNo, String denomCode, String refId, BigDecimal amount) {
+        DigiflazzClient.DigiInquiryResult r = digiflazz.inquiry(refId, denomCode, customerNo, amount);
+        return new InquiryResult(emptyToNull(r.customerName()), r.price(), r.admin(),
+                r.rc(), r.message(), r.desc());
+    }
+
+    @Override
+    public ProviderResponse payPostpaid(String customerNo, String denomCode, String refId) {
+        DigiflazzClient.DigiTxResult r = digiflazz.payPostpaid(refId, denomCode, customerNo);
+        return new ProviderResponse(mapStatus(r.status(), r.rc()), emptyToNull(r.refId()),
+                emptyToNull(r.sn()), r.message(), r.price());
     }
 
     private static ProviderStatus mapStatus(String dfStatus, String rc) {
