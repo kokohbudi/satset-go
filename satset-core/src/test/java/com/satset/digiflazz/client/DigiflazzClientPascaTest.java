@@ -91,4 +91,16 @@ class DigiflazzClientPascaTest {
 
         assertThat(r.rc()).isEqualTo("PARSE");
     }
+
+    @Test
+    void inquiryReturnsParseRcOnEmptyBody() {
+        server.expect(requestTo("https://api.digiflazz.com/v1/transaction"))
+                .andRespond(withSuccess("", MediaType.APPLICATION_JSON));
+
+        DigiflazzClient.DigiInquiryResult r = client.inquiry("ref1", "pln", "530000000001", null);
+
+        // Empty body should not throw — returns result with all nulls/empty values
+        assertThat(r.status()).isNull();
+        assertThat(r.refId()).isNull();  // ref_id not in empty response
+    }
 }

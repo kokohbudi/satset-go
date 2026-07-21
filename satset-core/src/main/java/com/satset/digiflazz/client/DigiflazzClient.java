@@ -183,7 +183,7 @@ public class DigiflazzClient {
                     .body(request)
                     .retrieve()
                     .body(String.class);
-            JsonNode data = MAPPER.readTree(raw).path("data");
+            JsonNode data = MAPPER.readTree(raw == null ? "" : raw).path("data");
             return new DigiInquiryResult(
                     data.path("status").asText(null),
                     data.path("rc").asText(null),
@@ -196,7 +196,7 @@ public class DigiflazzClient {
                     data.path("desc"));
         } catch (RestClientException e) {
             return new DigiInquiryResult(null, "HTTP", refId, null, null, null, null, e.getMessage(), null);
-        } catch (JsonProcessingException e) {
+        } catch (Exception e) {
             return new DigiInquiryResult(null, "PARSE", refId, null, null, null, null, e.getMessage(), null);
         }
     }
