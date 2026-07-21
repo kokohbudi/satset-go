@@ -287,8 +287,14 @@
                     async loadCategories() {
                         this.loadingCats = true;
                         try {
-                            const r = await fetch('/api/categories/type/PREPAID');
-                            if (r.ok) this.categories = await r.json();
+                            const [pre, post] = await Promise.all([
+                                fetch('/api/categories/type/PREPAID'),
+                                fetch('/api/categories/type/POSTPAID')
+                            ]);
+                            this.categories = [
+                                ...(pre.ok ? await pre.json() : []),
+                                ...(post.ok ? await post.json() : [])
+                            ];
                         } catch (e) { Alpine.store('toast').error('Gagal memuat kategori'); }
                         this.loadingCats = false;
                     },

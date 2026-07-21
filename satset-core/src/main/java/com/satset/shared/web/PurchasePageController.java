@@ -33,7 +33,8 @@ public class PurchasePageController {
         model.addAttribute("currentPage", "purchase");
         model.addAttribute("breadcrumb", "Beli Pulsa");
         // SSR categories + balance so client doesn't refetch on render
-        List<Category> categories = categoryService.findByType(CategoryType.PREPAID);
+        List<Category> categories = new java.util.ArrayList<>(categoryService.findByType(CategoryType.PREPAID));
+        categories.addAll(categoryService.findByType(CategoryType.POSTPAID));
         BigDecimal balance = userDTO.getWalletId() == null
                 ? BigDecimal.ZERO
                 : walletGateway.getBalance(userDTO.getWalletId());
