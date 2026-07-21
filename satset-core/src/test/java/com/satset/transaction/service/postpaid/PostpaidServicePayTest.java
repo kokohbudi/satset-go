@@ -52,6 +52,12 @@ class PostpaidServicePayTest {
                 true, DenomType.FIXED_DENOM, null, null);
     }
 
+    private static DenomInfo emoneyDenom() { // OPEN_AMOUNT + requiresInquiry, 10k..1jt, markup 1000
+        return new DenomInfo(DENOM_ID, "gopay", "GoPay Saldo", "GoPay", BigDecimal.ZERO,
+                new BigDecimal("1000"), BigDecimal.ZERO, true, false,
+                true, DenomType.OPEN_AMOUNT, new BigDecimal("10000"), new BigDecimal("1000000"));
+    }
+
     @BeforeEach
     void baseStubs() {
         when(denomRepository.findDenomInfoById(DENOM_ID)).thenReturn(Optional.of(pascaDenom()));
@@ -181,6 +187,39 @@ class PostpaidServicePayTest {
                 same(failed), eq("wallet-1"), any(DenomInfo.class));
         // the service itself never refunds directly — that's reconcileProviderResult's job
         verify(walletGateway, never()).refundBalance(any(), any(), any(), any());
+    }
+
+    @Test
+    void openAmountPayDeductsAndReconciles() throws Exception {
+        when(denomRepository.findDenomInfoById(DENOM_ID)).thenReturn(Optional.of(emoneyDenom()));
+        when(transactionRepository.existsByStoreIdAndProductDenomIdAndTargetNumberAndStatusInAndCreatedAtAfter(
+                eq(STORE_ID), eq(DENOM_ID), eq("0812345678"), anyList(), any(LocalDateTime.class)))
+                .thenReturn(false);
+        when(providerPort.inquiry("0812345678", "gopay", "TRX010", new BigDecimal("50000")))
+                .thenReturn(new InquiryResult("BUDI", new BigDecimal("50000"),
+                        new BigDecimal("1000"), "00", "Sukses", null));
+        ProviderResponse payResp = new ProviderResponse(ProviderStatus.SUCCESS, "DF456",
+                null, "Sukses", new BigDecimal("50500"));
+        when(providerPort.payPostpaid("0812345678", "gopay", "TRX010")).thenReturn(payResp);
+
+        TransactionDTO dto = service.pay(STORE_ID, "wallet-1", DENOM_ID, "0812345678",
+                new BigDecimal("50000"), new BigDecimal("52000")); // 50000 + 1000 + markup 1000
+
+        ArgumentCaptor<Transactions> saved = ArgumentCaptor.forClass(Transactions.class);
+        verify(transactionRepository).save(saved.capture());
+        Transactions tx = saved.getValue();
+        assertThat(tx.getStatus()).isEqualTo(TransactionStatus.PROCESSING);
+        assertThat(tx.getTargetNumber()).isEqualTo("0812345678");
+        assertThat(tx.getPrice()).isEqualByComparingTo("50000");
+        assertThat(tx.getAdminFee()).isEqualByComparingTo("2000"); // dfAdmin 1000 + markup 1000
+        assertThat(tx.getTotal()).isEqualByComparingTo("52000");
+
+        verify(walletGateway).deductBalance(eq("wallet-1"), eq(new BigDecimal("52000")),
+                eq(TX_ID), anyString());
+        verify(providerPort).payPostpaid("0812345678", "gopay", "TRX010");
+        verify(transactionDomainService).reconcileProviderResult(same(tx), same(payResp),
+                eq("wallet-1"), any(DenomInfo.class));
+        assertThat(dto).isNotNull();
     }
 
     @Test
