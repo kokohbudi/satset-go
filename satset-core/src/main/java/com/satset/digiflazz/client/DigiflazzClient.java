@@ -226,7 +226,7 @@ public class DigiflazzClient {
                     data.path("message").asText(null));
         } catch (RestClientException e) {
             return new DigiTxResult(null, "HTTP", refId, null, null, e.getMessage());
-        } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
+        } catch (Exception e) {
             return new DigiTxResult(null, "PARSE", refId, null, null, e.getMessage());
         }
     }
