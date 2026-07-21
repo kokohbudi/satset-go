@@ -244,6 +244,10 @@
                             <span class="text-base-content/55">Nomor Tujuan</span>
                             <span class="font-semibold tabular-nums tracking-wider" x-text="number"></span>
                         </div>
+                        <div class="flex justify-between gap-4" x-show="resultData?.customerName">
+                            <span class="text-base-content/55">Nama Pelanggan</span>
+                            <span class="font-semibold text-right" x-text="resultData?.customerName"></span>
+                        </div>
                         <div class="flex justify-between gap-4">
                             <span class="text-base-content/55">Produk</span>
                             <span class="font-medium text-right" x-text="(product?.name || '') + ' · ' + (denom?.name || '')"></span>

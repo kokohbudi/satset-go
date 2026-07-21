@@ -176,6 +176,7 @@ public class TransactionDomainService {
                                 tx.getRefNo(),
                                 tx.getStoreId(),
                                 tx.getTargetNumber(),
+                                tx.getCustomerName(),
                                 tx.getDenomName(),
                                 tx.getProductName(),
                                 tx.getPrice(),

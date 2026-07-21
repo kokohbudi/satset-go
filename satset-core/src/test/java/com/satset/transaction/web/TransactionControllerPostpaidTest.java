@@ -58,7 +58,7 @@ class TransactionControllerPostpaidTest {
         when(userDTO.getStoreId()).thenReturn(storeId);
         when(userDTO.getWalletId()).thenReturn("wallet-1");
         TransactionDTO dto = new TransactionDTO(UUID.randomUUID(), "TRX010", storeId,
-                "530000000001", "PLN Pascabayar", "PLN", new java.math.BigDecimal("145000"),
+                "530000000001", "BUDI SANTOSO", "PLN Pascabayar", "PLN", new java.math.BigDecimal("145000"),
                 new java.math.BigDecimal("4000"), new java.math.BigDecimal("149000"),
                 com.satset.transaction.model.TransactionStatus.SUCCESS, "DF123",
                 "STRUK/PLN/1234567890", java.time.LocalDateTime.now());
@@ -70,6 +70,7 @@ class TransactionControllerPostpaidTest {
 
         assertThat(response.getStatusCode().value()).isEqualTo(200);
         assertThat(response.getBody()).isSameAs(dto);
+        assertThat(response.getBody().customerName()).isEqualTo("BUDI SANTOSO");
     }
 
     /**

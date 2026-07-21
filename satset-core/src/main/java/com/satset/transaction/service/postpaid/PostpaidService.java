@@ -127,8 +127,9 @@ public class PostpaidService {
 
     private TransactionDTO toDTO(Transactions tx) {
         return new TransactionDTO(tx.getId(), tx.getRefNo(), tx.getStoreId(), tx.getTargetNumber(),
-                tx.getDenomName(), tx.getProductName(), tx.getPrice(), tx.getAdminFee(), tx.getTotal(),
-                tx.getStatus(), tx.getProviderRef(), tx.getSerialNumber(), tx.getCreatedAt());
+                tx.getCustomerName(), tx.getDenomName(), tx.getProductName(), tx.getPrice(),
+                tx.getAdminFee(), tx.getTotal(), tx.getStatus(), tx.getProviderRef(),
+                tx.getSerialNumber(), tx.getCreatedAt());
     }
 
     private DenomInfo loadPostpaidDenom(UUID denomId) throws BusinessException {

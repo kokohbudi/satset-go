@@ -11,6 +11,7 @@ public record TransactionDTO(
         String refNo,
         UUID storeId,
         String targetNumber,
+        String customerName,
         String denomName,
         String productName,
         BigDecimal price,
