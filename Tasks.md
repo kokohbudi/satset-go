@@ -46,6 +46,9 @@
 - [-] `/admin/user-management` — filter hanya backoffice users
 - [-] Refactor User Search — migrasi Keycloak Admin API → DB lokal (database-level pagination)
 
+### Reconcile — scheduled stuck-tx sweep (safety net)
+- [x] ✅ Reinstate `@Scheduled` reconcile di **core** — branch `feat/reconcile-sweep` (base **main**, bukan status-webhook: kode core-only). Scan **PROCESSING-only** (scope A — PENDING praktis mustahil nyangkut, semua atap `@Transactional`) window dua-batas `[maxCutoff, staleCutoff]` (umur > `stale-after-ms` 2mnt, < `max-age-ms` 6j) → poll DF via **`ProviderPort.sendTransaction`** (mockable, bukan `DigiflazzClient` langsung, idempotent by refId=refNo→UUID) → settle `reconcileProviderResult`. Per-row `TransactionTemplate` isolation. Give-up >6j: keluar dari scan + ALERT agregat (`countByStatusAndCreatedAtBefore`) — ga di-starve. Anti-double-settle (webhook+scheduler): scan-filter + re-fetch guard + `@Version` optlock (Opus verify: nol double-refund). `@LogContext("Reconcile")`. 8 commit, 7/7 unit test. Spec `docs/superpowers/specs/2026-07-23-reconcile-sweep-design.md`, plan `docs/superpowers/plans/2026-07-23-reconcile-sweep.md`. **Follow-up**: (a) full-suite run lokal Docker+KC sebelum merge, (b) test race optlock real-PG. **Kenapa core, bukan webhook**: webhook Fly suspend→IP egress gonta-ganti→ga bisa whitelist DF; core IP stabil+whitelisted. Safety-net kalau webhook DF telat/ga dateng.
+
 ### Transaction ref_no
 - [-] Fixed-length ref_no — sequence global `tx_ref_seq` pad `%05d` jadi 6+ digit setelah lewat 99.999 (panjang goyang). Opsi A: lebarin pad `%09d` (1 char, tetap global). Opsi B: reset harian via `tx_ref_counter` table (nomor urut per-hari, 5 digit cukup). Pilih A kalau cuma mau panjang stabil, B kalau CS butuh urut harian. Lihat `RefNoGenerator.java`.
 
