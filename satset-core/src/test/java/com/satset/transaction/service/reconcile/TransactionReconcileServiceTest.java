@@ -162,15 +162,21 @@ class TransactionReconcileServiceTest {
     }
 
     @Test
-    void scan_usesBatchSizeAndOldestFirst() {
+    void scan_usesBatchSizeAndOldestFirst_andWindowBoundsInOrder() {
         when(txRepo.findByStatusAndCreatedAtBetween(eq(TransactionStatus.PROCESSING), any(), any(), any()))
                 .thenReturn(List.of());
         ArgumentCaptor<Pageable> pageable = ArgumentCaptor.forClass(Pageable.class);
+        ArgumentCaptor<LocalDateTime> from = ArgumentCaptor.forClass(LocalDateTime.class);
+        ArgumentCaptor<LocalDateTime> to = ArgumentCaptor.forClass(LocalDateTime.class);
 
         reconcile.reconcileStalePending();
 
-        verify(txRepo).findByStatusAndCreatedAtBetween(eq(TransactionStatus.PROCESSING), any(), any(), pageable.capture());
+        verify(txRepo).findByStatusAndCreatedAtBetween(
+                eq(TransactionStatus.PROCESSING), from.capture(), to.capture(), pageable.capture());
         assertThat(pageable.getValue().getPageSize()).isEqualTo(batchSize);
         assertThat(pageable.getValue().getSort().getOrderFor("createdAt").isAscending()).isTrue();
+        // lower bound (maxCutoff) must be chronologically before upper bound (staleCutoff),
+        // else Between inverts and the scan silently returns nothing
+        assertThat(from.getValue()).isBefore(to.getValue());
     }
 }
