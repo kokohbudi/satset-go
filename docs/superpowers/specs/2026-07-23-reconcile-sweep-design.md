@@ -52,6 +52,7 @@ reconcileStalePending():
 settleOne(row):
     tx = txRepo.findById(row.id)
     if tx == null || tx.status != PROCESSING: return          // guard: webhook already settled
+    if age(tx) > max-age-ms: log ALERT, return                // give-up cutoff — see §5
     denom = denomRepo.findDenomInfoById(tx.productDenomId)
     if denom == null: log.warn, return
     resp = provider.sendTransaction(tx.targetNumber, denom.code(), tx.total, refIdFor(tx))
@@ -85,10 +86,33 @@ Removed when the service was deleted. Re-add to a core config/main class.
 ```
 topup:
   reconcile:
-    interval-ms: 60000     # @Scheduled fixedDelay
-    stale-after-ms: 120000 # row must be older than this
-    batch-size: 100        # max rows per run (rate-limit guard vs DF rc 85)
+    interval-ms: 60000       # @Scheduled fixedDelay
+    stale-after-ms: 120000   # row must be older than this to be swept
+    batch-size: 100          # max rows per run (rate-limit guard vs DF rc 85)
+    max-age-ms: 21600000     # 6h — stop re-polling past this, alert Ops instead
 ```
+
+### 5. Give-up cutoff (A + B)
+
+A row keeps being re-polled every run while DF stays "Pending" (A). But past
+`max-age-ms` (6h) it is a stuck row DF will likely never resolve — `settleOne`
+skips the DF call and logs an `ALERT`-level line to `logs/Reconcile/` for manual
+Ops (B). Row stays `PROCESSING` (never auto-FAILED/refunded — DF might still settle
+it, and flipping without a DF verdict risks a wrong refund).
+
+```
+settleOne(row):
+    tx = txRepo.findById(row.id)
+    if tx == null || tx.status != PROCESSING: return
+    if age(tx) > max-age-ms:
+        log.error("ALERT: tx {} stuck PROCESSING > maxAge, needs manual Ops", tx.id)
+        return                                  // no re-poll past cutoff
+    ... (denom lookup, provider re-poll, reconcile) ...
+```
+
+ponytail: over-max rows re-log the ALERT every run until Ops clears them — noisy
+by design (an alert that keeps firing). Add a `reconcileAlerted` flag only if the
+noise matters.
 
 ## Anti-double-settle (webhook + scheduler)
 
@@ -116,6 +140,7 @@ the same `reconcileProviderResult` so it hits the same `@Version` row. Already t
 - per-row error isolation: row A throws → row B still settled
 - batch cap: `PageRequest` size == configured `batch-size`
 - refId fallback: null `refNo` → UUID string used
+- give-up cutoff: row older than `max-age-ms` → no provider call, ALERT logged, stays PROCESSING
 
 **Repo — `@DataJpaTest`:**
 - finder returns only `PROCESSING` older than cutoff, ordered `createdAt` ASC, limited by `Pageable`
