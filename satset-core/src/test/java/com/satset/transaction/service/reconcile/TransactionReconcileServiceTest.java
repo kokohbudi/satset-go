@@ -75,7 +75,7 @@ class TransactionReconcileServiceTest {
     @Test
     void repollsStale_andSettles() {
         Transactions tx = stale();
-        when(txRepo.findByStatusAndCreatedAtBefore(eq(TransactionStatus.PROCESSING), any(), any()))
+        when(txRepo.findByStatusAndCreatedAtBetween(eq(TransactionStatus.PROCESSING), any(), any(), any()))
                 .thenReturn(List.of(tx));
         when(txRepo.findById(tx.getId())).thenReturn(Optional.of(tx));
         when(denomRepo.findDenomInfoById(denomId)).thenReturn(Optional.of(denom));
@@ -93,7 +93,7 @@ class TransactionReconcileServiceTest {
     void usesStoredRefNo_notUuid() {
         Transactions tx = stale();
         tx.setRefNo("2026072300042");
-        when(txRepo.findByStatusAndCreatedAtBefore(eq(TransactionStatus.PROCESSING), any(), any()))
+        when(txRepo.findByStatusAndCreatedAtBetween(eq(TransactionStatus.PROCESSING), any(), any(), any()))
                 .thenReturn(List.of(tx));
         when(txRepo.findById(tx.getId())).thenReturn(Optional.of(tx));
         when(denomRepo.findDenomInfoById(denomId)).thenReturn(Optional.of(denom));
@@ -107,7 +107,7 @@ class TransactionReconcileServiceTest {
 
     @Test
     void empty_doesNothing() {
-        when(txRepo.findByStatusAndCreatedAtBefore(eq(TransactionStatus.PROCESSING), any(), any()))
+        when(txRepo.findByStatusAndCreatedAtBetween(eq(TransactionStatus.PROCESSING), any(), any(), any()))
                 .thenReturn(List.of());
 
         reconcile.reconcileStalePending();
@@ -119,7 +119,7 @@ class TransactionReconcileServiceTest {
     void oneRowThrows_doesNotPoisonOtherRows() {
         Transactions tx1 = stale();
         Transactions tx2 = stale();
-        when(txRepo.findByStatusAndCreatedAtBefore(eq(TransactionStatus.PROCESSING), any(), any()))
+        when(txRepo.findByStatusAndCreatedAtBetween(eq(TransactionStatus.PROCESSING), any(), any(), any()))
                 .thenReturn(List.of(tx1, tx2));
         when(txRepo.findById(tx1.getId())).thenReturn(Optional.of(tx1));
         when(txRepo.findById(tx2.getId())).thenReturn(Optional.of(tx2));
@@ -142,7 +142,7 @@ class TransactionReconcileServiceTest {
         Transactions settled = stale();
         settled.setId(tx.getId());
         settled.setStatus(TransactionStatus.SUCCESS); // webhook settled between scan and settle
-        when(txRepo.findByStatusAndCreatedAtBefore(eq(TransactionStatus.PROCESSING), any(), any()))
+        when(txRepo.findByStatusAndCreatedAtBetween(eq(TransactionStatus.PROCESSING), any(), any(), any()))
                 .thenReturn(List.of(tx));
         when(txRepo.findById(tx.getId())).thenReturn(Optional.of(settled));
 
@@ -152,28 +152,24 @@ class TransactionReconcileServiceTest {
     }
 
     @Test
-    void giveUpCutoff_pastMaxAge_noRepoll_staysProcessing() {
-        Transactions tx = stale();
-        tx.setCreatedAt(LocalDateTime.now().minusHours(7)); // > 6h maxAge
-        when(txRepo.findByStatusAndCreatedAtBefore(eq(TransactionStatus.PROCESSING), any(), any()))
-                .thenReturn(List.of(tx));
-        when(txRepo.findById(tx.getId())).thenReturn(Optional.of(tx));
-
+    void stuckRowsPastMaxAge_countedForAlert_notInReconcileBatch() {
+        when(txRepo.countByStatusAndCreatedAtBefore(eq(TransactionStatus.PROCESSING), any())).thenReturn(3L);
+        when(txRepo.findByStatusAndCreatedAtBetween(eq(TransactionStatus.PROCESSING), any(), any(), any()))
+                .thenReturn(List.of()); // give-up rows excluded by the finder's lower bound
         reconcile.reconcileStalePending();
-
-        verifyNoInteractions(provider, txService);
-        assertThat(tx.getStatus()).isEqualTo(TransactionStatus.PROCESSING);
+        verify(txRepo).countByStatusAndCreatedAtBefore(eq(TransactionStatus.PROCESSING), any());
+        verifyNoInteractions(provider, txService); // stuck rows never re-polled
     }
 
     @Test
     void scan_usesBatchSizeAndOldestFirst() {
-        when(txRepo.findByStatusAndCreatedAtBefore(eq(TransactionStatus.PROCESSING), any(), any()))
+        when(txRepo.findByStatusAndCreatedAtBetween(eq(TransactionStatus.PROCESSING), any(), any(), any()))
                 .thenReturn(List.of());
         ArgumentCaptor<Pageable> pageable = ArgumentCaptor.forClass(Pageable.class);
 
         reconcile.reconcileStalePending();
 
-        verify(txRepo).findByStatusAndCreatedAtBefore(eq(TransactionStatus.PROCESSING), any(), pageable.capture());
+        verify(txRepo).findByStatusAndCreatedAtBetween(eq(TransactionStatus.PROCESSING), any(), any(), pageable.capture());
         assertThat(pageable.getValue().getPageSize()).isEqualTo(batchSize);
         assertThat(pageable.getValue().getSort().getOrderFor("createdAt").isAscending()).isTrue();
     }

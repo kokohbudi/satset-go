@@ -73,9 +73,19 @@ public class TransactionReconcileService {
      */
     @Scheduled(fixedDelayString = "${topup.reconcile.interval-ms:60000}")
     public void reconcileStalePending() {
-        LocalDateTime cutoff = LocalDateTime.now().minusNanos(staleAfterMs * 1_000_000);
-        List<Transactions> stale = txRepo.findByStatusAndCreatedAtBefore(
-                TransactionStatus.PROCESSING, cutoff,
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime staleCutoff = now.minus(Duration.ofMillis(staleAfterMs)); // upper: must be older than this
+        LocalDateTime maxCutoff = now.minus(Duration.ofMillis(maxAgeMs));        // lower: give-up past this
+
+        // Alert on give-up rows, decoupled from the reconcile batch so they can't starve it.
+        long stuck = txRepo.countByStatusAndCreatedAtBefore(TransactionStatus.PROCESSING, maxCutoff);
+        if (stuck > 0) {
+            log.error("ALERT: {} tx stuck PROCESSING > maxAge ({}h), need manual Ops",
+                    stuck, maxAgeMs / 3_600_000);
+        }
+
+        List<Transactions> stale = txRepo.findByStatusAndCreatedAtBetween(
+                TransactionStatus.PROCESSING, maxCutoff, staleCutoff,
                 PageRequest.of(0, batchSize, Sort.by(Sort.Direction.ASC, "createdAt")));
         if (stale.isEmpty()) return;
 
@@ -93,13 +103,6 @@ public class TransactionReconcileService {
     private void settleOne(Transactions row) {
         Transactions tx = txRepo.findById(row.getId()).orElse(null);
         if (tx == null || tx.getStatus() != TransactionStatus.PROCESSING) return; // webhook already settled
-
-        if (tx.getCreatedAt() != null
-                && Duration.between(tx.getCreatedAt(), LocalDateTime.now()).toMillis() > maxAgeMs) {
-            log.error("ALERT: tx {} stuck PROCESSING > maxAge ({}h), needs manual Ops",
-                    tx.getId(), maxAgeMs / 3_600_000);
-            return; // give up re-polling; row stays PROCESSING (DF may still settle)
-        }
 
         DenomInfo denom = denomRepo.findDenomInfoById(tx.getProductDenomId()).orElse(null);
         if (denom == null) {
