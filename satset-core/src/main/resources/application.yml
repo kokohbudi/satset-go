@@ -30,9 +30,9 @@ spring:
         jwt:
           issuer-uri: ${keycloak.base-server-url}/realms/${keycloak.realm}
   datasource:
-    url: ${DB_URL:jdbc:postgresql://localhost:5432/satset_go?socketTimeout=30&connectTimeout=10&tcpKeepAlive=true}
-    username: ${DB_USERNAME:admin}
-    password: ${DB_PASSWORD:password}
+    url: ${SATSET_CORE_DB_URL:jdbc:postgresql://localhost:5432/satset_go?socketTimeout=30&connectTimeout=10&tcpKeepAlive=true}
+    username: ${SATSET_CORE_DB_USERNAME:admin}
+    password: ${SATSET_CORE_DB_PASSWORD:password}
     driver-class-name: org.postgresql.Driver
     hikari:
       maximum-pool-size: 10

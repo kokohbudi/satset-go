@@ -13,7 +13,7 @@ services:
       KC_DB_URL_PORT: 5432
       KC_DB_URL_DATABASE: ${KC_NEON_DB}
       KC_DB_SCHEMA: ${KC_NEON_SCHEMA}
-      KC_DB_URL_PROPERTIES: "?sslmode=require&channel_binding=require"
+      KC_DB_URL_PROPERTIES: ${DB_URL_PROPERTIES}
       KC_DB_USERNAME: ${KC_NEON_USER}
       KC_DB_PASSWORD: ${KC_NEON_PASSWORD}
       KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN:-admin}
