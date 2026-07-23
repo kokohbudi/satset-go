@@ -72,6 +72,13 @@ logs/
 .impeccable/
 .agent/
 .qwen/
+# graphify: ignore all outputs everywhere (incl nested satset-core/graphify-out),
+# but track ONLY the root graph.json + report so a fresh checkout has the knowledge
+# without rescanning. Heavy/local/regenerable bits stay ignored.
 graphify-out/
+!/graphify-out/
+/graphify-out/*
+!/graphify-out/graph.json
+!/graphify-out/GRAPH_REPORT.md
 .claude/
 .superpowers/
