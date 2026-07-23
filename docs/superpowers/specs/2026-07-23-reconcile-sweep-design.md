@@ -40,9 +40,15 @@ predates the outbound-trace rule; routes business logs to `logs/Reconcile/`).
 ```
 @Scheduled(fixedDelayString = "${topup.reconcile.interval-ms:60000}")
 reconcileStalePending():
-    cutoff = now - stale-after-ms (default 120000)
-    stale  = txRepo.findByStatusAndCreatedAtBefore(
-                 PROCESSING, cutoff,
+    now         = LocalDateTime.now()
+    staleCutoff = now - stale-after-ms   // upper bound: row must be older than this
+    maxCutoff   = now - max-age-ms        // lower bound: give-up past this
+    // give-up ALERT, decoupled from the batch so stuck rows can't starve it (see §5)
+    stuck = txRepo.countByStatusAndCreatedAtBefore(PROCESSING, maxCutoff)
+    if stuck > 0: log ALERT ("{stuck} tx stuck > maxAge, manual Ops")
+    // scan only the reconcilable window [maxCutoff, staleCutoff] — give-up rows excluded
+    stale  = txRepo.findByStatusAndCreatedAtBetween(
+                 PROCESSING, maxCutoff, staleCutoff,
                  PageRequest.of(0, batchSize, Sort.ASC "createdAt"))   // oldest first, capped
     if empty: return
     for row in stale:
@@ -52,7 +58,6 @@ reconcileStalePending():
 settleOne(row):
     tx = txRepo.findById(row.id)
     if tx == null || tx.status != PROCESSING: return          // guard: webhook already settled
-    if age(tx) > max-age-ms: log ALERT, return                // give-up cutoff — see §5
     denom = denomRepo.findDenomInfoById(tx.productDenomId)
     if denom == null: log.warn, return
     resp = provider.sendTransaction(tx.targetNumber, denom.code(), tx.total, refIdFor(tx))
@@ -95,24 +100,28 @@ topup:
 ### 5. Give-up cutoff (A + B)
 
 A row keeps being re-polled every run while DF stays "Pending" (A). But past
-`max-age-ms` (6h) it is a stuck row DF will likely never resolve — `settleOne`
-skips the DF call and logs an `ALERT`-level line to `logs/Reconcile/` for manual
-Ops (B). Row stays `PROCESSING` (never auto-FAILED/refunded — DF might still settle
-it, and flipping without a DF verdict risks a wrong refund).
+`max-age-ms` (6h) it is a stuck row DF will likely never resolve. Rather than
+re-poll it forever, the scan window is **two-bounded** — `[maxCutoff, staleCutoff]`
+— so give-up rows (older than `maxCutoff`) fall *out* of the reconcile batch. This
+also prevents a backlog of permanently-stuck rows from starving newer, still-
+reconcilable ones (they'd otherwise fill the oldest-first, batch-capped scan).
+
+Ops visibility (B) is preserved but **decoupled** from the batch: once per sweep a
+separate `countByStatusAndCreatedAtBefore(PROCESSING, maxCutoff)` counts the give-up
+rows and, if any, logs one aggregate `ALERT` line to `logs/Reconcile/`. Those rows
+stay `PROCESSING` (never auto-FAILED/refunded — DF might still settle them, and
+flipping without a DF verdict risks a wrong refund); Ops resolves them manually.
 
 ```
-settleOne(row):
-    tx = txRepo.findById(row.id)
-    if tx == null || tx.status != PROCESSING: return
-    if age(tx) > max-age-ms:
-        log.error("ALERT: tx {} stuck PROCESSING > maxAge, needs manual Ops", tx.id)
-        return                                  // no re-poll past cutoff
-    ... (denom lookup, provider re-poll, reconcile) ...
+stuck = txRepo.countByStatusAndCreatedAtBefore(PROCESSING, maxCutoff)
+if stuck > 0: log.error("ALERT: {} tx stuck PROCESSING > maxAge, need manual Ops", stuck)
 ```
 
-ponytail: over-max rows re-log the ALERT every run until Ops clears them — noisy
-by design (an alert that keeps firing). Add a `reconcileAlerted` flag only if the
-noise matters.
+ponytail: the aggregate ALERT re-fires every sweep while give-up rows exist — noisy
+by design (an alert that keeps firing until Ops clears it). Config invariant
+`stale-after-ms < max-age-ms` must hold or the scan window inverts; the defaults
+satisfy it. Follow-up: an `ArgumentCaptor` test pinning the bound order, and a real-
+Postgres concurrent-settle test for the `@Version` layer.
 
 ## Anti-double-settle (webhook + scheduler)
 
@@ -123,9 +132,11 @@ No new code — three existing layers cover it:
 2. **Re-fetch + status guard** in `settleOne` (`status != PROCESSING → return`) — covers
    the sequential case (webhook settled seconds ago).
 3. **`@Version` optimistic lock** on `Transactions` — covers a true concurrent race.
-   The loser's first `save()` throws `OptimisticLockException`; in the FAILED branch that
-   `save(FAILED)` runs *before* `refundBalance`, so the loser rolls back its whole per-row
-   tx before refunding. Wallet is the same datasource → refund is undone. Zero double refund.
+   Both settlers load version N; the winner commits (N→N+1). The loser's flush issues
+   `UPDATE … WHERE version = N` → 0 rows → `OptimisticLockException`, rolling back its whole
+   per-row `TransactionTemplate` transaction — including any `refundBalance` it performed
+   (wallet is the same datasource, so the refund reverts atomically with it). Zero double refund.
+   (Safety rests on transactional atomicity, not on precise `save()` flush timing.)
 
 **Requirement on the webhook (its own branch, not this one):** the webhook MUST settle via
 the same `reconcileProviderResult` so it hits the same `@Version` row. Already true on
@@ -140,7 +151,7 @@ the same `reconcileProviderResult` so it hits the same `@Version` row. Already t
 - per-row error isolation: row A throws → row B still settled
 - batch cap: `PageRequest` size == configured `batch-size`
 - refId fallback: null `refNo` → UUID string used
-- give-up cutoff: row older than `max-age-ms` → no provider call, ALERT logged, stays PROCESSING
+- give-up: rows older than `max-age-ms` are excluded from the scan window; a separate count query drives one aggregate ALERT, and those rows are never re-polled
 
 **Repo — `@DataJpaTest`:**
 - finder returns only `PROCESSING` older than cutoff, ordered `createdAt` ASC, limited by `Pageable`
