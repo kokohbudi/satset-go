@@ -9,6 +9,7 @@ import com.satset.catalog.model.ProductDenoms;
 import com.satset.catalog.model.Products;
 import com.satset.catalog.dto.CreateDenomRequest;
 import com.satset.catalog.dto.UpdateDenomRequest;
+import com.satset.catalog.dto.BulkInquiryUpdateRequest;
 import com.satset.catalog.dto.BulkNameUpdateRequest;
 import com.satset.catalog.dto.BulkPriceUpdateRequest;
 import com.satset.catalog.dto.PriceUpdateResult;
@@ -233,6 +234,38 @@ public class DenomDomainService {
             return PriceUpdateResult.fail(item.id(), denom.getCode(), "Denom sudah dihapus");
         }
         denom.setName(name);
+        denomRepository.save(denom);
+        return PriceUpdateResult.ok(item.id(), denom.getCode());
+    }
+
+    /**
+     * Update flag requiresInquiry banyak denom sekaligus. Validation error per-item
+     * (dicek sebelum save). Satu transaksi, all-or-nothing. Reuse {@link PriceUpdateResult}
+     * sebagai amplop hasil.
+     */
+    @Transactional
+    @CacheEvict(value = "adminActiveDenoms", allEntries = true, cacheManager = "catalogCacheManager")
+    public List<PriceUpdateResult> updateInquiry(List<BulkInquiryUpdateRequest> items) {
+        Map<UUID, ProductDenoms> byId = denomsById(items.stream().map(BulkInquiryUpdateRequest::id).toList());
+        List<PriceUpdateResult> results = new ArrayList<>(items.size());
+        for (BulkInquiryUpdateRequest item : items) {
+            results.add(updateSingleInquiry(item, byId));
+        }
+        return results;
+    }
+
+    private PriceUpdateResult updateSingleInquiry(BulkInquiryUpdateRequest item, Map<UUID, ProductDenoms> byId) {
+        if (item.id() == null) {
+            return PriceUpdateResult.fail(null, null, "Denom tidak ditemukan");
+        }
+        ProductDenoms denom = byId.get(item.id());
+        if (denom == null) {
+            return PriceUpdateResult.fail(item.id(), null, "Denom tidak ditemukan");
+        }
+        if (denom.isDeleted()) {
+            return PriceUpdateResult.fail(item.id(), denom.getCode(), "Denom sudah dihapus");
+        }
+        denom.setRequiresInquiry(item.requiresInquiry());
         denomRepository.save(denom);
         return PriceUpdateResult.ok(item.id(), denom.getCode());
     }

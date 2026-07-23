@@ -7,6 +7,7 @@ import com.satset.transaction.client.WalletGateway;
 import com.satset.transaction.dto.TransactionDTO;
 import com.satset.transaction.model.TransactionStatus;
 import com.satset.transaction.service.postpaid.PostpaidService;
+import com.satset.transaction.service.prepaid.PlnInquiryService;
 import com.satset.transaction.service.topup.TransactionDomainService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -43,6 +44,7 @@ class TransactionControllerTest {
     @Mock private TransactionDomainService transactionService;
     @Mock private WalletGateway balanceService;
     @Mock private PostpaidService postpaidService;
+    @Mock private PlnInquiryService plnInquiryService;
 
     private MockMvc mockMvc;
     private final tools.jackson.databind.json.JsonMapper jsonMapper = tools.jackson.databind.json.JsonMapper.builder().build();
@@ -58,7 +60,7 @@ class TransactionControllerTest {
         userDTO.setWalletId(walletId);
 
         TransactionController controller = new TransactionController(
-                transactionService, balanceService, postpaidService, userDTO);
+                transactionService, balanceService, postpaidService, plnInquiryService, userDTO);
 
         var converter = new JacksonJsonHttpMessageConverter(jsonMapper);
 
@@ -134,7 +136,7 @@ class TransactionControllerTest {
         UserDTO noWalletUserDTO = new UserDTO();
         noWalletUserDTO.setStoreId(storeId); // storeId present, walletId null
         TransactionController noWalletController = new TransactionController(
-                transactionService, balanceService, postpaidService, noWalletUserDTO);
+                transactionService, balanceService, postpaidService, plnInquiryService, noWalletUserDTO);
         MockMvc noWalletMockMvc = MockMvcBuilders.standaloneSetup(noWalletController)
                 .setCustomArgumentResolvers(new PageableHandlerMethodArgumentResolver())
                 .build();

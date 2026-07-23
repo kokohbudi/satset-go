@@ -146,18 +146,18 @@
                         </div>
                     </div>
 
-                    <!-- Postpaid: nominal (open amount) + cek tagihan + bill card -->
-                    <div x-show="isPostpaid" x-cloak class="mt-5 space-y-3">
-                        <div x-show="isOpenAmount">
+                    <!-- Postpaid: nominal (open amount) + cek tagihan + bill card. Prepaid PLN: name-only inquiry (no bill/admin/total). -->
+                    <div x-show="isPostpaid || isPlnInquiry" x-cloak class="mt-5 space-y-3">
+                        <div x-show="isPostpaid && isOpenAmount">
                             <label class="block text-sm font-medium mb-2">Nominal</label>
                             <input type="number" x-model.number="nominal" @input="inquiryData = null"
                                 class="input input-bordered w-full tabular-nums" placeholder="Masukkan nominal"
                                 :min="denom?.minAmount" :max="denom?.maxAmount">
                             <p x-show="nominalError" class="text-xs text-error mt-1" x-text="nominalError"></p>
                         </div>
-                        <button @click="checkBill()" :disabled="!canInquire"
+                        <button @click="checkInquiry()" :disabled="!canInquire"
                             class="btn btn-outline btn-primary w-full">
-                            <span x-show="!inquiring">Cek Tagihan</span>
+                            <span x-show="!inquiring" x-text="isPlnInquiry ? 'Cek Pelanggan' : 'Cek Tagihan'"></span>
                             <span x-show="inquiring" class="loading loading-spinner loading-sm"></span>
                         </button>
                         <div x-show="inquiryData" x-cloak
@@ -166,16 +166,20 @@
                                 <span class="text-base-content/55">Nama Pelanggan</span>
                                 <span class="font-semibold" x-text="inquiryData?.customerName || '—'"></span>
                             </div>
-                            <div class="flex justify-between gap-4">
+                            <div x-show="isPlnInquiry && inquiryData?.segmentPower" class="flex justify-between gap-4">
+                                <span class="text-base-content/55">Tarif / Daya</span>
+                                <span class="font-medium" x-text="formatSegmentPower(inquiryData?.segmentPower)"></span>
+                            </div>
+                            <div x-show="isPostpaid" class="flex justify-between gap-4">
                                 <span class="text-base-content/55">Tagihan</span>
                                 <span class="tabular-nums" x-text="formatCurrency(inquiryData?.bill)"></span>
                             </div>
-                            <div class="flex justify-between gap-4">
+                            <div x-show="isPostpaid" class="flex justify-between gap-4">
                                 <span class="text-base-content/55">Biaya Admin</span>
                                 <span class="tabular-nums"
                                     x-text="formatCurrency((inquiryData?.admin || 0) + (inquiryData?.markup || 0))"></span>
                             </div>
-                            <div class="flex justify-between gap-4 border-t border-dashed border-base-300 pt-2">
+                            <div x-show="isPostpaid" class="flex justify-between gap-4 border-t border-dashed border-base-300 pt-2">
                                 <span class="font-medium">Total Bayar</span>
                                 <span class="font-bold tabular-nums text-primary"
                                     x-text="formatCurrency(inquiryData?.total)"></span>
@@ -324,7 +328,11 @@
                         return { ic: '🛒', bg: 'bg-slate-600', field: 'Nomor Tujuan', phone: false };
                     },
 
-                    get isPostpaid() { return !!this.denom?.requiresInquiry; },
+                    // needsInquiry = denom flag alone (true for BOTH postpaid bill-check AND prepaid PLN
+                    // name-check); route by category type so a prepaid PLN denom is never treated as postpaid.
+                    get needsInquiry() { return !!this.denom?.requiresInquiry; },
+                    get isPostpaid() { return this.needsInquiry && this.activeCat?.categoryType === 'POSTPAID'; },
+                    get isPlnInquiry() { return this.needsInquiry && this.activeCat?.categoryType === 'PREPAID'; },
                     get isOpenAmount() { return this.denom?.denomType === 'OPEN_AMOUNT'; },
                     get nominalError() {
                         if (!this.isPostpaid || !this.isOpenAmount || !this.nominal) return '';
@@ -335,16 +343,19 @@
                         return '';
                     },
                     get canInquire() {
-                        return this.isPostpaid && this.number.length >= 5 && !this.inquiring
+                        return (this.isPostpaid || this.isPlnInquiry) && this.number.length >= 5 && !this.inquiring
                             && (!this.isOpenAmount || (this.nominal > 0 && !this.nominalError));
                     },
                     get total() {
+                        // PLN inquiry pays the fixed denom price (normal prepaid) — only postpaid bill
+                        // inquiry replaces the total with the confirmed bill+admin+markup.
                         if (this.isPostpaid) return this.inquiryData ? this.inquiryData.total : 0;
                         return this.denom ? this.denom.price + (this.denom.adminFee || 0) : 0;
                     },
                     get isInsufficient() { return this.denom ? this.currentBalance < this.total : false; },
                     get canPay() {
                         if (this.isPostpaid) return !!this.inquiryData && !this.isInsufficient;
+                        if (this.isPlnInquiry) return !!this.inquiryData && !this.isInsufficient;
                         return !!this.denom && this.number.length >= 10 && !this.isInsufficient;
                     },
 
@@ -460,6 +471,11 @@
                         }
                     },
 
+                    async checkInquiry() {
+                        if (this.isPlnInquiry) return this.checkName();
+                        return this.checkBill();
+                    },
+
                     async checkBill() {
                         if (!this.canInquire) return;
                         this.inquiring = true; this.inquiryData = null;
@@ -476,6 +492,22 @@
                             const data = await res.json();
                             if (res.ok) this.inquiryData = data;
                             else Alpine.store('toast').error(data.message || 'Cek tagihan gagal');
+                        } catch (e) { Alpine.store('toast').error('Terjadi kesalahan jaringan'); }
+                        this.inquiring = false;
+                    },
+
+                    async checkName() {
+                        if (!this.canInquire) return;
+                        this.inquiring = true; this.inquiryData = null;
+                        try {
+                            const res = await fetch('/api/transactions/pln-inquiry', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ customerNo: this.number })
+                            });
+                            const data = await res.json();
+                            if (res.ok) this.inquiryData = data;
+                            else Alpine.store('toast').error(data.message || 'Cek pelanggan gagal');
                         } catch (e) { Alpine.store('toast').error('Terjadi kesalahan jaringan'); }
                         this.inquiring = false;
                     },
@@ -541,6 +573,14 @@
                             style: 'currency', currency: 'IDR',
                             minimumFractionDigits: 0, maximumFractionDigits: 0
                         }).format(amount);
+                    },
+
+                    // "R1 /000001300" -> "R1 / 1300 VA"; unknown shape -> raw
+                    formatSegmentPower(s) {
+                        if (!s) return '—';
+                        const [tarif, daya] = s.split('/');
+                        const va = (daya || '').replace(/^0+/, '');
+                        return va ? `${tarif.trim()} / ${va} VA` : s;
                     },
 
                     formatQuota(mb) {

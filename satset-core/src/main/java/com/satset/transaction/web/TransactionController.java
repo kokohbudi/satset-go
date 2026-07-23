@@ -7,10 +7,13 @@ import com.satset.shared.exception.ResourceNotFoundException;
 import com.satset.transaction.dto.InquiryDTO;
 import com.satset.transaction.dto.InquiryRequest;
 import com.satset.transaction.dto.PayRequest;
+import com.satset.transaction.dto.PlnInquiryDTO;
+import com.satset.transaction.dto.PlnInquiryRequest;
 import com.satset.transaction.dto.PurchaseRequest;
 import com.satset.transaction.dto.TransactionDTO;
 import com.satset.transaction.client.WalletGateway;
 import com.satset.transaction.service.postpaid.PostpaidService;
+import com.satset.transaction.service.prepaid.PlnInquiryService;
 import com.satset.transaction.service.topup.TransactionDomainService;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
@@ -33,15 +36,18 @@ public class TransactionController {
     private final TransactionDomainService transactionService;
     private final WalletGateway balanceService;
     private final PostpaidService postpaidService;
+    private final PlnInquiryService plnInquiryService;
     private final UserDTO userDTO;
 
     public TransactionController(TransactionDomainService transactionService,
             WalletGateway balanceService,
             PostpaidService postpaidService,
+            PlnInquiryService plnInquiryService,
             UserDTO userDTO) {
         this.transactionService = transactionService;
         this.balanceService = balanceService;
         this.postpaidService = postpaidService;
+        this.plnInquiryService = plnInquiryService;
         this.userDTO = userDTO;
     }
 
@@ -78,6 +84,12 @@ public class TransactionController {
             throws BusinessException {
         return ResponseEntity.ok(postpaidService.pay(getStoreId(), getWalletId(),
                 request.denomId(), request.customerNo(), request.amount(), request.expectedTotal()));
+    }
+
+    @PostMapping("/pln-inquiry")
+    @PreAuthorize("hasRole('" + SatsetConstants.PERM_PURCHASE + "')")
+    public ResponseEntity<PlnInquiryDTO> plnInquiry(@Valid @RequestBody PlnInquiryRequest request) {
+        return ResponseEntity.ok(plnInquiryService.inquiry(request.customerNo()));
     }
 
     @GetMapping("/balance")

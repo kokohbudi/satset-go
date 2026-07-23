@@ -10,7 +10,7 @@
 
 <body>
 <div layout:fragment="content" x-data="catalogManager()"
-     @keydown.window="(($event.ctrlKey || $event.metaKey) && ($event.key === 's' || $event.key === 'S') && (nameDirtyList.length || dirtyList.length)) && ($event.preventDefault(), savePending())"
+     @keydown.window="(($event.ctrlKey || $event.metaKey) && ($event.key === 's' || $event.key === 'S') && (nameDirtyList.length || dirtyList.length || inquiryDirtyList.length)) && ($event.preventDefault(), savePending())"
      th:data-can-manage-cat="${#authorization.expression('hasRole(''REALM_manage_categories'')')}"
      th:data-can-manage-prod="${#authorization.expression('hasRole(''REALM_manage_products'')')}"
      th:data-can-manage-denom="${#authorization.expression('hasRole(''REALM_manage_denoms'')')}">
@@ -41,25 +41,51 @@
                 <span x-show="deactivating" class="loading loading-spinner loading-xs"></span>
                 Nonaktifkan Hilang (<span x-text="missingCount"></span>)
             </button>
-            <button sec:authorize="hasRole('REALM_manage_denoms')" class="btn btn-outline btn-quiet btn-sm tap" @click="showMarkup = !showMarkup; if (!showMarkup) selectedIds = []">Atur Harga Massal</button>
         </div>
     </div>
 
     <!-- Unsaved-changes bar: keeps the transient save actions out of the header
          so they don't crowd/wrap the always-on tools. Shown only when dirty. -->
-    <div sec:authorize="hasRole('REALM_manage_denoms')" x-show="nameDirtyList.length > 0 || dirtyList.length > 0" x-cloak
+    <div sec:authorize="hasRole('REALM_manage_denoms')" x-show="nameDirtyList.length > 0 || dirtyList.length > 0 || inquiryDirtyList.length > 0" x-cloak
          class="flex flex-wrap items-center gap-3 mb-4 rounded-lg border border-base-300 bg-base-200 px-4 py-2.5">
         <span class="text-sm font-medium">
-            <b x-text="nameDirtyList.length + dirtyList.length"></b> perubahan belum disimpan
+            <b x-text="nameDirtyList.length + dirtyList.length + inquiryDirtyList.length"></b> perubahan belum disimpan
         </span>
         <div class="flex flex-wrap gap-2 sm:ml-auto">
             <button x-show="nameDirtyList.length > 0" x-cloak class="btn btn-warning btn-sm tap" @click="openNameModal()">Simpan Nama (<span x-text="nameDirtyList.length"></span>)</button>
             <button x-show="dirtyList.length > 0" x-cloak class="btn btn-warning btn-sm tap" @click="openPriceModal()">Simpan Harga (<span x-text="dirtyList.length"></span>)</button>
+            <button x-show="inquiryDirtyList.length > 0" x-cloak class="btn btn-warning btn-sm tap" @click="saveInquiry()" :disabled="savingInquiry">Simpan Inquiry (<span x-text="inquiryDirtyList.length"></span>)</button>
         </div>
     </div>
 
-    <!-- Markup massal (bulk price uplift on selected denoms) -->
-    <div sec:authorize="hasRole('REALM_manage_denoms')" x-show="showMarkup" x-cloak class="card bg-base-100 shadow-sm p-4 mb-4">
+    <!-- Contextual bulk-action bar: surfaces only when denoms are selected, keeping
+         selection-scoped actions next to the count and table instead of the page header. -->
+    <div sec:authorize="hasRole('REALM_manage_denoms')" x-show="selectedIds.length > 0" x-cloak
+         class="flex flex-wrap items-center gap-3 mb-3 rounded-lg border border-primary/40 bg-primary/5 px-4 py-2.5">
+        <span class="text-sm font-medium"><b x-text="selectedIds.length"></b> denom terpilih</span>
+        <div class="flex flex-wrap items-center gap-2 sm:ml-auto">
+            <button class="btn btn-sm btn-outline btn-quiet tap gap-1.5" :class="showMarkup ? 'btn-active' : ''"
+                    @click="showMarkup = !showMarkup" :aria-expanded="showMarkup">
+                Atur Harga
+                <svg class="w-3.5 h-3.5 transition-transform" :class="showMarkup ? 'rotate-180' : ''" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m5 8 5 5 5-5"/></svg>
+            </button>
+            <div class="dropdown dropdown-end">
+                <div tabindex="0" role="button" class="btn btn-sm btn-outline btn-quiet tap gap-1.5">
+                    Set Inquiry
+                    <svg class="w-3.5 h-3.5" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m5 8 5 5 5-5"/></svg>
+                </div>
+                <ul tabindex="0" class="dropdown-content menu z-30 mt-1 w-56 rounded-box border border-base-300 bg-base-100 p-2 shadow-lg">
+                    <li><a @click="setBulkInquiry(true); document.activeElement.blur()">Ya — cek nama/tagihan dulu</a></li>
+                    <li><a @click="setBulkInquiry(false); document.activeElement.blur()">Tidak — beli langsung</a></li>
+                </ul>
+            </div>
+            <button class="btn btn-sm btn-ghost tap" @click="selectedIds = []; showMarkup = false">Bersihkan</button>
+        </div>
+    </div>
+
+    <!-- Markup massal — expands from the selection bar (bulk price uplift on selected denoms) -->
+    <div sec:authorize="hasRole('REALM_manage_denoms')" x-show="showMarkup && selectedIds.length > 0" x-cloak
+         class="card border border-base-300 bg-base-100 shadow-sm p-4 mb-4">
         <div class="flex flex-wrap items-end gap-3">
             <label class="form-control"><span class="label-text text-xs">Hitung dari</span>
                 <select class="select select-bordered select-sm" x-model="markup.base">
@@ -165,7 +191,7 @@
                        :style="denomsLoading ? 'opacity:0.45; transition:opacity .2s' : 'transition:opacity .2s'">
                     <thead>
                     <tr>
-                        <th sec:authorize="hasRole('REALM_manage_denoms')" x-show="showMarkup" x-cloak>
+                        <th sec:authorize="hasRole('REALM_manage_denoms')">
                             <input type="checkbox" class="checkbox checkbox-sm" @change="toggleSelectAll($event.target.checked)" :checked="allVisibleSelected()"/>
                         </th>
                         <th>Kode</th>
@@ -188,7 +214,7 @@
                     <tbody>
                     <template x-for="(d, idx) in filteredDenoms" :key="d.id">
                         <tr :class="d.deleted ? 'opacity-40' : ''">
-                            <td sec:authorize="hasRole('REALM_manage_denoms')" x-show="showMarkup" x-cloak>
+                            <td sec:authorize="hasRole('REALM_manage_denoms')">
                                 <input type="checkbox" class="checkbox checkbox-sm" :value="d.id" x-model="selectedIds" :disabled="d.deleted"/>
                             </td>
                             <td class="font-mono text-xs" x-text="d.code"></td>
@@ -513,7 +539,7 @@
                         <div class="form-control">
                             <label class="label"><span class="label-text text-xs">Inquiry</span></label>
                             <label class="label cursor-pointer justify-start gap-2">
-                                <input type="checkbox" class="toggle toggle-sm" x-model="denomForm.requiresInquiry" :disabled="denomSaving">
+                                <input type="checkbox" class="toggle toggle-primary toggle-sm" x-model="denomForm.requiresInquiry" :disabled="denomSaving">
                                 <span class="label-text text-xs" x-text="denomForm.requiresInquiry ? 'Ya' : 'Tidak'"></span>
                             </label>
                         </div>
@@ -792,10 +818,11 @@
             },
             openNameModal() { this.nameResults = []; this.showNameModal = true; },
             // Ctrl/Cmd+S opens the review-and-save for whatever is pending
-            // (prices first — money — then names). No-op when nothing is dirty.
+            // (prices first — money — then names — then inquiry). No-op when nothing is dirty.
             savePending() {
                 if (this.dirtyList.length > 0) this.openPriceModal();
                 else if (this.nameDirtyList.length > 0) this.openNameModal();
+                else if (this.inquiryDirtyList.length > 0) this.saveInquiry();
             },
             async submitNames() {
                 this.savingNames = true;
@@ -814,6 +841,40 @@
                     else Alpine.store('toast').error(`${failCount} gagal disimpan, ${okCount} sukses`);
                 } catch (e) { Alpine.store('toast').error(e.message); }
                 finally { this.savingNames = false; }
+            },
+
+            // ---- bulk inquiry flag edit (checkbox select + Inquiry: Ya/Tidak) ----
+            inquiryDirty: {}, savingInquiry: false,
+            get inquiryDirtyList() { return Object.keys(this.inquiryDirty); },
+            setBulkInquiry(value) {
+                if (this.selectedIds.length === 0) { Alpine.store('toast').error('Centang dulu denom yang mau diatur'); return; }
+                let applied = 0;
+                for (const id of this.selectedIds) {
+                    const d = this.denoms.find(x => x.id === id);
+                    if (!d || d.deleted) continue;
+                    d.requiresInquiry = value;
+                    this.inquiryDirty[id] = value;
+                    applied++;
+                }
+                Alpine.store('toast').success(`${applied} denom di-set, cek & simpan`);
+            },
+            async saveInquiry() {
+                this.savingInquiry = true;
+                try {
+                    const res = await fetch('/api/admin/catalog/denoms/inquiry', {
+                        method: 'PUT', headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(this.inquiryDirtyList.map(id => ({ id, requiresInquiry: this.inquiryDirty[id] })))
+                    });
+                    if (!res.ok) throw await this.httpError(res, 'Gagal menyimpan inquiry. Coba lagi.');
+                    const results = await res.json();
+                    const okCount = results.filter(r => r.ok).length;
+                    const failCount = results.length - okCount;
+                    for (const r of results) { if (r.ok) delete this.inquiryDirty[r.id]; }
+                    await this.refreshDenoms();
+                    if (failCount === 0) Alpine.store('toast').success(`${okCount} inquiry diperbarui`);
+                    else Alpine.store('toast').error(`${failCount} gagal disimpan, ${okCount} sukses`);
+                } catch (e) { Alpine.store('toast').error(e.message); }
+                finally { this.savingInquiry = false; }
             },
 
             // ---- cell arrow-nav (Nama <-> Harga Jual, up/down rows) ----

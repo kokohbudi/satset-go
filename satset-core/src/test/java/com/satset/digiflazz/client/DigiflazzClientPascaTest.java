@@ -20,7 +20,10 @@ class DigiflazzClientPascaTest {
     void setUp() {
         RestClient.Builder builder = RestClient.builder();
         server = MockRestServiceServer.bindTo(builder).build();
-        client = new DigiflazzClient(builder.build(), "https://api.digiflazz.com/v1", "u", "k", false);
+        client = new DigiflazzClient(builder.build(),
+                "https://api.digiflazz.com/v1/price-list",
+                "https://api.digiflazz.com/v1/transaction",
+                "https://api.digiflazz.com/v1/inquiry-pln", "u", "k", false);
     }
 
     @Test

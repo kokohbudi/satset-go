@@ -1,5 +1,6 @@
 package com.satset.catalog.web;
 
+import com.satset.catalog.dto.BulkInquiryUpdateRequest;
 import com.satset.catalog.dto.BulkNameUpdateRequest;
 import com.satset.catalog.dto.BulkPriceUpdateRequest;
 import com.satset.catalog.dto.PriceUpdateResult;
@@ -185,6 +186,13 @@ public class AdminCatalogController {
     public ResponseEntity<List<PriceUpdateResult>> updateDenomNames(
             @RequestBody List<BulkNameUpdateRequest> req) {
         return ResponseEntity.ok(manageDenomsUseCase.updateNames(req));
+    }
+
+    @PutMapping("/denoms/inquiry")
+    @PreAuthorize("hasRole('" + SatsetConstants.PERM_MANAGE_DENOMS + "')")
+    public ResponseEntity<List<PriceUpdateResult>> updateDenomInquiry(
+            @RequestBody List<BulkInquiryUpdateRequest> req) {
+        return ResponseEntity.ok(manageDenomsUseCase.updateInquiry(req));
     }
 
     @DeleteMapping("/denoms/{id}")

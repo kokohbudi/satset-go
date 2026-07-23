@@ -6,6 +6,7 @@ import com.satset.catalog.model.ProductDenoms;
 import com.satset.catalog.model.Products;
 import com.satset.catalog.dto.CreateDenomRequest;
 import com.satset.catalog.dto.UpdateDenomRequest;
+import com.satset.catalog.dto.BulkInquiryUpdateRequest;
 import com.satset.catalog.dto.BulkNameUpdateRequest;
 import com.satset.catalog.dto.BulkPriceUpdateRequest;
 import com.satset.catalog.dto.PriceUpdateResult;
@@ -628,6 +629,78 @@ class DenomDomainServiceTest {
     void updateNames_IsWriteTransactional() throws Exception {
         var tx = DenomDomainService.class
                 .getMethod("updateNames", List.class)
+                .getAnnotation(org.springframework.transaction.annotation.Transactional.class);
+
+        assertThat(tx).isNotNull();
+        assertThat(tx.readOnly()).isFalse();
+    }
+
+    // === BULK INQUIRY UPDATE ===
+
+    @Test
+    void updateInquiry_AllValid_UpdatesAndReturnsOk() {
+        UUID otherId = UUID.randomUUID();
+        ProductDenoms other = new ProductDenoms();
+        other.setId(otherId);
+        other.setCode("TLKM10");
+        other.setRequiresInquiry(false);
+        existingDenom.setRequiresInquiry(false);
+        when(denomRepository.findAllById(any())).thenReturn(List.of(existingDenom, other));
+        when(denomRepository.save(any(ProductDenoms.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        List<PriceUpdateResult> results = denomService.updateInquiry(List.of(
+                new BulkInquiryUpdateRequest(denomId, true),
+                new BulkInquiryUpdateRequest(otherId, true)));
+
+        assertThat(results).hasSize(2).allMatch(PriceUpdateResult::ok);
+        assertThat(existingDenom.isRequiresInquiry()).isTrue();
+        assertThat(other.isRequiresInquiry()).isTrue();
+        verify(denomRepository, times(2)).save(any(ProductDenoms.class));
+    }
+
+    @Test
+    void updateInquiry_NotFound_ItemError_OthersSucceed() {
+        UUID missingId = UUID.randomUUID();
+        when(denomRepository.findAllById(any())).thenReturn(List.of(existingDenom));  // missingId absen
+        when(denomRepository.save(any(ProductDenoms.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        List<PriceUpdateResult> results = denomService.updateInquiry(List.of(
+                new BulkInquiryUpdateRequest(missingId, true),
+                new BulkInquiryUpdateRequest(denomId, true)));
+
+        assertThat(results.get(0).ok()).isFalse();
+        assertThat(results.get(0).error()).isEqualTo("Denom tidak ditemukan");
+        assertThat(results.get(1).ok()).isTrue();
+        verify(denomRepository, times(1)).save(any(ProductDenoms.class));
+    }
+
+    @Test
+    void updateInquiry_DeletedDenom_ItemError_NoSave() {
+        existingDenom.setDeleted(true);
+        when(denomRepository.findAllById(any())).thenReturn(List.of(existingDenom));
+
+        List<PriceUpdateResult> results = denomService.updateInquiry(List.of(
+                new BulkInquiryUpdateRequest(denomId, true)));
+
+        assertThat(results.get(0).ok()).isFalse();
+        assertThat(results.get(0).error()).isEqualTo("Denom sudah dihapus");
+        verify(denomRepository, never()).save(any(ProductDenoms.class));
+    }
+
+    @Test
+    void updateInquiry_NullId_ItemError_NoLookup() {
+        List<PriceUpdateResult> results = denomService.updateInquiry(List.of(
+                new BulkInquiryUpdateRequest(null, true)));
+
+        assertThat(results.get(0).ok()).isFalse();
+        assertThat(results.get(0).error()).isEqualTo("Denom tidak ditemukan");
+        verify(denomRepository, never()).findAllById(any());   // null id -> no lookup
+    }
+
+    @Test
+    void updateInquiry_IsWriteTransactional() throws Exception {
+        var tx = DenomDomainService.class
+                .getMethod("updateInquiry", List.class)
                 .getAnnotation(org.springframework.transaction.annotation.Transactional.class);
 
         assertThat(tx).isNotNull();

@@ -363,6 +363,27 @@ class AdminCatalogControllerTest {
         verify(manageDenomsUseCase).updatePrices(any());
     }
 
+    @Test
+    void updateDenomInquiry_ReturnsPerItemResults() throws Exception {
+        UUID id1 = UUID.randomUUID();
+        UUID id2 = UUID.randomUUID();
+        when(manageDenomsUseCase.updateInquiry(any())).thenReturn(List.of(
+                PriceUpdateResult.ok(id1, "byu10"),
+                PriceUpdateResult.fail(id2, null, "Denom tidak ditemukan")));
+
+        String body = "[{\"id\":\"" + id1 + "\",\"requiresInquiry\":true},{\"id\":\"" + id2 + "\",\"requiresInquiry\":false}]";
+
+        mockMvc.perform(put("/api/admin/catalog/denoms/inquiry")
+                        .contentType("application/json").content(body))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].ok").value(true))
+                .andExpect(jsonPath("$[0].code").value("byu10"))
+                .andExpect(jsonPath("$[1].ok").value(false))
+                .andExpect(jsonPath("$[1].error").value("Denom tidak ditemukan"));
+
+        verify(manageDenomsUseCase).updateInquiry(any());
+    }
+
     // ==================== Helpers ====================
 
     private Category buildCategory(String code, String name) {

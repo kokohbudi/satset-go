@@ -24,7 +24,10 @@ class DigiflazzClientTopupTest {
         server = MockRestServiceServer.bindTo(builder).build();
         RestClient rc = builder.build();
         // username="u", apiKey="k" -> sign = md5("u" + "k" + "ref1"); testing=false (prod default)
-        client = new DigiflazzClient(rc, "https://api.digiflazz.com/v1", "u", "k", false);
+        client = new DigiflazzClient(rc,
+                "https://api.digiflazz.com/v1/price-list",
+                "https://api.digiflazz.com/v1/transaction",
+                "https://api.digiflazz.com/v1/inquiry-pln", "u", "k", false);
     }
 
     @Test
@@ -69,7 +72,9 @@ class DigiflazzClientTopupTest {
     @Test
     void topup_testingMode_sendsTestingTrue() {
         DigiflazzClient testClient = new DigiflazzClient(builder.build(),
-                "https://api.digiflazz.com/v1", "u", "k", true);
+                "https://api.digiflazz.com/v1/price-list",
+                "https://api.digiflazz.com/v1/transaction",
+                "https://api.digiflazz.com/v1/inquiry-pln", "u", "k", true);
         server.expect(requestTo("https://api.digiflazz.com/v1/transaction"))
               .andExpect(jsonPath("$.testing").value(true))   // dev test mode -> DF canned response, no charge
               .andRespond(withSuccess("""

@@ -2,6 +2,7 @@ package com.satset.transaction.client;
 
 import com.satset.digiflazz.client.DigiflazzClient;
 import com.satset.transaction.model.InquiryResult;
+import com.satset.transaction.model.PlnInquiryResult;
 import com.satset.transaction.model.ProviderResponse;
 import com.satset.transaction.model.ProviderStatus;
 import lombok.extern.slf4j.Slf4j;
@@ -55,6 +56,13 @@ public class RealProviderAdapter implements ProviderPort {
         DigiflazzClient.DigiTxResult r = digiflazz.payPostpaid(refId, denomCode, customerNo);
         return new ProviderResponse(mapStatus(r.status(), r.rc()), emptyToNull(r.refId()),
                 emptyToNull(r.sn()), r.message(), r.price());
+    }
+
+    @Override
+    public PlnInquiryResult plnInquiry(String customerNo) {
+        DigiflazzClient.DigiPlnInquiryResult r = digiflazz.inquiryPln(customerNo);
+        return new PlnInquiryResult(emptyToNull(r.name()), emptyToNull(r.meterNo()),
+                emptyToNull(r.segmentPower()), r.rc(), r.message());
     }
 
     private static ProviderStatus mapStatus(String dfStatus, String rc) {

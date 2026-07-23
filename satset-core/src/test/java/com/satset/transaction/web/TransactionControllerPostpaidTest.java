@@ -9,6 +9,7 @@ import com.satset.transaction.dto.InquiryRequest;
 import com.satset.transaction.dto.PayRequest;
 import com.satset.transaction.dto.TransactionDTO;
 import com.satset.transaction.service.postpaid.PostpaidService;
+import com.satset.transaction.service.prepaid.PlnInquiryService;
 import com.satset.transaction.service.topup.TransactionDomainService;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
@@ -35,10 +36,11 @@ class TransactionControllerPostpaidTest {
     private final TransactionDomainService txService = mock(TransactionDomainService.class);
     private final WalletGateway walletGateway = mock(WalletGateway.class);
     private final PostpaidService postpaidService = mock(PostpaidService.class);
+    private final PlnInquiryService plnInquiryService = mock(PlnInquiryService.class);
     private final UserDTO userDTO = mock(UserDTO.class);
 
     private final TransactionController controller =
-            new TransactionController(txService, walletGateway, postpaidService, userDTO);
+            new TransactionController(txService, walletGateway, postpaidService, plnInquiryService, userDTO);
 
     @Test
     void inquiryDelegatesToPostpaidService() throws Exception {

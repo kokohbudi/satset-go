@@ -44,7 +44,6 @@ public class DigiflazzClient {
     private static final TypeReference<List<PriceListItem>> LIST_TYPE = new TypeReference<>() {};
 
     private final RestClient http;
-    private final String baseUrl;
     private final String username;
     private final String apiKey;
     /** Dev-only: sends {@code "testing":true} on /transaction so DF returns canned
@@ -52,14 +51,26 @@ public class DigiflazzClient {
      *  WITHOUT charging real deposit. MUST be false in prod. */
     private final boolean testing;
 
+    /** Full endpoint URLs — composed in config (application.yml) from {@code digiflazz.base-url} +
+     *  path, so no host/path literal lives here. Override any one via env without moving the others
+     *  (e.g. {@code DIGIFLAZZ_INQUIRY_PLN_URL} → a Postman mock): {@code /inquiry-pln} needs a
+     *  PRODUCTION key on real DF (dev key → rc=41), so it's the usual one to mock in dev. */
+    private final String priceListUrl;
+    private final String transactionUrl;
+    private final String inquiryPlnUrl;
+
     public DigiflazzClient(
             RestClient providerRestClient,
-            @Value("${digiflazz.base-url:https://api.digiflazz.com/v1}") String baseUrl,
+            @Value("${digiflazz.price-list-url}") String priceListUrl,
+            @Value("${digiflazz.transaction-url}") String transactionUrl,
+            @Value("${digiflazz.inquiry-pln-url}") String inquiryPlnUrl,
             @Value("${digiflazz.username:}") String username,
             @Value("${digiflazz.api-key:}") String apiKey,
             @Value("${digiflazz.testing:false}") boolean testing) {
         this.http = providerRestClient;
-        this.baseUrl = baseUrl;
+        this.priceListUrl = priceListUrl;
+        this.transactionUrl = transactionUrl;
+        this.inquiryPlnUrl = inquiryPlnUrl;
         this.username = username;
         this.apiKey = apiKey;
         this.testing = testing;
@@ -85,7 +96,7 @@ public class DigiflazzClient {
         log.info("Digiflazz price-list — fetch prepaid");
         var req = new PriceListRequest("prepaid", username, sign("pricelist"));
         String raw = http.post()
-                .uri(baseUrl + "/price-list")
+                .uri(priceListUrl)
                 .contentType(APPLICATION_JSON)
                 .body(req)
                 .retrieve()
@@ -137,7 +148,7 @@ public class DigiflazzClient {
         String raw;
         try {
             raw = http.post()
-                    .uri(baseUrl + "/transaction")
+                    .uri(transactionUrl)
                     .contentType(APPLICATION_JSON)
                     .body(req)
                     .retrieve()
@@ -178,7 +189,7 @@ public class DigiflazzClient {
                 refId, sign(refId), testing, amount);
         try {
             String raw = http.post()
-                    .uri(baseUrl + "/transaction")
+                    .uri(transactionUrl)
                     .contentType(APPLICATION_JSON)
                     .body(request)
                     .retrieve()
@@ -211,7 +222,7 @@ public class DigiflazzClient {
                 refId, sign(refId), testing, null);
         try {
             String raw = http.post()
-                    .uri(baseUrl + "/transaction")
+                    .uri(transactionUrl)
                     .contentType(APPLICATION_JSON)
                     .body(request)
                     .retrieve()
@@ -231,6 +242,42 @@ public class DigiflazzClient {
         }
     }
 
+    /** Result of prepaid PLN customer-name inquiry (POST /inquiry-pln) — no bill, name-only. */
+    public record DigiPlnInquiryResult(String status, String rc, String customerNo, String name,
+                                       String meterNo, String segmentPower, String message) {}
+
+    /**
+     * Prepaid PLN customer-name inquiry — POST /inquiry-pln. Different shape from inq-pasca:
+     * no {@code commands}, no {@code ref_id}, no {@code buyer_sku_code}, no {@code testing} field
+     * (DF ignores it here — verified manually). Sign = md5(username + apiKey + customer_no).
+     * NOTE: DF validates this call's signature against the PRODUCTION key regardless of the
+     * testing flag, so it does not work with the dev key (returns rc=41 "Signature Anda salah").
+     */
+    public DigiPlnInquiryResult inquiryPln(String customerNo) {
+        var request = new PlnInquiryRequest(username, customerNo, sign(customerNo));
+        try {
+            String raw = http.post()
+                    .uri(inquiryPlnUrl)
+                    .contentType(APPLICATION_JSON)
+                    .body(request)
+                    .retrieve()
+                    .body(String.class);
+            JsonNode data = MAPPER.readTree(raw == null ? "" : raw).path("data");
+            return new DigiPlnInquiryResult(
+                    data.path("status").asText(null),
+                    data.path("rc").asText(null),
+                    data.path("customer_no").asText(null),
+                    data.path("name").asText(null),
+                    data.path("meter_no").asText(null),
+                    data.path("segment_power").asText(null),
+                    data.path("message").asText(null));
+        } catch (RestClientException e) {
+            return new DigiPlnInquiryResult(null, "HTTP", customerNo, null, null, null, e.getMessage());
+        } catch (Exception e) {
+            return new DigiPlnInquiryResult(null, "PARSE", customerNo, null, null, null, e.getMessage());
+        }
+    }
+
     @JsonInclude(NON_NULL)
     private record PascaRequest(String commands, String username, String buyer_sku_code,
                                 String customer_no, String ref_id, String sign, boolean testing,
@@ -241,4 +288,6 @@ public class DigiflazzClient {
                                       boolean testing) {}
 
     private record PriceListRequest(String cmd, String username, String sign) {}
+
+    private record PlnInquiryRequest(String username, String customer_no, String sign) {}
 }

@@ -78,6 +78,12 @@ digiflazz:
   # (087800001230=Sukses, 087800001233=Pending→Sukses) TANPA charge deposit asli.
   # Prod overlay (application-prod.yml) MEMAKSA false. Override lokal: DIGIFLAZZ_TESTING=false.
   testing: ${DIGIFLAZZ_TESTING:true}
+  # URL endpoint di-compose dari base-url + path (default). Tiap endpoint bisa di-override
+  # sendiri lewat env tanpa geser yg lain. Contoh: /inquiry-pln (cek nama prabayar PLN) butuh
+  # PRODUCTION key di DF asli (dev-key → rc=41) → set DIGIFLAZZ_INQUIRY_PLN_URL ke Postman mock.
+  price-list-url:  ${DIGIFLAZZ_PRICE_LIST_URL:${digiflazz.base-url}/price-list}
+  transaction-url: ${DIGIFLAZZ_TRANSACTION_URL:${digiflazz.base-url}/transaction}
+  inquiry-pln-url: ${DIGIFLAZZ_INQUIRY_PLN_URL:${digiflazz.base-url}/inquiry-pln}
 
 # Performance optimizations
 server:
