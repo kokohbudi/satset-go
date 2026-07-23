@@ -29,6 +29,18 @@ public interface TransactionRepository extends JpaRepository<Transactions, UUID>
             Collection<TransactionStatus> statuses,
             LocalDateTime since);
 
+    /**
+     * Reconcile scan: rows of a status whose age is within the sweep window — older
+     * than the stale threshold (upper bound) but not yet past the give-up cutoff
+     * (lower bound, inclusive). Give-up rows are excluded here so a backlog of
+     * permanently-stuck rows can't starve the batch. Ordered + capped by {@link Pageable}.
+     */
+    List<Transactions> findByStatusAndCreatedAtBetween(
+            TransactionStatus status, LocalDateTime from, LocalDateTime to, Pageable pageable);
+
+    /** Count rows stuck past the give-up cutoff — drives the aggregate Ops ALERT. */
+    long countByStatusAndCreatedAtBefore(TransactionStatus status, LocalDateTime cutoff);
+
     // ponytail: raw aggregate over transactions; add a daily rollup table only if this query gets slow at volume
     @Query("""
             SELECT new com.satset.accounting.dto.PnlSummary(
